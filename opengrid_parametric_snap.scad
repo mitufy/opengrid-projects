@@ -79,7 +79,7 @@ thread_bottom_bevel_lite = 1.2; //0.1
 
 /* [Expanding Snap Options] */
 //While the default should suffice for most use cases, you can experiment to find the ideal value for your filament.
-expand_distance = 1.2; //0.05
+expand_distance = 1.3; //0.01
 
 //The part before the threads start expanding. Increase this value if you find it difficult to get the screw started.
 expand_entry_height = 0.4;
