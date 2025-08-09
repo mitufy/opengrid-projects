@@ -1,9 +1,9 @@
 /* 
-Created by mitufy.
 Licensed Creative Commons Attribution 4.0 International
 
-Inspired by David D's "openGrid - Minimal Hook". https://www.printables.com/model/1217962-opengrid-minimal-hook
+Created by mitufy. https://github.com/mitufy
 
+Inspired by David D's "openGrid - Minimal Hook". https://www.printables.com/model/1217962-opengrid-minimal-hook
 Part of code is based on BlackjackDuck's "openGrid - Tile Generator". https://makerworld.com/en/models/1304337-opengrid-tile-generator
 
 2025-07-30 Update: Add a maximum side chamfer calculation to better handle extremely small parameters.
@@ -39,7 +39,7 @@ hook_tip_diff_angle = 10; //[0:5:60]
 snap_depth = 4; //[4, 3.4]
 
 /*[Hidden]*/
-//0.42 is common line width for 0.4mm nozzles.
+//0.42 is a common line width for 0.4mm nozzles.
 snap_thickness = 0.84; // 0.42
 
 hook_length_chamfer_limit = (hook_length / 2 - 0.01 <= 0 || hook_bottom_thickness / 2 - 0.01 <= 0) && (hook_tip_length / 2 - 0.01 <= 0 || hook_tip_thickness / 2 - 0.01 <= 0) ? 10000 : min(hook_length / 2 - 0.01, hook_bottom_thickness / 2 - 0.01);

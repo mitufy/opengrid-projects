@@ -14,35 +14,35 @@ include <BOSL2/threading.scad>
 //It seems as of now (2025-08) makerworld's customizer needs rounding.scad to be included manually, despite the fact it should be included in std.scad according to BOSL2 wiki.
 include <BOSL2/rounding.scad>
 
-//Full - 6.8mm   Lite Strong - 4mm   Lite Basic - 3.4mm
+//Full - 6.8mm.   Lite Strong - 4mm.   Lite Basic - 3.4mm.
 snap_version = "Full"; //["Full","Lite Strong", "Lite Basic"]
 snap_base_shape = "Directional"; //["Directional","Symmetric"]
 generate_connector = true;
 generate_snap = true;
 
 /* [Expanding Snap Options] */
-//While the default should suffice for most use cases, you can experiment to find the ideal value for your filament.
+//While the default should suffice for most use cases, you can experiment to find the optimized value for your filament.
 expand_distance = 1.3; //0.01
 
 //The part before the threads start expanding. Increase this value if you find it difficult to get the screw started.
 expand_entry_height = 0.4;
 
-//Expanding snap's threads are rotated 45 degrees by default. If you prefer more a consistent look with official snaps, set this value to 0.
+//Expanding snap's threads are rotated 45 degrees by default. If you prefer a look more consistent with official snaps, set this value to 0.
 expand_threads_offset_angle = 45;
 
 /* [Expanding Snap Advanced Options] */
-//Default spring parameters are set to products of 0.42, a common linewidth for 0.4mm nozzles
+//Default spring parameters are set to products of 0.42, a common line width for 0.4mm nozzles.
 spring_thickness = 1.26;
 spring_to_center_thickness = 0.84;
 spring_gap = 0.42;
 spring_face_chamfer = 0.2;
-//this value dictates how much the width of each layer of threads differs from the last. Setting it lower makes the threads smoother and takes longer to generate. For 3d printing, 0.05 should be more than sufficient.
+//This value dictates how much the width of each layer of threads differs from the last. Setting it lower makes the threads smoother and takes longer to generate. For 3d printing, 0.05 should be more than sufficient.
 expansion_distance_step = 0.05;
 
 /* [Text Options] */
 add_snap_thickness_text = false;
 add_connector_thickness_text = false;
-//Useful when experimenting with expansion width.
+//Useful when experimenting with expansion distance.
 add_snap_expansion_distance_text = false;
 text_depth = 0.4;
 
