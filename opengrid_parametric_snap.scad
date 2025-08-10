@@ -20,18 +20,10 @@ snap_base_shape = "Directional"; //["Directional","Symmetric"]
 //Full - 6.8mm.   Lite Strong - 4mm.   Lite Basic - 3.4mm.
 snap_version = "Full"; //["Full","Lite Strong", "Lite Basic"]
 
-override_snap_thickness = false;
-//Custom thickness only applies when override_snap_thickness is checked.
-custom_snap_thickness = 3.4;
-
 generate_connector = true;
 generate_snap = true;
 
 /* [Snap Body Options] */
-//Multiconnect threads are designed to have 16mm diameter and 0.5mm clearance, 16.5mm is the offical diameter for negative parts.
-mconnect_positive_threads_diameter = 16;
-mconnect_threads_clearance = 0.5;
-
 snap_body_width = 24.8;
 
 snap_corner_edge_height = 1.5;
@@ -77,28 +69,29 @@ side_cut_thickness = 0.4; //0.1
 side_cut_depth = 0.8; //0.1
 side_cut_offset_to_top = 0.8; //0.1
 
-/* [Thread Options] */
-thread_top_bevel = 0.5; //0.1
-thread_bottom_bevel_full = 2; //0.1
-thread_bottom_bevel_lite = 1.2; //0.1
+/* [threads Options] */
+//Multiconnect threads are designed to have 16mm diameter and 0.5mm clearance, 16.5mm is the offical diameter for negative parts.
+multiconnect_threads_positive_diameter = 16;
+multiconnect_threads_clearance = 0.5;
+threads_top_bevel = 0.5; //0.1
+threads_bottom_bevel_full = 2; //0.1
+threads_bottom_bevel_lite = 1.2; //0.1
 
 /* [Expanding Snap Options] */
 //While the default should suffice for most use cases, you can experiment to find the optimized value for your filament.
-expand_distance = 1.3; //0.01
-
+expand_distance = 1.3; //0.05
 //The part before the threads start expanding. Increase this value if you find it difficult to get the screw started.
 expand_entry_height = 0.4;
-
 //Expanding snap's threads are rotated 45 degrees by default. If you prefer a look more consistent with official snaps, set this value to 0.
 expand_threads_offset_angle = 45;
 
 /* [Expanding Snap Advanced Options] */
-//Default spring parameters are set to products of 0.42, a common line width for 0.4mm nozzles.
+//Default spring thickness parameters are set to products of 0.42, a common line width for 0.4mm nozzles.
 spring_thickness = 1.26;
 spring_to_center_thickness = 0.84;
 spring_gap = 0.42;
 spring_face_chamfer = 0.2;
-//The part at the bottom that completely expands to target width. It's not recommended to set this lower than thread_bottom_bevel.
+//The part at the bottom that completely expands to target width. It's not recommended to set this lower than threads_bottom_bevel.
 expand_endpart_height_full = 2; //0.1
 expand_endpart_height_lite = 1.2; //0.1
 //this value dictates how much the width of each layer of threads differs from the last. Setting it lower makes the threads smoother and takes longer to generate. For 3d printing, 0.05 should be more than sufficient.
@@ -119,6 +112,13 @@ view_snap_rotated = 0;
 //By default, the connector needs to rotate 45 degrees to fit the expanding snap.
 view_connector_rotated = 0;
 
+/* [Experimental Options] */
+override_snap_thickness = false;
+//Custom thickness only applies when override_snap_thickness is checked.
+custom_snap_thickness = 3.4;
+//Making multiconnect connector attach to the backside, opening up a new option for mounting the board. Idea suggested by @ljhms.
+reverse_threads_entryside = false;
+
 /* [Disable Part Options] */
 disable_snap_threads = false;
 disable_snap_corners = false;
@@ -133,7 +133,7 @@ $fs = 0.4;
 eps = 0.005;
 
 //The official multiconnect threads are designed in shapr3d and have a different starting point than those made in openscad. Rotating by 53.5 degrees makes them conform.
-thread_compatiblity_angle = 53.5;
+threads_compatiblity_angle = 53.5;
 
 snap_thickness =
   override_snap_thickness ? custom_snap_thickness
@@ -144,11 +144,11 @@ snap_body_corner_outer_diagonal = 2.7 + 1 / sqrt(2);
 snap_body_corner_chamfer = snap_body_corner_outer_diagonal * sqrt(2);
 snap_body_corner_inner_diagonal = snap_body_width * sqrt(2) / 2 - snap_body_corner_outer_diagonal;
 
-//thread parameters
-thread_bottom_bevel =
-  snap_version == "Full" ? thread_bottom_bevel_full
-  : thread_bottom_bevel_lite;
-mconnect_negative_threads_diameter = mconnect_positive_threads_diameter + mconnect_threads_clearance;
+//threads parameters
+threads_bottom_bevel =
+  snap_version == "Full" ? threads_bottom_bevel_full
+  : threads_bottom_bevel_lite;
+multiconnect_threads_negative_diameter = multiconnect_threads_positive_diameter + multiconnect_threads_clearance;
 
 //nub paramters
 basic_nub_height =
@@ -181,7 +181,7 @@ expand_transpart_height = max(snap_thickness - expand_entry_height - expand_endp
 expand_segment_count = ceil(expand_distance / expansion_distance_step);
 expand_height_step = expand_transpart_height / expand_segment_count;
 
-thread_profile = [
+threads_profile = [
   [-1.25 / 3, -1 / 3],
   [-0.25 / 3, 0],
   [0.25 / 3, 0],
@@ -298,7 +298,7 @@ module snap_directional_slant() {
 }
 module expanding_spring(bottom_type = "None") {
   //gap_length needs to be enough to cut to screw hole without reaching the other side. exact number doesn't matter 
-  gap_length = 8;
+  gap_length = 9;
   //only after writing these did I realize I can achieve the same thing with a rect()
   gap_top_profile = [[-spring_gap / 2, 0], [-spring_gap / 2, gap_length], [spring_gap / 2, gap_length], [spring_gap / 2, 0]];
   gap_top_profile_rounded = round_corners(gap_top_profile, method="circle", radius=[0, spring_gap / 2, spring_gap / 2, 0], $fn=64);
@@ -348,33 +348,38 @@ module expanding_spring(bottom_type = "None") {
   up(snap_thickness + eps / 2) yrot(180) back(snap_body_corner_inner_diagonal - gap_length - spring_thickness + middle_gap_bottom_to_side)
         offset_sweep(gap_top_profile_rounded, height=spring_face_chamfer + eps, bottom=os_chamfer(width=-spring_face_chamfer));
 
-  right(spring_thickness + spring_gap) back(gap_length + mconnect_negative_threads_diameter / 2 + spring_to_center_thickness) zrot(180) offset_sweep(gap_top_profile_rounded, height=snap_thickness + eps, bottom=os_chamfer(width=-spring_face_chamfer), top=os_chamfer(width=-spring_face_chamfer));
-  left(spring_thickness + spring_gap) back(gap_length + mconnect_negative_threads_diameter / 2 + spring_to_center_thickness) zrot(180) offset_sweep(gap_top_profile_rounded, height=snap_thickness + eps, bottom=os_chamfer(width=-spring_face_chamfer), top=os_chamfer(width=-spring_face_chamfer));
+  right(spring_thickness + spring_gap) back(gap_length + multiconnect_threads_negative_diameter / 2 + spring_to_center_thickness) zrot(180) offset_sweep(gap_top_profile_rounded, height=snap_thickness + eps, bottom=os_chamfer(width=-spring_face_chamfer), top=os_chamfer(width=-spring_face_chamfer));
+  left(spring_thickness + spring_gap) back(gap_length + multiconnect_threads_negative_diameter / 2 + spring_to_center_thickness) zrot(180) offset_sweep(gap_top_profile_rounded, height=snap_thickness + eps, bottom=os_chamfer(width=-spring_face_chamfer), top=os_chamfer(width=-spring_face_chamfer));
 }
 
 module expanding_snap_shape(anchor = CENTER, spin = 0, orient = UP) {
   attachable(anchor, spin, orient, size=[snap_body_width, snap_body_width, snap_thickness]) {
     down(snap_thickness / 2) difference() {
         snap_shape(anchor=BOTTOM);
-        if (!disable_snap_threads)
-          down(eps / 2) expanding_thread();
+        if (!disable_snap_threads) {
+          down(eps / 2)
+            up(reverse_threads_entryside ? snap_thickness + eps / 2 : 0) yrot(reverse_threads_entryside ? 180 : 0)
+                expanding_thread();
+        }
       }
     children();
   }
 }
 
 //I tried to make things more modular then gave up.
-module expanding_thread(diameter = mconnect_negative_threads_diameter, total_height = snap_thickness, entry_height = expand_entry_height, height_step = expand_height_step, width_step = expansion_distance_step, segments = expand_segment_count) {
+module expanding_thread(diameter = multiconnect_threads_negative_diameter, total_height = snap_thickness, entry_height = expand_entry_height, height_step = expand_height_step, width_step = expansion_distance_step, segments = expand_segment_count) {
   end_height = total_height - entry_height - segments * height_step;
   render() {
-    zrot(thread_compatiblity_angle + expand_threads_offset_angle) generic_threaded_rod(d=diameter, l=entry_height + eps, pitch=3, profile=thread_profile, bevel1=0, bevel2=0, anchor=BOTTOM, blunt_start=false, internal=false);
+    zrot(threads_compatiblity_angle + expand_threads_offset_angle) generic_threaded_rod(d=diameter, l=entry_height + eps, pitch=3, profile=threads_profile, bevel1=0, bevel2=0, anchor=BOTTOM, blunt_start=false, internal=false);
     for (a = [0:segments]) {
       aseg_position = entry_height + height_step * a;
       aseg_expansion_distance = width_step * a;
       echo(a=a, aseg_position=aseg_position, aseg_expansion_distance=aseg_expansion_distance);
-      zrot(-expand_split_angle) partition(spread=-aseg_expansion_distance - eps, cutpath="flat", $slop=aseg_expansion_distance / 2) zrot(expand_split_angle + thread_compatiblity_angle + expand_threads_offset_angle) up(aseg_position) zrot(aseg_position * 120) generic_threaded_rod(d=diameter, l=height_step + eps, pitch=3, profile=thread_profile, bevel1=0, bevel2=0, anchor=BOTTOM, blunt_start=false, internal=false);
+      zrot(-expand_split_angle) partition(spread=-aseg_expansion_distance - eps, cutpath="flat", $slop=aseg_expansion_distance / 2) zrot(expand_split_angle + threads_compatiblity_angle + expand_threads_offset_angle) up(aseg_position) zrot(aseg_position * 120) generic_threaded_rod(d=diameter, l=height_step + eps, pitch=3, profile=threads_profile, bevel1=0, bevel2=0, anchor=BOTTOM, blunt_start=false, internal=false);
     }
-    zrot(-expand_split_angle) partition(spread=-segments * width_step - eps, cutpath="flat", $slop=segments * width_step / 2) up(total_height - end_height) zrot(expand_split_angle + thread_compatiblity_angle + expand_threads_offset_angle) zrot((total_height - end_height) * 120) generic_threaded_rod(d=diameter, l=max(end_height, 0) + eps, pitch=3, profile=thread_profile, bevel1=0, bevel2=max(0, min(end_height, thread_bottom_bevel)), anchor=BOTTOM, blunt_start=false, internal=false);
+    zrot(-expand_split_angle) partition(spread=-segments * width_step - eps, cutpath="flat", $slop=segments * width_step / 2)
+        up(total_height - end_height) zrot(expand_split_angle + threads_compatiblity_angle + expand_threads_offset_angle) zrot((total_height - end_height) * 120)
+              generic_threaded_rod(d=diameter, l=max(end_height, 0) + eps, pitch=3, profile=threads_profile, bevel1=0, bevel2=max(0, min(end_height, threads_bottom_bevel)), anchor=BOTTOM, blunt_start=false, internal=false);
   }
 }
 module snap() {
@@ -406,8 +411,11 @@ module snap() {
           if (!disable_snap_directional_slants && snap_base_shape == "Directional")
             snap_directional_slant();
         }
-        if (!disable_snap_threads)
-          tag("remove") down(eps / 2) zrot(thread_compatiblity_angle) generic_threaded_rod(d=mconnect_negative_threads_diameter, l=snap_thickness + eps, pitch=3, profile=thread_profile, bevel1=0, bevel2=min(thread_bottom_bevel, snap_thickness), anchor=BOTTOM, blunt_start=false, internal=false);
+        if (!disable_snap_threads) {
+          tag("remove") down(eps / 2)
+              up(reverse_threads_entryside ? snap_thickness + eps / 2 : 0) yrot(reverse_threads_entryside ? 180 : 0)
+                  zrot(threads_compatiblity_angle) generic_threaded_rod(d=multiconnect_threads_negative_diameter, l=snap_thickness + eps, pitch=3, profile=threads_profile, bevel1=0, bevel2=min(threads_bottom_bevel, snap_thickness), anchor=BOTTOM, blunt_start=false, internal=false);
+        }
       }
     }
     //text
@@ -429,7 +437,7 @@ module connector() {
   //The following formula is derived from intersecting chord theorem. Don't ask.
   coin_slot_radius = coin_slot_height / 2 + coin_slot_width ^ 2 / (8 * coin_slot_height);
   difference() {
-    zrot(thread_compatiblity_angle) generic_threaded_rod(d=mconnect_positive_threads_diameter, l=snap_thickness + eps, pitch=3, profile=thread_profile, bevel1=min(snap_thickness, thread_top_bevel), bevel2=max(0, min(snap_thickness - thread_top_bevel, thread_bottom_bevel)), blunt_start=false, anchor=BOTTOM, internal=false)
+    zrot(threads_compatiblity_angle) generic_threaded_rod(d=multiconnect_threads_positive_diameter, l=snap_thickness + eps, pitch=3, profile=threads_profile, bevel1=min(snap_thickness, threads_top_bevel), bevel2=max(0, min(snap_thickness - threads_top_bevel, threads_bottom_bevel)), blunt_start=false, anchor=BOTTOM, internal=false)
         up(eps) attach(BOTTOM, TOP) cylinder(h=0.5, r=7.5)
               attach(BOTTOM, TOP) cylinder(h=2.5, r2=7.5, r1=10)
                   attach(BOTTOM, TOP) cylinder(h=1, r=10);
