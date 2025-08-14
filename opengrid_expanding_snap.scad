@@ -21,8 +21,10 @@ generate_connector = true;
 generate_snap = true;
 
 /* [Expanding Snap Options] */
+//Full snaps have stronger springs, so a smaller expand distance than Lite snaps.
+expand_distance_full = 1.1; //0.05
 //While the default should suffice for most use cases, you can experiment to find the optimized value for your filament.
-expand_distance = 1.3; //0.01
+expand_distance_lite = 1.3; //0.05
 
 //The part before the threads start expanding. Increase this value if you find it difficult to get the screw started.
 expand_entry_height = 0.4;
@@ -163,11 +165,15 @@ directional_slant_depth =
 directional_corner_slant_depth = directional_slant_depth / sqrt(2);
 
 //expand parameters
+expand_distance =
+  snap_version == "Full" ? expand_distance_full
+  : expand_distance_lite;
 //The part at the bottom that completely expands to target width. It's not recommended to set this lower than thread_bottom_bevel.
 expand_endpart_height_full = 2; //0.1
 expand_endpart_height_lite = 1.2; //0.1
 
 expand_split_angle = 45;
+
 expand_endpart_height =
   snap_version == "Full" ? expand_endpart_height_full
   : expand_endpart_height_lite;
