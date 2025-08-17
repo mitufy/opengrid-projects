@@ -107,8 +107,8 @@ side_cut_depth = 0.8; //0.1
 side_cut_offset_to_top = 0.8; //0.1
 
 // /* [Thread Options] */
-thread_bottom_bevel_full = 2; //0.1
-thread_bottom_bevel_lite = 1.2; //0.1
+threads_bottom_bevel_full = 2; //0.1
+threads_bottom_bevel_lite = 1.2; //0.1
 
 // /* [View Options] */
 view_cross_section = "None"; //["None","Right","Back","Diagonal"]
@@ -127,7 +127,7 @@ disable_snap_directional_slants = false;
 disable_snap_expanding_springs = false;
 
 //The official multiconnect threads are designed in shapr3d and have a different starting point than those made in openscad. Rotating by 53.5 degrees makes them conform.
-thread_compatiblity_angle = 53.5;
+threads_compatiblity_angle = 53.5;
 
 snap_thickness =
   override_snap_thickness ? custom_snap_thickness
@@ -139,9 +139,9 @@ snap_body_corner_chamfer = snap_body_corner_outer_diagonal * sqrt(2);
 snap_body_corner_inner_diagonal = snap_body_width * sqrt(2) / 2 - snap_body_corner_outer_diagonal;
 
 //thread parameters
-thread_bottom_bevel =
-  snap_version == "Full" ? thread_bottom_bevel_full
-  : thread_bottom_bevel_lite;
+threads_bottom_bevel =
+  snap_version == "Full" ? threads_bottom_bevel_full
+  : threads_bottom_bevel_lite;
 
 //nub paramters
 basic_nub_height =
@@ -168,7 +168,7 @@ directional_corner_slant_depth = directional_slant_depth / sqrt(2);
 expand_distance =
   snap_version == "Full" ? expand_distance_full
   : expand_distance_lite;
-//The part at the bottom that completely expands to target width. It's not recommended to set this lower than thread_bottom_bevel.
+//The part at the bottom that completely expands to target width. It's not recommended to set this lower than threads_bottom_bevel.
 expand_endpart_height_full = 2; //0.1
 expand_endpart_height_lite = 1.2; //0.1
 
@@ -182,7 +182,7 @@ expand_transpart_height = snap_thickness - expand_entry_height - expand_endpart_
 expand_segment_count = ceil(expand_distance / expansion_distance_step);
 expand_height_step = expand_transpart_height / expand_segment_count;
 
-thread_profile = [
+threads_profile = [
   [-1.25 / 3, -1 / 3],
   [-0.25 / 3, 0],
   [0.25 / 3, 0],
@@ -358,24 +358,39 @@ module expanding_snap_shape(anchor = CENTER, spin = 0, orient = UP) {
     down(snap_thickness / 2) difference() {
         snap_shape(anchor=BOTTOM);
         if (!disable_snap_threads)
-          down(eps / 2) expanding_thread();
+          down(eps / 2)
+            expanding_thread(diameter=snap_threads_diameter, expand_width=expand_distance, entry_height=expand_entry_height, transition_height=expand_transpart_height, end_height=expand_endpart_height, offset_angle=threads_compatiblity_angle + expand_threads_offset_angle, split_angle=expand_split_angle, anchor=BOT);
       }
     children();
   }
 }
-
-//I tried to make things more modular then gave up.
-module expanding_thread(diameter = snap_threads_diameter, total_height = snap_thickness, entry_height = expand_entry_height, height_step = expand_height_step, width_step = expansion_distance_step, segments = expand_segment_count) {
-  end_height = total_height - entry_height - segments * height_step;
+module expanding_thread(diameter, expand_width, entry_height, transition_height, end_height, offset_angle = 98.5, split_angle = 45, anchor = CENTER, spin = 0, orient = UP) {
+  expand_width_step = expansion_distance_step;
+  expand_segment_count = ceil(expand_width / expand_width_step);
+  expand_height_step = transition_height / expand_segment_count;
   render() {
-    zrot(thread_compatiblity_angle + expand_threads_offset_angle) generic_threaded_rod(d=diameter, l=entry_height + eps, pitch=3, profile=thread_profile, bevel1=0, bevel2=0, anchor=BOTTOM, blunt_start=false, internal=false);
-    for (a = [0:segments]) {
-      aseg_position = entry_height + height_step * a;
-      aseg_expansion_distance = width_step * a;
-      echo(a=a, aseg_position=aseg_position, aseg_expansion_distance=aseg_expansion_distance);
-      zrot(-expand_split_angle) partition(spread=-aseg_expansion_distance - eps, cutpath="flat", $slop=aseg_expansion_distance / 2) zrot(expand_split_angle + thread_compatiblity_angle + expand_threads_offset_angle) up(aseg_position) zrot(aseg_position * 120) generic_threaded_rod(d=diameter, l=height_step + eps, pitch=3, profile=thread_profile, bevel1=0, bevel2=0, anchor=BOTTOM, blunt_start=false, internal=false);
+    attachable(anchor, spin, orient, d=diameter, h=entry_height + transition_height + end_height) {
+      union() {
+        down((entry_height + transition_height + end_height) / 2) {
+          zrot(offset_angle)
+            generic_threaded_rod(d=diameter, l=entry_height + eps, pitch=3, profile=threads_profile, bevel1=0, bevel2=0, anchor=BOTTOM, blunt_start=false, internal=false);
+          for (a = [0:expand_segment_count]) {
+            aseg_position = entry_height + expand_height_step * a;
+            aseg_expansion_distance = expand_width_step * a;
+            echo(a=a, aseg_position=aseg_position, aseg_expansion_distance=aseg_expansion_distance);
+            zrot(-split_angle)
+              partition(spread=-aseg_expansion_distance - eps, cutpath="flat", $slop=aseg_expansion_distance / 2)
+                zrot(split_angle + offset_angle) up(aseg_position) zrot(aseg_position * 120)
+                      generic_threaded_rod(d=diameter, l=expand_height_step + eps, pitch=3, profile=threads_profile, bevel1=0, bevel2=0, anchor=BOTTOM, blunt_start=false, internal=false);
+          }
+          zrot(-split_angle)
+            partition(spread=-expand_segment_count * expand_width_step - eps, cutpath="flat", $slop=expand_segment_count * expand_width_step / 2)
+              zrot(split_angle + offset_angle) up(entry_height + transition_height) zrot((entry_height + transition_height) * 120)
+                    generic_threaded_rod(d=diameter, l=max(end_height, 0) + eps, pitch=3, profile=threads_profile, bevel1=0, bevel2=max(0, min(end_height, threads_bottom_bevel)), anchor=BOTTOM, blunt_start=false, internal=false);
+        }
+      }
+      children();
     }
-    zrot(-expand_split_angle) partition(spread=-segments * width_step - eps, cutpath="flat", $slop=segments * width_step / 2) up(total_height - end_height) zrot(expand_split_angle + thread_compatiblity_angle + expand_threads_offset_angle) zrot((total_height - end_height) * 120) generic_threaded_rod(d=diameter, l=end_height + eps, pitch=3, profile=thread_profile, bevel1=0, bevel2=min(end_height, thread_bottom_bevel), anchor=BOTTOM, blunt_start=false, internal=false);
   }
 }
 module snap() {
@@ -408,7 +423,7 @@ module snap() {
             snap_directional_slant();
         }
         if (!disable_snap_threads)
-          tag("remove") down(eps / 2) zrot(thread_compatiblity_angle) generic_threaded_rod(d=16.5, l=snap_thickness + eps, pitch=3, profile=thread_profile, bevel1=0, bevel2=thread_bottom_bevel, anchor=BOTTOM, blunt_start=false, internal=false);
+          tag("remove") down(eps / 2) zrot(threads_compatiblity_angle) generic_threaded_rod(d=16.5, l=snap_thickness + eps, pitch=3, profile=threads_profile, bevel1=0, bevel2=threads_bottom_bevel, anchor=BOTTOM, blunt_start=false, internal=false);
       }
     }
     //text
@@ -430,7 +445,7 @@ module connector() {
   //The following formula is derived from intersecting chord theorem. Don't ask.
   coin_slot_radius = coin_slot_height / 2 + coin_slot_width ^ 2 / (8 * coin_slot_height);
   difference() {
-    zrot(thread_compatiblity_angle) generic_threaded_rod(d=16, l=snap_thickness, pitch=3, profile=thread_profile, bevel1=0.5, bevel2=thread_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false)
+    zrot(threads_compatiblity_angle) generic_threaded_rod(d=16, l=snap_thickness, pitch=3, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false)
         up(eps) attach(BOTTOM, TOP) cylinder(h=0.5, r=7.5)
               attach(BOTTOM, TOP) cylinder(h=2.5, r2=7.5, r1=10)
                   attach(BOTTOM, TOP) cylinder(h=1, r=10);
