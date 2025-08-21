@@ -14,12 +14,10 @@ include <BOSL2/threading.scad>
 //It seems as of now (2025-08) makerworld's customizer needs rounding.scad to be included manually, despite the fact it should be included in std.scad according to BOSL2 wiki.
 include <BOSL2/rounding.scad>
 
-//Generating self-expanding snaps takes longer than original ones. 
-snap_locking_mechanism = "Original"; //["Self-Expanding","Original"]
-snap_base_shape = "Directional"; //["Directional","Symmetric"]
 //Full - 6.8mm.   Lite Strong - 4mm.   Lite Basic - 3.4mm.
 snap_version = "Full"; //["Full","Lite Strong", "Lite Basic"]
-
+snap_base_shape = "Directional"; //["Directional","Symmetric"]
+snap_locking_mechanism = "Original"; //["Self-Expanding","Original"]
 generate_connector = true;
 generate_snap = true;
 
@@ -69,9 +67,9 @@ side_cut_thickness = 0.4; //0.1
 side_cut_depth = 0.8; //0.1
 side_cut_offset_to_top = 0.8; //0.1
 
-/* [threads Options] */
+/* [Thread Options] */
 //Multiconnect threads are designed to have 16mm diameter and 0.5mm clearance, 16.5mm is the offical diameter for negative parts.
-multiconnect_threads_positive_diameter = 16;
+multiconnect_threads_diameter = 16;
 multiconnect_threads_clearance = 0.5;
 threads_top_bevel = 0.5; //0.1
 threads_bottom_bevel_full = 2; //0.1
@@ -84,9 +82,8 @@ expand_distance_full = 1.1; //0.05
 expand_distance_lite = 1.3; //0.05
 //The part before the threads start expanding. Increase this value if you find it difficult to get the screw started.
 expand_entry_height = 0.4;
-//Expanding snap's threads are rotated 45 degrees by default. If you prefer a look more consistent with official snaps, set this value to 0.
-expand_threads_offset_angle = 45;
-
+expand_threads_offset_angle = 0;
+expand_split_angle = 45;
 /* [Expanding Snap Advanced Options] */
 //Default spring thickness parameters are set to products of 0.42, a common line width for 0.4mm nozzles.
 spring_thickness = 1.26;
@@ -104,6 +101,7 @@ add_snap_thickness_text = false;
 add_connector_thickness_text = false;
 //Useful when experimenting with expansion distance.
 add_snap_expansion_distance_text = false;
+add_snap_custom_text = "";
 text_depth = 0.4;
 
 /* [View Options] */
@@ -150,7 +148,7 @@ snap_body_corner_inner_diagonal = snap_body_width * sqrt(2) / 2 - snap_body_corn
 threads_bottom_bevel =
   snap_version == "Full" ? threads_bottom_bevel_full
   : threads_bottom_bevel_lite;
-multiconnect_threads_negative_diameter = multiconnect_threads_positive_diameter + multiconnect_threads_clearance;
+multiconnect_threads_negative_diameter = multiconnect_threads_diameter + multiconnect_threads_clearance;
 
 //nub paramters
 basic_nub_height =
@@ -177,7 +175,6 @@ directional_corner_slant_depth = directional_slant_depth / sqrt(2);
 expand_distance =
   snap_version == "Full" ? expand_distance_full
   : expand_distance_lite;
-expand_split_angle = 45;
 expand_endpart_height =
   snap_version == "Full" ? expand_endpart_height_full
   : expand_endpart_height_lite;
@@ -364,27 +361,39 @@ module expanding_snap_shape(anchor = CENTER, spin = 0, orient = UP) {
         if (!disable_snap_threads) {
           down(eps / 2)
             up(reverse_threads_entryside ? snap_thickness + eps / 2 : 0) yrot(reverse_threads_entryside ? 180 : 0)
-                expanding_thread();
+                expanding_thread(diameter=multiconnect_threads_negative_diameter, expand_width=expand_distance, entry_height=expand_entry_height, transition_height=expand_transpart_height, end_height=expand_endpart_height, offset_angle=threads_compatiblity_angle + expand_threads_offset_angle, split_angle=expand_split_angle, anchor=BOT);
         }
       }
     children();
   }
 }
-
-//I tried to make things more modular then gave up.
-module expanding_thread(diameter = multiconnect_threads_negative_diameter, total_height = snap_thickness, entry_height = expand_entry_height, height_step = expand_height_step, width_step = expansion_distance_step, segments = expand_segment_count) {
-  end_height = total_height - entry_height - segments * height_step;
+module expanding_thread(diameter, expand_width, entry_height, transition_height, end_height, offset_angle = 98.5, split_angle = 45, anchor = CENTER, spin = 0, orient = UP) {
+  expand_width_step = expansion_distance_step;
+  expand_segment_count = ceil(expand_width / expand_width_step);
+  expand_height_step = transition_height / expand_segment_count;
   render() {
-    zrot(threads_compatiblity_angle + expand_threads_offset_angle) generic_threaded_rod(d=diameter, l=entry_height + eps, pitch=3, profile=threads_profile, bevel1=0, bevel2=0, anchor=BOTTOM, blunt_start=false, internal=false);
-    for (a = [0:segments]) {
-      aseg_position = entry_height + height_step * a;
-      aseg_expansion_distance = width_step * a;
-      echo(a=a, aseg_position=aseg_position, aseg_expansion_distance=aseg_expansion_distance);
-      zrot(-expand_split_angle) partition(spread=-aseg_expansion_distance - eps, cutpath="flat", $slop=aseg_expansion_distance / 2) zrot(expand_split_angle + threads_compatiblity_angle + expand_threads_offset_angle) up(aseg_position) zrot(aseg_position * 120) generic_threaded_rod(d=diameter, l=height_step + eps, pitch=3, profile=threads_profile, bevel1=0, bevel2=0, anchor=BOTTOM, blunt_start=false, internal=false);
+    attachable(anchor, spin, orient, d=diameter, h=entry_height + transition_height + end_height) {
+      union() {
+        down((entry_height + transition_height + end_height) / 2) {
+          zrot(offset_angle)
+            generic_threaded_rod(d=diameter, l=entry_height + eps, pitch=3, profile=threads_profile, bevel1=0, bevel2=0, anchor=BOTTOM, blunt_start=false, internal=false);
+          for (a = [0:expand_segment_count]) {
+            aseg_position = entry_height + expand_height_step * a;
+            aseg_expansion_distance = expand_width_step * a;
+            echo(a=a, aseg_position=aseg_position, aseg_expansion_distance=aseg_expansion_distance);
+            zrot(-split_angle)
+              partition(spread=-aseg_expansion_distance - eps, cutpath="flat", $slop=aseg_expansion_distance / 2)
+                zrot(split_angle + offset_angle) up(aseg_position) zrot(aseg_position * 120)
+                      generic_threaded_rod(d=diameter, l=expand_height_step + eps, pitch=3, profile=threads_profile, bevel1=0, bevel2=0, anchor=BOTTOM, blunt_start=false, internal=false);
+          }
+          zrot(-split_angle)
+            partition(spread=-expand_segment_count * expand_width_step - eps, cutpath="flat", $slop=expand_segment_count * expand_width_step / 2)
+              zrot(split_angle + offset_angle) up(entry_height + transition_height) zrot((entry_height + transition_height) * 120)
+                    generic_threaded_rod(d=diameter, l=max(end_height, 0) + eps, pitch=3, profile=threads_profile, bevel1=0, bevel2=max(0, min(end_height, threads_bottom_bevel)), anchor=BOTTOM, blunt_start=false, internal=false);
+        }
+      }
+      children();
     }
-    zrot(-expand_split_angle) partition(spread=-segments * width_step - eps, cutpath="flat", $slop=segments * width_step / 2)
-        up(total_height - end_height) zrot(expand_split_angle + threads_compatiblity_angle + expand_threads_offset_angle) zrot((total_height - end_height) * 120)
-              generic_threaded_rod(d=diameter, l=max(end_height, 0) + eps, pitch=3, profile=threads_profile, bevel1=0, bevel2=max(0, min(end_height, threads_bottom_bevel)), anchor=BOTTOM, blunt_start=false, internal=false);
   }
 }
 module snap() {
@@ -425,7 +434,9 @@ module snap() {
     }
     //text
     if (add_snap_thickness_text)
-      up(snap_thickness - text_depth) fwd(1.1) left(1.1) zrot(-expand_split_angle) linear_extrude(height=text_depth) fwd(snap_body_width / 2 - 2) text(str(snap_thickness), size=3.2, anchor=str("baseline", CENTER), font="Merriweather Sans:style=Bold");
+      up(snap_thickness - text_depth) fwd(1.1) left(expand_split_angle < 0 ? -1.1 : 1.1) zrot(-expand_split_angle) linear_extrude(height=text_depth) fwd(snap_body_width / 2 - 2) text(str(snap_thickness), size=3.2, anchor=str("baseline", CENTER), font="Merriweather Sans:style=Bold");
+    if (add_snap_custom_text != "")
+      up(snap_thickness - text_depth) linear_extrude(height=text_depth + eps) zrot(-90) fwd(snap_body_width / 2 - 1.6) text(add_snap_custom_text, size=3.2, anchor=str("baseline", CENTER), font="Merriweather Sans:style=Bold");
     if (add_snap_expansion_distance_text && snap_locking_mechanism == "Self-Expanding")
       up(snap_thickness - text_depth) linear_extrude(height=text_depth + eps) fwd(snap_body_width / 2 - 1.6) text(str(expand_distance), size=3.2, anchor=str("baseline", CENTER), font="Merriweather Sans:style=Bold");
     //arrow
@@ -442,7 +453,7 @@ module connector() {
   //The following formula is derived from intersecting chord theorem. Don't ask.
   coin_slot_radius = coin_slot_height / 2 + coin_slot_width ^ 2 / (8 * coin_slot_height);
   difference() {
-    zrot(threads_compatiblity_angle) generic_threaded_rod(d=multiconnect_threads_positive_diameter, l=snap_thickness + eps, pitch=3, profile=threads_profile, bevel1=min(snap_thickness, threads_top_bevel), bevel2=max(0, min(snap_thickness - threads_top_bevel, threads_bottom_bevel)), blunt_start=false, anchor=BOTTOM, internal=false)
+    zrot(threads_compatiblity_angle) generic_threaded_rod(d=multiconnect_threads_diameter, l=snap_thickness + eps, pitch=3, profile=threads_profile, bevel1=min(snap_thickness, threads_top_bevel), bevel2=max(0, min(snap_thickness - threads_top_bevel, threads_bottom_bevel)), blunt_start=false, anchor=BOTTOM, internal=false)
         up(eps) attach(BOTTOM, TOP) cylinder(h=0.5, r=7.5)
               attach(BOTTOM, TOP) cylinder(h=2.5, r2=7.5, r1=10)
                   attach(BOTTOM, TOP) cylinder(h=1, r=10);

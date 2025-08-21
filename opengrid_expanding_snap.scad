@@ -29,8 +29,7 @@ expand_distance_lite = 1.3; //0.05
 //The part before the threads start expanding. Increase this value if you find it difficult to get the screw started.
 expand_entry_height = 0.4;
 
-//Expanding snap's threads are rotated 45 degrees by default. If you prefer a look more consistent with official snaps, set this value to 0.
-expand_threads_offset_angle = 45;
+expand_threads_offset_angle = 0;
 
 /* [Expanding Snap Advanced Options] */
 //Default spring parameters are set to products of 0.42, a common line width for 0.4mm nozzles.
@@ -49,20 +48,17 @@ add_snap_expansion_distance_text = false;
 text_depth = 0.4;
 
 /* [Hidden] */
-$fa = 1;
-$fs = 0.4;
-eps = 0.005;
-
 //Generating self-expanding snaps takes longer than original ones. 
 snap_locking_mechanism = "Self-Expanding"; //["Self-Expanding","Original"]
 
+// /* [Experimental Options] */
 override_snap_thickness = false;
 //Custom thickness only applies when override_snap_thickness is checked.
 custom_snap_thickness = 3.4;
+//Making multiconnect connector attach to the backside, opening up a new option for mounting the board. Idea suggested by @ljhms.
+reverse_threads_entryside = false;
 
 // /* [Snap Body Options] */
-//Multiconnect threads are designed to have 16mm diameter and 0.5mm clearance, 16.5mm is the offical diameter for negative parts.
-snap_threads_diameter = 16.5;
 snap_body_width = 24.8;
 
 snap_corner_edge_height = 1.5;
@@ -71,6 +67,7 @@ snap_body_bottom_corner_extrude = 0.6;
 
 directional_slant_depth_full = 0.8;
 directional_slant_depth_lite = 0.2;
+directional_corner_fillet_radius = 1.5;
 directional_arrow_depth = 0.2;
 
 // /* [Snap Nub Options] */
@@ -95,6 +92,7 @@ antidirect_nub_height_full = 2; //0.1
 antidirect_nub_height_lite = 1.4; //0.1
 
 nub_offset_to_top = 1.4; //0.1
+nub_fillet_radius = 15;
 
 // /* [Snap Cut Options] */
 back_cut_length = 12.4;
@@ -118,6 +116,9 @@ view_snap_rotated = 0;
 //By default, the connector needs to rotate 45 degrees to fit the expanding snap.
 view_connector_rotated = 0;
 
+// /* [Text Options] */
+add_snap_custom_text = "";
+
 // /* [Disable Part Options] */
 disable_snap_threads = false;
 disable_snap_corners = false;
@@ -125,6 +126,10 @@ disable_snap_cuts = false;
 disable_snap_nubs = false;
 disable_snap_directional_slants = false;
 disable_snap_expanding_springs = false;
+
+$fa = 1;
+$fs = 0.4;
+eps = 0.005;
 
 //The official multiconnect threads are designed in shapr3d and have a different starting point than those made in openscad. Rotating by 53.5 degrees makes them conform.
 threads_compatiblity_angle = 53.5;
@@ -138,7 +143,11 @@ snap_body_corner_outer_diagonal = 2.7 + 1 / sqrt(2);
 snap_body_corner_chamfer = snap_body_corner_outer_diagonal * sqrt(2);
 snap_body_corner_inner_diagonal = snap_body_width * sqrt(2) / 2 - snap_body_corner_outer_diagonal;
 
-//thread parameters
+//threads parameters
+multiconnect_threads_diameter = 16;
+multiconnect_threads_clearance = 0.5;
+threads_top_bevel = 0.5; //0.1
+multiconnect_threads_negative_diameter = multiconnect_threads_diameter + multiconnect_threads_clearance;
 threads_bottom_bevel =
   snap_version == "Full" ? threads_bottom_bevel_full
   : threads_bottom_bevel_lite;
@@ -158,7 +167,7 @@ directional_nub_bottom_angle =
   : directional_nub_bottom_angle_lite;
 
 //slant parameters
-directional_slant_height = snap_thickness - nub_offset_to_top - antidirect_nub_height;
+directional_slant_height = max(snap_thickness - nub_offset_to_top - antidirect_nub_height, eps);
 directional_slant_depth =
   snap_version == "Full" ? directional_slant_depth_full
   : directional_slant_depth_lite;
@@ -178,7 +187,7 @@ expand_endpart_height =
   snap_version == "Full" ? expand_endpart_height_full
   : expand_endpart_height_lite;
 
-expand_transpart_height = snap_thickness - expand_entry_height - expand_endpart_height;
+expand_transpart_height = max(snap_thickness - expand_entry_height - expand_endpart_height, 0);
 expand_segment_count = ceil(expand_distance / expansion_distance_step);
 expand_height_step = expand_transpart_height / expand_segment_count;
 
@@ -213,11 +222,11 @@ module snap_corner() {
         attach(BACK + LEFT, BOTTOM, shiftout=-snap_body_corner_outer_diagonal - eps)
           prismoid(size1=[snap_body_corner_chamfer * sqrt(2), snap_corner_edge_height], xang=45, yang=[45, 90], h=snap_body_bottom_corner_extrude)
             tag("corner_fillet") edge_mask([TOP + LEFT, TOP + RIGHT])
-                rounding_edge_mask(l=3, r=1.5, $fn=64);
+                rounding_edge_mask(l=6.8, r=directional_corner_fillet_radius, $fn=64);
         attach(BACK + RIGHT, BOTTOM, shiftout=-snap_body_corner_outer_diagonal - eps)
           prismoid(size1=[snap_body_corner_chamfer * sqrt(2), snap_corner_edge_height], xang=45, yang=[45, 90], h=snap_body_bottom_corner_extrude)
             tag("corner_fillet") edge_mask([TOP + LEFT, TOP + RIGHT])
-                rounding_edge_mask(l=3, r=1.5, $fn=64);
+                rounding_edge_mask(l=6.8, r=directional_corner_fillet_radius, $fn=64);
       }
     }
   }
@@ -280,7 +289,7 @@ module snap_nub() {
         diff("nub_fillet") {
           prismoid(size1=final_nub_size1, size2=final_nub_size2, yang=l_nub_yang, h=l_nub_depth)
             tag("nub_fillet") edge_mask([TOP + LEFT, TOP + RIGHT])
-                rounding_edge_mask(l=4, r=15);
+                rounding_edge_mask(l=6.8, r=nub_fillet_radius);
         }
   }
   //cut off excess nub parts
@@ -299,10 +308,10 @@ module snap_directional_slant() {
 }
 module expanding_spring(bottom_type = "None") {
   //gap_length needs to be enough to cut to screw hole without reaching the other side. exact number doesn't matter 
-  gap_length = 8;
+  gap_length = 9;
+  //only after writing these did I realize I can achieve the same thing with a rect()
   gap_top_profile = [[-spring_gap / 2, 0], [-spring_gap / 2, gap_length], [spring_gap / 2, gap_length], [spring_gap / 2, 0]];
   gap_top_profile_rounded = round_corners(gap_top_profile, method="circle", radius=[0, spring_gap / 2, spring_gap / 2, 0], $fn=64);
-  //only after writing these did I realize I can achieve the same thing with a rect()
   middle_gap_side_profile_none = [
     [0, 0],
     [0, snap_thickness],
@@ -349,17 +358,19 @@ module expanding_spring(bottom_type = "None") {
   up(snap_thickness + eps / 2) yrot(180) back(snap_body_corner_inner_diagonal - gap_length - spring_thickness + middle_gap_bottom_to_side)
         offset_sweep(gap_top_profile_rounded, height=spring_face_chamfer + eps, bottom=os_chamfer(width=-spring_face_chamfer));
 
-  right(spring_thickness + spring_gap) back(gap_length + snap_threads_diameter / 2 + spring_to_center_thickness) zrot(180) offset_sweep(gap_top_profile_rounded, height=snap_thickness + eps, bottom=os_chamfer(width=-spring_face_chamfer), top=os_chamfer(width=-spring_face_chamfer));
-  left(spring_thickness + spring_gap) back(gap_length + snap_threads_diameter / 2 + spring_to_center_thickness) zrot(180) offset_sweep(gap_top_profile_rounded, height=snap_thickness + eps, bottom=os_chamfer(width=-spring_face_chamfer), top=os_chamfer(width=-spring_face_chamfer));
+  right(spring_thickness + spring_gap) back(gap_length + multiconnect_threads_negative_diameter / 2 + spring_to_center_thickness) zrot(180) offset_sweep(gap_top_profile_rounded, height=snap_thickness + eps, bottom=os_chamfer(width=-spring_face_chamfer), top=os_chamfer(width=-spring_face_chamfer));
+  left(spring_thickness + spring_gap) back(gap_length + multiconnect_threads_negative_diameter / 2 + spring_to_center_thickness) zrot(180) offset_sweep(gap_top_profile_rounded, height=snap_thickness + eps, bottom=os_chamfer(width=-spring_face_chamfer), top=os_chamfer(width=-spring_face_chamfer));
 }
 
 module expanding_snap_shape(anchor = CENTER, spin = 0, orient = UP) {
   attachable(anchor, spin, orient, size=[snap_body_width, snap_body_width, snap_thickness]) {
     down(snap_thickness / 2) difference() {
         snap_shape(anchor=BOTTOM);
-        if (!disable_snap_threads)
+        if (!disable_snap_threads) {
           down(eps / 2)
-            expanding_thread(diameter=snap_threads_diameter, expand_width=expand_distance, entry_height=expand_entry_height, transition_height=expand_transpart_height, end_height=expand_endpart_height, offset_angle=threads_compatiblity_angle + expand_threads_offset_angle, split_angle=expand_split_angle, anchor=BOT);
+            up(reverse_threads_entryside ? snap_thickness + eps / 2 : 0) yrot(reverse_threads_entryside ? 180 : 0)
+                expanding_thread(diameter=multiconnect_threads_negative_diameter, expand_width=expand_distance, entry_height=expand_entry_height, transition_height=expand_transpart_height, end_height=expand_endpart_height, offset_angle=threads_compatiblity_angle + expand_threads_offset_angle, split_angle=expand_split_angle, anchor=BOT);
+        }
       }
     children();
   }
@@ -422,15 +433,20 @@ module snap() {
           if (!disable_snap_directional_slants && snap_base_shape == "Directional")
             snap_directional_slant();
         }
-        if (!disable_snap_threads)
-          tag("remove") down(eps / 2) zrot(threads_compatiblity_angle) generic_threaded_rod(d=16.5, l=snap_thickness + eps, pitch=3, profile=threads_profile, bevel1=0, bevel2=threads_bottom_bevel, anchor=BOTTOM, blunt_start=false, internal=false);
+        if (!disable_snap_threads) {
+          tag("remove") down(eps / 2)
+              up(reverse_threads_entryside ? snap_thickness + eps / 2 : 0) yrot(reverse_threads_entryside ? 180 : 0)
+                  zrot(threads_compatiblity_angle) generic_threaded_rod(d=multiconnect_threads_negative_diameter, l=snap_thickness + eps, pitch=3, profile=threads_profile, bevel1=0, bevel2=min(threads_bottom_bevel, snap_thickness), anchor=BOTTOM, blunt_start=false, internal=false);
+        }
       }
     }
     //text
     if (add_snap_thickness_text)
-      up(snap_thickness - text_depth) fwd(1.1) left(1.1) zrot(-expand_split_angle) linear_extrude(height=text_depth) fwd(snap_body_width / 2 - 2) text(str(snap_thickness), size=3.5, anchor=str("baseline", CENTER), font="Merriweather Sans:style=Light");
+      up(snap_thickness - text_depth) fwd(1.1) left(expand_split_angle < 0 ? -1.1 : 1.1) zrot(-expand_split_angle) linear_extrude(height=text_depth) fwd(snap_body_width / 2 - 2) text(str(snap_thickness), size=3.2, anchor=str("baseline", CENTER), font="Merriweather Sans:style=Bold");
+    if (add_snap_custom_text != "")
+      up(snap_thickness - text_depth) linear_extrude(height=text_depth + eps) zrot(-90) fwd(snap_body_width / 2 - 1.6) text(add_snap_custom_text, size=3.2, anchor=str("baseline", CENTER), font="Merriweather Sans:style=Bold");
     if (add_snap_expansion_distance_text && snap_locking_mechanism == "Self-Expanding")
-      up(snap_thickness - text_depth) linear_extrude(height=text_depth + eps) fwd(snap_body_width / 2 - 1.6) text(str(expand_distance), size=3.5, anchor=str("baseline", CENTER), font="Merriweather Sans:style=Light");
+      up(snap_thickness - text_depth) linear_extrude(height=text_depth + eps) fwd(snap_body_width / 2 - 1.6) text(str(expand_distance), size=3.2, anchor=str("baseline", CENTER), font="Merriweather Sans:style=Bold");
     //arrow
     if (snap_base_shape == "Directional")
       zrot(-90) up(snap_thickness + eps / 2) left(snap_body_width / 2 - 1.1) zrot(180) regular_prism(3, side=3.3, h=directional_arrow_depth + eps, chamfer1=directional_arrow_depth, anchor=RIGHT + TOP);
@@ -445,13 +461,13 @@ module connector() {
   //The following formula is derived from intersecting chord theorem. Don't ask.
   coin_slot_radius = coin_slot_height / 2 + coin_slot_width ^ 2 / (8 * coin_slot_height);
   difference() {
-    zrot(threads_compatiblity_angle) generic_threaded_rod(d=16, l=snap_thickness, pitch=3, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false)
+    zrot(threads_compatiblity_angle) generic_threaded_rod(d=multiconnect_threads_diameter, l=snap_thickness + eps, pitch=3, profile=threads_profile, bevel1=min(snap_thickness, threads_top_bevel), bevel2=max(0, min(snap_thickness - threads_top_bevel, threads_bottom_bevel)), blunt_start=false, anchor=BOTTOM, internal=false)
         up(eps) attach(BOTTOM, TOP) cylinder(h=0.5, r=7.5)
               attach(BOTTOM, TOP) cylinder(h=2.5, r2=7.5, r1=10)
                   attach(BOTTOM, TOP) cylinder(h=1, r=10);
     down(4 - coin_slot_height) xrot(90) cyl(r=coin_slot_radius, h=coin_slot_thickness, $fn=64, anchor=BACK);
     if (add_connector_thickness_text)
-      up(snap_thickness - text_depth + eps / 2) linear_extrude(height=text_depth + eps) fwd(2) text(str(snap_thickness), size=4.5, anchor=str("baseline", CENTER), font="Merriweather Sans:style=Light");
+      up(snap_thickness - text_depth + eps / 2) linear_extrude(height=text_depth + eps) left(2) zrot(-90) text(str(snap_thickness), size=4.5, anchor=str("baseline", CENTER), font="Merriweather Sans:style=Bold");
   }
 }
 module main_generate() {
