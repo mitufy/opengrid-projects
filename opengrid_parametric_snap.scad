@@ -14,8 +14,7 @@ include <BOSL2/threading.scad>
 //It seems as of now (2025-08) makerworld's customizer needs rounding.scad to be included manually, despite the fact it should be included in std.scad according to BOSL2 wiki.
 include <BOSL2/rounding.scad>
 
-//Full - 6.8mm.   Lite Strong - 4mm.   Lite Basic - 3.4mm.
-snap_version = "Full"; //["Full","Lite Strong", "Lite Basic"]
+snap_version = "Full"; //[Full:Full - 6.8mm, Lite Strong:Lite Strong - 4mm, Lite Basic:Lite Basic - 3.4mm]
 snap_base_shape = "Directional"; //["Directional","Symmetric"]
 snap_locking_mechanism = "Original"; //["Self-Expanding","Original"]
 generate_connector = true;
@@ -78,13 +77,19 @@ threads_bottom_bevel_lite = 1.2; //0.1
 /* [Expanding Snap Options] */
 //Full snaps have stronger springs, so a smaller expand distance than Lite snaps.
 expand_distance_full = 1.1; //0.05
-//While the default should suffice for most use cases, you can experiment to find the optimized value for your filament.
+//While the default should suffice for most use cases, you can experiment to find the optimal value for your filament.
 expand_distance_lite = 1.3; //0.05
 //The part before the threads start expanding. Increase this value if you find it difficult to get the screw started.
+//a small notch making uninstalling easier.
+uninstall_notch = true;
+uninstall_notch_width = 4; //0.2
+
+/* [Expanding Snap Advanced Options] */
+//The part before the threads start expanding. Increase this value if you find it difficult to get the screw started.
 expand_entry_height = 0.4;
+//Default offset angle is now 0, the same as original snaps.
 expand_threads_offset_angle = 0;
 expand_split_angle = 45;
-/* [Expanding Snap Advanced Options] */
 //Default spring thickness parameters are set to products of 0.42, a common line width for 0.4mm nozzles.
 spring_thickness = 1.26;
 spring_to_center_thickness = 0.84;
@@ -97,11 +102,10 @@ expand_endpart_height_lite = 1.2; //0.1
 expansion_distance_step = 0.05;
 
 /* [Text Options] */
-add_snap_thickness_text = false;
-add_connector_thickness_text = false;
+//Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
+add_thickness_text = "Uncommon Only"; //[All, Uncommon Only, None]
 //Useful when experimenting with expansion distance.
 add_snap_expansion_distance_text = false;
-add_snap_custom_text = "";
 text_depth = 0.4;
 
 /* [View Options] */
@@ -145,10 +149,10 @@ snap_body_corner_chamfer = snap_body_corner_outer_diagonal * sqrt(2);
 snap_body_corner_inner_diagonal = snap_body_width * sqrt(2) / 2 - snap_body_corner_outer_diagonal;
 
 //threads parameters
+multiconnect_threads_negative_diameter = multiconnect_threads_diameter + multiconnect_threads_clearance;
 threads_bottom_bevel =
   snap_version == "Full" ? threads_bottom_bevel_full
   : threads_bottom_bevel_lite;
-multiconnect_threads_negative_diameter = multiconnect_threads_diameter + multiconnect_threads_clearance;
 
 //nub paramters
 basic_nub_height =
@@ -170,6 +174,13 @@ directional_slant_depth =
   snap_version == "Full" ? directional_slant_depth_full
   : directional_slant_depth_lite;
 directional_corner_slant_depth = directional_slant_depth / sqrt(2);
+
+//text parameters
+final_add_thickness_text =
+  add_thickness_text == "None" ? false
+  : add_thickness_text == "All" ? true
+  : add_thickness_text == "Uncommon Only" && snap_thickness != 3.4 && snap_thickness != 6.8 ? true
+  : false;
 
 //expand parameters
 expand_distance =
@@ -412,6 +423,12 @@ module snap() {
           tag("remove") down(eps / 2) zrot(expand_split_angle) expanding_spring(snap_base_shape == "Directional" && snap_version == "Full" ? "Corner" : "None");
           tag("remove") down(eps / 2) zrot(expand_split_angle - 180) expanding_spring(snap_base_shape == "Directional" ? "Slant" : "None");
         }
+        if (uninstall_notch) {
+          tag("remove") down(eps) fwd(snap_body_width / 2)
+                cuboid([uninstall_notch_width, 0.84, 0.8], anchor=BOTTOM + FRONT)
+                  attach(TOP, BOTTOM, align=FRONT)
+                    cuboid([uninstall_notch_width, 1.68, 0.6]);
+        }
       }
     } else if (snap_locking_mechanism == "Original") {
       diff() {
@@ -432,11 +449,8 @@ module snap() {
         }
       }
     }
-    //text
-    if (add_snap_thickness_text)
+    if (final_add_thickness_text)
       up(snap_thickness - text_depth) fwd(1.1) left(expand_split_angle < 0 ? -1.1 : 1.1) zrot(-expand_split_angle) linear_extrude(height=text_depth) fwd(snap_body_width / 2 - 2) text(str(snap_thickness), size=3.2, anchor=str("baseline", CENTER), font="Merriweather Sans:style=Bold");
-    if (add_snap_custom_text != "")
-      up(snap_thickness - text_depth) linear_extrude(height=text_depth + eps) zrot(-90) fwd(snap_body_width / 2 - 1.6) text(add_snap_custom_text, size=3.2, anchor=str("baseline", CENTER), font="Merriweather Sans:style=Bold");
     if (add_snap_expansion_distance_text && snap_locking_mechanism == "Self-Expanding")
       up(snap_thickness - text_depth) linear_extrude(height=text_depth + eps) fwd(snap_body_width / 2 - 1.6) text(str(expand_distance), size=3.2, anchor=str("baseline", CENTER), font="Merriweather Sans:style=Bold");
     //arrow
@@ -458,8 +472,8 @@ module connector() {
               attach(BOTTOM, TOP) cylinder(h=2.5, r2=7.5, r1=10)
                   attach(BOTTOM, TOP) cylinder(h=1, r=10);
     down(4 - coin_slot_height) xrot(90) cyl(r=coin_slot_radius, h=coin_slot_thickness, $fn=64, anchor=BACK);
-    if (add_connector_thickness_text)
-      up(snap_thickness - text_depth + eps / 2) linear_extrude(height=text_depth + eps) left(2) zrot(-90) text(str(snap_thickness), size=4.5, anchor=str("baseline", CENTER), font="Merriweather Sans:style=Bold");
+    if (final_add_thickness_text)
+      up(snap_thickness - text_depth + eps / 2) linear_extrude(height=text_depth + eps) text(str(snap_thickness), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
   }
 }
 module main_generate() {

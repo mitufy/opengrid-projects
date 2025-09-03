@@ -39,13 +39,16 @@ hook_tip_diff_angle = 10; //[0:5:60]
 snap_depth = 4; //[4, 3.4]
 
 /*[Hidden]*/
+$fa = 1;
+$fs = 0.4;
+eps = 0.005;
 //0.42 is a common line width for 0.4mm nozzles.
 snap_thickness = 0.84; // 0.42
 
-hook_length_chamfer_limit = (hook_length / 2 - 0.01 <= 0 || hook_bottom_thickness / 2 - 0.01 <= 0) && (hook_tip_length / 2 - 0.01 <= 0 || hook_tip_thickness / 2 - 0.01 <= 0) ? 10000 : min(hook_length / 2 - 0.01, hook_bottom_thickness / 2 - 0.01);
-tip_length_chamfer_limit = hook_tip_length / 2 - 0.01 <= 0 || hook_tip_thickness / 2 - 0.01 <= 0 ? 10000 : min(hook_tip_length / 2 - 0.01, hook_tip_thickness / 2 - 0.01);
+hook_length_chamfer_limit = (hook_length / 2 - eps <= 0 || hook_bottom_thickness / 2 - eps <= 0) && (hook_tip_length / 2 - eps <= 0 || hook_tip_thickness / 2 - eps <= 0) ? 10000 : min(hook_length / 2 - eps, hook_bottom_thickness / 2 - eps);
+tip_length_chamfer_limit = hook_tip_length / 2 - eps <= 0 || hook_tip_thickness / 2 - eps <= 0 ? 10000 : min(hook_tip_length / 2 - eps, hook_tip_thickness / 2 - eps);
 
-hook_side_chamfer = max(0, min(hook_back_thickness / 2 - 0.01, hook_length_chamfer_limit, tip_length_chamfer_limit, 0.84)); // 0.42
+hook_side_chamfer = max(0, min(hook_back_thickness / 2 - eps, hook_length_chamfer_limit, tip_length_chamfer_limit, 0.84)); // 0.42
 
 snap_height = 28 - hook_side_chamfer * 2;
 
@@ -91,9 +94,9 @@ negative_corner_profile = [
   [0, 4],
 ];
 
-hook_final_back_thickness = max(0, hook_back_thickness - 0.01);
-hook_final_bottom_thickness = max(0, hook_bottom_thickness - 0.01);
-hook_final_tip_thickness = max(0, hook_tip_thickness - 0.01);
+hook_final_back_thickness = max(0, hook_back_thickness - eps);
+hook_final_bottom_thickness = max(0, hook_bottom_thickness - eps);
+hook_final_tip_thickness = max(0, hook_tip_thickness - eps);
 hook_final_width = tileSize * (horizontal_grids - 1) + hook_width;
 hook_final_height = tileSize * vertical_grids;
 
@@ -144,9 +147,9 @@ difference() {
             intersection() {
               difference() {
                 down(hook_side_chamfer) cube([min(hook_width / 2, tileSize / 2), snap_height / 2, snap_depth + hook_side_chamfer]);
-                up(3.4) right(1.1 - 0.01) prismoid(size1=[0, tileSize / 2], h=1, xang=135, yang=90, anchor=BOTTOM + FRONT);
+                up(3.4) right(1.1 - eps) prismoid(size1=[0, tileSize / 2], h=1, xang=135, yang=90, anchor=BOTTOM + FRONT);
                 //a prismoid to cut off overhang from snap. calculated position is not precise but works well enough.
-                back(snap_height / 2 - (5.2 - min(hook_width, tileSize) / 2)) up(0.01) prismoid(size1=[hook_width, 0], xang=90, yang=135, h=tileSize / 2);
+                back(snap_height / 2 - (5.2 - min(hook_width, tileSize) / 2)) up(eps) prismoid(size1=[hook_width, 0], xang=90, yang=135, h=tileSize / 2);
               }
               right(tileSize / 2) zrot(-90)
                   difference() {
