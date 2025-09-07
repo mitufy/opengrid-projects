@@ -3,7 +3,7 @@ include <BOSL2/threading.scad>
 include <BOSL2/rounding.scad>
 
 snap_version = "Lite Strong"; //[Full:Full - 6.8mm, Lite Strong:Lite Strong - 4mm, Lite Basic:Lite Basic - 3.4mm]
-clamp_type = "Circular"; //["Circular", "Square"]
+clamp_type = "Circular"; //["Circular", "Rectangular","Rect_Half"]
 //This changes which direction the hook faces when it is completely screwed in to a snap.
 threads_rotate_angle = 0;
 
@@ -17,13 +17,14 @@ clamp_entry_width = 10; //0.2
 clamp_inner_size = 25; //0.2
 clamp_circular_angle = 160;
 
-/* [Square Options] */
+/* [Rectangular Options] */
 clamp_square_depth = 20; //1
 clamp_square_corner_rounding = 1; //0.2
 clamp_square_corner_angle = 90; //[10:10:170]
 
 /* [Tip Options] */
 clamp_has_tip = true;
+clamp_tip_diameter_a = 3; //1
 clamp_tip_diameter = 3; //1
 clamp_tip_angle = 160; //10
 
@@ -73,7 +74,7 @@ final_add_thickness_text =
   : add_thickness_text == "Uncommon Only" && snap_thickness != 3.4 && snap_thickness != 6.8 ? true
   : false;
 
-clamp_side_chamfer = max(0, min(body_thickness / 2 * body_thickness_scale - 0.84, body_width / 2 - 0.84, body_side_chamfer));
+final_side_chamfer = max(0, min(body_thickness / 2 * body_thickness_scale - 0.84, body_width / 2 - 0.84, body_side_chamfer));
 // clamp_circular_angle = 180 - opp_hyp_to_ang(min(clamp_entry_width / 2 + body_thickness / 2 + (clamp_has_tip ? clamp_tip_diameter / 2 : 0), clamp_inner_size / 2), clamp_inner_size / 2);
 
 clamp_path_tip = [
@@ -86,26 +87,18 @@ clamp_path_circular = [
   clamp_inner_size / 2 + body_thickness / 2,
   clamp_circular_angle,
 ];
-// square_inner_corner_rounding = max(0, min(clamp_square_corner_rounding, clamp_inner_size / 2, clamp_square_depth / 2));
-// square_outer_corner_rounding = max(0, min(clamp_square_corner_rounding, clamp_inner_size / 2 - clamp_entry_width / 2 - (clamp_has_tip ? clamp_tip_diameter / 2 : 0)));
-square_side_length = max(0, ang_adj_to_hyp(clamp_square_corner_angle - 90, clamp_square_depth) + body_thickness - square_inner_corner_rounding - square_outer_corner_rounding);
-clamp_path_square = [
-  "move",
-  max(0, clamp_inner_size / 2 + body_thickness / 2 - square_inner_corner_rounding),
-  "arcrightto",
-  square_inner_corner_rounding,
-  clamp_square_corner_angle - 180,
-  "move",
-  square_side_length,
-  "arcrightto",
-  square_outer_corner_rounding,
-  180,
-  "move",
-  max(0, clamp_inner_size / 2 + body_thickness / 2 - clamp_entry_width / 2 - square_outer_corner_rounding - (clamp_has_tip ? clamp_tip_diameter / 2 : 0)),
-];
+
+rect_icorner_rounding = max(0, min(clamp_square_corner_rounding, clamp_inner_size / 2, clamp_square_depth / 2));
+rect_ocorner_rounding = max(0, min(clamp_square_corner_rounding, clamp_inner_size / 2 - clamp_entry_width / 2 - (clamp_has_tip ? clamp_tip_diameter / 2 : 0)));
+square_side_length = max(0, ang_adj_to_hyp(clamp_square_corner_angle - 90, clamp_square_depth) + body_thickness - rect_icorner_rounding - rect_ocorner_rounding);
+square_side_length_a = max(0, ang_adj_to_hyp(clamp_square_corner_angle - 90, clamp_square_depth) + body_thickness - rect_icorner_rounding - clamp_tip_diameter_a / 2);
+clamp_path_square = ["move", max(0, clamp_inner_size / 2 + body_thickness / 2 - rect_icorner_rounding), "arcrightto", rect_icorner_rounding, clamp_square_corner_angle - 180, "move", square_side_length, "arcrightto", rect_ocorner_rounding, 180, "move", max(0, clamp_inner_size / 2 + body_thickness / 2 - clamp_entry_width / 2 - rect_ocorner_rounding - (clamp_has_tip ? clamp_tip_diameter / 2 : 0))];
+clamp_path_square_no = ["move", max(0, clamp_inner_size / 2 + body_thickness / 2 - rect_icorner_rounding), "arcrightto", rect_icorner_rounding, clamp_square_corner_angle - 180, "move", square_side_length_a, "arcright", clamp_tip_diameter_a / 2, 40, "arcleft", clamp_tip_diameter / 2, 180];
+
 clamp_path_main =
   clamp_type == "Circular" ? clamp_path_circular
-  : clamp_path_square;
+  : clamp_type == "Rectangular" ? clamp_path_square
+  : clamp_path_square_no;
 
 clamp_path_length_ratio = clamp_has_tip ? path_length(turtle(clamp_path_main)) / (path_length(turtle(clamp_path_main)) + path_length(turtle(clamp_path_tip))) : 1;
 clamp_path_end_scale = 1 - (1 - body_thickness_scale) * clamp_path_length_ratio;
@@ -113,7 +106,9 @@ clamp_path_end_scale = 1 - (1 - body_thickness_scale) * clamp_path_length_ratio;
 clamp_path =
   clamp_has_tip ? concat(clamp_path_main, clamp_path_tip)
   : clamp_path_main;
-clamp_profile = rect([body_thickness, body_width], chamfer=[0, clamp_side_chamfer, clamp_side_chamfer, clamp_side_chamfer]);
+clamp_profile = rect([body_thickness, body_width], chamfer=[0, final_side_chamfer, final_side_chamfer, final_side_chamfer]);
+offset_sweep_profile = scale([body_thickness_scale, 1, 1], clamp_profile);
+tip_rounding_radius = max(0, min(body_thickness * body_thickness_scale - final_side_chamfer * 2, body_width - final_side_chamfer * 2) / 2 - eps);
 
 first_target_ratio = (1 - (1 - body_thickness_scale) * clamp_path_length_ratio);
 prism_base_radius = clamp_inner_size / 2 + body_thickness / 2 * first_target_ratio;
@@ -121,6 +116,7 @@ prism_width = prism_base_radius / 2;
 prism_down_offset = body_thickness / 2 * min(1, 1 - (1 - first_target_ratio) * 0.9);
 prism_fillet = max(0, min(prism_width, snap_thickness, 0.01));
 
+// rotate_sweep(right(10,clamp_profile),angle=300);
 diff() {
   zrot(threads_compatiblity_angle + threads_rotate_angle)
     generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=3, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
@@ -131,29 +127,20 @@ diff() {
     down(body_thickness / 2) up(body_thickness * (1 - body_thickness_scale) / 10)
         xflip_copy()
           xrot(90)
-            path_sweep(clamp_profile, path=path_merge_collinear(turtle(clamp_path)), scale=[body_thickness_scale, 1], caps=[true, os_circle(r=min(body_thickness, body_width) * body_thickness_scale, clip_angle=45)]);
+            // path_sweep(clamp_profile, path=path_merge_collinear(turtle(clamp_path)), scale=[body_thickness_scale, 1], caps=[true, os_circle(r=min(body_thickness, body_width) * body_thickness_scale, clip_angle=45)]);
+            //makerworld doesn't support newest path_sweep caps yet so it has to be done the old way.
+            path_sweep(clamp_profile, path=path_merge_collinear(turtle(clamp_path)), scale=[body_thickness_scale, 1])
+              attach("end", "top")
+                offset_sweep(offset_sweep_profile, height=tip_rounding_radius + eps, bottom=os_teardrop(r=tip_rounding_radius));
   }
-
   if (clamp_type == "Circular") {
     diff("inner_remove") {
       connect_cyl_diameter = min(threads_connect_diameter, clamp_inner_size + body_thickness * 2);
       fwd((threads_connect_diameter - connect_cyl_diameter) / 2 + 0.1)
         cyl(d=connect_cyl_diameter, l=clamp_inner_size * 2 / 3, anchor=TOP);
       tag("inner_remove") ycyl(r=clamp_inner_size / 2 + body_thickness / 2, l=200, anchor=TOP);
-      tag("inner_remove") back(body_width - threads_offset - clamp_side_chamfer) cuboid([50, 50, 50], anchor=FRONT);
+      tag("inner_remove") back(body_width - threads_offset - final_side_chamfer) cuboid([50, 50, 50], anchor=FRONT);
     }
-    //   diff("inner_remove") {
-    //     difference() {
-    //       //lower the position of the connecting prism, taking thickness scale into account. calculation is inaccurate but seems to be good enough?
-    //       down(clamp_inner_size / 2 + body_thickness / 2 * min(1, 1 - (1 - first_target_ratio) * 0.9))
-    //           join_prism(circle(d=threads_connect_diameter), base="cyl", base_r=prism_base_radius, length=snap_thickness, base_fillet=0, overlap=0, base_T=zrot(90), uniform=false);
-    //       difference() {
-    //         cyl(r=10, l=snap_thickness + eps, anchor=BOTTOM);
-    //         cyl(r=7, l=snap_thickness - threads_bottom_bevel, anchor=BOTTOM);
-    //       }
-    //     }
-    //    tag("inner_remove") back(body_width - threads_offset - clamp_side_chamfer) cuboid([50, 50, 50], anchor=FRONT);
-    // }
   }
   tag("remove") fwd(threads_offset) cuboid([500, 500, 500], anchor=BACK);
 }

@@ -146,10 +146,10 @@ difference() {
         xflip_copy() yflip_copy()
             intersection() {
               difference() {
-                down(hook_side_chamfer) cube([min(hook_width / 2, tileSize / 2), snap_height / 2, snap_depth + hook_side_chamfer]);
+                down(hook_side_chamfer) cube([min(min(hook_width, 11) / 2, tileSize / 2), snap_height / 2, snap_depth + hook_side_chamfer]);
                 up(3.4) right(1.1 - eps) prismoid(size1=[0, tileSize / 2], h=1, xang=135, yang=90, anchor=BOTTOM + FRONT);
                 //a prismoid to cut off overhang from snap. calculated position is not precise but works well enough.
-                back(snap_height / 2 - (5.2 - min(hook_width, tileSize) / 2)) up(eps) prismoid(size1=[hook_width, 0], xang=90, yang=135, h=tileSize / 2);
+                back(snap_height / 2 - (5.2 - min(min(hook_width, 11), tileSize) / 2)) up(eps) prismoid(size1=[hook_width, 0], xang=90, yang=135, h=tileSize / 2);
               }
               right(tileSize / 2) zrot(-90)
                   difference() {
