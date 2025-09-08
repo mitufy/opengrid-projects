@@ -112,12 +112,24 @@ hook_path =
   : corner_type == "Circular" ? circular_hook_path
   : rect_hook_path;
 
-tip_rounding_radius = max(0, min(body_thickness * final_thickness_scale - final_side_chamfer * 2, body_width - final_side_chamfer * 2) / 2 - eps);
-body_sweep_profile = rect([body_thickness, body_width], chamfer=final_side_chamfer);
-offset_sweep_profile = scale([final_thickness_scale, 1, 1], body_sweep_profile);
+tip_rounding_radius = max(0, min(body_thickness * final_thickness_scale, body_width - final_side_chamfer * 2) / 2 - eps);
+
+//unimplemented ring profile
+ring_profile = false;
+ring_main_width = body_width;
+ring_main_thickness = ring_main_width / 2;
+ring_sweep_profile = back(2, right(body_width / 2, zrot(90, ring(width=ring_main_width, thickness=ring_main_thickness, ring_width=body_thickness / 2, n=32, full=false))));
+ring_hook_path = ["setdir", 90, "arcleft", ring_main_thickness, 90, "arcright", final_tip_size / 2, hook_tip_angle + 90];
+profile_zrot = ring_profile ? 180 : 0;
+profile_back_offset = ring_profile ? 4: 0;
+
+default_sweep_profile = rect([body_thickness, body_width], chamfer=final_side_chamfer);
+
+final_sweep_profile = ring_profile ? ring_sweep_profile : default_sweep_profile;
+offset_sweep_profile = scale([final_thickness_scale, 1, 1], final_sweep_profile);
 prism_fillet = max(0, min(final_stem_length, hook_stem_fillet));
 
-up(body_width / 2) xrot(90)
+up(threads_offset) xrot(90)
     diff() {
       zrot(threads_compatiblity_angle + threads_rotate_angle - 90)
         generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=3, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
@@ -126,13 +138,13 @@ up(body_width / 2) xrot(90)
               linear_extrude(height=text_depth + eps) text(str(snap_thickness), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
       fwd(threads_offset - body_width / 2) {
         down(final_stem_length - eps) xrot(-90)
-            //path_sweep(body_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[final_thickness_scale, 1], caps=[true, os_teardrop(r=tip_rounding_radius)]);
+            //path_sweep(final_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[final_thickness_scale, 1], caps=[true, os_circle(r=tip_rounding_radius)]);
             //makerworld doesn't support newest path_sweep caps yet so it has to be done the old way.
-            path_sweep(body_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[final_thickness_scale, 1])
+            path_sweep(final_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[final_thickness_scale, 1])
               attach("end", "top")
-                offset_sweep(offset_sweep_profile, height=tip_rounding_radius + eps, bottom=os_teardrop(r=tip_rounding_radius));
+                back(profile_back_offset) offset_sweep(offset_sweep_profile, height=tip_rounding_radius + eps, bottom=os_circle(r=tip_rounding_radius), spin=profile_zrot);
         difference() {
-          xrot(180) join_prism(body_sweep_profile, base="plane", length=final_stem_length, base_fillet=prism_fillet, overlap=0);
+          zrot(profile_zrot) xrot(180) join_prism(final_sweep_profile, base="plane", length=final_stem_length, base_fillet=prism_fillet, overlap=0);
           up(eps) difference() {
               cuboid([100, 100, prism_fillet], anchor=TOP);
               union() {
@@ -143,5 +155,5 @@ up(body_width / 2) xrot(90)
             }
         }
       }
-      tag("remove") fwd(threads_offset) cuboid([500, 500, 500], anchor=BACK);
+     tag("remove") fwd(threads_offset-eps) cuboid([500, 500, 500], anchor=BACK);
     }
