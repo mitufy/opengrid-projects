@@ -1,3 +1,11 @@
+/* 
+Licensed Creative Commons Attribution-ShareAlike 4.0 International
+
+Created by mitufy. https://github.com/mitufy
+
+The openGrid system is created by David D. https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem
+*/
+
 include <BOSL2/std.scad>
 include <BOSL2/threading.scad>
 include <BOSL2/rounding.scad>
