@@ -22,16 +22,14 @@ body_thickness = 6; //0.4
 //Size of the main hook shape.
 hook_main_size = 20; //0.4
 hook_stem_length = 8; //0.4
-
 //Scaling of body thickness. 0.6 means thickness at the end of the hook would be 60% of the beginning.
 body_thickness_scale = 0.6; //[0.1:0.1:1]
-
-//Angle affects Centered-Circular and Straight-Circular hooks.
+//Angle affects Centered and Straight hooks.
 hook_tip_angle = 165; //[15:15:255]
 
 /* [Advanced Options] */
-//Changes which direction the gadget faces when it is completely screwed in to a snap.
-threads_rotate_angle = 0;
+//Changes which direction the hook faces when it's completely screwed in. For example, 90 means it would face 3 o’clock direction.
+threads_offset_angle = 0; //[0:15:345]
 //Size of fillet at the part hook stem connects to threads.
 hook_stem_fillet = 4; //0.4
 //Chamfer is automatically clamped to ensure a sufficiently large print surface.
@@ -97,8 +95,10 @@ circular_center_hook_path = ["setdir", 90, "arcleft", eps, 90, "arcright", final
 circular_loop_hook_path = ["setdir", 0, "arcleft", final_tip_size / 2, 359.9];
 
 rect_straight_hook_path = ["setdir", 90, "move", hook_main_size / 2, "arcright", eps, 90 + rect_offset_angle, "move", hook_main_size];
+rect_straight_hook_path_tip = ["arcright", square_corner_radius, 90, "move", max(eps, (hook_main_size - square_corner_radius * 2) * (hook_tip_angle - 135) / 90)];
 rect_center_hook_ratio = (hook_main_size - square_corner_radius) / (hook_main_size * 2.5 - square_corner_radius * 3);
 rect_center_hook_path = ["setdir", 90, "arcleft", eps, 90, "move", hook_main_size / 2 - square_corner_radius, "arcright", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcright", square_corner_radius, 90 + rect_offset_angle * rect_center_hook_ratio, "move", hook_main_size - square_corner_radius];
+rect_center_hook_path_tip = ["arcright", square_corner_radius, 90, "move", max(eps, (hook_main_size - square_corner_radius * 2) * (hook_tip_angle - 135) / 90)];
 rect_loop_hook_path = ["setdir", 90, "arcleft", eps, 90, "move", hook_main_size / 2 - square_corner_radius, "arcright", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcright", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcright", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcright", square_corner_radius, 90, "move", hook_main_size / 2];
 
 function to_turtle(x) = is_num(parse_num(x)) ? parse_num(x) : x;
@@ -111,9 +111,11 @@ circular_hook_path =
   : circular_straight_hook_path;
 
 rect_hook_path =
-  hook_shape_type == "Loop" ? rect_loop_hook_path
+  hook_shape_type == "Centered" && hook_tip_angle > 135 ? concat(rect_center_hook_path, rect_center_hook_path_tip)
   : hook_shape_type == "Centered" ? rect_center_hook_path
-  : rect_straight_hook_path;
+  : hook_shape_type == "Straight" && hook_tip_angle > 135 ? concat(rect_straight_hook_path, rect_straight_hook_path_tip)
+  : hook_shape_type == "Straight" ? rect_straight_hook_path
+  : rect_loop_hook_path;
 
 hook_path =
   use_custom_shape ? custom_hook_path
@@ -129,7 +131,7 @@ ring_main_thickness = ring_main_width / 2;
 ring_sweep_profile = back(2, right(body_width / 2, zrot(90, ring(width=ring_main_width, thickness=ring_main_thickness, ring_width=body_thickness / 2, n=32, full=false))));
 ring_hook_path = ["setdir", 90, "arcleft", ring_main_thickness, 90, "arcright", final_tip_size / 2, hook_tip_angle + 90];
 profile_zrot = ring_profile ? 180 : 0;
-profile_back_offset = ring_profile ? 4: 0;
+profile_back_offset = ring_profile ? 4 : 0;
 
 default_sweep_profile = rect([body_thickness, body_width], chamfer=final_side_chamfer);
 
@@ -139,7 +141,7 @@ prism_fillet = max(0, min(final_stem_length, hook_stem_fillet));
 
 up(threads_offset) xrot(90)
     diff() {
-      zrot(threads_compatiblity_angle + threads_rotate_angle - 90)
+      zrot(threads_compatiblity_angle + threads_offset_angle - 90)
         generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=3, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
       if (final_add_thickness_text)
         tag("remove") zrot(-90) up(snap_thickness - text_depth + eps / 2)
@@ -163,5 +165,5 @@ up(threads_offset) xrot(90)
             }
         }
       }
-     tag("remove") fwd(threads_offset-eps) cuboid([500, 500, 500], anchor=BACK);
+      tag("remove") fwd(threads_offset - eps) cuboid([500, 500, 500], anchor=BACK);
     }
