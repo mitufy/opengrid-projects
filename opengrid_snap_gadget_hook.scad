@@ -28,7 +28,7 @@ body_thickness_scale = 0.6; //[0.1:0.1:1]
 hook_tip_angle = 165; //[15:15:255]
 
 /* [Advanced Options] */
-//Changes which direction the hook faces when it's completely screwed in. For example, 90 means it would face 3 o’clock direction.
+//Counterclockwisely offset which direction the gadget faces when it's completely screwed in. 270 means it would face 3 o’clock direction.
 threads_offset_angle = 0; //[0:15:345]
 //Size of fillet at the part hook stem connects to threads.
 hook_stem_fillet = 4; //0.4

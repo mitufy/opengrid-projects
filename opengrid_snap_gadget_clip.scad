@@ -40,7 +40,7 @@ clip_tip_angle = 160; //10
 body_side_chamfer = 0.8; //0.2
 //Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
 add_thickness_text = "Uncommon Only"; //[All, Uncommon Only, None]
-//Changes which direction the gadget faces when it's completely screwed in. For example, 90 means it would face 3 o’clock direction.
+//Counterclockwisely offset which direction the gadget faces when it's completely screwed in. 270 means it would face 3 o’clock direction.
 threads_offset_angle = 0; //[0:15:345]
 /* [Hidden] */
 $fa = 1;
