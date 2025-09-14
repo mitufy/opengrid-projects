@@ -132,8 +132,14 @@ tip_inner_fillet_cut_shape = difference(
 
 diff() {
   cuboid([hook_final_width, hook_final_back_thickness, hook_final_height], anchor=FRONT) {
-    edge_mask([FRONT + TOP, BACK + TOP])
+    edge_mask([TOP])
       rounding_edge_mask(r=hook_final_side_chamfer);
+    corner_mask([TOP + BACK])
+      rounding_corner_mask(r=hook_final_side_chamfer);
+    //applying bottom chamfer to diagonal hooks may make print surface too small.
+    if (hook_corner_angle == 0)
+      edge_mask([BOTTOM + FRONT])
+        chamfer_edge_mask(chamfer=hook_final_side_chamfer);
     attach(BOTTOM, FRONT, align=FRONT, spin=90)
       tag("remove") offset_sweep(rect([hook_final_length + hook_final_back_thickness, 1]), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
     attach(BACK, FRONT, align=TOP, spin=90)

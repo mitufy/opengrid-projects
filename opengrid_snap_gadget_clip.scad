@@ -12,8 +12,7 @@ include <BOSL2/rounding.scad>
 
 snap_version = "Lite Strong"; //[Full:Full - 6.8mm, Lite Strong:Lite Strong - 4mm, Lite Basic:Lite Basic - 3.4mm]
 clip_type = "Circular"; //["Circular", "Rectangular","Rect_Half"]
-//This changes which direction the hook faces when it is completely screwed in to a snap.
-threads_rotate_angle = 0;
+
 
 /* [Hook Options] */
 body_width = 14;
@@ -37,11 +36,12 @@ clip_tip_diameter = 3; //1
 clip_tip_angle = 160; //10
 
 /* [Advanced Options] */
-//This value is automatically cliped to ensure a sufficiently large print surface.
+//This value is automatically clamped to ensure a sufficiently large print surface.
 body_side_chamfer = 0.8; //0.2
 //Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
 add_thickness_text = "Uncommon Only"; //[All, Uncommon Only, None]
-
+//Changes which direction the gadget faces when it's completely screwed in. For example, 90 means it would face 3 o’clock direction.
+threads_offset_angle = 0; //[0:15:345]
 /* [Hidden] */
 $fa = 1;
 $fs = 0.4;
@@ -115,6 +115,7 @@ clip_path =
   clip_has_tip ? concat(clip_path_main, clip_path_tip)
   : clip_path_main;
 clip_profile = rect([body_thickness, body_width], chamfer=[0, final_side_chamfer, final_side_chamfer, final_side_chamfer]);
+// clip_profile = regular_ngon(n=6, id=body_width/2);
 offset_sweep_profile = scale([body_thickness_scale, 1, 1], clip_profile);
 tip_rounding_radius = max(0, min(body_thickness * body_thickness_scale - final_side_chamfer * 2, body_width - final_side_chamfer * 2) / 2 - eps);
 
@@ -126,7 +127,7 @@ prism_fillet = max(0, min(prism_width, snap_thickness, 0.01));
 
 // rotate_sweep(right(10,clip_profile),angle=300);
 diff() {
-  zrot(threads_compatiblity_angle + threads_rotate_angle)
+  zrot(threads_compatiblity_angle + threads_offset_angle)
     generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=3, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
   if (final_add_thickness_text)
     tag("remove") up(snap_thickness - text_depth + eps / 2)

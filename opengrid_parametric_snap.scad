@@ -6,7 +6,9 @@ Created by mitufy. https://github.com/mitufy
 Inspired by BlackjackDuck's work here: https://github.com/AndyLevesque/QuackWorks
 and Jan's work here: https://github.com/jp-embedded/opengrid
 
-The openGrid system is created by David. https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem
+The openGrid system is created by David D. https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem
+
+2025-09-04 Update: Added uninstall notch. Default threads offset angle is now set to 0 for consistency with David's original snaps.
 */
 
 include <BOSL2/std.scad>
@@ -73,22 +75,25 @@ multiconnect_threads_clearance = 0.5;
 threads_top_bevel = 0.5; //0.1
 threads_bottom_bevel_full = 2; //0.1
 threads_bottom_bevel_lite = 1.2; //0.1
+threads_offset_angle = 0; //[0:15:345]
 
 /* [Expanding Snap Options] */
-//Full snaps have stronger springs, so a smaller expand distance than Lite snaps.
+//Full snaps have stronger springs, thus smaller expand distance than Lite snaps.
 expand_distance_full = 1.1; //0.05
 //While the default should suffice for most use cases, you can experiment to find the optimal value for your filament.
 expand_distance_lite = 1.3; //0.05
-//The part before the threads start expanding. Increase this value if you find it difficult to get the screw started.
 //a small notch making uninstalling easier.
-uninstall_notch = true;
+add_uninstall_notch = true;
 uninstall_notch_width = 4; //0.2
+uninstall_notch_surface_height_full = 1.2;
+uninstall_notch_surface_height_lite = 0.8;
+uninstall_notch_gap_height_full = 0.8;
+uninstall_notch_gap_height_lite = 0.6;
 
 /* [Expanding Snap Advanced Options] */
 //The part before the threads start expanding. Increase this value if you find it difficult to get the screw started.
 expand_entry_height = 0.4;
-//Default offset angle is now 0, the same as original snaps.
-expand_threads_offset_angle = 0;
+
 expand_split_angle = 45;
 //Default spring thickness parameters are set to products of 0.42, a common line width for 0.4mm nozzles.
 spring_thickness = 1.26;
@@ -193,6 +198,13 @@ expand_endpart_height =
 expand_transpart_height = max(snap_thickness - expand_entry_height - expand_endpart_height, 0);
 expand_segment_count = ceil(expand_distance / expansion_distance_step);
 expand_height_step = expand_transpart_height / expand_segment_count;
+
+uninstall_notch_surface_height =
+  snap_version == "Full" ? uninstall_notch_surface_height_full
+  : uninstall_notch_surface_height_lite;
+uninstall_notch_gap_height =
+  snap_version == "Full" ? uninstall_notch_gap_height_full
+  : uninstall_notch_gap_height_lite;
 
 threads_profile = [
   [-1.25 / 3, -1 / 3],
@@ -372,13 +384,13 @@ module expanding_snap_shape(anchor = CENTER, spin = 0, orient = UP) {
         if (!disable_snap_threads) {
           down(eps / 2)
             up(reverse_threads_entryside ? snap_thickness + eps / 2 : 0) yrot(reverse_threads_entryside ? 180 : 0)
-                expanding_thread(diameter=multiconnect_threads_negative_diameter, expand_width=expand_distance, entry_height=expand_entry_height, transition_height=expand_transpart_height, end_height=expand_endpart_height, offset_angle=threads_compatiblity_angle + expand_threads_offset_angle, split_angle=expand_split_angle, anchor=BOT);
+                expanding_thread(diameter=multiconnect_threads_negative_diameter, expand_width=expand_distance, entry_height=expand_entry_height, transition_height=expand_transpart_height, end_height=expand_endpart_height, offset_angle=threads_compatiblity_angle + threads_offset_angle, split_angle=expand_split_angle, anchor=BOT);
         }
       }
     children();
   }
 }
-module expanding_thread(diameter, expand_width, entry_height, transition_height, end_height, offset_angle = 98.5, split_angle = 45, anchor = CENTER, spin = 0, orient = UP) {
+module expanding_thread(diameter, expand_width, entry_height, transition_height, end_height, offset_angle = 53.5, split_angle = 45, anchor = CENTER, spin = 0, orient = UP) {
   expand_width_step = expansion_distance_step;
   expand_segment_count = ceil(expand_width / expand_width_step);
   expand_height_step = transition_height / expand_segment_count;
@@ -423,11 +435,13 @@ module snap() {
           tag("remove") down(eps / 2) zrot(expand_split_angle) expanding_spring(snap_base_shape == "Directional" && snap_version == "Full" ? "Corner" : "None");
           tag("remove") down(eps / 2) zrot(expand_split_angle - 180) expanding_spring(snap_base_shape == "Directional" ? "Slant" : "None");
         }
-        if (uninstall_notch) {
+        if (add_uninstall_notch) {
           tag("remove") down(eps) fwd(snap_body_width / 2)
-                cuboid([uninstall_notch_width, 0.84, 0.8], anchor=BOTTOM + FRONT)
+                cuboid([uninstall_notch_width, 0.84, uninstall_notch_surface_height], anchor=BOTTOM + FRONT)
                   attach(TOP, BOTTOM, align=FRONT)
-                    cuboid([uninstall_notch_width, 1.68, 0.6]);
+                    cuboid([uninstall_notch_width, 1.68, uninstall_notch_gap_height])
+                      attach(FRONT, BACK, align=TOP)
+                        cuboid([uninstall_notch_width, 1.68, uninstall_notch_gap_height]);
         }
       }
     } else if (snap_locking_mechanism == "Original") {
@@ -445,7 +459,7 @@ module snap() {
         if (!disable_snap_threads) {
           tag("remove") down(eps / 2)
               up(reverse_threads_entryside ? snap_thickness + eps / 2 : 0) yrot(reverse_threads_entryside ? 180 : 0)
-                  zrot(threads_compatiblity_angle) generic_threaded_rod(d=multiconnect_threads_negative_diameter, l=snap_thickness + eps, pitch=3, profile=threads_profile, bevel1=0, bevel2=min(threads_bottom_bevel, snap_thickness), anchor=BOTTOM, blunt_start=false, internal=false);
+                  zrot(threads_compatiblity_angle + threads_offset_angle) generic_threaded_rod(d=multiconnect_threads_negative_diameter, l=snap_thickness + eps, pitch=3, profile=threads_profile, bevel1=0, bevel2=min(threads_bottom_bevel, snap_thickness), anchor=BOTTOM, blunt_start=false, internal=false);
         }
       }
     }

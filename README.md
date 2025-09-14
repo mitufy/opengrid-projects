@@ -9,8 +9,8 @@ A generator for self-expanding snaps. The code is mostly the same as opengrid_pa
 ### opengrid_snap_gadget_hook.scad [(customizer)](https://makerworld.com/en/models/1771774-opengrid-snap-gadget-hook-generator)
 A generator for openGrid hooks, which are attached to the openGrid board via Multiconnect snaps. When paired with self-expanding snaps, it provides reasonable strength while being space- and filament-efficient.
 
-### opengrid_framefit_hook.scad [(customizer)](https://makerworld.com/en/models/1586090-opengrid-framefit-hook-generator)
-A generator for openGrid hooks, which are attached to the frame of the openGrid board, in the style of David's [minimal hook](https://www.printables.com/model/1217962-opengrid-minimal-hook).
+### opengrid_framefit_hook_new.scad [(customizer)](https://makerworld.com/en/models/1586090-opengrid-framefit-hook-generator)
+A generator for openGrid hooks, which are attached to the frame of the openGrid board, in the style of David's [minimal hook](https://www.printables.com/model/1217962-opengrid-minimal-hook). Updated to the new file on 2025-09-14.
 
 ### multiconnect_hex_bit.scad [(customizer)](https://makerworld.com/en/models/1412021-multiconnect-coin-screwdriver-6-35mm-hex-bit)
 A generator for the Multiconnect hex bit. It can also function as a general coin screwdriver.
