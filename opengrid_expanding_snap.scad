@@ -53,6 +53,7 @@ expansion_distance_step = 0.05;
 $fa = 1;
 $fs = 0.4;
 eps = 0.005;
+
 //Generating self-expanding snaps takes longer than original ones. 
 snap_locking_mechanism = "Self-Expanding"; //["Self-Expanding","Original"]
 
@@ -112,6 +113,15 @@ side_cut_offset_to_top = 0.8; //0.1
 // /* [Thread Options] */
 threads_bottom_bevel_full = 2; //0.1
 threads_bottom_bevel_lite = 1.2; //0.1
+
+/* [Screw Hole Options] */
+// It is recommended to use pan or button head screws
+enable_screw_hole = true;
+screw_hole_diameter = 4.1;
+screw_head_diameter = 7.2;
+screw_head_height = 4;
+base_thickness = 1;
+base_spring_relief = 0.7;
 
 // /* [View Options] */
 view_cross_section = "None"; //["None","Right","Back","Diagonal"]
@@ -421,6 +431,57 @@ module expanding_thread(diameter, expand_width, entry_height, transition_height,
     }
   }
 }
+module rotate_about_pt(a, pt) {
+    translate(pt)
+        rotate(a)
+            translate(-pt)
+                children();
+}
+
+module screw_plate() {
+  t=base_thickness;
+  plate_gap_thickness = base_spring_relief;
+  w = multiconnect_threads_negative_diameter;
+
+  if (snap_locking_mechanism == "Self-Expanding") {
+    h = 0.75 * w;
+    // calculate the intersection of the screw diameter and the plate
+    r = w/2;
+    j = h/2;
+    x_ = sqrt(r*r-j*j); // intersection: (x_, h/2)
+    points1 = [
+      [-w/4-plate_gap_thickness/2, h/2+1],
+      [-w/4-plate_gap_thickness/2, -h/10],
+      [-w/4+plate_gap_thickness/2, -h/10],
+      [-w/4+plate_gap_thickness/2, h/8],
+      ];
+    crv = bezier_curve(
+        [[-w/4+plate_gap_thickness/2, h/8], [-w/4+plate_gap_thickness/2, 2*h/8],
+         [-x_/2, h/2], [x_, h/2]]);
+    points2 = [
+      [x_, h/2],
+      [x_, h/2+1],
+      [-w/4-plate_gap_thickness, h/2+1]
+      ];
+    points = concat(points1, crv, points2);
+    rgn = difference([
+        square([w, h], center=true),
+        points,
+        zrot(180, points),
+        ]);
+    zrot(45) mirror([0,1,0]) xrot(180)
+      difference() {
+        offset_sweep(rgn, height=t, top=os_circle(r=0.4), steps=15);
+        translate([0,0,-0.5]) cylinder(d=screw_hole_diameter, h=t+1);
+      }
+  } else {
+    difference() {
+      translate([0, 0, t/2]) cube([w, w, t], center=true);
+      translate([0,0,-0.5]) cylinder(d=screw_hole_diameter, h=t+1);
+    }
+  }
+}
+
 module snap() {
   difference() {
     if (snap_locking_mechanism == "Self-Expanding") {
@@ -473,6 +534,8 @@ module snap() {
     if (snap_base_shape == "Directional")
       zrot(-90) up(snap_thickness + eps / 2) left(snap_body_width / 2 - 1.1) zrot(180) regular_prism(3, side=3.3, h=directional_arrow_depth + eps, chamfer1=directional_arrow_depth, anchor=RIGHT + TOP);
   }
+  if (enable_screw_hole)
+    translate([0,0,snap_thickness]) screw_plate();
 }
 
 module connector() {
@@ -482,14 +545,26 @@ module connector() {
   coin_slot_thickness = 2.4;
   //The following formula is derived from intersecting chord theorem. Don't ask.
   coin_slot_radius = coin_slot_height / 2 + coin_slot_width ^ 2 / (8 * coin_slot_height);
+  conn_l = enable_screw_hole ?
+    snap_thickness - base_thickness :
+    snap_thickness;
+  bevel2 = enable_screw_hole ?
+    max(0, threads_bottom_bevel/2) :
+    max(0, min(snap_thickness - threads_top_bevel, threads_bottom_bevel));
   difference() {
-    zrot(threads_compatiblity_angle) generic_threaded_rod(d=multiconnect_threads_diameter, l=snap_thickness + eps, pitch=3, profile=threads_profile, bevel1=min(snap_thickness, threads_top_bevel), bevel2=max(0, min(snap_thickness - threads_top_bevel, threads_bottom_bevel)), blunt_start=false, anchor=BOTTOM, internal=false)
+    zrot(threads_compatiblity_angle) generic_threaded_rod(d=multiconnect_threads_diameter, l=conn_l + eps, pitch=3, profile=threads_profile, bevel1=min(snap_thickness, threads_top_bevel), bevel2=bevel2, blunt_start=false, anchor=BOTTOM, internal=false)
         up(eps) attach(BOTTOM, TOP) cylinder(h=0.5, r=7.5)
               attach(BOTTOM, TOP) cylinder(h=2.5, r2=7.5, r1=10)
                   attach(BOTTOM, TOP) cylinder(h=1, r=10);
     down(4 - coin_slot_height) xrot(90) cyl(r=coin_slot_radius, h=coin_slot_thickness, $fn=64, anchor=BACK);
     if (final_add_thickness_text)
       up(snap_thickness - text_depth + eps / 2) linear_extrude(height=text_depth + eps) text(str(snap_thickness), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
+    if (enable_screw_hole) {
+      up(snap_thickness -1 + eps-max(0, screw_head_height-screw_head_diameter/2))
+        cylinder(d=screw_head_diameter, h=screw_head_height);
+      up(snap_thickness -1 + eps-max(0, screw_head_height-screw_head_diameter/2))
+      scale([1,1,0.5]) sphere(d=screw_head_diameter);
+    }
   }
 }
 module main_generate() {
