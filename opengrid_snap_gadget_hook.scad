@@ -88,17 +88,21 @@ final_stem_length = max(eps, hook_stem_length);
 final_thickness_scale = !use_custom_shape && hook_shape_type == "Loop" ? 1 : body_thickness_scale;
 final_side_chamfer = max(0, min(body_thickness / 2 * final_thickness_scale - 0.84, body_width / 2 - 0.84, body_max_chamfer));
 
-rect_offset_angle = opp_adj_to_ang((body_thickness - body_thickness * final_thickness_scale) / 2, final_tip_size);
-
 circular_straight_hook_path = ["setdir", 90, "arcright", final_tip_size / 2, hook_tip_angle];
 circular_center_hook_path = ["setdir", 90, "arcleft", eps, 90, "arcright", final_tip_size / 2, hook_tip_angle + 90];
 circular_loop_hook_path = ["setdir", 0, "arcleft", final_tip_size / 2, 359.9];
 
-rect_straight_hook_path = ["setdir", 90, "move", hook_main_size / 2, "arcright", eps, 90 + rect_offset_angle, "move", hook_main_size];
-rect_straight_hook_path_tip = ["arcright", square_corner_radius, 90, "move", max(eps, (hook_main_size - square_corner_radius * 2) * (hook_tip_angle - 135) / 90)];
-rect_center_hook_ratio = (hook_main_size - square_corner_radius) / (hook_main_size * 2.5 - square_corner_radius * 3);
-rect_center_hook_path = ["setdir", 90, "arcleft", eps, 90, "move", hook_main_size / 2 - square_corner_radius, "arcright", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcright", square_corner_radius, 90 + rect_offset_angle * rect_center_hook_ratio, "move", hook_main_size - square_corner_radius];
-rect_center_hook_path_tip = ["arcright", square_corner_radius, 90, "move", max(eps, (hook_main_size - square_corner_radius * 2) * (hook_tip_angle - 135) / 90)];
+//a rough calculation of the offset angle. the goal is to make bottom of the rectagular hook flat when thickness scale is less than 1.
+rect_offset_angle = opp_adj_to_ang((body_thickness - body_thickness * final_thickness_scale) / 2, final_tip_size);
+rect_corner_arc_length = PI / 2 * square_corner_radius;
+rect_tip_corner_length = max(eps, (hook_main_size - square_corner_radius * 2) * (hook_tip_angle - 135) / 90);
+rect_straight_middle_ratio = (hook_main_size - square_corner_radius) / (hook_tip_angle > 135 ? (rect_corner_arc_length + rect_tip_corner_length + hook_main_size * 1.5 + rect_corner_arc_length - square_corner_radius) : (hook_main_size * 1.5 + rect_corner_arc_length - square_corner_radius));
+rect_center_middle_ratio = (hook_main_size - square_corner_radius) / (hook_tip_angle > 135 ? (rect_corner_arc_length + rect_tip_corner_length + hook_main_size * 2.5 - square_corner_radius * 4 + rect_corner_arc_length * 2) : (hook_main_size * 2.5 - square_corner_radius * 4 + rect_corner_arc_length * 2));
+
+rect_straight_hook_path = ["setdir", 90, "move", hook_main_size / 2, "arcright", eps, 90 + rect_offset_angle * rect_straight_middle_ratio, "move", hook_main_size - square_corner_radius];
+rect_center_hook_path = ["setdir", 90, "arcleft", eps, 90, "move", hook_main_size / 2 - square_corner_radius, "arcright", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcright", square_corner_radius, 90 + rect_offset_angle * rect_center_middle_ratio, "move", hook_main_size - square_corner_radius];
+rect_hook_tip_path = ["arcright", square_corner_radius, 90, "move", rect_tip_corner_length];
+
 rect_loop_hook_path = ["setdir", 90, "arcleft", eps, 90, "move", hook_main_size / 2 - square_corner_radius, "arcright", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcright", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcright", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcright", square_corner_radius, 90, "move", hook_main_size / 2];
 
 function to_turtle(x) = is_num(parse_num(x)) ? parse_num(x) : x;
@@ -111,9 +115,9 @@ circular_hook_path =
   : circular_straight_hook_path;
 
 rect_hook_path =
-  hook_shape_type == "Centered" && hook_tip_angle > 135 ? concat(rect_center_hook_path, rect_center_hook_path_tip)
+  hook_shape_type == "Centered" && hook_tip_angle > 135 ? concat(rect_center_hook_path, rect_hook_tip_path)
   : hook_shape_type == "Centered" ? rect_center_hook_path
-  : hook_shape_type == "Straight" && hook_tip_angle > 135 ? concat(rect_straight_hook_path, rect_straight_hook_path_tip)
+  : hook_shape_type == "Straight" && hook_tip_angle > 135 ? concat(rect_straight_hook_path, rect_hook_tip_path)
   : hook_shape_type == "Straight" ? rect_straight_hook_path
   : rect_loop_hook_path;
 
