@@ -14,32 +14,35 @@ snap_version = "Lite Strong"; //[Full:Full - 6.8mm, Lite Strong:Lite Strong - 4m
 clip_shape = "Circular"; //["Circular", "Rectangular","Elliptic"]
 //Decides the state of the clip when completely screwed in.
 clip_orientation = "Horizontal"; //["Horizontal", "Vertical"]
-//Main width of the clip.
-clip_main_width = 20;
-//Main depth of the clip. Doesn't affect Circular clips as their depth would be same as the width.
+//Inner width of the clip.
+clip_main_width = 25;
+//Inner depth of the clip. Doesn't affect Circular clips as their depth would be same as the width.
 clip_main_depth = 15;
-//Add knurling to increase friction of the clip.
-clip_knurling_type = "Diamond"; //["None", "Line","Diamond"]
-/* [Basic Options] */
+
+/* [Main Options] */
 //180 means the clip would be completely closed.
-clip_surround_angle = 120; //[90:5:180]
+clip_surround_angle = 130; //[90:5:180]
 //Changes which side the clip entry would face, often used with Vertical clips. Non-Circular shapes only support 90 degree rotation.
-clip_entrypoint_rotation = 0; //[-90:15:90]
-//Thickness of the clip body. Flexiblity of the clip depends on thickness, but also wall loops and filament. Experiment with these to get a clip as flexible as you want.
+clip_entry_tilt_angle = 0; //[-90:15:90]
+//Thickness of the clip body. Note that flexiblity of the clip depends not only on thickness, but also wall loops and filament.
 clip_thickness = 2.6; //0.2
 //The scaling of clip thickness. 0.6 means thickness at the end would be 60% of the beginning.
 clip_thickness_scale = 0.6; //[0.1:0.1:1]
-//A tip making it easier to putting the object in. Set this value to 0 to disable it.
-clip_tip_diameter = 3; //1
+//The tip making it easier to putting the object in. Set this value to 0 to disable it.
+tip_diameter = 4; //1
+
+/* [Knurling Options] */
+//Add knurling to increase friction of the clip.
+knurling_type = "None"; //["None", "Diamond", "Line"]
+knurling_texture_size = 4;
+knurling_texture_depth = 1; //0.2
 
 /* [Advanced Options] */
-//Height of the clip body. The value for complete symmetry is 13.2.
 clip_height = 13.2; //0.2
-clip_tip_angle = 165; //[90:15:180]
 //Only affects clips of Rectangular shape.
-clip_rect_rounding = 4; //1
-clip_knurling_texture_size = 4;
-clip_knurling_texture_depth = 0.8; //0.2
+clip_rect_rounding = 3; //1
+//Height of the clip body. The value for complete symmetry is 13.2.
+tip_angle = 180; //[90:15:270]
 //This value is automatically clamped to ensure a sufficiently large print surface.
 body_side_chamfer = 0.8; //0.2
 //Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
@@ -87,22 +90,26 @@ final_add_thickness_text =
   : add_thickness_text == "Uncommon Only" && snap_thickness != 3.4 && snap_thickness != 6.8 ? true
   : false;
 
-final_clip_tip_diameter = max(eps, clip_thickness * clip_thickness_scale + 1, clip_tip_diameter);
+final_tip_diameter = max(eps, clip_thickness * clip_thickness_scale + 1, tip_diameter);
 final_side_chamfer = max(0, min(clip_thickness / 2 * clip_thickness_scale - 0.84, clip_height / 2 - 0.84, body_side_chamfer));
 
-clip_tip_path = ["arcleft", final_clip_tip_diameter / 2, clip_tip_angle];
+tip_path = ["arcleft", final_tip_diameter / 2, tip_angle];
 circular_clip_path = ["arcright", clip_main_width / 2 + clip_thickness / 2, clip_surround_angle];
 
+//unimplemented customizable inner angle for rect holders
+clip_rect_inner_angle = 90; //[0:15:180]
+
 final_clip_rect_rounding = max(eps, min((clip_main_width + clip_thickness) / 2, (clip_main_depth + clip_thickness) / 2, clip_rect_rounding));
-final_clip_inner_width = max(eps, clip_main_width / 2 - final_clip_rect_rounding + clip_thickness / 2);
-final_clip_outer_width = max(eps, clip_main_width / 2 * (clip_surround_angle - 90) / 90 - final_clip_rect_rounding);
+final_clip_inner_width = max(eps, clip_main_width / 2 + clip_thickness / 2 - final_clip_rect_rounding);
+final_clip_outer_width = max(eps, (clip_main_width / 2 + clip_thickness / 2) * (clip_surround_angle - 90) / 90 - final_clip_rect_rounding);
 final_clip_side_depth = max(eps, (clip_main_depth + clip_thickness - final_clip_rect_rounding * 2));
 
-rect_clip_has_bottom = clip_surround_angle >= 150;
+rect_clip_threshold_angle = 90 + (final_clip_rect_rounding * 2) / (clip_main_width / 2 + clip_thickness / 2 + final_clip_rect_rounding * 2) * 90;
+rect_clip_has_bottom = clip_surround_angle >= rect_clip_threshold_angle;
 
 clip_rect_nub_angle = 10; //[0:5:90]
 rect_path_first_part = ["move", final_clip_inner_width, "arcright", final_clip_rect_rounding, 90, "move", final_clip_side_depth];
-rect_path_bottom_corner = ["arcright", final_clip_rect_rounding, min(90, 90 - (150 - clip_surround_angle))];
+rect_path_bottom_corner = ["arcright", final_clip_rect_rounding, clip_surround_angle <= 90 ? 0 : min(90, 90 - (rect_clip_threshold_angle - clip_surround_angle))];
 rect_path_bottom_width = ["move", final_clip_outer_width];
 
 temp_rect_path =
@@ -120,13 +127,13 @@ final_clip_path =
   : clip_shape == "Rectangular" ? turtle(concat(rect_path_part1, rect_path_bottom_corner, rect_clip_has_bottom ? rect_path_bottom_width : []))
   : elliptic_clip_path;
 
-clip_knurling_outer_offset = 1;
+knurling_outer_offset = 1;
 
 clip_profile = rect([clip_thickness, clip_height], chamfer=final_side_chamfer);
-final_clip_entrypoint_rotation = (clip_shape == "Circular" || abs(clip_entrypoint_rotation) == 90) ? clip_entrypoint_rotation : 0;
+final_clip_entry_tilt_angle = (clip_shape == "Circular" || abs(clip_entry_tilt_angle) == 90) ? clip_entry_tilt_angle : 0;
 tip_rounding_radius = max(0, min(clip_thickness * clip_thickness_scale - final_side_chamfer * 2, clip_height - final_side_chamfer * 2) / 2 - eps);
 connect_cuboid_height =
-  clip_shape == "Circular" || (clip_shape == "Elliptic" && abs(final_clip_entrypoint_rotation) == 90) ? clip_main_width / 2 + clip_thickness
+  clip_shape == "Circular" || (clip_shape == "Elliptic" && abs(final_clip_entry_tilt_angle) == 90) ? clip_main_width / 2 + clip_thickness
   : clip_main_depth / 2;
 //main diff()
 diff() {
@@ -145,26 +152,26 @@ diff() {
           cuboid([min(6, clip_main_width), min(clip_height, 13.2), connect_cuboid_height], anchor=TOP + FRONT);
           zcyl(d=min(clip_height, 13.2), h=connect_cuboid_height, anchor=TOP + FRONT);
         }
-        down(clip_shape != "Circular" ? (clip_main_width / 2 + clip_thickness) * abs(final_clip_entrypoint_rotation) / 90 : -clip_thickness / 2 * (1 - clip_thickness_scale) * (abs(final_clip_entrypoint_rotation)) / 90)
-          left(clip_shape != "Circular" ? (clip_main_depth / 2 + clip_thickness) * final_clip_entrypoint_rotation / 90 : 0)
-            yrot(final_clip_entrypoint_rotation, cp=[0, 0, clip_shape != "Circular" ? 0 : -(clip_main_width / 2 + clip_thickness)])
+        down(clip_shape != "Circular" ? (clip_main_width / 2 + clip_thickness) * abs(final_clip_entry_tilt_angle) / 90 : -clip_thickness / 2 * (1 - clip_thickness_scale) * (abs(final_clip_entry_tilt_angle)) / 90)
+          right(clip_shape != "Circular" ? (clip_main_depth / 2 + clip_thickness) * final_clip_entry_tilt_angle / 90 : 0)
+            yrot(final_clip_entry_tilt_angle, cp=[0, 0, clip_shape != "Circular" ? 0 : -(clip_main_width / 2 + clip_thickness)])
               down(clip_thickness / 2) {
                 //used to cut off excessive part of connecting cuboid. remove by second inner diff("rm2","kp2") 
                 if (clip_shape == "Rectangular")
-                  tag("rm2") cuboid([clip_main_width + clip_thickness / 2, 200, clip_main_depth + clip_thickness / 2], edges="Y", rounding=final_clip_rect_rounding, anchor=TOP);
+                  tag("rm2") cuboid([clip_main_width + clip_thickness, 200, clip_main_depth + clip_thickness], edges="Y", rounding=final_clip_rect_rounding, anchor=TOP);
                 else
                   tag("rm2") scale([1, 1, elliptic_ratio]) ycyl(d=clip_main_width + clip_thickness, l=200, anchor=TOP);
                 //mess of codes to implement knurling.
-                if (clip_knurling_type != "None") {
+                if (knurling_type != "None") {
                   if (clip_shape == "Rectangular") {
-                    rectangular_clip_knurling_shape = difference(
-                      back(final_clip_rect_rounding * (180 - clip_surround_angle) / 90 + clip_knurling_outer_offset, rect([clip_main_width + clip_thickness * 2, clip_main_depth + clip_thickness], anchor=FRONT)),
+                    rectangular_knurling_shape = difference(
+                      back(final_clip_rect_rounding * (180 - clip_surround_angle) / 90 + knurling_outer_offset, rect([clip_main_width + clip_thickness * 2, clip_main_depth + clip_thickness], anchor=FRONT)),
                       rect([clip_main_width, clip_main_depth], rounding=final_clip_rect_rounding, anchor=FRONT)
                     );
                     tag("kp2") back(clip_height - threads_offset) intersection() {
                           down(clip_main_depth + clip_thickness / 2) xrot(90) linear_sweep(
-                                rectangular_clip_knurling_shape, clip_height, texture="diamonds", tex_size=[clip_knurling_texture_size, clip_knurling_texture_size],
-                                tex_depth=clip_knurling_texture_depth, style=clip_knurling_type == "Line" ? "default" : "concave"
+                                rectangular_knurling_shape, clip_height, texture="diamonds", tex_size=[knurling_texture_size, knurling_texture_size],
+                                tex_depth=knurling_texture_depth, style=knurling_type == "Line" ? "default" : "concave"
                               );
                           cuboid([clip_main_width + clip_thickness / 2, 200, clip_main_depth + clip_thickness / 2], rounding=final_clip_rect_rounding / 2, edges="Y", anchor=TOP);
                         }
@@ -185,19 +192,19 @@ diff() {
                     ];
                     final_cos = abs((height_radius_start * 2 - height_radius_target) * cos(clip_surround_angle));
 
-                    elliptic_part1 = fwd(final_cos - clip_knurling_outer_offset, rect([clip_main_width + clip_thickness * 2, (final_cos + height_radius_start)], anchor=FRONT));
+                    elliptic_part1 = fwd(final_cos - knurling_outer_offset, rect([clip_main_width + clip_thickness * 2, (final_cos + height_radius_start)], anchor=FRONT));
                     elliptic_part2 = union(half_ellipse, xflip(half_ellipse));
 
-                    elliptic_clip_knurling_shape = difference(
+                    elliptic_knurling_shape = difference(
                       elliptic_part1, elliptic_part2
                     );
                     tag("kp2") back(clip_height - threads_offset) intersection() {
                           down(clip_thickness / 2 + height_radius_start)
                             xrot(90)
                               linear_sweep(
-                                elliptic_clip_knurling_shape, clip_height,
-                                texture="diamonds", tex_size=[clip_knurling_texture_size, clip_knurling_texture_size],
-                                tex_depth=clip_knurling_texture_depth, style=clip_knurling_type == "Line" ? "default" : "concave"
+                                elliptic_knurling_shape, clip_height,
+                                texture="diamonds", tex_size=[knurling_texture_size, knurling_texture_size],
+                                tex_depth=knurling_texture_depth, style=knurling_type == "Line" ? "default" : "concave"
                               );
                           scale([1, 1, elliptic_ratio]) ycyl(d=clip_main_width + clip_thickness, l=200, anchor=TOP);
                         }
@@ -205,9 +212,9 @@ diff() {
                 }
                 xflip_copy() xrot(90)
                     tag("kp2") path_sweep(clip_profile, path=final_clip_path, scale=[clip_thickness_scale, 1]) {
-                        if (clip_tip_diameter > 0)
+                        if (tip_diameter > 0)
                           attach("end", "start")
-                            path_sweep(scale([clip_thickness_scale, 1, 1], clip_profile), path=turtle(clip_tip_path))
+                            path_sweep(scale([clip_thickness_scale, 1, 1], clip_profile), path=turtle(tip_path))
                               //makerworld doesn't support newest path_sweep caps yet so it has to be done the old way.
                               attach("end", "top")
                                 offset_sweep(scale([clip_thickness_scale, 1, 1], clip_profile), height=tip_rounding_radius + eps, bottom=os_circle(r=tip_rounding_radius));

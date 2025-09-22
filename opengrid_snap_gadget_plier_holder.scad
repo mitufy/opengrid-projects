@@ -20,9 +20,9 @@ stem_height = 8; //0.4
 stem_depth = 12; //0.4
 //Set to 1 to merge stem and stopper into a slope.
 transition_depth_ratio = 0.2; //[0:0.1:1]
-//Stopper is the front part of the holder that stops the plier from sliding off. 
+//Stopper is the front part of the holder which prevents the plier from sliding off. 
 stopper_width_scale = 1; //[0.5:0.1:2]
-stopper_height_scale = 1.5; //[0.5:0.1:2]
+stopper_height_scale = 1.4; //[0.5:0.1:2]
 
 /* [Advanced Options] */
 //Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
