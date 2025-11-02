@@ -27,15 +27,16 @@ hook_tip_length = 8;
 hook_tip_angle = 45; //[45:5:90]
 hook_tip_thickness = 3;
 hook_tip_shape = "Rectangular"; //[Round, Rectangular]
+hook_tip_corner_fillet = 6;
 
 /*[Advanced Settings]*/
 hook_side_chamfer = 0.8;
 //Increase this value if you find the snap fit too tight.
 snap_clearance = 0.1; //0.01
-snap_depth = 4; //[4, 3.4]
+//3.4mm version makes it possible to install simultaneously on both side of openGrid board (6.8mm thick). If there is no such need, 4mm version is recommended.
+snap_depth = 4; //[4:4mm, 3.4:3.4mm]
 //What is a hook anyways?
 horizontal_grids = 1;
-//3.4mm version makes it possible to install simultaneously on both side of openGrid board (6.8mm thick). If there is no such need, 4mm version is recommended.
 
 /*[Hidden]*/
 $fa = 1;
@@ -110,13 +111,13 @@ hook_min_tip_fillet = max(eps, min(2, hook_final_tip_length - hook_min_tip_lengt
 hook_final_corner_fillet = max(min(2, hook_final_bottom_thickness, hook_final_length, hook_final_back_thickness), min(hook_corner_fillet, hook_final_length - hook_min_tip_fillet - hook_final_bottom_thickness * tan(hook_corner_angle) - small_adj, hook_final_height - hook_final_bottom_thickness / cos(hook_corner_angle)));
 hook_final_tip_fillet_pos_offset = hook_final_tip_angle == 90 ? hook_final_bottom_thickness : large_opp - small_hyp;
 hook_max_tip_fillet = hook_final_tip_length - hook_final_tip_fillet_pos_offset;
-hook_final_tip_fillet = max(hook_min_tip_fillet, min(hook_final_length - hook_final_corner_fillet - hook_final_bottom_thickness * tan(hook_corner_angle) - small_adj, hook_max_tip_fillet));
+hook_final_tip_fillet = max(hook_min_tip_fillet, min(hook_final_length - hook_final_corner_fillet - hook_final_bottom_thickness * tan(hook_corner_angle) - small_adj, hook_max_tip_fillet, hook_tip_corner_fillet));
 hook_final_tip_fillet_diff = hook_max_tip_fillet - hook_final_tip_fillet;
 hook_tip_point_fillet = max(eps, min(2, hook_final_tip_thickness / 2 - eps));
 
 hook_has_tip = hook_tip_thickness >= eps && hook_tip_length >= eps;
 hook_flat_top_width = hook_has_tip ? hook_final_length - hook_final_corner_fillet - hook_final_tip_fillet - small_adj - hook_final_bottom_thickness * tan(hook_corner_angle) : hook_final_length - hook_final_corner_fillet - hook_final_bottom_thickness * tan(hook_corner_angle);
-
+echo(hook_min_tip_fillet=hook_min_tip_fillet, hook_max_tip_fillet=hook_max_tip_fillet, hook_final_tip_fillet=hook_final_tip_fillet);
 corner_fillet_cut_shape = difference(
   [
     [[0, 0], [hook_final_corner_fillet * sin(hook_corner_angle), hook_final_corner_fillet * cos(hook_corner_angle)], [hook_final_corner_fillet, 0]],
