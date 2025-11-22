@@ -94,7 +94,7 @@ openconnect_head_side_profile = [
 //END openConnect slot parameters
 
 //BEGIN openConnect slot modules
-module openconnect_head(is_negative = false, add_nubss = 2, excess_thickness = 0) {
+module openconnect_head(is_negative = false, add_nubs = 2, excess_thickness = 0) {
   bottom_profile = is_negative ? openconnect_slot_bottom_profile : openconnect_head_bottom_profile;
   top_profile = is_negative ? openconnect_slot_top_profile : openconnect_head_top_profile;
 
@@ -116,12 +116,12 @@ module openconnect_head(is_negative = false, add_nubss = 2, excess_thickness = 0
         linear_extrude(h=top_height + excess_thickness + eps) polygon(top_profile);
     }
     back(large_rect_width / 2 - nub_to_top_distance)
-      rot_copies([90, 0, 0], n=add_nubss)
+      rot_copies([90, 0, 0], n=add_nubs)
         left(large_rect_width / 2 - openconnect_lock_nub_depth / 2 + eps) zrot(-90)
             linear_extrude(4) trapezoid(h=openconnect_lock_nub_depth, w2=openconnect_lock_nub_tip_height, ang=[45, 45], rounding=[openconnect_lock_nub_inner_fillet, openconnect_lock_nub_inner_fillet, -openconnect_lock_nub_outer_fillet, -openconnect_lock_nub_outer_fillet], $fn=64);
   }
 }
-module openconnect_slot(add_nubss = 1, direction_flip = false, excess_thickness = 0, anchor = CENTER, spin = 0, orient = UP) {
+module openconnect_slot(add_nubs = 1, direction_flip = false, excess_thickness = 0, anchor = CENTER, spin = 0, orient = UP) {
   attachable(anchor, spin, orient, size=[openconnect_slot_large_rect_width, openconnect_slot_large_rect_height, openconnect_slot_total_height]) {
     up(openconnect_slot_total_height / 2) yrot(180) union() {
           if (direction_flip)
@@ -142,7 +142,7 @@ module openconnect_slot(add_nubss = 1, direction_flip = false, excess_thickness 
     ];
     openconnect_slot_bridge_offset_profile = back(openconnect_slot_small_rect_width / 2, rect([openconnect_slot_small_rect_width / 2 + openconnect_slot_bridge_offset, openconnect_slot_small_rect_height + openconnect_slot_move_distance + openconnect_slot_onramp_clearance], chamfer=[openconnect_slot_small_rect_chamfer + openconnect_slot_bridge_offset, 0, 0, 0], anchor=BACK + LEFT));
     union() {
-      openconnect_head(is_negative=true, add_nubss=add_nubss ? 1 : 0, excess_thickness=excess_thickness);
+      openconnect_head(is_negative=true, add_nubs=add_nubs ? 1 : 0, excess_thickness=excess_thickness);
       xrot(90) linear_extrude(openconnect_slot_middle_to_bottom + openconnect_slot_move_distance + openconnect_slot_onramp_clearance) xflip_copy() polygon(openconnect_slot_side_profile);
       up(openconnect_slot_bottom_height) linear_extrude(openconnect_slot_top_height + openconnect_slot_middle_height) polygon(openconnect_slot_bridge_offset_profile);
       fwd(openconnect_slot_move_distance) {
@@ -172,11 +172,11 @@ module openconnect_slot_grid(h_grid = 1, v_grid = 1, grid_size = 28, lock_distri
           back(openconnect_slot_to_grid_top_offset) {
             grid_copies([grid_size, grid_size], [h_grid, v_grid], stagger=lock_distribution == "Staggered")
               attach(TOP, BOTTOM, inside=true)
-                openconnect_slot(add_nubss=(h_grid == 1 && v_grid == 1 && lock_distribution == "Staggered") || lock_distribution == "All" ? 1 : 0, direction_flip=direction_flip, excess_thickness=excess_thickness);
+                openconnect_slot(add_nubs=(h_grid == 1 && v_grid == 1 && lock_distribution == "Staggered") || lock_distribution == "All" ? 1 : 0, direction_flip=direction_flip, excess_thickness=excess_thickness);
             if (lock_distribution == "Staggered")
               grid_copies([grid_size, grid_size], [h_grid, v_grid], stagger="alt")
                 attach(TOP, BOTTOM, inside=true)
-                  openconnect_slot(add_nubss=1, direction_flip=direction_flip, excess_thickness=excess_thickness);
+                  openconnect_slot(add_nubs=1, direction_flip=direction_flip, excess_thickness=excess_thickness);
           }
         }
     children();

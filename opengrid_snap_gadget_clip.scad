@@ -11,7 +11,7 @@ include <BOSL2/threading.scad>
 include <BOSL2/rounding.scad>
 
 snap_version = "Standard"; //[Standard:Standard - 6.8mm, Lite Strong:Lite Strong - 4mm, Lite Basic:Lite Basic - 3.4mm]
-add_threads_bluntend = true;
+add_threads_blunt_end = true;
 clip_shape = "Circular"; //["Circular", "Rectangular","Elliptic"]
 //Decides the state of the clip when completely screwed in.
 clip_orientation = "Horizontal"; //["Horizontal", "Vertical"]
@@ -54,9 +54,10 @@ $fa = 1;
 $fs = 0.4;
 eps = 0.005;
 
-add_threads_bluntend_text = true;
-threads_bluntend_text = "🔓";
-threads_bluntend_text_font = "Noto Emoji"; // font
+add_threads_blunt_end_text = true;
+threads_blunt_end_text = "🔓";
+threads_blunt_end_text_font = "Noto Emoji"; // font
+threads_pitch = 3;
 
 threads_side_slice_off = 1.4; //0.1
 
@@ -82,10 +83,10 @@ threads_profile = [
   [1.25 / 3, -1 / 3],
 ];
 
-threads_connect_diameter = threads_diameter - 1.8;
+threads_connect_diameter = threads_diameter - 1.5;
 threads_offset = threads_diameter / 2 - threads_side_slice_off;
-threads_bluntend_notch_total_height = threads_bottom_bevel + 0.8;
-threads_bluntend_distance = max(0, snap_thickness - threads_bluntend_notch_total_height);
+threads_blunt_end_notch_total_height = threads_bottom_bevel + 0.8;
+threads_blunt_end_distance = max(0, snap_thickness - threads_blunt_end_notch_total_height);
 
 threads_offset_angle = clip_orientation == "Horizontal" ? 0 : 90;
 
@@ -148,16 +149,16 @@ zrot(180) xrot(90) back(threads_offset)
       diff() {
         zrot(threads_offset_angle) {
           zrot(threads_compatiblity_angle) {
-            if (add_threads_bluntend)
+            if (add_threads_blunt_end)
               blunt_threaded_rod(diameter=threads_diameter, rod_height=snap_thickness, top_cutoff=true);
             else
               generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=threads_pitch, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
           }
-          if (add_threads_bluntend_text && add_threads_bluntend)
+          if (add_threads_blunt_end_text && add_threads_blunt_end)
             up(snap_thickness - text_depth + eps / 2) right(final_add_thickness_text ? 2.4 : 0)
-                tag("remove") linear_extrude(height=text_depth + eps) zrot(0) fill() text(threads_bluntend_text, size=4, anchor=str("center", CENTER), font=threads_bluntend_text_font);
+                tag("remove") linear_extrude(height=text_depth + eps) zrot(0) fill() text(threads_blunt_end_text, size=4, anchor=str("center", CENTER), font=threads_blunt_end_text_font);
           if (final_add_thickness_text)
-            up(snap_thickness - text_depth + eps / 2) left(add_threads_bluntend_text && add_threads_bluntend ? 2.4 : 0)
+            up(snap_thickness - text_depth + eps / 2) left(add_threads_blunt_end_text && add_threads_blunt_end ? 2.4 : 0)
                 tag("remove") linear_extrude(height=text_depth + eps) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
         }
         //first inner diff

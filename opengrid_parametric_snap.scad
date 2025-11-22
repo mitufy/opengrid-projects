@@ -21,7 +21,7 @@ snap_base_shape = "Directional"; //["Directional","Symmetric"]
 snap_locking_mechanism = "Original"; //["Self-Expanding","Original"]
 generate_multiconnect_screw = true;
 generate_snap = true;
-add_threads_bluntend = false;
+add_threads_blunt_end = false;
 
 /* [Snap Body Options] */
 snap_body_width = 24.8;
@@ -96,7 +96,7 @@ uninstall_notch_gap_height_lite = 0.6;
 //The part before the threads start expanding. Increase this value if you find it difficult to get the screw started.
 expand_entry_height_standard = 0.4;
 expand_entry_height_lite = 0.4;
-expand_entry_height_bluntend = 1;
+expand_entry_height_blunt_end = 1;
 expand_split_angle = 45;
 //Default spring thickness parameters are set to products of 0.42, a common line width for 0.4mm nozzles.
 spring_thickness = 1.26;
@@ -155,9 +155,9 @@ eps = 0.005;
 
 generate_openconnect_screw = false;
 openconnect_screw_split = false;
-add_threads_bluntend_text = true;
-threads_bluntend_text = "🔓";
-threads_bluntend_text_font = "Noto Emoji"; // font
+add_threads_blunt_end_text = true;
+threads_blunt_end_text = "🔓";
+threads_blunt_end_text_font = "Noto Emoji"; // font
 
 //The official Snap threads are designed in shapr3d and have a different starting point than those made in openscad. Rotating by 53.5 degrees makes them conform.
 threads_compatiblity_angle = 53.5;
@@ -174,7 +174,7 @@ snap_body_corner_inner_diagonal = snap_body_width * sqrt(2) / 2 - snap_body_corn
 //threads parameters
 threads_negative_diameter = threads_diameter + threads_clearance;
 threads_bottom_bevel =
-  add_threads_bluntend ? 0
+  add_threads_blunt_end ? 0
   : snap_version == "Standard" ? threads_bottom_bevel_standard
   : threads_bottom_bevel_lite;
 
@@ -212,11 +212,11 @@ expand_distance =
   snap_version == "Standard" ? expand_distance_standard - expanding_distance_offset
   : expand_distance_lite - expanding_distance_offset;
 expand_entry_height =
-  add_threads_bluntend ? expand_entry_height_bluntend
+  add_threads_blunt_end ? expand_entry_height_blunt_end
   : snap_version == "Standard" ? expand_entry_height_standard
   : expand_entry_height_lite;
 expand_endpart_height =
-  add_threads_bluntend ? 0
+  add_threads_blunt_end ? 0
   : snap_version == "Standard" ? expand_endpart_height_standard
   : expand_endpart_height_lite;
 
@@ -224,12 +224,12 @@ expand_transpart_height = max(snap_thickness - expand_entry_height - expand_endp
 expand_segment_count = ceil(expand_distance / expansion_distance_step);
 expand_height_step = expand_transpart_height / expand_segment_count;
 
-threads_bluntend_notch_offset_standard = 1.6;
-threads_bluntend_notch_offset_lite = 0.8;
-threads_bluntend_notch_total_height =
-  snap_version == "Standard" ? threads_bottom_bevel + threads_bluntend_notch_offset_standard
-  : threads_bottom_bevel + threads_bluntend_notch_offset_lite;
-threads_bluntend_distance = max(0, snap_thickness - threads_bluntend_notch_total_height);
+threads_blunt_end_notch_offset_standard = 1.6;
+threads_blunt_end_notch_offset_lite = 0.8;
+threads_blunt_end_notch_total_height =
+  snap_version == "Standard" ? threads_bottom_bevel + threads_blunt_end_notch_offset_standard
+  : threads_bottom_bevel + threads_blunt_end_notch_offset_lite;
+threads_blunt_end_distance = max(0, snap_thickness - threads_blunt_end_notch_total_height);
 
 uninstall_notch_surface_height =
   snap_version == "Standard" ? uninstall_notch_surface_height_standard
@@ -432,7 +432,7 @@ module expanding_thread(diameter, expand_width, entry_height, transition_height,
           down((entry_height + transition_height + end_height) / 2) {
             if (entry_height > 0) {
               zrot(offset_angle) {
-                if (add_threads_bluntend)
+                if (add_threads_blunt_end)
                   blunt_threaded_rod(diameter=diameter, rod_height=entry_height + eps, top_bevel=0, bottom_bevel=0);
                 else
                   generic_threaded_rod(d=diameter, l=entry_height + eps, pitch=threads_pitch, profile=threads_profile, bevel1=min(threads_top_bevel, entry_height), bevel2=0, anchor=BOTTOM, blunt_start=false, internal=false);
@@ -446,9 +446,9 @@ module expanding_thread(diameter, expand_width, entry_height, transition_height,
               zrot(-split_angle)
                 partition(spread=-aseg_expansion_distance - eps, cutpath="flat", $slop=aseg_expansion_distance / 2)
                   zrot(split_angle + offset_angle) up(aseg_position) zrot(aseg_position * 120) {
-                        if (add_threads_bluntend)
-                        // if (add_threads_bluntend && aseg_position > 3)
-                        // if (add_threads_bluntend && aseg_position > entry_height + transition_height + end_height - 3)
+                        if (add_threads_blunt_end)
+                        // if (add_threads_blunt_end && aseg_position > 3)
+                        // if (add_threads_blunt_end && aseg_position > entry_height + transition_height + end_height - 3)
                         blunt_threaded_rod(diameter=diameter, rod_height=expand_height_step + eps, top_bevel=0, bottom_bevel=0);
                         else
                           generic_threaded_rod(d=diameter, l=expand_height_step + eps, pitch=threads_pitch, profile=threads_profile, bevel1=0, bevel2=0, anchor=BOTTOM, blunt_start=false, internal=false);
@@ -458,7 +458,7 @@ module expanding_thread(diameter, expand_width, entry_height, transition_height,
               zrot(-split_angle)
                 partition(spread=-expand_segment_count * expand_width_step - eps, cutpath="flat", $slop=expand_segment_count * expand_width_step / 2)
                   zrot(split_angle + offset_angle) up(entry_height + transition_height) zrot((entry_height + transition_height) * 120) {
-                        if (add_threads_bluntend)
+                        if (add_threads_blunt_end)
                           blunt_threaded_rod(diameter=diameter, rod_height=max(end_height, 0) + eps, top_bevel=0, bottom_bevel=0);
                         else
                           generic_threaded_rod(d=diameter, l=max(end_height, 0) + eps, pitch=threads_pitch, profile=threads_profile, bevel1=0, bevel2=max(0, min(end_height, threads_bottom_bevel)), anchor=BOTTOM, blunt_start=false, internal=false);
@@ -511,7 +511,7 @@ module snap() {
         if (!disable_snap_threads) {
           tag_diff(tag="remove", remove="inner_rm") down(eps / 2) up(reverse_threads_entryside ? snap_thickness + eps / 2 : 0) yrot(reverse_threads_entryside ? 180 : 0)
                   zrot(threads_compatiblity_angle + threads_offset_angle) {
-                    if (add_threads_bluntend)
+                    if (add_threads_blunt_end)
                       blunt_threaded_rod(diameter=threads_negative_diameter, rod_height=snap_thickness + eps);
                     else
                       generic_threaded_rod(d=threads_negative_diameter, l=snap_thickness + eps, pitch=threads_pitch, profile=threads_profile, bevel1=0, bevel2=min(threads_bottom_bevel, snap_thickness), anchor=BOTTOM, blunt_start=false, internal=false);
@@ -519,8 +519,8 @@ module snap() {
         }
       }
     }
-    if (add_threads_bluntend_text && add_threads_bluntend)
-      up(snap_thickness - text_depth) fwd(0) left(expand_split_angle < 0 ? 0.5 : -0.5) zrot(-expand_split_angle) linear_extrude(height=text_depth) back(snap_body_width / 2 - 2) zrot(45) fill() text(threads_bluntend_text, size=4, anchor=str("center", CENTER), font=threads_bluntend_text_font);
+    if (add_threads_blunt_end_text && add_threads_blunt_end)
+      up(snap_thickness - text_depth) fwd(0) left(expand_split_angle < 0 ? 0.5 : -0.5) zrot(-expand_split_angle) linear_extrude(height=text_depth) back(snap_body_width / 2 - 2) zrot(45) fill() text(threads_blunt_end_text, size=4, anchor=str("center", CENTER), font=threads_blunt_end_text_font);
     if (final_add_thickness_text)
       up(snap_thickness - text_depth) fwd(1.1) left(expand_split_angle < 0 ? -0.7 : 0.7) zrot(-expand_split_angle) linear_extrude(height=text_depth) fwd(snap_body_width / 2 - 2) zrot(45) text(str(floor(snap_thickness)), size=4, anchor=str("baseline", CENTER), font="Merriweather Sans:style=Bold");
     if (add_snap_expansion_distance_text && snap_locking_mechanism == "Self-Expanding")
@@ -561,7 +561,7 @@ module multiconnect_connector() {
   //In David's original design the slot is created in shapr3d by a fillet with a mysterious curvature parameter. I have no idea how to replicate that so here's a circle. Difference in geometry is negligible.
   difference() {
     zrot(threads_compatiblity_angle) {
-      if (add_threads_bluntend)
+      if (add_threads_blunt_end)
         blunt_threaded_rod(diameter=threads_diameter, rod_height=snap_thickness, top_bevel=threads_top_bevel, top_cutoff=true);
       else
         generic_threaded_rod(d=threads_diameter, l=snap_thickness + eps, pitch=threads_pitch, profile=threads_profile, bevel1=min(snap_thickness, threads_top_bevel), bevel2=max(0, min(snap_thickness - threads_top_bevel, threads_bottom_bevel)), blunt_start=false, anchor=BOTTOM, internal=false);
@@ -571,9 +571,9 @@ module multiconnect_connector() {
     }
     down(4 - coin_slot_height) xrot(90) cyl(r=coin_slot_radius, h=coin_slot_thickness, $fn=128, anchor=BACK);
     if (final_add_thickness_text)
-      up(snap_thickness - text_depth + eps / 2) left(add_threads_bluntend_text && add_threads_bluntend ? 2.4 : 0) linear_extrude(height=text_depth + eps) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
-    if (add_threads_bluntend_text && add_threads_bluntend)
-      up(snap_thickness - text_depth + eps / 2) right(final_add_thickness_text ? 2.4 : 0) linear_extrude(height=text_depth + eps) zrot(0) fill() text(threads_bluntend_text, size=4, anchor=str("center", CENTER), font=threads_bluntend_text_font);
+      up(snap_thickness - text_depth + eps / 2) left(add_threads_blunt_end_text && add_threads_blunt_end ? 2.4 : 0) linear_extrude(height=text_depth + eps) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
+    if (add_threads_blunt_end_text && add_threads_blunt_end)
+      up(snap_thickness - text_depth + eps / 2) right(final_add_thickness_text ? 2.4 : 0) linear_extrude(height=text_depth + eps) zrot(0) fill() text(threads_blunt_end_text, size=4, anchor=str("center", CENTER), font=threads_blunt_end_text_font);
   }
 }
 
@@ -639,7 +639,7 @@ openconnect_head_side_profile = [
 //END openConnect slot parameters
 
 //BEGIN openConnect slot modules
-module openconnect_head(is_negative = false, add_nubss = 2, excess_thickness = 0) {
+module openconnect_head(is_negative = false, add_nubs = 2, excess_thickness = 0) {
   bottom_profile = is_negative ? openconnect_slot_bottom_profile : openconnect_head_bottom_profile;
   top_profile = is_negative ? openconnect_slot_top_profile : openconnect_head_top_profile;
 
@@ -661,12 +661,12 @@ module openconnect_head(is_negative = false, add_nubss = 2, excess_thickness = 0
         linear_extrude(h=top_height + excess_thickness + eps) polygon(top_profile);
     }
     back(large_rect_width / 2 - nub_to_top_distance)
-      rot_copies([90, 0, 0], n=add_nubss)
+      rot_copies([90, 0, 0], n=add_nubs)
         left(large_rect_width / 2 - openconnect_lock_nub_depth / 2 + eps) zrot(-90)
             linear_extrude(4) trapezoid(h=openconnect_lock_nub_depth, w2=openconnect_lock_nub_tip_height, ang=[45, 45], rounding=[openconnect_lock_nub_inner_fillet, openconnect_lock_nub_inner_fillet, -openconnect_lock_nub_outer_fillet, -openconnect_lock_nub_outer_fillet], $fn=64);
   }
 }
-module openconnect_slot(add_nubss = 1, direction_flip = false, excess_thickness = 0, anchor = CENTER, spin = 0, orient = UP) {
+module openconnect_slot(add_nubs = 1, direction_flip = false, excess_thickness = 0, anchor = CENTER, spin = 0, orient = UP) {
   attachable(anchor, spin, orient, size=[openconnect_slot_large_rect_width, openconnect_slot_large_rect_height, openconnect_slot_total_height]) {
     up(openconnect_slot_total_height / 2) yrot(180) union() {
           if (direction_flip)
@@ -687,7 +687,7 @@ module openconnect_slot(add_nubss = 1, direction_flip = false, excess_thickness 
     ];
     openconnect_slot_bridge_offset_profile = back(openconnect_slot_small_rect_width / 2, rect([openconnect_slot_small_rect_width / 2 + openconnect_slot_bridge_offset, openconnect_slot_small_rect_height + openconnect_slot_move_distance + openconnect_slot_onramp_clearance], chamfer=[openconnect_slot_small_rect_chamfer + openconnect_slot_bridge_offset, 0, 0, 0], anchor=BACK + LEFT));
     union() {
-      openconnect_head(is_negative=true, add_nubss=add_nubss ? 1 : 0, excess_thickness=excess_thickness);
+      openconnect_head(is_negative=true, add_nubs=add_nubs ? 1 : 0, excess_thickness=excess_thickness);
       xrot(90) linear_extrude(openconnect_slot_middle_to_bottom + openconnect_slot_move_distance + openconnect_slot_onramp_clearance) xflip_copy() polygon(openconnect_slot_side_profile);
       up(openconnect_slot_bottom_height) linear_extrude(openconnect_slot_top_height + openconnect_slot_middle_height) polygon(openconnect_slot_bridge_offset_profile);
       fwd(openconnect_slot_move_distance) {
@@ -717,11 +717,11 @@ module openconnect_slot_grid(h_grid = 1, v_grid = 1, grid_size = 28, lock_distri
           back(openconnect_slot_to_grid_top_offset) {
             grid_copies([grid_size, grid_size], [h_grid, v_grid], stagger=lock_distribution == "Staggered")
               attach(TOP, BOTTOM, inside=true)
-                openconnect_slot(add_nubss=(h_grid == 1 && v_grid == 1 && lock_distribution == "Staggered") || lock_distribution == "All" ? 1 : 0, direction_flip=direction_flip, excess_thickness=excess_thickness);
+                openconnect_slot(add_nubs=(h_grid == 1 && v_grid == 1 && lock_distribution == "Staggered") || lock_distribution == "All" ? 1 : 0, direction_flip=direction_flip, excess_thickness=excess_thickness);
             if (lock_distribution == "Staggered")
               grid_copies([grid_size, grid_size], [h_grid, v_grid], stagger="alt")
                 attach(TOP, BOTTOM, inside=true)
-                  openconnect_slot(add_nubss=1, direction_flip=direction_flip, excess_thickness=excess_thickness);
+                  openconnect_slot(add_nubs=1, direction_flip=direction_flip, excess_thickness=excess_thickness);
           }
         }
     children();
@@ -737,19 +737,19 @@ module openconnect_screw(threads_height = threads_height, split = true) {
           up(openconnect_head_total_height - eps)
             difference() {
               zrot(threads_compatiblity_angle) {
-                if (add_threads_bluntend)
+                if (add_threads_blunt_end)
                   blunt_threaded_rod(diameter=threads_diameter, rod_height=threads_height, top_bevel=0, top_cutoff=true);
                 else
                   generic_threaded_rod(d=threads_diameter, l=threads_height, pitch=threads_pitch, profile=threads_profile, bevel1=min(threads_height, threads_top_bevel), bevel2=max(0, min(threads_height - threads_top_bevel, threads_bottom_bevel)), blunt_start=false, anchor=BOTTOM, internal=false);
               }
               back(split ? 1 : 0) {
-                if (add_threads_bluntend_text && add_threads_bluntend)
-                  up(snap_thickness - text_depth + eps / 2) right(final_add_thickness_text ? 2.4 : 0) linear_extrude(height=text_depth + eps) zrot(0) fill() text(threads_bluntend_text, size=4, anchor=str("center", CENTER), font=threads_bluntend_text_font);
+                if (add_threads_blunt_end_text && add_threads_blunt_end)
+                  up(snap_thickness - text_depth + eps / 2) right(final_add_thickness_text ? 2.4 : 0) linear_extrude(height=text_depth + eps) zrot(0) fill() text(threads_blunt_end_text, size=4, anchor=str("center", CENTER), font=threads_blunt_end_text_font);
                 if (final_add_thickness_text)
-                  up(snap_thickness - text_depth + eps / 2) left(add_threads_bluntend_text && add_threads_bluntend ? 2.4 : 0) linear_extrude(height=text_depth + eps) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
+                  up(snap_thickness - text_depth + eps / 2) left(add_threads_blunt_end_text && add_threads_blunt_end ? 2.4 : 0) linear_extrude(height=text_depth + eps) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
               }
             }
-          openconnect_head(is_negative=false, add_nubss=2);
+          openconnect_head(is_negative=false, add_nubs=2);
         }
         up(coin_slot_height) zrot(0) xrot(90) cyl(r=coin_slot_radius, h=coin_slot_thickness, $fn=128, anchor=BACK);
         if (split)
@@ -760,7 +760,7 @@ module openconnect_screw(threads_height = threads_height, split = true) {
             up(openconnect_head_total_height)
               difference() {
                 zrot(threads_compatiblity_angle) {
-                  if (add_threads_bluntend)
+                  if (add_threads_blunt_end)
                     blunt_threaded_rod(diameter=threads_diameter, rod_height=threads_height, top_bevel=0, top_cutoff=true);
                   else
                     generic_threaded_rod(d=threads_diameter, l=threads_height, pitch=threads_pitch, profile=threads_profile, bevel1=min(threads_height, threads_top_bevel), bevel2=max(0, min(threads_height - threads_top_bevel, threads_bottom_bevel)), blunt_start=false, anchor=BOTTOM, internal=false);

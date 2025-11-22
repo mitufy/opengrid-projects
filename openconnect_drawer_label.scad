@@ -20,9 +20,9 @@ right_edge_offset = 3; //0.2
 /*[Advanced Settings]*/
 left_text_filled = false;
 right_text_filled = false;
-label_width = 38;
-label_height = 10.4;
-label_thickness = 1.2; //0.1
+label_width = 48;
+label_height = 12;
+label_thickness = 1; //0.1
 
 /*[Hidden]*/
 $fa = 1;
