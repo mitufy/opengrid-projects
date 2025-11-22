@@ -10,7 +10,8 @@ include <BOSL2/std.scad>
 include <BOSL2/threading.scad>
 include <BOSL2/rounding.scad>
 
-snap_version = "Lite Strong"; //[Full:Full - 6.8mm, Lite Strong:Lite Strong - 4mm, Lite Basic:Lite Basic - 3.4mm]
+snap_version = "Standard"; //[Standard:Standard - 6.8mm, Lite Strong:Lite Strong - 4mm, Lite Basic:Lite Basic - 3.4mm]
+add_threads_bluntend = true;
 clip_shape = "Circular"; //["Circular", "Rectangular","Elliptic"]
 //Decides the state of the clip when completely screwed in.
 clip_orientation = "Horizontal"; //["Horizontal", "Vertical"]
@@ -38,10 +39,10 @@ knurling_texture_size = 4;
 knurling_texture_depth = 1; //0.2
 
 /* [Advanced Options] */
+//Height of the clip body. The value for complete symmetry is 13.2.
 clip_height = 13.2; //0.2
 //Only affects clips of Rectangular shape.
 clip_rect_rounding = 3; //1
-//Height of the clip body. The value for complete symmetry is 13.2.
 tip_angle = 180; //[90:15:270]
 //This value is automatically clamped to ensure a sufficiently large print surface.
 body_side_chamfer = 0.8; //0.2
@@ -53,21 +54,25 @@ $fa = 1;
 $fs = 0.4;
 eps = 0.005;
 
+add_threads_bluntend_text = true;
+threads_bluntend_text = "🔓";
+threads_bluntend_text_font = "Noto Emoji"; // font
+
 threads_side_slice_off = 1.4; //0.1
 
 threads_compatiblity_angle = 53.5;
 threads_diameter = 16;
-threads_bottom_bevel_full = 2; //0.1
+threads_bottom_bevel_standard = 2; //0.1
 threads_bottom_bevel_lite = 1.2; //0.1
 
 snap_thickness =
-  snap_version == "Full" ? 6.8
+  snap_version == "Standard" ? 6.8
   : snap_version == "Lite Strong" ? 4
   : 3.4;
 
 //thread parameters
 threads_bottom_bevel =
-  snap_version == "Full" ? threads_bottom_bevel_full
+  snap_version == "Standard" ? threads_bottom_bevel_standard
   : threads_bottom_bevel_lite;
 
 threads_profile = [
@@ -79,8 +84,10 @@ threads_profile = [
 
 threads_connect_diameter = threads_diameter - 1.8;
 threads_offset = threads_diameter / 2 - threads_side_slice_off;
+threads_bluntend_notch_total_height = threads_bottom_bevel + 0.8;
+threads_bluntend_distance = max(0, snap_thickness - threads_bluntend_notch_total_height);
 
-final_threads_offset_angle = clip_orientation == "Horizontal" ? 0 : 90;
+threads_offset_angle = clip_orientation == "Horizontal" ? 0 : 90;
 
 //text parameters
 text_depth = 0.4;
@@ -137,17 +144,26 @@ connect_cuboid_height =
   : clip_main_depth / 2;
 //align to front and bottom
 zrot(180) xrot(90) back(threads_offset)
-      //main diff()
+      //main diff
       diff() {
-        zrot(threads_compatiblity_angle + final_threads_offset_angle)
-          generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=3, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
-        if (final_add_thickness_text)
-          tag("remove") up(snap_thickness - text_depth + eps / 2)
-              linear_extrude(height=text_depth + eps) text(str(snap_thickness), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
-        //first inner diff()
+        zrot(threads_offset_angle) {
+          zrot(threads_compatiblity_angle) {
+            if (add_threads_bluntend)
+              blunt_threaded_rod(diameter=threads_diameter, rod_height=snap_thickness, top_cutoff=true);
+            else
+              generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=threads_pitch, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
+          }
+          if (add_threads_bluntend_text && add_threads_bluntend)
+            up(snap_thickness - text_depth + eps / 2) right(final_add_thickness_text ? 2.4 : 0)
+                tag("remove") linear_extrude(height=text_depth + eps) zrot(0) fill() text(threads_bluntend_text, size=4, anchor=str("center", CENTER), font=threads_bluntend_text_font);
+          if (final_add_thickness_text)
+            up(snap_thickness - text_depth + eps / 2) left(add_threads_bluntend_text && add_threads_bluntend ? 2.4 : 0)
+                tag("remove") linear_extrude(height=text_depth + eps) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
+        }
+        //first inner diff
         diff(remove="rm1") {
           fwd(threads_offset - clip_height / 2) {
-            //second inner diff()
+            //second inner diff
             diff(remove="rm2", keep="kp2") {
               //Added shape connects the print surface of the threads to gadget.
               fwd(threads_offset) {
@@ -232,3 +248,30 @@ zrot(180) xrot(90) back(threads_offset)
         }
         tag("remove") fwd(threads_offset) cuboid([500, 500, 500], anchor=BACK);
       }
+
+module blunt_threaded_rod(diameter = threads_diameter, rod_height = snap_thickness, top_bevel = 0, bottom_bevel = 0, top_cutoff = false, blunt_ang = 10, anchor = CENTER, spin = 0, orient = UP) {
+  min_turns = 0.5;
+  offset_height = min(rod_height - 1.5 - bottom_bevel, 0);
+  turns = max(0, (rod_height - 1.5 - bottom_bevel) / 3) + min_turns;
+  attachable(anchor, spin, orient, d=diameter, h=rod_height) {
+    tag_scope() difference() {
+        union() {
+          cyl(d=diameter - 2 + eps, h=rod_height, anchor=BOTTOM, $fn=256);
+          difference() {
+            zrot(0.25 * 120) up(0.25)
+                zrot(-(min_turns * 3) * 120) up(-(min_turns * 3))
+                    zrot(offset_height * 120) up(offset_height)
+                        thread_helix(d=diameter, turns=turns, pitch=threads_pitch, profile=threads_profile, anchor=BOTTOM, internal=false, lead_in_ang2=blunt_ang, $fn=256);
+            up(rod_height + (diameter + 2) / 2) cube(diameter + 2, center=true);
+          }
+        }
+        if (top_cutoff || top_bevel > 0)
+          down((diameter + 2) / 2) cube(diameter + 2, center=true);
+        if (top_bevel > 0)
+          rotate_extrude() left(diameter / 2 - top_bevel / 2 + eps) right_triangle([top_bevel + eps, top_bevel + eps], anchor=BOTTOM);
+        if (bottom_bevel > 0)
+          up(rod_height) rotate_extrude() right(diameter / 2 - bottom_bevel + eps) right_triangle([bottom_bevel + eps, bottom_bevel + eps], anchor=BOTTOM, spin=180);
+      }
+    children();
+  }
+}
