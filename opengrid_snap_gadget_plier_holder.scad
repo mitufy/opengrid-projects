@@ -12,6 +12,8 @@ include <BOSL2/rounding.scad>
 
 snap_version = "Standard"; //[Standard:Standard - 6.8mm, Lite Strong:Lite Strong - 4mm, Lite Basic:Lite Basic - 3.4mm]
 add_threads_blunt_end = true;
+plier_count = 1;
+
 /* [Main Options] */
 stem_top_width = 2; //0.4
 stem_bottom_width = 10; //0.4
@@ -24,13 +26,14 @@ transition_depth_ratio = 0.2; //[0:0.1:1]
 stopper_width_scale = 1; //[0.5:0.1:2]
 stopper_height_scale = 1.4; //[0.5:0.1:2]
 
+
 /* [Advanced Options] */
 //Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
 add_thickness_text = "Uncommon Only"; //[All, Uncommon Only, None]
 stopper_depth = 3;
-stopper_front_rounding = 1; //0.2
-stem_top_rounding = 1; //0.2
-stem_bottom_rounding = 1; //0.2
+stopper_front_rounding = 0.4; //0.2
+stem_top_rounding = 0.8; //0.2
+stem_bottom_rounding = 0.8; //0.2
 
 /* [Hidden] */
 $fa = 1;
@@ -90,37 +93,37 @@ plier_prismoid_side_angle = opp_adj_to_ang((stem_bottom_width - final_stem_top_w
 stopper_side_angle = opp_adj_to_ang((stem_bottom_width - final_stem_top_width) * stopper_width_scale / 2, stem_height * stopper_height_scale);
 //align to front and bottom
 zrot(180) up(threads_offset) xrot(90) {
-      fwd(threads_offset) zrot(180) xrot(90) {
-            diff() prismoid(size1=[stem_bottom_width, max(eps, stem_base_depth)], size2=[final_stem_top_width, max(eps, stem_base_depth)], h=stem_height, anchor=BACK + BOTTOM) {
-                edge_profile([BOTTOM + LEFT, BOTTOM + RIGHT], excess=2)
-                  mask2d_teardrop(r=plier_prismoid_bottom_rounding, mask_angle=90 - plier_prismoid_side_angle);
-                edge_mask([TOP + LEFT, TOP + RIGHT])
-                  rounding_edge_mask(l=$edge_length, r=plier_prismoid_top_rounding);
-              }
-            fwd(max(eps, stem_base_depth)) hull() {
-                diff() prismoid(size1=[stem_bottom_width, 0.1], size2=[final_stem_top_width, 0.1], h=stem_height, anchor=BACK + BOTTOM) {
-                    edge_profile([BOTTOM + LEFT, BOTTOM + RIGHT], excess=3)
-                      mask2d_teardrop(r=plier_prismoid_bottom_rounding, mask_angle=90 - plier_prismoid_side_angle);
-                    edge_mask([TOP + LEFT, TOP + RIGHT])
-                      rounding_edge_mask(l=$edge_length, r=plier_prismoid_top_rounding);
-                  }
-                fwd(stem_transition_depth)
-                  diff() prismoid(size1=[stem_bottom_width * stopper_width_scale, stopper_depth], size2=[final_stem_top_width * stopper_width_scale, stopper_depth], h=stem_height * stopper_height_scale, anchor=BACK + BOTTOM) {
+      fwd(threads_offset) zrot(180) xrot(90) ycopies(n=plier_count, spacing=-stem_depth - stopper_depth + stopper_front_rounding, sp=[0, 0, 0]) {
+              diff() prismoid(size1=[stem_bottom_width, max(eps, stem_base_depth)], size2=[final_stem_top_width, max(eps, stem_base_depth)], h=stem_height, anchor=BACK + BOTTOM) {
+                  edge_profile([BOTTOM + LEFT, BOTTOM + RIGHT], excess=2)
+                    mask2d_teardrop(r=plier_prismoid_bottom_rounding, mask_angle=90 - plier_prismoid_side_angle);
+                  edge_mask([TOP + LEFT, TOP + RIGHT])
+                    rounding_edge_mask(l=$edge_length, r=plier_prismoid_top_rounding);
+                }
+              fwd(max(eps, stem_base_depth)) hull() {
+                  diff() prismoid(size1=[stem_bottom_width, 0.1], size2=[final_stem_top_width, 0.1], h=stem_height, anchor=BACK + BOTTOM) {
                       edge_profile([BOTTOM + LEFT, BOTTOM + RIGHT], excess=3)
-                        mask2d_teardrop(r=plier_prismoid_bottom_rounding * stopper_width_scale, mask_angle=90 - stopper_side_angle);
+                        mask2d_teardrop(r=plier_prismoid_bottom_rounding, mask_angle=90 - plier_prismoid_side_angle);
                       edge_mask([TOP + LEFT, TOP + RIGHT])
-                        rounding_edge_mask(l=$edge_length + 2, r=plier_prismoid_top_rounding * stopper_width_scale);
-                      edge_mask([TOP + FRONT])
-                        rounding_edge_mask(l=$edge_length + 2, r=max(eps, stopper_front_rounding));
-                      edge_mask([BOTTOM + FRONT], except=BACK)
-                        teardrop_edge_mask(l=$edge_length + 2, r=max(eps, stopper_front_rounding));
-                      edge_mask([FRONT + RIGHT])
-                        yrot(-stopper_side_angle) rounding_edge_mask(l=$edge_length + 2, r=max(eps, stopper_front_rounding));
-                      edge_mask([FRONT + LEFT])
-                        yrot(stopper_side_angle) rounding_edge_mask(l=$edge_length + 2, r=max(eps, stopper_front_rounding));
+                        rounding_edge_mask(l=$edge_length, r=plier_prismoid_top_rounding);
                     }
-              }
-          }
+                  fwd(stem_transition_depth)
+                    diff() prismoid(size1=[stem_bottom_width * stopper_width_scale, stopper_depth], size2=[final_stem_top_width * stopper_width_scale, stopper_depth], h=stem_height * stopper_height_scale, anchor=BACK + BOTTOM) {
+                        edge_profile([BOTTOM + LEFT, BOTTOM + RIGHT], excess=3)
+                          mask2d_teardrop(r=plier_prismoid_bottom_rounding * stopper_width_scale, mask_angle=90 - stopper_side_angle);
+                        edge_mask([TOP + LEFT, TOP + RIGHT])
+                          rounding_edge_mask(l=$edge_length + 2, r=plier_prismoid_top_rounding * stopper_width_scale);
+                        edge_mask([TOP + FRONT])
+                          rounding_edge_mask(l=$edge_length + 2, r=max(eps, stopper_front_rounding));
+                        edge_mask([BOTTOM + FRONT], except=BACK)
+                          teardrop_edge_mask(l=$edge_length + 2, r=max(eps, stopper_front_rounding));
+                        edge_mask([FRONT + RIGHT])
+                          yrot(-stopper_side_angle) rounding_edge_mask(l=$edge_length + 2, r=max(eps, stopper_front_rounding));
+                        edge_mask([FRONT + LEFT])
+                          yrot(stopper_side_angle) rounding_edge_mask(l=$edge_length + 2, r=max(eps, stopper_front_rounding));
+                      }
+                }
+            }
 
       diff() {
         zrot(threads_offset_angle) {
