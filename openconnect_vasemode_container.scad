@@ -1,31 +1,25 @@
-/* 
-Licensed Creative Commons Attribution-ShareAlike 4.0 International
-
-Created by mitufy. https://github.com/mitufy
-*/
-
+  
 include <BOSL2/std.scad>
-include <BOSL2/rounding.scad>
 
-/* [Hook Options] */
-openconnect_slot_lock_distribution = "Staggered"; //["Staggered","All", "None"]
-openconnect_slot_direction_flip = false;
-vertical_grids = 1;
-//Recommened minimum width is 20mm. For smaller hooks, try "openGrid framefit hook generator".
-hook_width = 28;
-hook_thickness = 7;
-//corner_radius and stem_height add to total height of the hook.
-hook_corner_radius = 16;
-//The length of the flat bottom part of the hook.
-hook_flat_length = 0;
-//tip_radius, corner radius and flat_length add to total length of the hook.
-hook_tip_radius = 16;
-//Scaling of hook thickness. 0.6 means thickness at the end of the hook would be 60% of the beginning.
-hook_thickness_scale = 0.8; //[0.5:0.1:1]
-//Angle of the tip of the hook. Set this value to 90 and increase flat_length to generate a shelf.
-hook_tip_angle = 165; //[90:15:210]
+/* [Main Settings] */
+//Safe value for vase mode linewidth is 150% of nozzle size, i.e. 0.6mm linewidth for 0.4mm nozzles. But it's usually fine to go up to 200%, so feel free to experiment.
+vase_linewidth = 0.6;
+vase_surface_texture = "diamonds"; //[None:None, wave_ribs:Wave Ribs,diamonds:Diagonal Ribs,checkers:Checkers,cubes:Cubes]
 
-hook_side_rounding = 2.4; //0.2
+horizontal_grids = 2;
+vertical_grids = 3;
+//As depth is not restrained by grid, this is just a convenient way to increment value by 28mm. You can override it by enabling "use_custom_depth" below.
+depth_grids = 2;
+
+vase_tilt_angle = 15; //[0:5:45]
+vase_front_inset_angle = 0; //[0:5:45]
+
+/* [Advanced Settings] */
+use_custom_depth = false;
+custom_depth = 60;
+surface_texture_size = 7;
+surface_texture_depth = 1; //0.2
+slot_locking_nubs = 2; //[2:Both Sides, 1:One Side,0:None]
 
 /* [Hidden] */
 $fa = 1;
@@ -93,13 +87,34 @@ openconnect_head_side_profile = [
 
 //BEGIN openConnect slot modules
 module openconnect_head(head_type = "head", add_nubs = 2, excess_thickness = 0, size_offset = 0) {
-  bottom_profile = head_type == "slot" ? openconnect_slot_bottom_profile : head_type == "vase" ? openconnect_vase_bottom_profile : openconnect_head_bottom_profile;
-  top_profile = head_type == "slot" ? openconnect_slot_top_profile : head_type == "vase" ? openconnect_vase_top_profile : openconnect_head_top_profile;
-  bottom_height = head_type == "slot" ? openconnect_slot_bottom_height : head_type == "vase" ? openconnect_vase_bottom_height : openconnect_head_bottom_height;
-  top_height = head_type == "slot" ? openconnect_slot_top_height : head_type == "vase" ? openconnect_vase_top_height : openconnect_head_top_height;
-  large_rect_width = head_type == "slot" ? openconnect_slot_large_rect_width : head_type == "vase" ? openconnect_vase_large_rect_width : openconnect_head_large_rect_width;
-  large_rect_height = head_type == "slot" ? openconnect_slot_large_rect_height : head_type == "vase" ? openconnect_vase_large_rect_height : openconnect_head_large_rect_height;
-  nub_to_top_distance = head_type == "slot" ? openconnect_slot_nub_to_top_distance : head_type == "vase" ? openconnect_vase_nub_to_top_distance : openconnect_head_nub_to_top_distance;
+  bottom_profile =
+    head_type == "slot" ? openconnect_slot_bottom_profile
+    : head_type == "vase" ? openconnect_vase_bottom_profile
+    : openconnect_head_bottom_profile;
+  top_profile =
+    head_type == "slot" ? openconnect_slot_top_profile
+    : head_type == "vase" ? openconnect_vase_top_profile
+    : openconnect_head_top_profile;
+  bottom_height =
+    head_type == "slot" ? openconnect_slot_bottom_height
+    : head_type == "vase" ? openconnect_vase_bottom_height
+    : openconnect_head_bottom_height;
+  top_height =
+    head_type == "slot" ? openconnect_slot_top_height
+    : head_type == "vase" ? openconnect_vase_top_height
+    : openconnect_head_top_height;
+  large_rect_width =
+    head_type == "slot" ? openconnect_slot_large_rect_width
+    : head_type == "vase" ? openconnect_vase_large_rect_width
+    : openconnect_head_large_rect_width;
+  large_rect_height =
+    head_type == "slot" ? openconnect_slot_large_rect_height
+    : head_type == "vase" ? openconnect_vase_large_rect_height
+    : openconnect_head_large_rect_height;
+  nub_to_top_distance =
+    head_type == "slot" ? openconnect_slot_nub_to_top_distance
+    : head_type == "vase" ? openconnect_vase_nub_to_top_distance
+    : openconnect_head_nub_to_top_distance;
 
   difference() {
     union() {
@@ -181,53 +196,90 @@ module openconnect_slot_grid(h_grid = 1, v_grid = 1, grid_size = 28, lock_distri
 }
 //END openConnect slot modules
 
-horizontal_grids = max(1, floor((hook_width) / tile_size));
+vase_wall_thickness = vase_linewidth * 2;
+vase_width = tile_size * horizontal_grids;
+vase_depth = use_custom_depth ? custom_depth : tile_size * depth_grids;
+final_vase_tilt_angle = min(adj_opp_to_ang(tile_size * vertical_grids, vase_depth - 1), vase_tilt_angle);
+vase_height = ang_hyp_to_adj(final_vase_tilt_angle, tile_size * vertical_grids);
+final_vase_front_inset_angle = min(adj_opp_to_ang(vase_height, max(0, vase_depth - ang_adj_to_opp(final_vase_tilt_angle, vase_height) - 1)), vase_front_inset_angle);
 
-hook_stem_height = vertical_grids * tile_size;
-final_hook_corner_radius = min(hook_corner_radius, hook_stem_height - hook_thickness / 2 - hook_side_rounding);
-stem_first_height = max(eps, vertical_grids * tile_size - final_hook_corner_radius);
+final_surface_texture_size = surface_texture_size * (vase_surface_texture == "checkers" || vase_surface_texture == "cubes" ? 2 : 1);
 
-final_thickness_scale = hook_thickness_scale;
-final_side_chamfer = max(0, min(hook_thickness / 2 * final_thickness_scale - 0.84, hook_width / 2 - 0.84, hook_side_rounding));
+openconnect_vasecut_side_profile = [
+  [0, 0],
+  [openconnect_slot_large_rect_width / 2, 0],
+  [openconnect_slot_large_rect_width / 2, openconnect_slot_bottom_height],
+  [openconnect_slot_small_rect_width / 2, openconnect_slot_bottom_height + openconnect_middle_height],
+  [openconnect_slot_small_rect_width / 2, openconnect_slot_bottom_height + openconnect_middle_height + openconnect_slot_top_height],
+  [0, openconnect_slot_bottom_height + openconnect_middle_height + openconnect_slot_top_height],
+];
 
-hook_path = ["setdir", -90, "arcleft", final_hook_corner_radius, "move", max(eps, hook_flat_length), "arcleft", hook_tip_radius, max(1, hook_tip_angle - 90)];
-hook_path_first_part = ["setdir", -90, "arcleft", final_hook_corner_radius];
+tilt_offset_angle = max(0, final_vase_tilt_angle - 20);
 
-tip_rounding_radius = max(0, min(hook_thickness * final_thickness_scale, hook_width - final_side_chamfer * 2) / 2 - eps);
+openconnect_vase_small_rect_width = openconnect_slot_small_rect_width + vase_wall_thickness * 2;
+openconnect_vase_small_rect_height = openconnect_slot_small_rect_height + vase_wall_thickness + ang_adj_to_opp(45 + tilt_offset_angle, openconnect_slot_total_height);
+openconnect_vase_small_rect_chamfer = openconnect_slot_small_rect_chamfer + vase_wall_thickness - ang_adj_to_opp(45 / 2, vase_wall_thickness);
+openconnect_vase_large_rect_width = openconnect_slot_large_rect_width + vase_wall_thickness * 2;
+openconnect_vase_large_rect_height = openconnect_slot_large_rect_height + vase_wall_thickness + ang_adj_to_opp(45 + tilt_offset_angle, openconnect_slot_total_height);
+openconnect_vase_large_rect_chamfer = openconnect_slot_large_rect_chamfer + vase_wall_thickness - ang_adj_to_opp(45 / 2, vase_wall_thickness);
+openconnect_vase_middle_to_bottom = openconnect_vase_large_rect_height - openconnect_vase_large_rect_width / 2;
 
-path_first_ratio = path_length(turtle(hook_path_first_part)) / path_length(turtle(hook_path));
+openconnect_vase_nub_to_top_distance = openconnect_slot_nub_to_top_distance + vase_wall_thickness;
+openconnect_vase_bottom_height = openconnect_slot_bottom_height + ang_adj_to_opp(45 / 2, vase_wall_thickness);
+openconnect_vase_top_height = openconnect_slot_top_height - ang_adj_to_opp(45 / 2, vase_wall_thickness);
 
-teardrop_sweep_profile = difference(
-  rect([hook_thickness, hook_width]),
-  right(hook_thickness / 2, fwd(hook_width / 2, yflip(zrot(-180, mask2d_teardrop(r=final_side_chamfer, $fn=64))))),
-  right(hook_thickness / 2, back(hook_width / 2, zrot(-180, mask2d_teardrop(r=final_side_chamfer, $fn=64))))
-);
+openconnect_vase_top_profile = back(openconnect_vase_small_rect_width / 2, rect([openconnect_vase_small_rect_width, openconnect_vase_small_rect_height], chamfer=[openconnect_vase_small_rect_chamfer, openconnect_vase_large_rect_chamfer, 0, 0], anchor=BACK));
+openconnect_vase_bottom_profile = back(openconnect_vase_large_rect_width / 2, rect([openconnect_vase_large_rect_width, openconnect_vase_large_rect_height], chamfer=[openconnect_vase_large_rect_chamfer, openconnect_vase_large_rect_chamfer, 0, 0], anchor=BACK));
 
-default_sweep_profile = rect([hook_thickness, hook_width], chamfer=[final_side_chamfer, 0, 0, final_side_chamfer]);
-
-final_sweep_profile = teardrop_sweep_profile;
-offset_sweep_profile = scale([final_thickness_scale, 1, 1], final_sweep_profile);
-
-diff(remove="rm0")
-  diff(remove="rm1", keep="kp1 rm0") {
-    cuboid([hook_thickness, hook_stem_height, hook_width], anchor=BACK + BOTTOM, rounding=final_side_chamfer, edges=[BACK + RIGHT], $fn=128) {
-      tag("rm1") edge_profile([TOP + RIGHT, BOTTOM + RIGHT, BACK + TOP, BACK + BOTTOM])
-          mask2d_teardrop(r=final_side_chamfer, $fn=64);
-      tag("rm1") corner_profile([BACK + TOP + RIGHT, BACK + BOTTOM + RIGHT], r=final_side_chamfer)
-          mask2d_teardrop(r=final_side_chamfer, $fn=128);
-      tag_diff(remove="rm2", tag="kp1") {
-        attach(FRONT, FRONT, align=LEFT, inside=true)
-          tag("") cuboid([final_hook_corner_radius + hook_thickness / 2, final_hook_corner_radius + hook_thickness / 2, hook_width], chamfer=final_side_chamfer, edges=[LEFT + TOP, LEFT + BOTTOM])
-              back(final_hook_corner_radius / 2) right(final_hook_corner_radius / 2)
-                  tag("rm2") zcyl(r=final_hook_corner_radius, h=hook_width + eps * 2);
+up(vase_height / 2) xrot(90 + final_vase_tilt_angle) {
+    grid_copies([tile_size, tile_size], [horizontal_grids, vertical_grids])
+      difference() {
+        openconnect_head(head_type="vase", add_nubs=slot_locking_nubs);
+        openconnect_head(head_type="slot", add_nubs=slot_locking_nubs);
+        cuboid([openconnect_slot_large_rect_width - openconnect_slot_large_rect_chamfer * 2, openconnect_slot_large_rect_height, openconnect_slot_total_height], anchor=FRONT + BOTTOM);
+        fwd(openconnect_vase_middle_to_bottom)
+          xrot(-(45 + tilt_offset_angle)) cuboid([openconnect_vase_large_rect_width + eps, 20, 20], anchor=BACK + BOTTOM);
+        xrot(90) linear_extrude(openconnect_slot_middle_to_bottom + openconnect_slot_move_distance + openconnect_slot_onramp_clearance) xflip_copy() polygon(openconnect_vasecut_side_profile);
+        up(openconnect_slot_total_height) cuboid([50, 50, 50], anchor=BOTTOM);
       }
-      attach(LEFT, TOP, inside=true, spin=90)
-        tag("rm0") openconnect_slot_grid(h_grid=horizontal_grids, v_grid=vertical_grids, grid_size=tile_size, lock_distribution=openconnect_slot_lock_distribution, direction_flip=openconnect_slot_direction_flip, excess_thickness=0);
-    }
-    //path_sweep(final_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[final_thickness_scale, 1], caps=[true, os_circle(r=tip_rounding_radius)]);
-    //makerworld doesn't support newest path_sweep caps yet so it has to be done the old way.
-    tag("kp1") up(hook_width / 2) fwd(stem_first_height - hook_thickness / 2 * (1 - ( (1 - hook_thickness_scale) * path_first_ratio))) path_sweep(final_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[final_thickness_scale, 1]) {
-            attach("end", "top")
-              offset_sweep(offset_sweep_profile, height=tip_rounding_radius + eps, bottom=os_circle(r=tip_rounding_radius), spin=180, $fn=128);
-          }
+    right(vase_surface_texture != "None" ? surface_texture_depth / 2 : 0) xrot(-final_vase_tilt_angle) diff(remove="root_rm") diff(remove="remove", keep="keep root_rm")
+            prismoid(size1=[vase_width, vase_depth], h=vase_height, xang=[90, 90], yang=[90 - final_vase_front_inset_angle, 90 - final_vase_tilt_angle], chamfer=vase_surface_texture != "None" ? [0, 0, 0, 0] : [0, 0, 1, 1], orient=FRONT, anchor=BACK) {
+              if (vase_surface_texture != "None") {
+                frontwall_height = ang_adj_to_hyp(final_vase_front_inset_angle, vase_height) + ang_adj_to_opp(final_vase_front_inset_angle, surface_texture_depth);
+                final_wall_height = ceil(max(frontwall_height, vase_height) / final_surface_texture_size) * final_surface_texture_size;
+                final_texture = vase_surface_texture == "checkers" ? texture(vase_surface_texture, border=0.2) : texture(vase_surface_texture);
+                diff(remove="frontwall_rm") {
+                  attach(FRONT, BOTTOM, align=BOTTOM)
+                    textured_tile(final_texture, w1=vase_width, w2=vase_width, shift=0, ysize=final_wall_height,tex_depth=surface_texture_depth, tex_size=[final_surface_texture_size, final_surface_texture_size * (vase_surface_texture == "cubes" ? sqrt(3) : 1)]);
+                  tag("frontwall_rm") attach(BOTTOM, BACK)
+                      cuboid([400, 400, 400]);
+                }
+                diff(remove="sidewall_rm") {
+                  attach(LEFT, BOTTOM, align=BOTTOM)
+                    textured_tile(final_texture, w1=vase_depth, w2=vase_depth, shift=0, ysize=final_wall_height, tex_depth=surface_texture_depth, tex_size=[final_surface_texture_size, final_surface_texture_size * (vase_surface_texture == "cubes" ? sqrt(3) : 1)]);
+                  tag("sidewall_rm") attach(FRONT, BACK)
+                      cuboid([400, 400, 400]);
+                  tag("sidewall_rm") attach(BACK, BACK)
+                      cuboid([400, 400, 400]);
+                }
+                tag("remove") diff(remove="sidewall_rm") {
+                    attach(RIGHT, BOTTOM, inside=true, align=BOTTOM)
+                      textured_tile(final_texture, w1=vase_depth, w2=vase_depth, shift=0, ysize=final_wall_height, tex_depth=surface_texture_depth, tex_size=[final_surface_texture_size, final_surface_texture_size * (vase_surface_texture == "cubes" ? sqrt(3) : 1)]);
+                    tag("sidewall_rm") attach(FRONT, BACK, shiftout=eps)
+                        cuboid([400, 400, 400]);
+                    tag("sidewall_rm") attach(BACK, BACK, shiftout=eps)
+                        cuboid([400, 400, 400]);
+                  }
+                tag("root_rm")
+                  left(surface_texture_depth + 1) fwd(surface_texture_depth + 1)
+                      edge_profile([LEFT + FRONT], excess=10)
+                        mask2d_chamfer(x=surface_texture_depth * 2 + 2);
+                tag("root_rm")
+                  right(surface_texture_depth) fwd(surface_texture_depth + 1)
+                      edge_profile([RIGHT + FRONT], excess=10)
+                        mask2d_chamfer(x=surface_texture_depth * 3 + 1);
+                tag("root_rm") attach(TOP, BACK)
+                    cuboid([400, 400, 400]);
+              }
+            }
   }
