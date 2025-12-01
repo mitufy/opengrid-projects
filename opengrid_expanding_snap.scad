@@ -590,7 +590,7 @@ openconnect_head_large_rect_height = 11.2; //0.1
 
 openconnect_head_nub_to_top_distance = 7.2;
 openconnect_lock_nub_depth = 0.4;
-openconnect_lock_nub_tip_height = 0.8;
+openconnect_lock_nub_tip_height = 1;
 openconnect_lock_nub_inner_fillet = 0.2;
 openconnect_lock_nub_outer_fillet = 0.8;
 

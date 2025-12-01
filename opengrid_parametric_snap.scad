@@ -70,14 +70,17 @@ side_cut_depth = 0.8; //0.1
 side_cut_offset_to_top = 0.8; //0.1
 
 /* [Thread Options] */
-//Snap threads are designed to have 16mm diameter and 0.5mm clearance, 16.5mm is the offical diameter for negative parts.
-threads_diameter = 16;
+//openGrid snap threads are designed to have 16mm diameter and 0.5mm clearance, 16.5mm is the offical diameter for negative parts.
+threads_diameter = 16; //0.1
 threads_clearance = 0.5;
 threads_pitch = 3;
 threads_top_bevel = 0.5;
 threads_bottom_bevel_standard = 2; //0.1
 threads_bottom_bevel_lite = 1.2; //0.1
 threads_offset_angle = 0; //[0:15:345]
+//Threads position offsets doesn't affect self-expanding snaps.
+threads_x_position_offset = 0; //0.1
+threads_y_position_offset = 0; //0.1
 
 /* [Expanding Snap Options] */
 //The default value is suitable for Bambu PLA Basic, Bambu PETG HF, and Sunlu PLA+ 2.0. You may need to adjust it depending on the filament you use.
@@ -447,9 +450,7 @@ module expanding_thread(diameter, expand_width, entry_height, transition_height,
                 partition(spread=-aseg_expansion_distance - eps, cutpath="flat", $slop=aseg_expansion_distance / 2)
                   zrot(split_angle + offset_angle) up(aseg_position) zrot(aseg_position * 120) {
                         if (add_threads_blunt_end)
-                        // if (add_threads_blunt_end && aseg_position > 3)
-                        // if (add_threads_blunt_end && aseg_position > entry_height + transition_height + end_height - 3)
-                        blunt_threaded_rod(diameter=diameter, rod_height=expand_height_step + eps, top_bevel=0, bottom_bevel=0);
+                          blunt_threaded_rod(diameter=diameter, rod_height=expand_height_step + eps, top_bevel=0, bottom_bevel=0);
                         else
                           generic_threaded_rod(d=diameter, l=expand_height_step + eps, pitch=threads_pitch, profile=threads_profile, bevel1=0, bevel2=0, anchor=BOTTOM, blunt_start=false, internal=false);
                       }
@@ -509,13 +510,14 @@ module snap() {
             snap_directional_slant();
         }
         if (!disable_snap_threads) {
-          tag_diff(tag="remove", remove="inner_rm") down(eps / 2) up(reverse_threads_entryside ? snap_thickness + eps / 2 : 0) yrot(reverse_threads_entryside ? 180 : 0)
-                  zrot(threads_compatiblity_angle + threads_offset_angle) {
-                    if (add_threads_blunt_end)
-                      blunt_threaded_rod(diameter=threads_negative_diameter, rod_height=snap_thickness + eps);
-                    else
-                      generic_threaded_rod(d=threads_negative_diameter, l=snap_thickness + eps, pitch=threads_pitch, profile=threads_profile, bevel1=0, bevel2=min(threads_bottom_bevel, snap_thickness), anchor=BOTTOM, blunt_start=false, internal=false);
-                  }
+          tag_diff(tag="remove", remove="inner_rm") left(threads_x_position_offset) back(threads_y_position_offset)
+                down(eps / 2) up(reverse_threads_entryside ? snap_thickness + eps / 2 : 0) yrot(reverse_threads_entryside ? 180 : 0)
+                      zrot(threads_compatiblity_angle + threads_offset_angle) {
+                        if (add_threads_blunt_end)
+                          blunt_threaded_rod(diameter=threads_negative_diameter, rod_height=snap_thickness + eps);
+                        else
+                          generic_threaded_rod(d=threads_negative_diameter, l=snap_thickness + eps, pitch=threads_pitch, profile=threads_profile, bevel1=0, bevel2=min(threads_bottom_bevel, snap_thickness), anchor=BOTTOM, blunt_start=false, internal=false);
+                      }
         }
       }
     }
@@ -589,7 +591,7 @@ openconnect_head_large_rect_height = 11.2; //0.1
 
 openconnect_head_nub_to_top_distance = 7.2;
 openconnect_lock_nub_depth = 0.4;
-openconnect_lock_nub_tip_height = 0.8;
+openconnect_lock_nub_tip_height = 1;
 openconnect_lock_nub_inner_fillet = 0.2;
 openconnect_lock_nub_outer_fillet = 0.8;
 
