@@ -1,27 +1,23 @@
+/* 
+Licensed Creative Commons Attribution-ShareAlike 4.0 International
+
+Created by mitufy. https://github.com/mitufy
+
+openConnect is a connector system designed for openGrid. openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
+*/
+
 include <BOSL2/std.scad>
 include <BOSL2/walls.scad>
 include <BOSL2/rounding.scad>
-include <BOSL2/threading.scad>
 
-generate_shell = true;
-generate_container = true;
-generate_stoppers = true;
-
-openconnect_slot_direction_flip = false;
-openconnect_slot_lock_distribution = "Staggered"; //["Staggered","All", "None"]
-
-/* [View Options] */
-view_cross_section = "None"; //["None","Right","Back","Diagonal"]
-view_drawer_overlapped = false;
+generate_drawer_shell = true;
+generate_drawer_container = true;
 
 /*[Grid Settings]*/
 vertical_grids = 2;
 horizontal_grids = 5;
-//Depth is not restricted by grids, so this is just a convenient way to increment value by 28mm. You can override this with override_depth.
+//As depth is not restrained by grid, this is just a convenient way to increment value by 28mm. You can override it by enabling "use_custom_depth" below.
 depth_grids = 5;
-
-/*[Honeycomb Settings]*/
-honeycomb_strut_hyp = 5.04; //0.42
 
 /*[Shell Settings]*/
 shell_thickness = 2.52; //0.42
@@ -29,220 +25,224 @@ shell_top_wall_type = "Solid"; //["Solid","Honeycomb"]
 shell_bottom_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
 shell_side_wall_type = "Solid"; //["Solid","Honeycomb"]
 
-/*[Shell Divider]*/
+/*[Container Settings]*/
+container_solidwall_thickness = 1.68; //0.42
+container_honeycombwall_thickness = 2.52; //0.42
+
+container_front_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
+container_back_wall_type = "Solid"; //["Solid","Honeycomb"]
+container_bottom_wall_type = "Solid"; //["Solid","Honeycomb"]
+//Honeycomb patterns on the side of drawer shell and drawer container do not align. If you don't like the inconsistent look, use honeycomb side walls on only one part.
+container_side_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
+
+/*[Container Compartments]*/
+//Whether to divide the drawer container into several compartments.
+add_container_divider = false;
+//Ratio of divider wall to side wall height. 0.7 means the divider walls are 70% as tall as the side walls.
+container_divider_wall_height_scale = 0.7; //[0.1:0.1:1]
+container_divider_wall_thickness = 1.68; //0.42
+container_compartment_unit = "Width"; //["Width","Depth"]
+//Input sizes separated by comma. For example, '2,1' means a 2-grid wide and a 1-grid wide compartment. Remaining space combines, so for a 6-grid wide container, '2,1' and '2,1,3' are the same.
+container_compartment_sizes = "2,1";
+
+/*[Label and Handle Settings]*/
+add_label_holder = true;
+handle_thickness = 2.52; //0.42
+//How much the handle protrudes from the front of the drawer.
+handle_depth = 10;
+
+/*[Stopper and Magnet Settings]*/
+//Simple stoppers with no magnets involved. You can enable this together with side magnet holes and choose which one to use after printing.
+add_top_stopper_holes = true;
+generate_top_stopper_clips = true;
+stopper_clips_length = 8;
+
+//Side magnets act as stoppers by holding the container when it's pulled out. Recommended to set thickness thinner than both shell_thickness and container_thickness.
+add_side_magnet_holes = true;
+side_magnet_thickness = 2;
+side_magnet_diameter = 6;
+
+//Back magnets hold container securely when it's pushed in. Magnet thickness cannot exceed 2.5.
+add_back_magnet_holes = true;
+back_magnet_thickness = 2;
+back_magnet_diameter = 6;
+back_magnet_hole_position = "Bottom Corners"; //["All","Corners","Bottom Corners"]
+
+/*[Advanced Settings]*/
+//'Staggered' means every other slot. Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
+slot_lock_distribution = "Staggered"; //["Staggered","All", "None"]
+//Slot entry direction can matter when installing in very tight space. Note when printing, the side with locking mechanism should be closer to print bed.
+slot_direction_flip = false;
+use_custom_depth = false;
+custom_drawer_depth = 150;
+//The thickness of the strut of honeycomb pattern.
+honeycomb_strut_hyp = 5.04; //0.42
+
+/*[Clearance Settings]*/
+container_height_clearance = 0.4; //0.05
+container_width_clearance = 0.4; //0.05
+container_depth_clearance = 0.2; //0.05
+magnet_hole_clearance = 0.1;
+side_magnet_back_offset = 2.52;
+side_magnet_front_offset = 2.52;
+
+/* [Debug Settings] */
+view_cross_section = "None"; //["None","Right","Back","Diagonal"]
+view_drawer_overlapped = false;
+
+/*[Hidden]*/
+//unimplemented shell dividers. Customization and generating container for each compartment is too messy.
+// /*[Shell Divider]*/
 add_shell_divider = false;
 shell_main_divide_unit = "Width"; //["Width","Height"]
 shell_width_dividers = "1,4";
 shell_height_dividers = "2 3";
 shell_divider_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
 
-/*[Container Settings]*/
-container_solidwall_thickness = 1.68; //0.42
-container_honeycombwall_thickness = 2.52; //0.42
-container_height_clearance = 0.4; //0.05
-container_width_clearance = 0.4; //0.05
-container_depth_clearance = 0.2; //0.05
 
-container_front_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
-container_back_wall_type = "Solid"; //["Solid","Honeycomb"]
-container_bottom_wall_type = "Solid"; //["Solid","Honeycomb"]
-//Because of print direction, Honeycomb pattern on the side of the shell and container are not aligned. Enabling honeycomb on the side walls of both part can make the drawer look a bit inconsistent.  
-container_side_wall_type = "Solid"; //["Solid","Honeycomb"]
-
-/*[Container Divider]*/
-add_container_divider = false;
-container_divider_wall_height_diff = 6;
-container_divider_wall_thickness = 1.68; //0.42
-container_divide_direction = "Width"; //["Width","Depth"]
-container_divider_list = "2,1";
-
-/*[Handle Settings]*/
-handle_thickness = 2.52; //0.42
-handle_depth = 10;
-handle_chamfer = 0.4;
-add_label_holder = true;
-
-/*[Magnet Settings]*/
-add_back_magnet_holes = true;
-back_magnet_thickness = 2;
-back_magnet_diameter = 6;
-back_magnet_hole_position = "Bottom Corners"; //["All","Corners","Bottom Corners"]
-
-add_side_magnet_holes = true;
-side_magnet_thickness = 1;
-side_magnet_diameter = 6;
-side_magnet_back_offset = 2.52;
-side_magnet_front_offset = 2.52;
-
-magnet_hole_clearance = 0.1;
-
-back_magnet_hole_thickness = back_magnet_thickness + magnet_hole_clearance;
-back_magnet_hole_diameter = back_magnet_diameter + magnet_hole_clearance * 2;
-side_magnet_hole_thickness = side_magnet_thickness + magnet_hole_clearance;
-side_magnet_hole_diameter = side_magnet_diameter + +magnet_hole_clearance * 2;
-
-/*[Stopper Settings]*/
-add_stopper_holes = true;
-
-/*[Advanced Settings]*/
-
-/*[Hidden]*/
 $fa = 1;
 $fs = 0.4;
 eps = 0.005;
 
-stopper_angles = [60, 60];
-stopper_width = 7;
-stopper_height = 2;
-stopper_depth = 8;
-stopper_height_clearance = 0.1;
-stopper_width_clearance = 0.0;
-stopper_chamfer = 0.6;
-
-threads_profile = [
-  [-1.25 / 3, -1 / 3],
-  [-0.25 / 3, 0],
-  [0.25 / 3, 0],
-  [1.25 / 3, -1 / 3],
-];
 //BEGIN openConnect slot parameters
 tile_size = 28;
 
-openconnect_head_bottom_height = 0.4;
-openconnect_head_bottom_chamfer = 0;
-openconnect_head_top_height = 0.6;
-openconnect_head_middle_height = 1.6;
-openconnect_head_large_rect_width = 17; //0.1
-openconnect_head_large_rect_height = 11.2; //0.1
+ochead_bottom_height = 0.8;
+ochead_bottom_chamfer = 0;
+ochead_top_height = 0.6;
+ochead_middle_height = 1.4;
+ochead_large_rect_width = 17; //0.1
+ochead_large_rect_height = 11.2; //0.1
 
-openconnect_head_nub_to_top_distance = 7.2;
-openconnect_lock_nub_depth = 0.4;
-openconnect_lock_nub_tip_height = 1;
-openconnect_lock_nub_inner_fillet = 0.2;
-openconnect_lock_nub_outer_fillet = 0.8;
+ochead_nub_to_top_distance = 7.2;
+ochead_nub_depth = 0.6;
+ochead_nub_tip_height = 1.2;
+ochead_nub_inner_fillet = 0.2;
+ochead_nub_outer_fillet = 0.8;
 
-openconnect_head_large_rect_chamfer = 4;
-openconnect_head_small_rect_width = openconnect_head_large_rect_width - openconnect_head_middle_height * 2;
-openconnect_head_small_rect_height = openconnect_head_large_rect_height - openconnect_head_middle_height;
-openconnect_head_small_rect_chamfer = openconnect_head_large_rect_chamfer - openconnect_head_middle_height + ang_adj_to_opp(45 / 2, openconnect_head_middle_height);
+ochead_large_rect_chamfer = 4;
+ochead_small_rect_width = ochead_large_rect_width - ochead_middle_height * 2;
+ochead_small_rect_height = ochead_large_rect_height - ochead_middle_height;
+ochead_small_rect_chamfer = ochead_large_rect_chamfer - ochead_middle_height + ang_adj_to_opp(45 / 2, ochead_middle_height);
 
-openconnect_slot_move_distance = 11; //0.1
-openconnect_slot_onramp_clearance = 0.8;
-openconnect_slot_bridge_offset = 0.4;
-openconnect_slot_side_clearance = 0.18;
-openconnect_slot_depth_clearance = 0.12;
+ocslot_move_distance = 11; //0.1
+ocslot_onramp_clearance = 0.8;
+ocslot_bridge_offset = 0.4;
+ocslot_side_clearance = 0.15;
+ocslot_depth_clearance = 0.12;
 
-openconnect_head_bottom_profile = back(openconnect_head_large_rect_width / 2, rect([openconnect_head_large_rect_width, openconnect_head_large_rect_height], chamfer=[openconnect_head_large_rect_chamfer, openconnect_head_large_rect_chamfer, 0, 0], anchor=BACK));
-openconnect_head_top_profile = back(openconnect_head_small_rect_width / 2, rect([openconnect_head_small_rect_width, openconnect_head_small_rect_height], chamfer=[openconnect_head_small_rect_chamfer, openconnect_head_small_rect_chamfer, 0, 0], anchor=BACK));
-openconnect_head_total_height = openconnect_head_top_height + openconnect_head_middle_height + openconnect_head_bottom_height;
-openconnect_head_middle_to_bottom = openconnect_head_large_rect_height - openconnect_head_large_rect_width / 2;
+ochead_bottom_profile = back(ochead_large_rect_width / 2, rect([ochead_large_rect_width, ochead_large_rect_height], chamfer=[ochead_large_rect_chamfer, ochead_large_rect_chamfer, 0, 0], anchor=BACK));
+ochead_top_profile = back(ochead_small_rect_width / 2, rect([ochead_small_rect_width, ochead_small_rect_height], chamfer=[ochead_small_rect_chamfer, ochead_small_rect_chamfer, 0, 0], anchor=BACK));
+ochead_total_height = ochead_top_height + ochead_middle_height + ochead_bottom_height;
+ochead_middle_to_bottom = ochead_large_rect_height - ochead_large_rect_width / 2;
 
-openconnect_slot_top_profile = offset(openconnect_head_top_profile, delta=openconnect_slot_side_clearance);
-openconnect_slot_bottom_profile = offset(openconnect_head_bottom_profile, delta=openconnect_slot_side_clearance);
-openconnect_slot_bottom_height = openconnect_head_bottom_height + ang_adj_to_opp(45 / 2, openconnect_slot_side_clearance) + openconnect_slot_depth_clearance;
-openconnect_slot_middle_height = openconnect_head_middle_height;
-openconnect_slot_top_height = openconnect_head_top_height - ang_adj_to_opp(45 / 2, openconnect_slot_side_clearance);
-openconnect_slot_total_height = openconnect_slot_top_height + openconnect_slot_middle_height + openconnect_slot_bottom_height;
-openconnect_slot_nub_to_top_distance = openconnect_head_nub_to_top_distance + openconnect_slot_side_clearance;
+ocslot_bottom_height = ochead_bottom_height + ang_adj_to_opp(45 / 2, ocslot_side_clearance) + ocslot_depth_clearance;
+ocslot_top_height = ochead_top_height - ang_adj_to_opp(45 / 2, ocslot_side_clearance);
+ocslot_total_height = ocslot_top_height + ochead_middle_height + ocslot_bottom_height;
+ocslot_nub_to_top_distance = ochead_nub_to_top_distance + ocslot_side_clearance;
 
-openconnect_slot_small_rect_width = openconnect_head_small_rect_width + openconnect_slot_side_clearance * 2;
-openconnect_slot_small_rect_height = openconnect_head_small_rect_height + openconnect_slot_side_clearance * 2;
-openconnect_slot_small_rect_chamfer = openconnect_head_small_rect_chamfer + openconnect_slot_side_clearance - ang_adj_to_opp(45 / 2, openconnect_slot_side_clearance);
-openconnect_slot_large_rect_width = openconnect_head_large_rect_width + openconnect_slot_side_clearance * 2;
-openconnect_slot_large_rect_height = openconnect_head_large_rect_height + openconnect_slot_side_clearance * 2;
-openconnect_slot_large_rect_chamfer = openconnect_head_large_rect_chamfer + openconnect_slot_side_clearance - ang_adj_to_opp(45 / 2, openconnect_slot_side_clearance);
-openconnect_slot_middle_to_bottom = openconnect_slot_large_rect_height - openconnect_slot_large_rect_width / 2;
-openconnect_slot_to_grid_top_offset = (tile_size - 24.8) / 2;
+ocslot_small_rect_width = ochead_small_rect_width + ocslot_side_clearance * 2;
+ocslot_small_rect_height = ochead_small_rect_height + ocslot_side_clearance * 2;
+ocslot_small_rect_chamfer = ochead_small_rect_chamfer + ocslot_side_clearance - ang_adj_to_opp(45 / 2, ocslot_side_clearance);
+ocslot_large_rect_width = ochead_large_rect_width + ocslot_side_clearance * 2;
+ocslot_large_rect_height = ochead_large_rect_height + ocslot_side_clearance * 2;
+ocslot_large_rect_chamfer = ochead_large_rect_chamfer + ocslot_side_clearance - ang_adj_to_opp(45 / 2, ocslot_side_clearance);
+ocslot_middle_to_bottom = ocslot_large_rect_height - ocslot_large_rect_width / 2;
+ocslot_to_grid_top_offset = (tile_size - 24.8) / 2;
+ocslot_top_profile = back(ocslot_small_rect_width / 2, rect([ocslot_small_rect_width, ocslot_small_rect_height], chamfer=[ocslot_small_rect_chamfer, ocslot_large_rect_chamfer, 0, 0], anchor=BACK));
+ocslot_bottom_profile = back(ocslot_large_rect_width / 2, rect([ocslot_large_rect_width, ocslot_large_rect_height], chamfer=[ocslot_large_rect_chamfer, ocslot_large_rect_chamfer, 0, 0], anchor=BACK));
 
-openconnect_head_side_profile = [
+ochead_side_profile = [
   [0, 0],
-  [openconnect_head_large_rect_width / 2 - openconnect_head_bottom_chamfer, 0],
-  [openconnect_head_large_rect_width / 2, openconnect_head_bottom_chamfer],
-  [openconnect_head_large_rect_width / 2, openconnect_head_bottom_height],
-  [openconnect_head_small_rect_width / 2, openconnect_head_bottom_height + openconnect_head_middle_height],
-  [openconnect_head_small_rect_width / 2, openconnect_head_bottom_height + openconnect_head_middle_height + openconnect_head_top_height],
-  [0, openconnect_head_bottom_height + openconnect_head_middle_height + openconnect_head_top_height],
+  [ochead_large_rect_width / 2 - ochead_bottom_chamfer, 0],
+  [ochead_large_rect_width / 2, ochead_bottom_chamfer],
+  [ochead_large_rect_width / 2, ochead_bottom_height],
+  [ochead_small_rect_width / 2, ochead_bottom_height + ochead_middle_height],
+  [ochead_small_rect_width / 2, ochead_bottom_height + ochead_middle_height + ochead_top_height],
+  [0, ochead_bottom_height + ochead_middle_height + ochead_top_height],
 ];
-
 //END openConnect slot parameters
 
 //BEGIN openConnect slot modules
-module openconnect_head(is_negative = false, add_nubs = 2, excess_thickness = 0) {
-  bottom_profile = is_negative ? openconnect_slot_bottom_profile : openconnect_head_bottom_profile;
-  top_profile = is_negative ? openconnect_slot_top_profile : openconnect_head_top_profile;
-
-  bottom_height = is_negative ? openconnect_slot_bottom_height : openconnect_head_bottom_height;
-  middle_height = is_negative ? openconnect_slot_middle_height : openconnect_head_middle_height;
-  top_height = is_negative ? openconnect_slot_top_height : openconnect_head_top_height;
-  large_rect_width = is_negative ? openconnect_slot_large_rect_width : openconnect_head_large_rect_width;
-  large_rect_height = is_negative ? openconnect_slot_large_rect_height : openconnect_head_large_rect_height;
-  nub_to_top_distance = is_negative ? openconnect_slot_nub_to_top_distance : openconnect_head_nub_to_top_distance;
+module openconnect_head(head_type = "head", add_nubs = "both", nub_flattop = true, excess_thickness = 0, size_offset = 0) {
+  bottom_profile = head_type == "slot" ? ocslot_bottom_profile : ochead_bottom_profile;
+  top_profile = head_type == "slot" ? ocslot_top_profile : ochead_top_profile;
+  bottom_height = head_type == "slot" ? ocslot_bottom_height : ochead_bottom_height;
+  top_height = head_type == "slot" ? ocslot_top_height : ochead_top_height;
+  large_rect_width = head_type == "slot" ? ocslot_large_rect_width : ochead_large_rect_width;
+  large_rect_height = head_type == "slot" ? ocslot_large_rect_height : ochead_large_rect_height;
+  nub_to_top_distance = head_type == "slot" ? ocslot_nub_to_top_distance : ochead_nub_to_top_distance;
 
   difference() {
     union() {
-      linear_extrude(h=bottom_height) polygon(bottom_profile);
+      linear_extrude(h=bottom_height) polygon(offset(bottom_profile, delta=size_offset));
       up(bottom_height - eps) hull() {
-          up(middle_height) linear_extrude(h=eps) polygon(top_profile);
-          linear_extrude(h=eps) polygon(bottom_profile);
+          up(ochead_middle_height) linear_extrude(h=eps) polygon(offset(top_profile, delta=size_offset));
+          linear_extrude(h=eps) polygon(offset(bottom_profile, delta=size_offset));
         }
-      up(bottom_height + middle_height - eps)
-        linear_extrude(h=top_height + excess_thickness + eps) polygon(top_profile);
+      if (top_height + excess_thickness > 0)
+        up(bottom_height + ochead_middle_height - eps)
+          linear_extrude(h=top_height + excess_thickness + eps) polygon(offset(top_profile, delta=size_offset));
     }
-    back(large_rect_width / 2 - nub_to_top_distance)
-      rot_copies([90, 0, 0], n=add_nubs)
-        left(large_rect_width / 2 - openconnect_lock_nub_depth / 2 + eps) zrot(-90)
-            linear_extrude(4) trapezoid(h=openconnect_lock_nub_depth, w2=openconnect_lock_nub_tip_height, ang=[45, 45], rounding=[openconnect_lock_nub_inner_fillet, openconnect_lock_nub_inner_fillet, -openconnect_lock_nub_outer_fillet, -openconnect_lock_nub_outer_fillet], $fn=64);
+    back(large_rect_width / 2 - nub_to_top_distance) {
+      if (add_nubs == "left" || add_nubs == "both")
+        left(large_rect_width / 2 + size_offset - ochead_nub_depth / 2 + eps) zrot(-90)
+            linear_extrude(4) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[nub_flattop ? 90 : 45, 45], rounding=[ochead_nub_inner_fillet, nub_flattop ? 0 : ochead_nub_inner_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet, -ochead_nub_outer_fillet], $fn=64);
+      if (add_nubs == "right" || add_nubs == "both")
+        right(large_rect_width / 2 + size_offset - ochead_nub_depth / 2 + eps) zrot(90)
+            linear_extrude(4) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[45, nub_flattop ? 90 : 45], rounding=[nub_flattop ? 0 : ochead_nub_inner_fillet, ochead_nub_inner_fillet, -ochead_nub_outer_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet], $fn=64);
+    }
   }
 }
-module openconnect_slot(add_nubs = 1, direction_flip = false, excess_thickness = 0, anchor = CENTER, spin = 0, orient = UP) {
-  attachable(anchor, spin, orient, size=[openconnect_slot_large_rect_width, openconnect_slot_large_rect_height, openconnect_slot_total_height]) {
-    up(openconnect_slot_total_height / 2) yrot(180) union() {
+module openconnect_slot(add_nubs = "left", direction_flip = false, excess_thickness = 0, anchor = CENTER, spin = 0, orient = UP) {
+  attachable(anchor, spin, orient, size=[ocslot_large_rect_width, ocslot_large_rect_height, ocslot_total_height]) {
+    up(ocslot_total_height / 2) yrot(180) union() {
           if (direction_flip)
-            xflip() openconnect_slot_body(excess_thickness);
+            xflip() ocslot_body(excess_thickness);
           else
-            openconnect_slot_body(excess_thickness);
+            ocslot_body(excess_thickness);
         }
     children();
   }
-  module openconnect_slot_body(excess_thickness = 0) {
-    openconnect_slot_side_profile = [
+  module ocslot_body(excess_thickness = 0) {
+    ocslot_side_profile = [
       [0, 0],
-      [openconnect_slot_large_rect_width / 2, 0],
-      [openconnect_slot_large_rect_width / 2, openconnect_slot_bottom_height],
-      [openconnect_slot_small_rect_width / 2, openconnect_slot_bottom_height + openconnect_slot_middle_height],
-      [openconnect_slot_small_rect_width / 2, openconnect_slot_bottom_height + openconnect_slot_middle_height + openconnect_slot_top_height + excess_thickness],
-      [0, openconnect_slot_bottom_height + openconnect_slot_middle_height + openconnect_slot_top_height + excess_thickness],
+      [ocslot_large_rect_width / 2, 0],
+      [ocslot_large_rect_width / 2, ocslot_bottom_height],
+      [ocslot_small_rect_width / 2, ocslot_bottom_height + ochead_middle_height],
+      [ocslot_small_rect_width / 2, ocslot_bottom_height + ochead_middle_height + ocslot_top_height + excess_thickness],
+      [0, ocslot_bottom_height + ochead_middle_height + ocslot_top_height + excess_thickness],
     ];
-    openconnect_slot_bridge_offset_profile = back(openconnect_slot_small_rect_width / 2, rect([openconnect_slot_small_rect_width / 2 + openconnect_slot_bridge_offset, openconnect_slot_small_rect_height + openconnect_slot_move_distance + openconnect_slot_onramp_clearance], chamfer=[openconnect_slot_small_rect_chamfer + openconnect_slot_bridge_offset, 0, 0, 0], anchor=BACK + LEFT));
+    ocslot_bridge_offset_profile = back(ocslot_small_rect_width / 2, rect([ocslot_small_rect_width / 2 + ocslot_bridge_offset, ocslot_small_rect_height + ocslot_move_distance + ocslot_onramp_clearance], chamfer=[ocslot_small_rect_chamfer + ocslot_bridge_offset, 0, 0, 0], anchor=BACK + LEFT));
     union() {
-      openconnect_head(is_negative=true, add_nubs=add_nubs ? 1 : 0, excess_thickness=excess_thickness);
-      xrot(90) linear_extrude(openconnect_slot_middle_to_bottom + openconnect_slot_move_distance + openconnect_slot_onramp_clearance) xflip_copy() polygon(openconnect_slot_side_profile);
-      up(openconnect_slot_bottom_height) linear_extrude(openconnect_slot_top_height + openconnect_slot_middle_height) polygon(openconnect_slot_bridge_offset_profile);
-      fwd(openconnect_slot_move_distance) {
-        linear_extrude(openconnect_slot_bottom_height) onramp_2d();
-        up(openconnect_slot_bottom_height)
-          linear_extrude(openconnect_slot_middle_height * sqrt(2), v=[-1, 0, 1]) onramp_2d();
-        left(openconnect_slot_middle_height) up(openconnect_slot_bottom_height + openconnect_slot_middle_height)
-            linear_extrude(openconnect_slot_top_height + excess_thickness) onramp_2d();
+      openconnect_head(head_type="slot", add_nubs=add_nubs ? 1 : 0, excess_thickness=excess_thickness);
+      xrot(90) linear_extrude(ocslot_middle_to_bottom + ocslot_move_distance + ocslot_onramp_clearance) xflip_copy() polygon(ocslot_side_profile);
+      up(ocslot_bottom_height) linear_extrude(ocslot_top_height + ochead_middle_height) polygon(ocslot_bridge_offset_profile);
+      fwd(ocslot_move_distance) {
+        linear_extrude(ocslot_bottom_height) onramp_2d();
+        up(ocslot_bottom_height)
+          linear_extrude(ochead_middle_height * sqrt(2), v=[-1, 0, 1]) onramp_2d();
+        left(ochead_middle_height) up(ocslot_bottom_height + ochead_middle_height)
+            linear_extrude(ocslot_top_height + excess_thickness) onramp_2d();
       }
       if (excess_thickness > 0)
-        fwd(openconnect_slot_small_rect_chamfer) cuboid([openconnect_slot_small_rect_width, openconnect_slot_small_rect_height, openconnect_slot_total_height + excess_thickness], anchor=BOTTOM);
+        fwd(ocslot_small_rect_chamfer) cuboid([ocslot_small_rect_width, ocslot_small_rect_height, ocslot_total_height + excess_thickness], anchor=BOTTOM);
     }
   }
   module onramp_2d() {
     union() {
-      offset(delta=openconnect_slot_onramp_clearance)
-        left(openconnect_slot_onramp_clearance + openconnect_slot_middle_height) back(openconnect_slot_large_rect_width / 2) {
-            rect([openconnect_slot_large_rect_width, openconnect_slot_large_rect_height], chamfer=[openconnect_slot_large_rect_chamfer, openconnect_slot_large_rect_chamfer, 0, 0], anchor=TOP);
-            trapezoid(h=4, w1=openconnect_slot_large_rect_width - openconnect_slot_large_rect_chamfer * 2, ang=[45, 45], anchor=BOTTOM);
+      offset(delta=ocslot_onramp_clearance)
+        left(ocslot_onramp_clearance + ochead_middle_height) back(ocslot_large_rect_width / 2) {
+            rect([ocslot_large_rect_width, ocslot_large_rect_height], chamfer=[ocslot_large_rect_chamfer, ocslot_large_rect_chamfer, 0, 0], anchor=TOP);
+            trapezoid(h=4, w1=ocslot_large_rect_width - ocslot_large_rect_chamfer * 2, ang=[45, 45], anchor=BOTTOM);
           }
     }
   }
 }
 module openconnect_slot_grid(h_grid = 1, v_grid = 1, grid_size = 28, lock_distribution = "None", direction_flip = false, excess_thickness = 0, anchor = CENTER, spin = 0, orient = UP) {
-  attachable(anchor, spin, orient, size=[h_grid * grid_size, v_grid * grid_size, openconnect_slot_total_height]) {
-    tag_scope() hide_this() cuboid([h_grid * grid_size, v_grid * grid_size, openconnect_slot_total_height]) {
-          back(openconnect_slot_to_grid_top_offset) {
+  attachable(anchor, spin, orient, size=[h_grid * grid_size, v_grid * grid_size, ocslot_total_height]) {
+    tag_scope() hide_this() cuboid([h_grid * grid_size, v_grid * grid_size, ocslot_total_height]) {
+          back(ocslot_to_grid_top_offset) {
             grid_copies([grid_size, grid_size], [h_grid, v_grid], stagger=lock_distribution == "Staggered")
               attach(TOP, BOTTOM, inside=true)
                 openconnect_slot(add_nubs=(h_grid == 1 && v_grid == 1 && lock_distribution == "Staggered") || lock_distribution == "All" ? 1 : 0, direction_flip=direction_flip, excess_thickness=excess_thickness);
@@ -257,12 +257,26 @@ module openconnect_slot_grid(h_grid = 1, v_grid = 1, grid_size = 28, lock_distri
 }
 //END openConnect slot modules
 
+shell_depth = use_custom_depth ? custom_drawer_depth : depth_grids * tile_size;
+shell_width = horizontal_grids * tile_size;
+shell_height = vertical_grids * tile_size;
+
+stopper_width = 5;
+stopper_height = 2.4;
+stopper_rounding = 0.6;
+stopper_flank_width = 3;
+stopper_flank_depth = 0.84;
+
+handle_chamfer = 0.4;
+
 honeycomb_unit_space_adj = 14;
 honeycomb_unit_space_hyp = ang_adj_to_hyp(30, honeycomb_unit_space_adj);
 honeycomb_strut_adj = ang_hyp_to_adj(30, honeycomb_strut_hyp);
 
-//back magnet parameters
-back_magnet_openconnect_slot_offset = 3;
+//magnet parameters
+back_magnet_hole_thickness = back_magnet_thickness + magnet_hole_clearance;
+back_magnet_hole_diameter = back_magnet_diameter + magnet_hole_clearance * 2;
+back_magnet_ocslot_offset = 3;
 back_magnet_grid_space =
   back_magnet_hole_position == "Corners" ? [tile_size * (horizontal_grids - 2), tile_size * (vertical_grids - 1)]
   : back_magnet_hole_position == "Bottom Corners" ? [tile_size * (horizontal_grids - 2), tile_size * (vertical_grids - 1)]
@@ -271,13 +285,15 @@ back_back_magnet_grid_count =
   back_magnet_hole_position == "Corners" ? [min(horizontal_grids - 1, 2), min(vertical_grids, 2)]
   : back_magnet_hole_position == "Bottom Corners" ? [min(horizontal_grids - 1, 2), 1]
   : [horizontal_grids - 1, vertical_grids];
+side_magnet_hole_thickness = side_magnet_thickness + magnet_hole_clearance;
+side_magnet_hole_diameter = side_magnet_diameter + +magnet_hole_clearance * 2;
 
-shell_to_openconnect_slot_wall_thickness = 0.8;
-shell_openconnect_slot_part_thickness = openconnect_slot_total_height + shell_to_openconnect_slot_wall_thickness;
+shell_to_ocslot_wall_thickness = 0.8;
+shell_ocslot_part_thickness = ocslot_total_height + shell_to_ocslot_wall_thickness;
 
 function calc_inner_chamfer(outer_chamfer, wall_thickness) = (outer_chamfer / sqrt(2) + wall_thickness - wall_thickness * sqrt(2)) * sqrt(2);
 
-shell_chamfer = 2.4; //0.2
+shell_outer_chamfer = 2.4; //0.2
 shell_inner_chamfer = 1.2;
 container_outer_chamfer = 1.2;
 container_inner_chamfer = 0.6;
@@ -290,80 +306,53 @@ half_of_anchor =
 
 if (half_of_anchor != 0) {
   half_of(half_of_anchor, s=300) {
-    if (generate_shell)
-      down(shell_openconnect_slot_part_thickness)
+    if (generate_drawer_shell)
+      down(shell_ocslot_part_thickness)
         drawer_shell();
-    if (generate_container)
+    if (generate_drawer_container)
       left(view_drawer_overlapped ? 0 : horizontal_grids * tile_size)
         up(container_depth_clearance) drawer_container();
   }
 } else {
-  if (generate_shell)
-    down(shell_openconnect_slot_part_thickness)
+  if (generate_drawer_shell)
+    down(shell_ocslot_part_thickness)
       drawer_shell();
-  if (generate_container)
+  if (generate_drawer_container)
     left(view_drawer_overlapped ? 0 : horizontal_grids * tile_size)
       up(container_depth_clearance) drawer_container();
-  if (generate_stoppers)
-    right(horizontal_grids * tile_size) stoppers();
 }
-module stoppers() {
-  stopper_bottom_height = 0.84;
-  stopper_increment_line = 0.42;
-  stopper_increment_layer = 0.2;
-  stopper_increment_count = 4;
-  st_height_diff = 0;
-  st_width_diff = (shell_thickness - stopper_bottom_height);
-  right(20)
-    difference() {
-      cuboid([stopper_width + 4, shell_thickness, stopper_height + 5], anchor=BOTTOM + BACK);
-      up(2.4) xrot(90) {
-          linear_extrude(stopper_bottom_height) trapezoid(h=stopper_height, w1=stopper_width, ang=60, anchor=FRONT);
-          up(stopper_bottom_height) hull() {
-              linear_extrude(eps) trapezoid(h=stopper_height, w1=stopper_width, ang=60, anchor=FRONT);
-              up(shell_thickness - stopper_bottom_height)
-                linear_extrude(eps) trapezoid(h=stopper_height - st_height_diff, w1=stopper_width - st_width_diff, ang=60, anchor=FRONT);
+module drawer_stopper() {
+  stopper_leg_thickness = 1.68;
+  stopper_leg_nub_width = 0.84;
+  stopper_leg_nub_height = 3;
+
+  stopper_width_clearance = 0.15;
+  stopper_height_clearance = 0.15;
+  stopper_clips_length_clearance = 0.1;
+  diff()
+    cuboid([stopper_width + stopper_flank_width - stopper_width_clearance * 2, stopper_height - stopper_height_clearance * 2, stopper_flank_depth - stopper_clips_length_clearance], anchor=TOP + BACK) {
+      attach(BOTTOM, TOP)
+        cuboid([stopper_width - stopper_width_clearance * 2, stopper_height - stopper_height_clearance * 2, stopper_clips_length], rounding=-stopper_rounding, edges=[TOP + LEFT, TOP + RIGHT]) {
+          edge_mask([BOTTOM + LEFT, BOTTOM + RIGHT])
+            rounding_edge_mask(r=stopper_rounding);
+          attach(BOTTOM, BOTTOM, inside=true)
+            cuboid([stopper_width - stopper_leg_thickness * 2 - stopper_width_clearance * 2, stopper_height - stopper_height_clearance * 2, stopper_clips_length - (shell_thickness - stopper_flank_depth)], rounding=stopper_rounding, edges=[TOP + LEFT, TOP + RIGHT]) {
+              edge_mask([BOTTOM + LEFT, BOTTOM + RIGHT])
+                rounding_edge_mask(r=stopper_rounding, spin=90);
             }
+          attach(RIGHT, BOTTOM, align=TOP, inset=shell_thickness - stopper_flank_depth)
+            prismoid(size1=[stopper_height, stopper_leg_nub_height], size2=[stopper_height, 0], shift=[0, stopper_leg_nub_height / 2], h=stopper_leg_nub_width);
+          attach(LEFT, BOTTOM, align=TOP, inset=shell_thickness - stopper_flank_depth)
+            prismoid(size1=[stopper_height, stopper_leg_nub_height], size2=[stopper_height, 0], shift=[0, stopper_leg_nub_height / 2], h=stopper_leg_nub_width);
         }
     }
-  xrot(90) {
-    linear_extrude(stopper_bottom_height) trapezoid(h=stopper_height - stopper_height_clearance * 2, w1=stopper_width - stopper_width_clearance * 2, ang=60, anchor=FRONT);
-    up(stopper_bottom_height) hull() {
-        linear_extrude(eps) trapezoid(h=stopper_height - stopper_height_clearance * 2, w1=stopper_width - stopper_width_clearance * 2, ang=60, anchor=FRONT);
-        up(shell_thickness - stopper_bottom_height)
-          linear_extrude(eps) trapezoid(h=stopper_height - stopper_height_clearance * 2 - st_height_diff, w1=stopper_width - stopper_width_clearance * 2 - st_width_diff, ang=60, anchor=FRONT);
-      }
-  }
-  stopper_latch_width1 = stopper_width - stopper_width_clearance * 2 - st_width_diff;
-  stopper_latch_width2 = stopper_latch_width1 - ang_opp_to_adj(60, stopper_height - stopper_height_clearance * 2 - st_height_diff) * 2;
-  hole_thickness = 0.84;
-  hole_width = stopper_latch_width2 - hole_thickness * 2;
-  cyl_top = 0.4;
-  cyl_bottom = cyl_top + ang_opp_to_adj(60, stopper_height - stopper_height_clearance * 2 - st_height_diff);
-  // hole_width=stopper_width - stopper_width_clearance * 2 - st_width_diff - hole_thickness * 2;
-  // up(shell_thickness) linear_extrude(stopper_depth) trapezoid(h=stopper_height - stopper_height_clearance * 2 - st_height_diff, w1=stopper_width - stopper_width_clearance * 2 - st_width_diff, ang=60, anchor=FRONT);
-  fwd(shell_thickness) diff() prismoid(size1=[stopper_width - stopper_width_clearance * 2 - st_width_diff, stopper_depth], h=stopper_height - stopper_height_clearance * 2 - st_height_diff, xang=60, yang=90, anchor=BACK + BOTTOM, rounding=[0, 0, 0.4, 0.4], $fn=32) {
-        xflip_copy() left(cyl_top/2)
-            attach(LEFT, LEFT, align=BACK,inset=cyl_top/2,inside=true)
-              #tag("") cyl(r=cyl_top, h=stopper_height*2, $fn=64);
-        attach(FRONT, FRONT, inside=true)
-          tag("remove") cuboid([hole_width, stopper_depth, stopper_height - stopper_height_clearance * 2 - st_height_diff + eps], anchor=BACK + BOTTOM, edges=[BACK + LEFT, BACK + RIGHT], rounding=0.4, $fn=32) {
-              #edge_mask([FRONT + LEFT, FRONT + RIGHT])
-                tag("") rounding_edge_mask(r=0.4, spin=90, $fn=32);
-            }
-        ;
-      }
-  ;
 }
+
 module drawer_container(h_grids = horizontal_grids, v_grids = vertical_grids) {
 
-  _shell_depth = depth_grids * tile_size;
-  _shell_width = h_grids * tile_size;
-  _shell_height = v_grids * tile_size;
-
-  container_width = _shell_width - container_width_clearance * 2 - shell_thickness * 2;
-  container_height = _shell_height - container_height_clearance * 2 - shell_thickness * 2;
-  container_depth = _shell_depth - container_depth_clearance - shell_openconnect_slot_part_thickness;
+  container_width = shell_width - container_width_clearance * 2 - shell_thickness * 2;
+  container_height = shell_height - container_height_clearance * 2 - shell_thickness * 2;
+  container_depth = shell_depth - container_depth_clearance - shell_ocslot_part_thickness;
 
   container_front_wall_thickness = container_front_wall_type == "Solid" ? container_solidwall_thickness : container_honeycombwall_thickness;
   container_bottom_wall_thickness = container_bottom_wall_type == "Solid" ? container_solidwall_thickness : container_honeycombwall_thickness;
@@ -460,7 +449,7 @@ module drawer_container(h_grids = horizontal_grids, v_grids = vertical_grids) {
               line_copies(back_magnet_grid_space[0], back_back_magnet_grid_count[0])
                 attach(BOTTOM + FRONT, BOTTOM + FRONT, inside=true)
                   tag("keep") cuboid([side_magnet_hole_diameter + 4.2, container_height - container_back_height_diff, container_back_wall_thickness]);
-            back(openconnect_slot_to_grid_top_offset) back(back_magnet_openconnect_slot_offset) fwd(back_magnet_hole_position == "Bottom Corners" ? (vertical_grids - 1) / 2 * tile_size : 0)
+            back(ocslot_to_grid_top_offset) back(back_magnet_ocslot_offset) fwd(back_magnet_hole_position == "Bottom Corners" ? (vertical_grids - 1) / 2 * tile_size : 0)
                   grid_copies(back_magnet_grid_space, back_back_magnet_grid_count) {
                     attach(BOTTOM, FRONT, inside=true)
                       tag("rm_outer") teardrop(h=side_magnet_hole_thickness, d=side_magnet_hole_diameter, cap_h=side_magnet_hole_diameter / 2 + 0.2);
@@ -473,8 +462,8 @@ module drawer_container(h_grids = horizontal_grids, v_grids = vertical_grids) {
   }
 
   module container_divider() {
-    mainW = (container_divide_direction == "Width");
-    main_divide_strs = str_split(str_strip(str_replace_char(container_divider_list, " ", ","), ","), ",");
+    mainW = (container_compartment_unit == "Width");
+    main_divide_strs = str_split(str_strip(str_replace_char(container_compartment_sizes, " ", ","), ","), ",");
     main_divide_nums = [for (i = [0:len(main_divide_strs) - 1]) parse_num(main_divide_strs[i])];
     main_divide_cumnums = cumsum(main_divide_nums);
 
@@ -482,7 +471,7 @@ module drawer_container(h_grids = horizontal_grids, v_grids = vertical_grids) {
     mainsolidwall_anchor = mainW ? TOP : FRONT;
 
     mainsolidwall_x = mainW ? container_divider_wall_thickness : container_width;
-    mainsolidwall_y = container_height - container_back_height_diff - container_divider_wall_height_diff;
+    mainsolidwall_y = (container_height - container_back_height_diff) * container_divider_wall_height_scale;
     mainsolidwall_z = mainW ? container_depth : container_divider_wall_thickness;
 
     compartment_size_unit = mainW ? container_width / sum(main_divide_nums) : container_depth / sum(main_divide_nums);
@@ -498,6 +487,7 @@ module drawer_container(h_grids = horizontal_grids, v_grids = vertical_grids) {
   }
 
   module container_handle() {
+    //Calculate honeycomb pattern so I can align the stem of the handle in a way that looks natural. I'm pretty sure some of the calculations are redundant, but I cannot improve the code because I forgot how they work an hour after typing them.
     handle_strut_number = fronthex_width < 100 ? 0 : (fronthex_width_struts - 1) / 2 % 2;
     hexpanel_edge_to_strut_offset = hex_or * 2 + honeycomb_strut_hyp / 2 - height_adj_to_width_opp;
     leftcol1_rightcol2 = honeycomb_unit_space_adj * (handle_strut_number - 1) + hexpanel_edge_to_strut_offset;
@@ -534,21 +524,6 @@ module drawer_container(h_grids = horizontal_grids, v_grids = vertical_grids) {
           attach(TOP, "start-centroid")
             path_sweep(rect([handle_thickness, fronthex_bottom_strut_height], chamfer=handle_chamfer), path=turtle(handle_sweep_turtle_path_right));
     //middle truss
-    // if ( (fronthex_width_struts - 1) / 2 % 2 == handle_strut_number % 2 && turtle_handle_width > 50) {
-    //   up((container_depth) / 2 - eps) fwd(container_height / 2) {
-    //       left(fronthex_width / 2 + honeycomb_unit_space_adj - hexpanel_edge_to_strut_offset) {
-    //         if ( (fronthex_width_struts - 1) / 2 % 2 == 0)
-    //           left(-(fronthex_width_struts - 1) / 2 * honeycomb_unit_space_adj)
-    //             handle_transition(trans_offset=(left_transition_target_x + right_transition_target_x) / 2, starting_thickness=honeycomb_strut_hyp, target_thickness=handle_thickness, add_front=handle_thickness - handle_chamfer);
-    //         else
-    //           left(-(fronthex_width_struts + 1) / 2 * honeycomb_unit_space_adj)
-    //             xflip() handle_transition(trans_offset=(left_transition_target_x + right_transition_target_x) / 2, starting_thickness=honeycomb_strut_hyp, target_thickness=handle_thickness, add_front=handle_thickness - handle_chamfer);
-    //       }
-    //     }
-    // }
-    // right(100) debug_polygon(points=handle_profile_func(first_ang=30, second_ang=0, thickness=honeycomb_strut_hyp));
-    echo(fronthex_width_struts=fronthex_width_struts, fronthex_width=fronthex_width, (fronthex_width_struts - 1) / 2 % 2);
-
     if (turtle_handle_width > 50) {
       up((container_depth) / 2 - eps) fwd(container_height / 2) {
           left(handle_strut_number % 2 == 0 ? left_transition_offset : -left_transition_offset) {
@@ -648,41 +623,36 @@ module drawer_container(h_grids = horizontal_grids, v_grids = vertical_grids) {
               tag("label_remove") cuboid([label_holder_width - label_holder_wall_thickness * 2 - label_holder_wall_thickness * 4, label_holder_height - label_holder_depth, label_holder_depth - label_holder_wall_thickness]);
           }
     }
-    // echo("label_holder_width old", frontplate_width - honeycomb_strut_hyp * 2, "label_holder_height old", honeycomb_unit_space_hyp - fronthex_height_offset);
   }
 }
 
 module drawer_shell() {
-  //calculated parameters
-  shell_depth = depth_grids * tile_size;
-  shell_width = horizontal_grids * tile_size;
-  shell_height = vertical_grids * tile_size;
   difference() {
     intersection() {
       diff(remove="rm_outer", keep="") diff(keep="keep rm_outer") {
           cuboid([shell_width, shell_height, shell_depth], anchor=BOTTOM) {
             attach(TOP, TOP, inside=true)
-              tag("remove") cuboid([shell_width - shell_thickness * 2, shell_height - shell_thickness * 2, shell_depth - shell_openconnect_slot_part_thickness], edges="Z", chamfer=shell_inner_chamfer);
+              tag("remove") cuboid([shell_width - shell_thickness * 2, shell_height - shell_thickness * 2, shell_depth - shell_ocslot_part_thickness], edges="Z", chamfer=shell_inner_chamfer);
             if (shell_side_wall_type == "Honeycomb") {
               attach(TOP, RIGHT, align=LEFT, inside=true, spin=90)
-                tag("keep") hex_panel([shell_depth - shell_openconnect_slot_part_thickness + shell_thickness, shell_height - shell_inner_chamfer * 2, shell_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=shell_thickness);
+                tag("keep") hex_panel([shell_depth - shell_ocslot_part_thickness + shell_thickness, shell_height - shell_inner_chamfer * 2, shell_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=shell_thickness);
               attach(TOP, RIGHT, align=RIGHT, inside=true, spin=90)
-                tag("keep") hex_panel([shell_depth - shell_openconnect_slot_part_thickness + shell_thickness, shell_height - shell_inner_chamfer * 2, shell_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=shell_thickness);
+                tag("keep") hex_panel([shell_depth - shell_ocslot_part_thickness + shell_thickness, shell_height - shell_inner_chamfer * 2, shell_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=shell_thickness);
             }
             attach(TOP, TOP, align=LEFT, inside=true)
-              tag(shell_side_wall_type == "Honeycomb" ? "remove" : "keep") cuboid([shell_thickness + eps, shell_height - shell_thickness * 2 - shell_inner_chamfer * 2, shell_depth - shell_openconnect_slot_part_thickness]);
+              tag(shell_side_wall_type == "Honeycomb" ? "remove" : "keep") cuboid([shell_thickness + eps, shell_height - shell_thickness * 2 - shell_inner_chamfer * 2, shell_depth - shell_ocslot_part_thickness]);
             attach(TOP, TOP, align=RIGHT, inside=true)
-              tag(shell_side_wall_type == "Honeycomb" ? "remove" : "keep") cuboid([shell_thickness + eps, shell_height - shell_thickness * 2 - shell_inner_chamfer * 2, shell_depth - shell_openconnect_slot_part_thickness]);
+              tag(shell_side_wall_type == "Honeycomb" ? "remove" : "keep") cuboid([shell_thickness + eps, shell_height - shell_thickness * 2 - shell_inner_chamfer * 2, shell_depth - shell_ocslot_part_thickness]);
             if (shell_top_wall_type == "Honeycomb")
               attach(TOP, RIGHT, align=BACK, inside=true)
-                tag("keep") hex_panel([shell_depth - shell_openconnect_slot_part_thickness + shell_thickness, shell_width - shell_inner_chamfer * 2, shell_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=shell_thickness);
+                tag("keep") hex_panel([shell_depth - shell_ocslot_part_thickness + shell_thickness, shell_width - shell_inner_chamfer * 2, shell_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=shell_thickness);
             attach(TOP, TOP, align=BACK, inside=true)
-              tag(shell_top_wall_type == "Honeycomb" ? "remove" : "keep") cuboid([shell_width - shell_thickness * 2 - shell_inner_chamfer * 2, shell_thickness + eps, shell_depth - shell_openconnect_slot_part_thickness]);
+              tag(shell_top_wall_type == "Honeycomb" ? "remove" : "keep") cuboid([shell_width - shell_thickness * 2 - shell_inner_chamfer * 2, shell_thickness + eps, shell_depth - shell_ocslot_part_thickness]);
             if (shell_bottom_wall_type == "Honeycomb")
               attach(TOP, RIGHT, align=FRONT, inside=true)
-                tag("keep") hex_panel([shell_depth - shell_openconnect_slot_part_thickness + shell_thickness, shell_width - shell_inner_chamfer * 2, shell_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=shell_thickness);
+                tag("keep") hex_panel([shell_depth - shell_ocslot_part_thickness + shell_thickness, shell_width - shell_inner_chamfer * 2, shell_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=shell_thickness);
             attach(TOP, TOP, align=FRONT, inside=true)
-              tag(shell_bottom_wall_type == "Honeycomb" ? "remove" : "keep") cuboid([shell_width - shell_thickness * 2 - shell_inner_chamfer * 2, shell_thickness + eps, shell_depth - shell_openconnect_slot_part_thickness]);
+              tag(shell_bottom_wall_type == "Honeycomb" ? "remove" : "keep") cuboid([shell_width - shell_thickness * 2 - shell_inner_chamfer * 2, shell_thickness + eps, shell_depth - shell_ocslot_part_thickness]);
             if (add_side_magnet_holes)
               xflip_copy() {
                 if (shell_side_wall_type == "Honeycomb")
@@ -695,25 +665,17 @@ module drawer_shell() {
               }
             if (add_shell_divider)
               shell_divider();
-            if (add_stopper_holes) {
+            if (add_top_stopper_holes) {
               line_copies(tile_size * (horizontal_grids - 1), 2)
                 tag_diff(tag="rm_outer", remove="inner_remove", keep="inner_keep") {
-                  attach(BACK, BACK, align=TOP, inset=shell_thickness, inside=true)
-                    prismoid(size1=[stopper_width, shell_thickness - 0.84], xang=stopper_angles, yang=[90, 90], h=stopper_height) {
-                      edge_profile([FRONT], except=BOTTOM)
-                        tag("inner_remove") mask2d_chamfer(h=stopper_chamfer);
-                      attach(FRONT, BACK, align=BOTTOM)
-                        prismoid(size1=[stopper_width - stopper_chamfer * 3, stopper_depth], xang=stopper_angles, yang=[90, 90], h=stopper_height - stopper_chamfer);
+                  attach(BACK, TOP, align=TOP, inset=shell_thickness, inside=true)
+                    #cuboid([stopper_width + stopper_flank_width, stopper_height, stopper_flank_depth]) {
+                      attach(BOTTOM, TOP)
+                        cuboid([stopper_width, stopper_height, shell_thickness - stopper_flank_depth + eps], rounding=-stopper_rounding, edges=[TOP + LEFT, TOP + RIGHT]);
                     }
                 }
-              // attach(BACK, BACK, align=TOP, inset=shell_thickness, inside=true)
-              //   cuboid([stopper_width + stopper_width_clearance, stopper_depth_diff + stopper_depth_clearance, stopper_height + stopper_height_clearance], edges="Y", chamfer=0)
-              //     attach(FRONT, BACK, align=TOP)
-              //       cuboid([stopper_width + stopper_width_clearance, shell_thickness - stopper_depth_diff + stopper_depth_clearance + eps, stopper_height - stopper_height_diff + stopper_height_clearance], edges="Y", chamfer=0)
-              //         edge_mask([BACK + BOTTOM])
-              //           tag("inner_keep") rounding_edge_mask(r=stopper_height_diff, $fn=64, spin=-90);
             }
-            back(openconnect_slot_to_grid_top_offset) {
+            back(ocslot_to_grid_top_offset) {
               grid_copies([tile_size, tile_size], [horizontal_grids, vertical_grids], stagger=true)
                 attach(BOTTOM, BOTTOM, inside=true, shiftout=0.001)
                   tag("rm_outer") openconnect_slot(add_nubs=0);
@@ -721,7 +683,7 @@ module drawer_shell() {
                 attach(BOTTOM, BOTTOM, inside=true, shiftout=0.001)
                   tag("rm_outer") openconnect_slot(add_nubs=1);
               if (add_back_magnet_holes) {
-                back(back_magnet_openconnect_slot_offset) fwd(back_magnet_hole_position == "Bottom Corners" ? (vertical_grids - 1) / 2 * tile_size : 0)
+                back(back_magnet_ocslot_offset) fwd(back_magnet_hole_position == "Bottom Corners" ? (vertical_grids - 1) / 2 * tile_size : 0)
                     grid_copies(back_magnet_grid_space, back_back_magnet_grid_count)
                       attach(BOTTOM, BOTTOM, inside=true)
                         tag("rm_outer") cyl(h=back_magnet_hole_thickness, d=back_magnet_hole_diameter);
@@ -729,31 +691,11 @@ module drawer_shell() {
             }
           }
         }
-      cuboid([shell_width, shell_height, shell_depth], edges="Z", chamfer=shell_chamfer, anchor=BOTTOM);
+      cuboid([shell_width, shell_height, shell_depth], edges="Z", chamfer=shell_outer_chamfer, anchor=BOTTOM);
     }
-    // openconnect_slot_stagger =
-    //   openconnect_slot_rail_type == "Auto" && (vertical_grids > 2 && horizontal_grids % 2 == 0) ? false
-    //   : openconnect_slot_rail_type == "Auto" && vertical_grids % 2 != horizontal_grids % 2 ? "alt"
-    //   : openconnect_slot_rail_type == "Auto" && vertical_grids % 2 == horizontal_grids % 2 ? true : false;
-    // openconnect_slot_copy_spacing =
-    //   openconnect_slot_rail_type == "All" || openconnect_slot_stagger != false ? [tile_size, tile_size]
-    //   : openconnect_slot_rail_type == "Top-Bottom" ? [tile_size, tile_size * (vertical_grids - 1)]
-    //   : [tile_size, tile_size * (vertical_grids - 1)];
-    // openconnect_slot_copy_n =
-    //   openconnect_slot_rail_type == "All" || openconnect_slot_stagger != false ? [horizontal_grids, vertical_grids]
-    //   : openconnect_slot_rail_type == "Top-Bottom" ? [horizontal_grids, 2]
-    //   : [horizontal_grids, 2];
-    // grid_copies(openconnect_slot_copy_spacing, n=openconnect_slot_copy_n, stagger=openconnect_slot_stagger)
-    //   down(eps) tag("remove") multiconnect_slot(multiconnect_type, anchor=BOTTOM);
-    // if (openconnect_slot_rail_type == "Auto" && (vertical_grids > 4 && openconnect_slot_stagger == false)) {
-    //   for (i = [1:ceil((vertical_grids - 2) / 2) - 1]) {
-    //     back(tile_size * (floor(vertical_grids - 1) / 2)) fwd(tile_size * 2 * i) line_copies(tile_size, n=horizontal_grids)
-    //           down(eps) tag("remove") multiconnect_slot(multiconnect_type, anchor=BOTTOM);
-    //   }
-    // }
   }
   module shell_divider() {
-    //Divider wall must be double the thickness of outer wall thickness, to keep the size of container consistent between divided and standalone drawers. A bit thick 
+    //Divider wall must be double the thickness of outer wall thickness, to keep the size of container consistent between divided and standalone drawers.
     divider_wall_thickness = shell_thickness * 2;
     mainW = shell_main_divide_unit == "Width";
 
@@ -767,7 +709,7 @@ module drawer_shell() {
     mainwall_alignment = mainW ? LEFT : BACK;
     mainhexwall_spin = mainW ? 90 : 0;
     mainhexwall_length = !mainW ? shell_width - shell_inner_chamfer * 2 : shell_height - shell_inner_chamfer * 2;
-    mainsolidwall_size = mainW ? [divider_wall_thickness, shell_height - shell_thickness * 2, shell_depth - shell_openconnect_slot_part_thickness] : [shell_width - shell_thickness * 2, divider_wall_thickness, shell_depth - shell_openconnect_slot_part_thickness];
+    mainsolidwall_size = mainW ? [divider_wall_thickness, shell_height - shell_thickness * 2, shell_depth - shell_ocslot_part_thickness] : [shell_width - shell_thickness * 2, divider_wall_thickness, shell_depth - shell_ocslot_part_thickness];
 
     subwall_alignment = mainW ? BACK : LEFT;
     subhexwall_spin = mainW ? 0 : 90;
@@ -779,7 +721,7 @@ module drawer_shell() {
         sub_compartment_size = main_divide_nums[i] * tile_size - divider_wall_thickness;
 
         subwall_translate_base = mainW ? [-(shell_width / 2 - sub_compartment_size / 2 - shell_thickness), 0, 0] : [0, (shell_height / 2 - sub_compartment_size / 2 - shell_thickness), 0];
-        subsolidwall_size = mainW ? [sub_compartment_size, divider_wall_thickness, shell_depth] : [divider_wall_thickness, sub_compartment_size, shell_depth - shell_openconnect_slot_part_thickness];
+        subsolidwall_size = mainW ? [sub_compartment_size, divider_wall_thickness, shell_depth] : [divider_wall_thickness, sub_compartment_size, shell_depth - shell_ocslot_part_thickness];
 
         if (len(sub_divide_cumnums_vecs) > i) {
           for (j = [0:len(sub_divide_cumnums_vecs[i]) - 1]) {
@@ -788,7 +730,7 @@ module drawer_shell() {
               if (shell_divider_wall_type == "Honeycomb") {
                 tag_intersect(tag="keep", intersect="divider_mask", keep="divider_keep") {
                   attach(TOP, RIGHT, align=subwall_alignment, inset=sub_divide_cumnums_vecs[i][j] * tile_size - divider_wall_thickness / 2, inside=true, spin=subhexwall_spin)
-                    tag("") hex_panel([shell_depth - shell_openconnect_slot_part_thickness + shell_thickness, subhexwall_length, divider_wall_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=shell_thickness);
+                    tag("") hex_panel([shell_depth - shell_ocslot_part_thickness + shell_thickness, subhexwall_length, divider_wall_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=shell_thickness);
                   translate(subwall_translate_base) translate(subwall_translate_offset)
                       attach(TOP, TOP, align=subwall_alignment, inset=sub_divide_cumnums_vecs[i][j] * tile_size - divider_wall_thickness / 2, inside=true)
                         tag("divider_mask") cuboid(subsolidwall_size);
@@ -804,7 +746,7 @@ module drawer_shell() {
         if (shell_divider_wall_type == "Honeycomb") {
           tag_intersect(tag="keep", intersect="divider_mask", keep="divider_keep") {
             attach(TOP, RIGHT, align=mainwall_alignment, inset=main_compartment_inset, inside=true, spin=mainhexwall_spin)
-              tag("") hex_panel([shell_depth - shell_openconnect_slot_part_thickness + shell_thickness, mainhexwall_length, divider_wall_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=shell_thickness);
+              tag("") hex_panel([shell_depth - shell_ocslot_part_thickness + shell_thickness, mainhexwall_length, divider_wall_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=shell_thickness);
             attach(TOP, TOP, align=mainwall_alignment, inset=main_compartment_inset, inside=true)
               tag("divider_mask") cuboid(mainsolidwall_size);
           }

@@ -13,6 +13,7 @@ include <BOSL2/rounding.scad>
 snap_version = "Standard"; //[Standard:Standard - 6.8mm, Lite Strong:Lite Strong - 4mm, Lite Basic:Lite Basic - 3.4mm]
 add_threads_blunt_end = true;
 plier_count = 1;
+holder_tilt_angle = 0; //[0:5:45]
 
 /* [Main Options] */
 stem_top_width = 2; //0.4
@@ -73,7 +74,8 @@ threads_profile = [
   [1.25 / 3, -1 / 3],
 ];
 
-stem_base_depth = stem_depth * (1 - transition_depth_ratio);
+tilt_angle_back_offset = ang_adj_to_opp(holder_tilt_angle, threads_diameter / 2 - 1);
+stem_base_depth = stem_depth * (1 - transition_depth_ratio) + tilt_angle_back_offset;
 stem_transition_depth = stem_depth * transition_depth_ratio;
 
 threads_connect_diameter = threads_diameter - 1.5;
@@ -96,14 +98,16 @@ plier_prismoid_side_angle = opp_adj_to_ang((stem_bottom_width - final_stem_top_w
 stopper_side_angle = opp_adj_to_ang((stem_bottom_width - final_stem_top_width) * stopper_width_scale / 2, stem_height * stopper_height_scale);
 //align to front and bottom
 zrot(180) up(threads_offset) xrot(90) {
-      fwd(threads_offset) zrot(180) xrot(90) ycopies(n=plier_count, spacing=-stem_depth - stopper_depth + stopper_front_rounding, sp=[0, 0, 0]) diff(remove="root_rm") {
+      fwd(threads_offset) zrot(180) xrot(90) ycopies(n=plier_count, spacing=-stem_depth - stopper_depth + stopper_front_rounding, sp=[0, 0, 0])
+              diff(remove="root_rm") {
                 diff() prismoid(size1=[stem_bottom_width, max(eps, stem_base_depth)], size2=[final_stem_top_width, max(eps, stem_base_depth)], h=stem_height, anchor=BACK + BOTTOM) {
                     edge_profile([BOTTOM + LEFT, BOTTOM + RIGHT], excess=2)
                       mask2d_teardrop(r=plier_prismoid_bottom_rounding, mask_angle=90 - plier_prismoid_side_angle);
                     edge_mask([TOP + LEFT, TOP + RIGHT])
                       rounding_edge_mask(l=$edge_length, r=plier_prismoid_top_rounding);
                   }
-                fwd(max(eps, stem_base_depth)) hull() {
+                fwd(max(eps, stem_base_depth))
+                  hull() {
                     diff() prismoid(size1=[stem_bottom_width, 0.1], size2=[final_stem_top_width, 0.1], h=stem_height, anchor=BACK + BOTTOM) {
                         edge_profile([BOTTOM + LEFT, BOTTOM + RIGHT], excess=3)
                           mask2d_teardrop(r=plier_prismoid_bottom_rounding, mask_angle=90 - plier_prismoid_side_angle);
@@ -133,20 +137,24 @@ zrot(180) up(threads_offset) xrot(90) {
               }
 
       diff() {
-        zrot(threads_offset_angle) {
-          zrot(threads_compatiblity_angle) {
-            if (add_threads_blunt_end)
-              blunt_threaded_rod(diameter=threads_diameter, rod_height=snap_thickness, top_cutoff=true);
-            else
-              generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=threads_pitch, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
+        // down(ang_adj_to_opp(holder_tilt_angle, threads_diameter / 2 - 1))
+        fwd(ang_hyp_to_opp(holder_tilt_angle, snap_thickness))
+          // xrot(-holder_tilt_angle)
+          //   back(threads_side_slice_off - 1)
+          zrot(threads_offset_angle) {
+            zrot(threads_compatiblity_angle) {
+              if (add_threads_blunt_end)
+                blunt_threaded_rod(diameter=threads_diameter, rod_height=snap_thickness, top_cutoff=true);
+              else
+                generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=threads_pitch, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
+            }
+            if (add_threads_blunt_end_text && add_threads_blunt_end)
+              up(snap_thickness - text_depth + eps / 2) right(final_add_thickness_text ? 2.4 : 0)
+                  tag("remove") linear_extrude(height=text_depth + eps) zrot(0) fill() text(threads_blunt_end_text, size=4, anchor=str("center", CENTER), font=threads_blunt_end_text_font);
+            if (final_add_thickness_text)
+              up(snap_thickness - text_depth + eps / 2) left(add_threads_blunt_end_text && add_threads_blunt_end ? 2.4 : 0)
+                  tag("remove") linear_extrude(height=text_depth + eps) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
           }
-          if (add_threads_blunt_end_text && add_threads_blunt_end)
-            up(snap_thickness - text_depth + eps / 2) right(final_add_thickness_text ? 2.4 : 0)
-                tag("remove") linear_extrude(height=text_depth + eps) zrot(0) fill() text(threads_blunt_end_text, size=4, anchor=str("center", CENTER), font=threads_blunt_end_text_font);
-          if (final_add_thickness_text)
-            up(snap_thickness - text_depth + eps / 2) left(add_threads_blunt_end_text && add_threads_blunt_end ? 2.4 : 0)
-                tag("remove") linear_extrude(height=text_depth + eps) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
-        }
         tag("remove") fwd(threads_offset) cuboid([500, 500, 500], anchor=BACK);
       }
     }

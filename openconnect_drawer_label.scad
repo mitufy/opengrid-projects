@@ -1,3 +1,12 @@
+/* 
+Licensed Creative Commons Attribution-ShareAlike 4.0 International
+
+Created by mitufy. https://github.com/mitufy
+
+This model is intended to be used with openConnect drawer.
+openConnect is a connector system designed for openGrid. openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
+*/
+
 include <BOSL2/std.scad>
 
 /*[Main Settings]*/
