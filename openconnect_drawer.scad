@@ -42,7 +42,7 @@ add_container_divider = false;
 container_divider_wall_height_scale = 0.7; //[0.1:0.1:1]
 container_divider_wall_thickness = 1.68; //0.42
 container_compartment_unit = "Width"; //["Width","Depth"]
-//Input sizes separated by comma. For example, '2,1' means a 2-grid wide and a 1-grid wide compartment. Remaining space combines, so for a 6-grid wide container, '2,1' and '2,1,3' are the same.
+//Input compartment sizes separated by commas.
 container_compartment_sizes = "2,1";
 
 /*[Label and Handle Settings]*/
@@ -98,7 +98,6 @@ shell_main_divide_unit = "Width"; //["Width","Height"]
 shell_width_dividers = "1,4";
 shell_height_dividers = "2 3";
 shell_divider_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
-
 
 $fa = 1;
 $fs = 0.4;
@@ -439,7 +438,7 @@ module drawer_container(h_grids = horizontal_grids, v_grids = vertical_grids) {
                 attach(LEFT, FRONT, align=BOTTOM, inset=side_magnet_back_offset, inside=true, spin=90)
                   tag("rm_outer") teardrop(h=side_magnet_hole_thickness, d=side_magnet_hole_diameter, cap_h=side_magnet_hole_diameter / 2 + 0.2);
                 if (hole_extrude_thickness > eps)
-                  right(container_side_wall_thickness) attach(LEFT, FRONT, align=BOTTOM, inset=side_magnet_back_offset - (side_magnet_hole_diameter + 0.2) / 2, inside=true, spin=90)
+                  right(container_side_wall_thickness) attach(LEFT, FRONT, align=BOTTOM, inset=side_magnet_back_offset, inside=true, spin=90)
                       tag("kp_root") teardrop(h=hole_extrude_thickness, d=side_magnet_hole_diameter + 0.2, cap_h=side_magnet_hole_diameter / 2 + 0.2, chamfer1=-hole_extrude_thickness);
               }
             }
@@ -480,7 +479,7 @@ module drawer_container(h_grids = horizontal_grids, v_grids = vertical_grids) {
       if (main_divide_cumnums[i] > 0) {
         main_compartment_inset = main_divide_cumnums[i] * compartment_size_unit - main_divide_cumnums[i] * container_divider_wall_thickness / 2;
         fwd((container_height - mainsolidwall_y) / 2)
-          #attach(mainsolidwall_anchor, mainsolidwall_anchor, align=mainwall_alignment, inset=main_compartment_inset, inside=true)
+          attach(mainsolidwall_anchor, mainsolidwall_anchor, align=mainwall_alignment, inset=main_compartment_inset, inside=true)
             tag("keep") cuboid([mainsolidwall_x, mainsolidwall_y, mainsolidwall_z]);
       }
     }
@@ -669,7 +668,7 @@ module drawer_shell() {
               line_copies(tile_size * (horizontal_grids - 1), 2)
                 tag_diff(tag="rm_outer", remove="inner_remove", keep="inner_keep") {
                   attach(BACK, TOP, align=TOP, inset=shell_thickness, inside=true)
-                    #cuboid([stopper_width + stopper_flank_width, stopper_height, stopper_flank_depth]) {
+                    cuboid([stopper_width + stopper_flank_width, stopper_height, stopper_flank_depth]) {
                       attach(BOTTOM, TOP)
                         cuboid([stopper_width, stopper_height, shell_thickness - stopper_flank_depth + eps], rounding=-stopper_rounding, edges=[TOP + LEFT, TOP + RIGHT]);
                     }
