@@ -13,7 +13,6 @@ include <BOSL2/rounding.scad>
 snap_version = "Standard"; //[Standard:Standard - 6.8mm, Lite Strong:Lite Strong - 4mm, Lite Basic:Lite Basic - 3.4mm]
 add_threads_blunt_end = true;
 plier_count = 1;
-holder_tilt_angle = 0; //[0:5:45]
 
 /* [Main Options] */
 stem_top_width = 2; //0.4
@@ -44,6 +43,7 @@ $fa = 1;
 $fs = 0.2;
 eps = 0.005;
 
+holder_tilt_angle = 0; //[0:5:45]
 add_threads_blunt_end_text = true;
 threads_blunt_end_text = "🔓";
 threads_blunt_end_text_font = "Noto Emoji"; // font

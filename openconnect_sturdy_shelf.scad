@@ -86,8 +86,8 @@ truss_height = truss_depth_ratio <= 0 ? 0 : bottom_shelf_back_height - shelf_bot
 truss_angle = truss_depth_ratio <= 0 ? 0 : adj_opp_to_ang(truss_depth, truss_height);
 truss_inner_depth = truss_depth_ratio <= 0 ? 0 : truss_depth - ang_opp_to_hyp(truss_angle, truss_thickness);
 truss_inner_height = truss_depth_ratio <= 0 ? 0 : truss_height - ang_adj_to_hyp(truss_angle, truss_thickness);
-difference() {
-  cuboid([shelf_depth, shelf_bottom_thickness, shelf_width], anchor=FRONT + LEFT + BOTTOM) {
+
+diff(remove="outer_rm") cuboid([shelf_depth, shelf_bottom_thickness, shelf_width], anchor=FRONT + LEFT + BOTTOM) {
     rough_wall_alignment =
       add_left_edge == add_right_edge ? CENTER
       : add_right_edge ? BOTTOM : TOP;
@@ -116,8 +116,9 @@ difference() {
         diff()
           attach(FRONT, BACK, align=LEFT)
             cuboid([shelf_back_thickness, bottom_shelf_back_height, shelf_width]) {
-              attach(LEFT, TOP, inside=true, spin=90)
-                tag("remove") openconnect_slot_grid(h_grid=horizontal_grids, v_grid=bottom_vertical_grids, grid_size=tile_size, lock_distribution=slot_lock_distribution, direction_flip=slot_direction_flip, excess_thickness=0);
+              if (shelf_mounting_slot_type == "Bottom")
+                attach(LEFT, TOP, inside=true, spin=90)
+                  tag("remove") openconnect_slot_grid(h_grid=horizontal_grids, v_grid=bottom_vertical_grids, grid_size=tile_size, lock_distribution=slot_lock_distribution, direction_flip=slot_direction_flip, excess_thickness=0);
             }
       if (truss_inner_depth <= 0 || truss_inner_height <= 0)
         right(shelf_back_thickness) edge_mask(LEFT + FRONT)
@@ -150,7 +151,7 @@ difference() {
         }
       //top shelf back
       fwd(shelf_mounting_slot_type == "Both" ? 0 : shelf_bottom_thickness)
-        diff() attach(BACK, FRONT, align=LEFT)
+        tag_diff(tag="", remove="remove") attach(BACK, FRONT, align=LEFT)
             cuboid([shelf_back_thickness, top_shelf_back_height, shelf_width]) {
               if (add_texture)
                 attach(RIGHT, BOTTOM, align=rough_wall_alignment)
@@ -169,12 +170,19 @@ difference() {
                 right(max(0, shelf_back_thickness - shelf_bottom_thickness)) back(max(0, shelf_bottom_thickness - shelf_back_thickness)) fwd(shelf_mounting_slot_type == "Both" ? shelf_bottom_thickness : 0) fwd(top_shelf_back_height - final_shelf_inner_corner_rounding - top_sweep_startend_offset)
                         attach(BACK + LEFT, BACK + LEFT, inside=true)
                           tag("") path_sweep(top_sweep_profile, path=path_merge_collinear(turtle(top_sweep_path)), scale=[1, 1], $fn=128);
-              attach(LEFT, TOP, inside=true, spin=90)
-                tag("remove") openconnect_slot_grid(h_grid=horizontal_grids, v_grid=top_vertical_grids, grid_size=tile_size, lock_distribution=slot_lock_distribution, direction_flip=slot_direction_flip, excess_thickness=0);
+              if (shelf_mounting_slot_type == "Top")
+                attach(LEFT, TOP, inside=true, spin=90)
+                  tag("remove") openconnect_slot_grid(h_grid=horizontal_grids, v_grid=top_vertical_grids, grid_size=tile_size, lock_distribution=slot_lock_distribution, direction_flip=slot_direction_flip, excess_thickness=0);
             }
     }
+    if (shelf_mounting_slot_type == "Both") {
+      back(shelf_bottom_thickness / 2) right(shelf_back_thickness)
+          tag("outer_rm") attach(LEFT, RIGHT)
+              hide_this() cuboid([shelf_back_thickness, top_shelf_back_height + bottom_shelf_back_height, shelf_width])
+                  attach(LEFT, TOP, align=FRONT, inside=true, spin=90)
+                    openconnect_slot_grid(h_grid=horizontal_grids, v_grid=shelf_mounting_slot_type == "Both" ? top_vertical_grids + bottom_vertical_grids : top_vertical_grids, grid_size=tile_size, lock_distribution=slot_lock_distribution, direction_flip=slot_direction_flip, excess_thickness=0);
+    }
   }
-}
 
 //BEGIN openConnect slot parameters
 

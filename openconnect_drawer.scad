@@ -214,7 +214,7 @@ module openconnect_slot(add_nubs = "left", direction_flip = false, excess_thickn
     ];
     ocslot_bridge_offset_profile = back(ocslot_small_rect_width / 2, rect([ocslot_small_rect_width / 2 + ocslot_bridge_offset, ocslot_small_rect_height + ocslot_move_distance + ocslot_onramp_clearance], chamfer=[ocslot_small_rect_chamfer + ocslot_bridge_offset, 0, 0, 0], anchor=BACK + LEFT));
     union() {
-      openconnect_head(head_type="slot", add_nubs=add_nubs ? 1 : 0, excess_thickness=excess_thickness);
+      openconnect_head(head_type="slot", add_nubs=add_nubs, excess_thickness=excess_thickness);
       xrot(90) linear_extrude(ocslot_middle_to_bottom + ocslot_move_distance + ocslot_onramp_clearance) xflip_copy() polygon(ocslot_side_profile);
       up(ocslot_bottom_height) linear_extrude(ocslot_top_height + ochead_middle_height) polygon(ocslot_bridge_offset_profile);
       fwd(ocslot_move_distance) {
@@ -244,11 +244,11 @@ module openconnect_slot_grid(h_grid = 1, v_grid = 1, grid_size = 28, lock_distri
           back(ocslot_to_grid_top_offset) {
             grid_copies([grid_size, grid_size], [h_grid, v_grid], stagger=lock_distribution == "Staggered")
               attach(TOP, BOTTOM, inside=true)
-                openconnect_slot(add_nubs=(h_grid == 1 && v_grid == 1 && lock_distribution == "Staggered") || lock_distribution == "All" ? 1 : 0, direction_flip=direction_flip, excess_thickness=excess_thickness);
+                openconnect_slot(add_nubs=(h_grid == 1 && v_grid == 1 && lock_distribution == "Staggered") || lock_distribution == "All" ? "left" : "", direction_flip=direction_flip, excess_thickness=excess_thickness);
             if (lock_distribution == "Staggered")
               grid_copies([grid_size, grid_size], [h_grid, v_grid], stagger="alt")
                 attach(TOP, BOTTOM, inside=true)
-                  openconnect_slot(add_nubs=1, direction_flip=direction_flip, excess_thickness=excess_thickness);
+                  openconnect_slot(add_nubs="left", direction_flip=direction_flip, excess_thickness=excess_thickness);
           }
         }
     children();
@@ -674,19 +674,13 @@ module drawer_shell() {
                     }
                 }
             }
-            back(ocslot_to_grid_top_offset) {
-              grid_copies([tile_size, tile_size], [horizontal_grids, vertical_grids], stagger=true)
-                attach(BOTTOM, BOTTOM, inside=true, shiftout=0.001)
-                  tag("rm_outer") openconnect_slot(add_nubs=0);
-              grid_copies([tile_size, tile_size], [horizontal_grids, vertical_grids], stagger="alt")
-                attach(BOTTOM, BOTTOM, inside=true, shiftout=0.001)
-                  tag("rm_outer") openconnect_slot(add_nubs=1);
-              if (add_back_magnet_holes) {
-                back(back_magnet_ocslot_offset) fwd(back_magnet_hole_position == "Bottom Corners" ? (vertical_grids - 1) / 2 * tile_size : 0)
-                    grid_copies(back_magnet_grid_space, back_back_magnet_grid_count)
-                      attach(BOTTOM, BOTTOM, inside=true)
-                        tag("rm_outer") cyl(h=back_magnet_hole_thickness, d=back_magnet_hole_diameter);
-              }
+            attach(BOTTOM, TOP, inside=true)
+              tag("rm_outer") openconnect_slot_grid(h_grid=horizontal_grids, v_grid=vertical_grids, grid_size=tile_size, lock_distribution=slot_lock_distribution, direction_flip=slot_direction_flip, excess_thickness=0);
+             if (add_back_magnet_holes) {
+              back(back_magnet_ocslot_offset + ocslot_to_grid_top_offset) fwd(back_magnet_hole_position == "Bottom Corners" ? (vertical_grids - 1) / 2 * tile_size : 0)
+                  grid_copies(back_magnet_grid_space, back_back_magnet_grid_count)
+                    attach(BOTTOM, BOTTOM, inside=true)
+                      tag("rm_outer") cyl(h=back_magnet_hole_thickness, d=back_magnet_hole_diameter);
             }
           }
         }
