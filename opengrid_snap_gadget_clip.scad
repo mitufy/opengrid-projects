@@ -136,7 +136,7 @@ final_clip_path =
   : clip_shape == "Rectangular" ? turtle(concat(rect_path_part1, rect_path_bottom_corner, rect_clip_has_bottom ? rect_path_bottom_width : []))
   : elliptic_clip_path;
 
-knurling_outer_offset = 1;
+knurling_outer_offset = 0;
 
 clip_profile = rect([clip_thickness, clip_height], chamfer=final_side_chamfer);
 final_clip_entry_tilt_angle = (clip_shape == "Circular" || abs(clip_entry_tilt_angle) == 90) ? clip_entry_tilt_angle : 0;
@@ -204,18 +204,17 @@ zrot(180) xrot(90) back(threads_offset)
                             height_radius_target = clip_shape == "Circular" ? width_radius_target : clip_main_depth / 2 + (clip_thickness / 2) * clip_thickness_scale - clip_thickness / 2;
                             segment_count = 20;
                             half_ellipse = [
-                              for (i = [0:segment_count - 1]) [
+                              for (i = [0:segment_count]) [
                                 (width_radius_start + (width_radius_start - width_radius_target) / segment_count * i) * sin(i * (clip_surround_angle / segment_count)),
                                 (height_radius_start + (height_radius_start - height_radius_target) / segment_count * i) * cos(i * (clip_surround_angle / segment_count)),
                               ],
-                              [(width_radius_start * 2 - width_radius_target) * sin(clip_surround_angle), (width_radius_start * 2 - width_radius_target) * cos(clip_surround_angle)],
+                              // [(width_radius_start * 2 - width_radius_target) * sin(clip_surround_angle), (width_radius_start * 2 - width_radius_target) * cos(clip_surround_angle)],
                               [0, (height_radius_start * 2 - height_radius_target) * cos(clip_surround_angle)],
                             ];
                             final_cos = abs((height_radius_start * 2 - height_radius_target) * cos(clip_surround_angle));
 
                             elliptic_part1 = fwd(final_cos - knurling_outer_offset, rect([clip_main_width + clip_thickness * 2, (final_cos + height_radius_start)], anchor=FRONT));
                             elliptic_part2 = union(half_ellipse, xflip(half_ellipse));
-
                             elliptic_knurling_shape = difference(
                               elliptic_part1, elliptic_part2
                             );
