@@ -119,17 +119,17 @@ hook_has_tip = hook_tip_thickness >= eps && hook_tip_length >= eps;
 hook_flat_top_width = hook_has_tip ? hook_final_length - hook_final_corner_fillet - hook_final_tip_fillet - small_adj - hook_final_bottom_thickness * tan(hook_corner_angle) : hook_final_length - hook_final_corner_fillet - hook_final_bottom_thickness * tan(hook_corner_angle);
 corner_fillet_cut_shape = difference(
   [
-    [[0, 0], [hook_final_corner_fillet * sin(hook_corner_angle), hook_final_corner_fillet * cos(hook_corner_angle)], [hook_final_corner_fillet, 0]],
-    mask2d_roundover(joint=hook_final_corner_fillet, mask_angle=90 - hook_corner_angle),
+    path_merge_collinear([[0, 0], [hook_final_corner_fillet * sin(hook_corner_angle), hook_final_corner_fillet * cos(hook_corner_angle)], [hook_final_corner_fillet, 0]]),
+    path_merge_collinear(mask2d_roundover(joint=hook_final_corner_fillet, mask_angle=90 - hook_corner_angle)),
   ]
 );
 tip_inner_fillet_cut_shape = difference(
   [
-    [[0, 0], [-ang_hyp_to_opp(90 - hook_final_tip_angle, hook_final_tip_fillet), ang_hyp_to_adj(90 - hook_final_tip_angle, hook_final_tip_fillet)], [hook_final_tip_fillet, 0]],
-    mask2d_roundover(joint=hook_final_tip_fillet, mask_angle=180 - hook_final_tip_angle),
+    path_merge_collinear([[0, 0], [-ang_hyp_to_opp(90 - hook_final_tip_angle, hook_final_tip_fillet), ang_hyp_to_adj(90 - hook_final_tip_angle, hook_final_tip_fillet)], [hook_final_tip_fillet, 0]]),
+    path_merge_collinear(mask2d_roundover(joint=hook_final_tip_fillet, mask_angle=180 - hook_final_tip_angle)),
   ]
 );
-// echo(tip_inner_fillet_cut_shape=tip_inner_fillet_cut_shape);
+echo(tip_inner_fillet_cut_shape=tip_inner_fillet_cut_shape);
 diff() {
   cuboid([hook_final_width, hook_final_back_thickness, hook_final_height], anchor=FRONT) {
     edge_mask([TOP])

@@ -8,7 +8,7 @@ openGrid and Multiconnect is created by David. https://www.printables.com/model/
 
 include <BOSL2/std.scad>
 
-/* [Hex Rod Options] */
+/* [Hex Rod Settings] */
 hex_rod_height = 13;
 hex_rod_to_coin_transition_height = 10;
 
@@ -16,7 +16,7 @@ coin_tip_height = 2.8;
 coin_tip_width = 14;
 coin_thickness = 2.1;//0.05
 
-/* [Advanced Options] */
+/* [Advanced Settings] */
 flat_tip_width = 18;
 flat_tip_height = 2;//0.2
 hex_rod_width = 6.3;//0.05

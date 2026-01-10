@@ -10,8 +10,9 @@ include <BOSL2/std.scad>
 include <BOSL2/threading.scad>
 include <BOSL2/rounding.scad>
 
-snap_version = "Standard"; //[Standard:Standard - 6.8mm, Lite Strong:Lite Strong - 4mm, Lite Basic:Lite Basic - 3.4mm]
-add_threads_blunt_end = true;
+snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm, 3.4:Lite Basic - 3.4mm]
+//Blunt end helps prevent cross-threading and overtightening. Models with blunt ends have a decorative 'lock' symbol at the bottom.
+threads_end_type = "Blunt"; //["Blunt", "Basic"]
 clip_shape = "Circular"; //["Circular", "Rectangular","Elliptic"]
 //Decides the state of the clip when completely screwed in.
 clip_orientation = "Horizontal"; //["Horizontal", "Vertical"]
@@ -66,14 +67,9 @@ threads_diameter = 16;
 threads_bottom_bevel_standard = 2; //0.1
 threads_bottom_bevel_lite = 1.2; //0.1
 
-snap_thickness =
-  snap_version == "Standard" ? 6.8
-  : snap_version == "Lite Strong" ? 4
-  : 3.4;
-
 //thread parameters
 threads_bottom_bevel =
-  snap_version == "Standard" ? threads_bottom_bevel_standard
+  snap_thickness == 6.8 ? threads_bottom_bevel_standard
   : threads_bottom_bevel_lite;
 
 threads_profile = [
@@ -150,16 +146,16 @@ zrot(180) xrot(90) back(threads_offset)
       diff() {
         zrot(threads_offset_angle) {
           zrot(threads_compatiblity_angle) {
-            if (add_threads_blunt_end)
+            if (threads_end_type == "Blunt")
               blunt_threaded_rod(diameter=threads_diameter, rod_height=snap_thickness, top_cutoff=true);
             else
               generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=threads_pitch, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
           }
-          if (add_threads_blunt_end_text && add_threads_blunt_end)
+          if (add_threads_blunt_end_text && threads_end_type == "Blunt")
             up(snap_thickness - text_depth + eps / 2) right(final_add_thickness_text ? 2.4 : 0)
                 tag("remove") linear_extrude(height=text_depth + eps) zrot(0) fill() text(threads_blunt_end_text, size=4, anchor=str("center", CENTER), font=threads_blunt_end_text_font);
           if (final_add_thickness_text)
-            up(snap_thickness - text_depth + eps / 2) left(add_threads_blunt_end_text && add_threads_blunt_end ? 2.4 : 0)
+            up(snap_thickness - text_depth + eps / 2) left(add_threads_blunt_end_text && threads_end_type == "Blunt" ? 2.4 : 0)
                 tag("remove") linear_extrude(height=text_depth + eps) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
         }
         //first inner diff

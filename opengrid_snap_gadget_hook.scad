@@ -10,12 +10,13 @@ include <BOSL2/std.scad>
 include <BOSL2/threading.scad>
 include <BOSL2/rounding.scad>
 
-snap_version = "Standard"; //[Standard:Standard - 6.8mm, Lite Strong:Lite Strong - 4mm, Lite Basic:Lite Basic - 3.4mm]
-add_threads_blunt_end = true;
+snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm, 3.4:Lite Basic - 3.4mm]
+//Blunt end helps prevent cross-threading and overtightening. Models with blunt ends have a decorative 'lock' symbol at the bottom.
+threads_end_type = "Blunt"; //["Blunt", "Basic"]
 hook_shape_type = "Centered"; //["Straight", "Centered", "Loop"]
 corner_type = "Circular"; //["Circular", "Rectangular"]
 
-/* [Hook Options] */
+/* [Hook Settings] */
 //Width of hook body. The value for complete symmetry is 13.2.
 body_width = 8; //0.4
 //Thickness of hook body.
@@ -28,7 +29,7 @@ body_thickness_scale = 0.6; //[0.1:0.1:1]
 //Angle affects Centered and Straight hooks.
 hook_tip_angle = 165; //[15:15:255]
 
-/* [Advanced Options] */
+/* [Advanced Settings] */
 //Counterclockwisely offset which direction the gadget faces when it's completely screwed in. 270 means it would face 3 o’clock direction.
 threads_offset_angle = 0; //[0:15:345]
 //Size of fillet at the part hook stem connects to threads.
@@ -38,7 +39,7 @@ body_max_chamfer = 0.8; //0.2
 //Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
 add_thickness_text = "Uncommon Only"; //[All, Uncommon Only, None]
 
-/* [Experimental Options] */
+/* [Experimental Settings] */
 //Enable this to draw a custom hook shape with custom_shape_commands. For those who want wacky hooks.
 use_custom_shape = false;
 //Only supports basic commands, not vectors. For more info, check out BOSL2 wiki for turtle().
@@ -61,14 +62,9 @@ threads_diameter = 16;
 threads_bottom_bevel_standard = 2; //0.1
 threads_bottom_bevel_lite = 1.2; //0.1
 
-snap_thickness =
-  snap_version == "Standard" ? 6.8
-  : snap_version == "Lite Strong" ? 4
-  : 3.4;
-
 //thread parameters
 threads_bottom_bevel =
-  snap_version == "Standard" ? threads_bottom_bevel_standard
+  snap_thickness == 6.8 ? threads_bottom_bevel_standard
   : threads_bottom_bevel_lite;
 
 threads_profile = [
@@ -157,16 +153,16 @@ up(threads_offset) xrot(90)
     diff() {
       zrot(90 + threads_offset_angle) {
         zrot(threads_compatiblity_angle) {
-          if (add_threads_blunt_end)
+          if (threads_end_type == "Blunt")
             blunt_threaded_rod(diameter=threads_diameter, rod_height=snap_thickness, top_cutoff=true);
           else
             generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=threads_pitch, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
         }
-        if (add_threads_blunt_end_text && add_threads_blunt_end)
+        if (add_threads_blunt_end_text && threads_end_type == "Blunt")
           up(snap_thickness - text_depth + eps / 2) right(final_add_thickness_text ? 2.4 : 0)
               tag("remove") linear_extrude(height=text_depth + eps) zrot(0) fill() text(threads_blunt_end_text, size=4, anchor=str("center", CENTER), font=threads_blunt_end_text_font);
         if (final_add_thickness_text)
-          up(snap_thickness - text_depth + eps / 2) left(add_threads_blunt_end_text && add_threads_blunt_end ? 2.4 : 0)
+          up(snap_thickness - text_depth + eps / 2) left(add_threads_blunt_end_text && threads_end_type == "Blunt" ? 2.4 : 0)
               tag("remove") linear_extrude(height=text_depth + eps) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
       }
       fwd(threads_offset - body_width / 2) {
