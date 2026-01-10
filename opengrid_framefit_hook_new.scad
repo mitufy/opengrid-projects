@@ -92,8 +92,8 @@ negative_corner_profile = [
   [0, 4],
 ];
 
-//it seems rounding_mask generation has trouble handling extreme parameters. Setting to minimum to eps won't work here.
-hook_final_tip_angle = max(1, hook_tip_angle - hook_corner_angle);
+//function difference() has trouble handling extreme parameters and got worse when I updated BOSL2 on 2026-01-10. had to change minimum tip_angle from 1 to 3.
+hook_final_tip_angle = max(3, hook_tip_angle - hook_corner_angle);
 hook_final_tip_thickness = max(eps, min(hook_tip_thickness, hook_final_tip_angle == 90 ? 1000 : ang_adj_to_hyp(hook_final_tip_angle, hook_final_bottom_thickness)), hook_final_tip_angle == 90 ? eps : ang_hyp_to_adj(hook_final_tip_angle, hook_final_bottom_thickness));
 hook_min_tip_length = hook_final_tip_angle == 90 ? hook_final_bottom_thickness : ang_hyp_to_opp(hook_final_tip_angle, hook_final_bottom_thickness + hook_final_side_chamfer / 2) + eps;
 hook_final_tip_length = max(eps, hook_min_tip_length, hook_tip_length);
@@ -117,7 +117,6 @@ hook_tip_point_fillet = max(eps, min(2, hook_final_tip_thickness / 2 - eps));
 
 hook_has_tip = hook_tip_thickness >= eps && hook_tip_length >= eps;
 hook_flat_top_width = hook_has_tip ? hook_final_length - hook_final_corner_fillet - hook_final_tip_fillet - small_adj - hook_final_bottom_thickness * tan(hook_corner_angle) : hook_final_length - hook_final_corner_fillet - hook_final_bottom_thickness * tan(hook_corner_angle);
-echo(hook_min_tip_fillet=hook_min_tip_fillet, hook_max_tip_fillet=hook_max_tip_fillet, hook_final_tip_fillet=hook_final_tip_fillet);
 corner_fillet_cut_shape = difference(
   [
     [[0, 0], [hook_final_corner_fillet * sin(hook_corner_angle), hook_final_corner_fillet * cos(hook_corner_angle)], [hook_final_corner_fillet, 0]],
@@ -130,7 +129,7 @@ tip_inner_fillet_cut_shape = difference(
     mask2d_roundover(joint=hook_final_tip_fillet, mask_angle=180 - hook_final_tip_angle),
   ]
 );
-
+// echo(tip_inner_fillet_cut_shape=tip_inner_fillet_cut_shape);
 diff() {
   cuboid([hook_final_width, hook_final_back_thickness, hook_final_height], anchor=FRONT) {
     edge_mask([TOP])
