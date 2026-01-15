@@ -76,8 +76,6 @@ stem_transition_depth = stem_depth * transition_depth_ratio;
 
 threads_connect_diameter = threads_diameter - 1.5;
 threads_offset = threads_diameter / 2 - threads_side_slice_off;
-threads_blunt_end_notch_total_height = threads_bottom_bevel + 0.8;
-threads_blunt_end_distance = max(0, snap_thickness - threads_blunt_end_notch_total_height);
 
 //text parameters
 text_depth = 0.4;

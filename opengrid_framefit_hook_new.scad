@@ -5,8 +5,6 @@ Created by mitufy. https://github.com/mitufy
 
 Inspired by David D's "openGrid - Minimal Hook". https://www.printables.com/model/1217962-opengrid-minimal-hook
 Part of code is based on BlackjackDuck's "openGrid - Tile Generator". https://makerworld.com/en/models/1304337-opengrid-tile-generator
-
-2025-09-14 Update: Added diagonal hook option. Design has been revamped, now the hook consists of multiple cuboid instead of one extruded polygon. 
 */
 
 include <BOSL2/std.scad>

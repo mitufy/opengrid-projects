@@ -5,8 +5,6 @@ Created by mitufy. https://github.com/mitufy
 
 Inspired by David D's "openGrid - Minimal Hook". https://www.printables.com/model/1217962-opengrid-minimal-hook
 Part of code is based on BlackjackDuck's "openGrid - Tile Generator". https://makerworld.com/en/models/1304337-opengrid-tile-generator
-
-2025-07-30 Update: Add a maximum side chamfer calculation to better handle extremely small parameters.
 */
 
 include <BOSL2/std.scad>

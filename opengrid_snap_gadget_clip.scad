@@ -81,9 +81,6 @@ threads_profile = [
 
 threads_connect_diameter = threads_diameter - 1.5;
 threads_offset = threads_diameter / 2 - threads_side_slice_off;
-threads_blunt_end_notch_total_height = threads_bottom_bevel + 0.8;
-threads_blunt_end_distance = max(0, snap_thickness - threads_blunt_end_notch_total_height);
-
 threads_offset_angle = clip_orientation == "Horizontal" ? 0 : 90;
 
 //text parameters
