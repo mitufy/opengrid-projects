@@ -76,8 +76,6 @@ threads_profile = [
 
 threads_connect_diameter = threads_diameter - 1.5;
 threads_offset = threads_diameter / 2 - threads_side_slice_off;
-threads_blunt_end_notch_total_height = threads_bottom_bevel + 0.8;
-threads_blunt_end_distance = max(0, snap_thickness - threads_blunt_end_notch_total_height);
 
 //text parameters
 text_depth = 0.4;
@@ -88,7 +86,7 @@ final_add_thickness_text =
   : false;
 
 square_corner_radius = 1;
-min_ang_radius = 0.4;
+min_ang_radius = 1;
 final_tip_size = max(eps, hook_main_size);
 final_stem_length = max(eps, hook_stem_length);
 final_thickness_scale = !use_custom_shape && hook_shape_type == "Loop" ? 1 : body_thickness_scale;
@@ -109,7 +107,7 @@ rect_straight_hook_path = ["setdir", 90, "move", hook_main_size / 2, "arcleft", 
 rect_center_hook_path = ["setdir", 90, "arcright", min_ang_radius, 90, "move", hook_main_size / 2 - square_corner_radius, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcleft", square_corner_radius, 90 + rect_offset_angle * rect_center_middle_ratio, "move", hook_main_size - square_corner_radius];
 rect_hook_tip_path = ["arcleft", square_corner_radius, 90, "move", rect_tip_corner_length];
 
-rect_loop_hook_path = ["setdir", 90, "arcright", min_ang_radius, 90, "move", hook_main_size / 2 - square_corner_radius, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcleft", square_corner_radius, 90, "move", hook_main_size / 2];
+rect_loop_hook_path = ["setdir", 90, "arcright", min_ang_radius, 90, "move", hook_main_size / 2 - square_corner_radius-min_ang_radius, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2];
 
 function to_turtle(x) = is_num(parse_num(x)) ? parse_num(x) : x;
 temp_path = str_split(str_strip(str_replace_char(str_replace_char(custom_shape_commands, " ", ""), "\"", ""), ","), ",");
