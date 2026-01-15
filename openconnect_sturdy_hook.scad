@@ -28,8 +28,8 @@ hook_thickness_scale = 0.8; //[0.5:0.1:1]
 hook_tip_angle = 165; //[90:15:210]
 
 /* [Advanced Settings] */
-//'Staggered' means every other slot. Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
-slot_lock_distribution = "Staggered"; //["All", "Staggered", "Corners", "None"]
+//Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
+slot_lock_distribution = "Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
 //Slot entry direction can matter when installing in very tight space. Note when printing, the side with locking mechanism should be closer to print bed.
 slot_direction_flip = false;
 use_custom_height = false;
@@ -102,7 +102,7 @@ ochead_side_profile = [
 //END openConnect slot parameters
 
 //BEGIN openConnect slot modules
-module openconnect_head(head_type = "head", add_nubs = "both", nub_flattop = true, nub_taperin = true, excess_thickness = 0, size_offset = 0) {
+module openconnect_head(head_type = "head", add_nubs = "both", nub_flattop = true, nub_taperin = true, excess_thickness = 0, size_offset = 0, anchor = BOTTOM, spin = 0, orient = UP) {
   bottom_profile = head_type == "slot" ? ocslot_bottom_profile : ochead_bottom_profile;
   top_profile = head_type == "slot" ? ocslot_top_profile : ochead_top_profile;
   bottom_height = head_type == "slot" ? ocslot_bottom_height : ochead_bottom_height;
@@ -111,33 +111,38 @@ module openconnect_head(head_type = "head", add_nubs = "both", nub_flattop = tru
   large_rect_height = head_type == "slot" ? ocslot_large_rect_height : ochead_large_rect_height;
   nub_to_top_distance = head_type == "slot" ? ocslot_nub_to_top_distance : ochead_nub_to_top_distance;
   nub_angle = nub_taperin ? adj_opp_to_ang(ochead_middle_height, ochead_middle_height - ochead_nub_depth) : 0;
-  tag_scope() difference() {
-      union() {
-        linear_extrude(h=bottom_height) polygon(offset(bottom_profile, delta=size_offset));
-        up(bottom_height - eps) hull() {
-            up(ochead_middle_height) linear_extrude(h=eps) polygon(offset(top_profile, delta=size_offset));
-            linear_extrude(h=eps) polygon(offset(bottom_profile, delta=size_offset));
+  total_height = bottom_height + top_height + ochead_middle_height;
+
+  attachable(anchor, spin, orient, size=[large_rect_width, large_rect_width, total_height]) {
+    tag_scope() down(total_height / 2) difference() {
+          union() {
+            linear_extrude(h=bottom_height) polygon(offset(bottom_profile, delta=size_offset));
+            up(bottom_height - eps) hull() {
+                up(ochead_middle_height) linear_extrude(h=eps) polygon(offset(top_profile, delta=size_offset));
+                linear_extrude(h=eps) polygon(offset(bottom_profile, delta=size_offset));
+              }
+            if (top_height + excess_thickness > 0)
+              up(bottom_height + ochead_middle_height - eps)
+                linear_extrude(h=top_height + excess_thickness + eps) polygon(offset(top_profile, delta=size_offset));
           }
-        if (top_height + excess_thickness > 0)
-          up(bottom_height + ochead_middle_height - eps)
-            linear_extrude(h=top_height + excess_thickness + eps) polygon(offset(top_profile, delta=size_offset));
-      }
-      back(large_rect_width / 2 - nub_to_top_distance) {
-        if (add_nubs == "left" || add_nubs == "both")
-          left(large_rect_width / 2 + size_offset - ochead_nub_depth + eps) zrot(-90) {
-              linear_extrude(bottom_height) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[nub_flattop ? 90 : 45, 45], rounding=[ochead_nub_inner_fillet, nub_flattop ? 0 : ochead_nub_inner_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet, -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
-              up(bottom_height) linear_extrude(1 / cos(nub_angle) * ochead_middle_height, v=[0, tan(nub_angle), 1]) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[nub_flattop ? 90 : 45, 45], rounding=[ochead_nub_inner_fillet, nub_flattop ? 0 : ochead_nub_inner_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet, -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
-            }
-        if (add_nubs == "right" || add_nubs == "both")
-          right(large_rect_width / 2 + size_offset - ochead_nub_depth + eps) zrot(90) {
-              linear_extrude(bottom_height) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[45, nub_flattop ? 90 : 45], rounding=[nub_flattop ? 0 : ochead_nub_inner_fillet, ochead_nub_inner_fillet, -ochead_nub_outer_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
-              up(bottom_height) linear_extrude(1 / cos(nub_angle) * ochead_middle_height, v=[0, tan(nub_angle), 1]) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[45, nub_flattop ? 90 : 45], rounding=[nub_flattop ? 0 : ochead_nub_inner_fillet, ochead_nub_inner_fillet, -ochead_nub_outer_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
-            }
-      }
-    }
+          back(large_rect_width / 2 - nub_to_top_distance) {
+            if (add_nubs == "left" || add_nubs == "both")
+              left(large_rect_width / 2 + size_offset - ochead_nub_depth + eps) zrot(-90) {
+                  linear_extrude(bottom_height) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[nub_flattop ? 90 : 45, 45], rounding=[ochead_nub_inner_fillet, nub_flattop ? 0 : ochead_nub_inner_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet, -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
+                  up(bottom_height) linear_extrude(1 / cos(nub_angle) * ochead_middle_height, v=[0, tan(nub_angle), 1]) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[nub_flattop ? 90 : 45, 45], rounding=[ochead_nub_inner_fillet, nub_flattop ? 0 : ochead_nub_inner_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet, -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
+                }
+            if (add_nubs == "right" || add_nubs == "both")
+              right(large_rect_width / 2 + size_offset - ochead_nub_depth + eps) zrot(90) {
+                  linear_extrude(bottom_height) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[45, nub_flattop ? 90 : 45], rounding=[nub_flattop ? 0 : ochead_nub_inner_fillet, ochead_nub_inner_fillet, -ochead_nub_outer_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
+                  up(bottom_height) linear_extrude(1 / cos(nub_angle) * ochead_middle_height, v=[0, tan(nub_angle), 1]) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[45, nub_flattop ? 90 : 45], rounding=[nub_flattop ? 0 : ochead_nub_inner_fillet, ochead_nub_inner_fillet, -ochead_nub_outer_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
+                }
+          }
+        }
+    children();
+  }
 }
-module openconnect_slot(add_nubs = "left", direction_flip = false, excess_thickness = 0, anchor = CENTER, spin = 0, orient = UP) {
-  attachable(anchor, spin, orient, size=[ocslot_large_rect_width, ocslot_large_rect_height, ocslot_total_height]) {
+module openconnect_slot(add_nubs = "left", direction_flip = false, excess_thickness = 0, anchor = BOTTOM, spin = 0, orient = UP) {
+  attachable(anchor, spin, orient, size=[ocslot_large_rect_width, ocslot_large_rect_width, ocslot_total_height]) {
     tag_scope() up(ocslot_total_height / 2) yrot(180) union() {
             if (direction_flip)
               xflip() ocslot_body(excess_thickness);
@@ -185,7 +190,7 @@ module openconnect_slot_grid(h_grid = 1, v_grid = 1, grid_size = 28, lock_distri
   attachable(anchor, spin, orient, size=[h_grid * grid_size, v_grid * grid_size, ocslot_total_height]) {
     tag_scope() hide_this() cuboid([h_grid * grid_size, v_grid * grid_size, ocslot_total_height]) {
           back(ocslot_to_grid_top_offset) {
-            if (lock_distribution == "All" || lock_distribution == "Staggered")
+            if (lock_distribution == "All" || lock_distribution == "Staggered" || lock_distribution == "None")
               grid_copies([grid_size, grid_size], [h_grid, v_grid], stagger=lock_distribution == "Staggered")
                 attach(TOP, BOTTOM, inside=true)
                   openconnect_slot(add_nubs=(h_grid == 1 && v_grid == 1 && lock_distribution == "Staggered") || lock_distribution == "All" ? "left" : "", direction_flip=direction_flip, excess_thickness=excess_thickness);
@@ -193,13 +198,23 @@ module openconnect_slot_grid(h_grid = 1, v_grid = 1, grid_size = 28, lock_distri
               grid_copies([grid_size, grid_size], [h_grid, v_grid], stagger="alt")
                 attach(TOP, BOTTOM, inside=true)
                   openconnect_slot(add_nubs="left", direction_flip=direction_flip, excess_thickness=excess_thickness);
-            if (lock_distribution == "Corners") {
-              grid_copies([grid_size * max(1, h_grid - 1), grid_size * max(1, v_grid - 1)], [min(h_grid, 2), min(v_grid, 2)])
-                attach(TOP, BOTTOM, inside=true)
-                  openconnect_slot(add_nubs="left", direction_flip=direction_flip, excess_thickness=excess_thickness);
+            if (lock_distribution == "Corners" || lock_distribution == "Top Corners") {
+              if (lock_distribution == "Corners")
+                grid_copies([grid_size * max(1, h_grid - 1), grid_size * max(1, v_grid - 1)], [min(h_grid, 2), min(v_grid, 2)])
+                  attach(TOP, BOTTOM, inside=true)
+                    openconnect_slot(add_nubs="left", direction_flip=direction_flip, excess_thickness=excess_thickness);
+              else {
+                back(grid_size * (v_grid - 1) / 2)
+                  line_copies(spacing=grid_size * max(1, h_grid - 1), n=min(2, h_grid))
+                    attach(TOP, BOTTOM, inside=true)
+                      openconnect_slot(add_nubs="left", direction_flip=direction_flip, excess_thickness=excess_thickness);
+              }
+              omit_edge_rows =
+                lock_distribution == "Corners" ? [0, v_grid - 1]
+                : lock_distribution == "Top Corners" ? [0] : [];
               for (i = [0:1:v_grid - 1]) {
                 back(grid_size * (v_grid - 1) / 2) fwd(grid_size * i) {
-                    if (i == 0 || i == v_grid - 1) {
+                    if (in_list(i, omit_edge_rows)) {
                       if (h_grid > 2)
                         line_copies(spacing=grid_size, n=h_grid - 2)
                           attach(TOP, BOTTOM, inside=true)
