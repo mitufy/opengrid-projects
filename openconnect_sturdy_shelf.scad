@@ -15,14 +15,16 @@ shelf_mounting_slot_type = "Both"; //["Both", "Bottom Only","Top Only"]
 horizontal_grids = 3;
 //Depth is not restrained by grid so this is just a way to increment value by 28mm. You can override it with "use_custom_depth" below.
 depth_grids = 3;
-
-/* [Thickness Settings] */
 shelf_back_thickness = 3.6;
 //When connector holes are enabled, bottom thickness would be at least 3.7mm.
 shelf_bottom_thickness = 2.1;
+
+/* [Truss Settings] */
 truss_thickness = 2.1;
 //0.7 means truss would reach 70% of shelf depth.
-truss_depth_ratio = 0.7; //[0.0:0.05:1]
+truss_beam_reach = 0.7; //[0.0:0.05:1]
+//Space between each vertical truss strut. Set to 0 to disable.
+truss_strut_interval = 28;
 
 /* [Texture Settings] */
 //Texture improves the appearance of the shelf by hiding layer lines and other artifacts caused by 3d printing.
@@ -33,9 +35,10 @@ shelf_texture_size = 20;
 
 /* [Shelf Edge Settings] */
 add_left_edge = true;
-//Connector holes can be used to combine multiple shelves together, provided they have the same mounting_slot_type.
+//Use the same connector as openGrid boards. Allow you to print shelf parts separately and later connect them together.
 add_left_connector_holes = false;
 add_right_edge = true;
+//Shelves to be connected need to have the same mounting_slot_type.
 add_right_connector_holes = false;
 shelf_side_edge_depth = 2;
 
@@ -43,8 +46,8 @@ add_front_edge = true;
 shelf_front_edge_depth = 2;
 
 /* [Advanced Settings] */
-//'Staggered' means every other slot. Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
-slot_lock_distribution = "Corners"; //["All", "Staggered", "Corners", "None"]
+//Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
+slot_lock_distribution = "Top Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
 //Slot entry direction can matter when installing in very tight space. When printing, the side with locking mechanism should be closer to print bed.
 slot_direction_flip = false;
 use_custom_depth = false;
@@ -88,11 +91,11 @@ top_sweep_profile =
   : add_left_edge && add_right_edge ? union(top_base_rect_2d, top_left_edge_2d, top_right_edge_2d)
   : !add_left_edge ? union(top_base_rect_2d, top_right_edge_2d) : union(top_base_rect_2d, top_left_edge_2d);
 
-truss_depth = truss_depth_ratio <= 0 ? 0 : (shelf_depth - shelf_back_thickness) * truss_depth_ratio;
-truss_height = truss_depth_ratio <= 0 ? 0 : bottom_shelf_back_height - final_shelf_bottom_thickness;
-truss_angle = truss_depth_ratio <= 0 ? 0 : adj_opp_to_ang(truss_depth, truss_height);
-truss_inner_depth = truss_depth_ratio <= 0 ? 0 : truss_depth - ang_opp_to_hyp(truss_angle, truss_thickness);
-truss_inner_height = truss_depth_ratio <= 0 ? 0 : truss_height - ang_adj_to_hyp(truss_angle, truss_thickness);
+truss_depth = truss_beam_reach <= 0 ? 0 : (shelf_depth - shelf_back_thickness) * truss_beam_reach;
+truss_height = truss_beam_reach <= 0 ? 0 : bottom_shelf_back_height - final_shelf_bottom_thickness;
+truss_angle = truss_beam_reach <= 0 ? 0 : adj_opp_to_ang(truss_depth, truss_height);
+truss_inner_depth = truss_beam_reach <= 0 ? 0 : truss_depth - ang_opp_to_hyp(truss_angle, truss_thickness);
+truss_inner_height = truss_beam_reach <= 0 ? 0 : truss_height - ang_adj_to_hyp(truss_angle, truss_thickness);
 
 diff(remove="outer_rm") cuboid([shelf_depth, final_shelf_bottom_thickness, shelf_width], anchor=FRONT + LEFT + BOTTOM) {
     rough_wall_alignment =
@@ -135,22 +138,34 @@ diff(remove="outer_rm") cuboid([shelf_depth, final_shelf_bottom_thickness, shelf
                 attach(LEFT, TOP, inside=true, spin=90)
                   tag("remove") openconnect_slot_grid(h_grid=horizontal_grids, v_grid=bottom_vertical_grids, grid_size=tile_size, lock_distribution=slot_lock_distribution, direction_flip=slot_direction_flip, excess_thickness=0);
             }
-      if (truss_inner_depth <= 0 || truss_inner_height <= 0)
+      if (truss_inner_depth <= 0 || truss_inner_height <= 0 || truss_thickness <= eps)
         right(shelf_back_thickness) edge_mask(LEFT + FRONT)
             tag("") rounding_edge_mask(r=min(truss_thickness * 3, tile_size - final_shelf_bottom_thickness), spin=-90);
       //buttom shelf truss
-      if (truss_depth_ratio > 0) {
+      else {
         if (truss_inner_depth > 0 && truss_inner_height > 0) {
           truss_profile = difference(
             right_triangle([truss_depth, truss_height]),
             round_corners(joint=min(truss_rounding, truss_inner_depth / 2 - eps, truss_inner_height / 2 - eps), path=right_triangle([truss_inner_depth, truss_inner_height]))
           );
+          if (truss_strut_interval > eps) {
+            truss_strut_count = floor((truss_inner_depth - floor(truss_inner_depth / truss_strut_interval) * truss_thickness) / truss_strut_interval);
+            intersect() {
+              for (i = [0:truss_strut_count - 1]) {
+                attach(FRONT, BACK, align=LEFT, inset=(i + 1) * truss_strut_interval-i*truss_thickness)
+                  tag("") cuboid([truss_thickness, truss_height, shelf_width]);
+              }
+              right(shelf_back_thickness) xflip()
+                  attach(FRONT, FRONT, align=RIGHT)
+                    tag("intersect") linear_sweep(right_triangle([truss_depth, truss_height]), shelf_width);
+            }
+          }
           right(shelf_back_thickness) xflip()
               attach(FRONT, FRONT, align=RIGHT)
                 linear_sweep(truss_profile, shelf_width) {
-                  if (truss_depth_ratio < 1)
+                  if (truss_beam_reach < 1)
                     edge_mask([RIGHT + FRONT])
-                      tag("") rounding_edge_mask(r=min(20, (shelf_depth - shelf_back_thickness) * (1 - truss_depth_ratio)), h=shelf_width, ang=180 - truss_angle, spin=truss_angle);
+                      tag("") rounding_edge_mask(r=min(20, (shelf_depth - shelf_back_thickness) * (1 - truss_beam_reach)), h=shelf_width, ang=180 - truss_angle, spin=truss_angle);
                 }
         }
       }
@@ -257,7 +272,7 @@ ochead_side_profile = [
 //END openConnect slot parameters
 
 //BEGIN openConnect slot modules
-module openconnect_head(head_type = "head", add_nubs = "both", nub_flattop = true, nub_taperin = true, excess_thickness = 0, size_offset = 0) {
+module openconnect_head(head_type = "head", add_nubs = "both", nub_flattop = true, nub_taperin = true, excess_thickness = 0, size_offset = 0, anchor = BOTTOM, spin = 0, orient = UP) {
   bottom_profile = head_type == "slot" ? ocslot_bottom_profile : ochead_bottom_profile;
   top_profile = head_type == "slot" ? ocslot_top_profile : ochead_top_profile;
   bottom_height = head_type == "slot" ? ocslot_bottom_height : ochead_bottom_height;
@@ -266,33 +281,38 @@ module openconnect_head(head_type = "head", add_nubs = "both", nub_flattop = tru
   large_rect_height = head_type == "slot" ? ocslot_large_rect_height : ochead_large_rect_height;
   nub_to_top_distance = head_type == "slot" ? ocslot_nub_to_top_distance : ochead_nub_to_top_distance;
   nub_angle = nub_taperin ? adj_opp_to_ang(ochead_middle_height, ochead_middle_height - ochead_nub_depth) : 0;
-  tag_scope() difference() {
-      union() {
-        linear_extrude(h=bottom_height) polygon(offset(bottom_profile, delta=size_offset));
-        up(bottom_height - eps) hull() {
-            up(ochead_middle_height) linear_extrude(h=eps) polygon(offset(top_profile, delta=size_offset));
-            linear_extrude(h=eps) polygon(offset(bottom_profile, delta=size_offset));
+  total_height = bottom_height + top_height + ochead_middle_height;
+
+  attachable(anchor, spin, orient, size=[large_rect_width, large_rect_width, total_height]) {
+    tag_scope() down(total_height / 2) difference() {
+          union() {
+            linear_extrude(h=bottom_height) polygon(offset(bottom_profile, delta=size_offset));
+            up(bottom_height - eps) hull() {
+                up(ochead_middle_height) linear_extrude(h=eps) polygon(offset(top_profile, delta=size_offset));
+                linear_extrude(h=eps) polygon(offset(bottom_profile, delta=size_offset));
+              }
+            if (top_height + excess_thickness > 0)
+              up(bottom_height + ochead_middle_height - eps)
+                linear_extrude(h=top_height + excess_thickness + eps) polygon(offset(top_profile, delta=size_offset));
           }
-        if (top_height + excess_thickness > 0)
-          up(bottom_height + ochead_middle_height - eps)
-            linear_extrude(h=top_height + excess_thickness + eps) polygon(offset(top_profile, delta=size_offset));
-      }
-      back(large_rect_width / 2 - nub_to_top_distance) {
-        if (add_nubs == "left" || add_nubs == "both")
-          left(large_rect_width / 2 + size_offset - ochead_nub_depth + eps) zrot(-90) {
-              linear_extrude(bottom_height) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[nub_flattop ? 90 : 45, 45], rounding=[ochead_nub_inner_fillet, nub_flattop ? 0 : ochead_nub_inner_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet, -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
-              up(bottom_height) linear_extrude(1 / cos(nub_angle) * ochead_middle_height, v=[0, tan(nub_angle), 1]) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[nub_flattop ? 90 : 45, 45], rounding=[ochead_nub_inner_fillet, nub_flattop ? 0 : ochead_nub_inner_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet, -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
-            }
-        if (add_nubs == "right" || add_nubs == "both")
-          right(large_rect_width / 2 + size_offset - ochead_nub_depth + eps) zrot(90) {
-              linear_extrude(bottom_height) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[45, nub_flattop ? 90 : 45], rounding=[nub_flattop ? 0 : ochead_nub_inner_fillet, ochead_nub_inner_fillet, -ochead_nub_outer_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
-              up(bottom_height) linear_extrude(1 / cos(nub_angle) * ochead_middle_height, v=[0, tan(nub_angle), 1]) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[45, nub_flattop ? 90 : 45], rounding=[nub_flattop ? 0 : ochead_nub_inner_fillet, ochead_nub_inner_fillet, -ochead_nub_outer_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
-            }
-      }
-    }
+          back(large_rect_width / 2 - nub_to_top_distance) {
+            if (add_nubs == "left" || add_nubs == "both")
+              left(large_rect_width / 2 + size_offset - ochead_nub_depth + eps) zrot(-90) {
+                  linear_extrude(bottom_height) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[nub_flattop ? 90 : 45, 45], rounding=[ochead_nub_inner_fillet, nub_flattop ? 0 : ochead_nub_inner_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet, -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
+                  up(bottom_height) linear_extrude(1 / cos(nub_angle) * ochead_middle_height, v=[0, tan(nub_angle), 1]) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[nub_flattop ? 90 : 45, 45], rounding=[ochead_nub_inner_fillet, nub_flattop ? 0 : ochead_nub_inner_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet, -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
+                }
+            if (add_nubs == "right" || add_nubs == "both")
+              right(large_rect_width / 2 + size_offset - ochead_nub_depth + eps) zrot(90) {
+                  linear_extrude(bottom_height) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[45, nub_flattop ? 90 : 45], rounding=[nub_flattop ? 0 : ochead_nub_inner_fillet, ochead_nub_inner_fillet, -ochead_nub_outer_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
+                  up(bottom_height) linear_extrude(1 / cos(nub_angle) * ochead_middle_height, v=[0, tan(nub_angle), 1]) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[45, nub_flattop ? 90 : 45], rounding=[nub_flattop ? 0 : ochead_nub_inner_fillet, ochead_nub_inner_fillet, -ochead_nub_outer_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
+                }
+          }
+        }
+    children();
+  }
 }
-module openconnect_slot(add_nubs = "left", direction_flip = false, excess_thickness = 0, anchor = CENTER, spin = 0, orient = UP) {
-  attachable(anchor, spin, orient, size=[ocslot_large_rect_width, ocslot_large_rect_height, ocslot_total_height]) {
+module openconnect_slot(add_nubs = "left", direction_flip = false, excess_thickness = 0, anchor = BOTTOM, spin = 0, orient = UP) {
+  attachable(anchor, spin, orient, size=[ocslot_large_rect_width, ocslot_large_rect_width, ocslot_total_height]) {
     tag_scope() up(ocslot_total_height / 2) yrot(180) union() {
             if (direction_flip)
               xflip() ocslot_body(excess_thickness);
@@ -340,7 +360,7 @@ module openconnect_slot_grid(h_grid = 1, v_grid = 1, grid_size = 28, lock_distri
   attachable(anchor, spin, orient, size=[h_grid * grid_size, v_grid * grid_size, ocslot_total_height]) {
     tag_scope() hide_this() cuboid([h_grid * grid_size, v_grid * grid_size, ocslot_total_height]) {
           back(ocslot_to_grid_top_offset) {
-            if (lock_distribution == "All" || lock_distribution == "Staggered")
+            if (lock_distribution == "All" || lock_distribution == "Staggered" || lock_distribution == "None")
               grid_copies([grid_size, grid_size], [h_grid, v_grid], stagger=lock_distribution == "Staggered")
                 attach(TOP, BOTTOM, inside=true)
                   openconnect_slot(add_nubs=(h_grid == 1 && v_grid == 1 && lock_distribution == "Staggered") || lock_distribution == "All" ? "left" : "", direction_flip=direction_flip, excess_thickness=excess_thickness);
@@ -348,13 +368,23 @@ module openconnect_slot_grid(h_grid = 1, v_grid = 1, grid_size = 28, lock_distri
               grid_copies([grid_size, grid_size], [h_grid, v_grid], stagger="alt")
                 attach(TOP, BOTTOM, inside=true)
                   openconnect_slot(add_nubs="left", direction_flip=direction_flip, excess_thickness=excess_thickness);
-            if (lock_distribution == "Corners") {
-              grid_copies([grid_size * max(1, h_grid - 1), grid_size * max(1, v_grid - 1)], [min(h_grid, 2), min(v_grid, 2)])
-                attach(TOP, BOTTOM, inside=true)
-                  openconnect_slot(add_nubs="left", direction_flip=direction_flip, excess_thickness=excess_thickness);
+            if (lock_distribution == "Corners" || lock_distribution == "Top Corners") {
+              if (lock_distribution == "Corners")
+                grid_copies([grid_size * max(1, h_grid - 1), grid_size * max(1, v_grid - 1)], [min(h_grid, 2), min(v_grid, 2)])
+                  attach(TOP, BOTTOM, inside=true)
+                    openconnect_slot(add_nubs="left", direction_flip=direction_flip, excess_thickness=excess_thickness);
+              else {
+                back(grid_size * (v_grid - 1) / 2)
+                  line_copies(spacing=grid_size * max(1, h_grid - 1), n=min(2, h_grid))
+                    attach(TOP, BOTTOM, inside=true)
+                      openconnect_slot(add_nubs="left", direction_flip=direction_flip, excess_thickness=excess_thickness);
+              }
+              omit_edge_rows =
+                lock_distribution == "Corners" ? [0, v_grid - 1]
+                : lock_distribution == "Top Corners" ? [0] : [];
               for (i = [0:1:v_grid - 1]) {
                 back(grid_size * (v_grid - 1) / 2) fwd(grid_size * i) {
-                    if (i == 0 || i == v_grid - 1) {
+                    if (in_list(i, omit_edge_rows)) {
                       if (h_grid > 2)
                         line_copies(spacing=grid_size, n=h_grid - 2)
                           attach(TOP, BOTTOM, inside=true)
