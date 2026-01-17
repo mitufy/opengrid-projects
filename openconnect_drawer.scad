@@ -11,9 +11,9 @@ include <BOSL2/walls.scad>
 include <BOSL2/rounding.scad>
 
 generate_drawer_shell = true;
-//"Back" is for wall-mounted drawers. "Top" is for underdesk drawers. Other options are more specific and not commonly used. 
+//"Back" is for wall-mounted drawers. "Top" is for underdesk drawers. Other options are niche and not commonly used. 
 shell_slot_position = "Back"; //["Back", "Top", "Bottom", "Left", "Right"]
-//Inner size of the shell stay the same regardless of shell_slot_position, so the container is always compatible.
+//Inner size of the shell stay the same regardless of shell_slot_position, ensuring the container is always compatible.
 generate_drawer_container = true;
 generate_drawer_stopper_clips = true;
 
@@ -28,36 +28,37 @@ shell_bottom_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
 shell_side_wall_type = "Solid"; //["Solid","Honeycomb"]
 
 /*[Container Wall Settings]*/
-container_solidwall_thickness = 1.68; //0.42
-container_honeycombwall_thickness = 2.52; //0.42
+container_solidwall_thickness = 1.7; 
+container_honeycombwall_thickness = 2.6;
 //How much lower back and side wall is compared to front wall. stopper_clips_length need to be larger than this value to be effective.
-container_front_to_back_height_offset = 4;
+container_front_to_back_height_offset = 3;
 container_front_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
 container_back_wall_type = "Solid"; //["Solid","Honeycomb"]
 //Honeycomb patterns on the side of drawer_shell and drawer_container do not align. If you want to avoid the inconsistent look, use honeycomb side walls on only one part.
 container_side_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
 
 /*[Shell Divider Settings]*/
-//Divide the drawer shell into several compartments. Enabling this hides containers, as they would need to be generated separately.
+//Divide the drawer shell into several compartments. Enabling this hides the container, as they would need to be generated separately.
 add_shell_divider = false;
 shell_divider_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
 //Divide by height is drawers stacked one above another. Width is drawers side by side.
-shell_divider_unit = "Height"; //["Width","Height"]
-//Input compartment sizes here. These values also indicate the size of corresponding container.
-shell_compartment_grids = "2,1";
+shell_divider_dimension = "Height"; //["Width","Height"]
+//Compartments by openGrid's grid size. These values also indicate the size of corresponding container.
+shell_compartment_list = "2,1";
 
 /*[Container Divider Settings]*/
 //Divide the drawer container into several compartments.
 add_container_divider = false;
 //The height of divider walls. This value is automatically capped by side wall height.
 container_divider_wall_height = 40;
-container_divider_wall_thickness = 1.68; //0.42
+container_divider_wall_thickness = 1.7; 
 container_divider_wall_fillet = 2;
-container_divider_unit = "Width"; //["Width","Depth","Both"]
-//Container compartment's grid size is its inner space divided by total_grids.
-container_compartment_total_grid_count = 3;
-//Input compartment sizes here. total_grid_count="3" and grids="1,2" means two compartments - one of 1/3, one of 2/3 of container inner size. 
-container_compartment_grids = "1,2";
+//Example: divider_dimension="Both", compartment_total_grids="3", compartment_list="1,1,1" - a container with 3x3 grid.
+container_divider_dimension = "Width"; //["Width","Depth","Both"]
+//Container compartment's unit size is its inner space divided by total_grids.
+container_compartment_total_grids = 5;
+//Compartments by unit size. total_grids="5" and list="2,3" means two compartments - one of 2/5, one of 3/5 of container inner size. 
+container_compartment_list = "2,3";
 
 /*[Label and Handle]*/
 add_label_holder = true;
@@ -65,19 +66,19 @@ add_label_holder = true;
 label_width = 48;
 label_height = 10;
 label_depth = 1;
-handle_thickness = 2.52; //0.42
+handle_thickness = 2.6; 
 //How much the handle protrudes from the front of the drawer container.
 handle_depth = 10;
 
 /*[Stopper and Magnet Settings]*/
-//Simple drawer stoppers. No magnets needed.
+//Simple drawer stoppers, preventing the container from sliding all the way out.
 add_stopper_holes = true;
 stopper_clips_length = 7;
 
 //Back magnets hold the container securely when it's pushed in.
 add_back_magnet_holes = true;
 shell_back_magnet_thickness = 2;
-container_back_magnet_thickness = 2;
+container_back_magnet_thickness = 1;
 back_magnet_diameter = 6;
 
 //Side magnets act as stoppers by holding the container when it's pulled out.
@@ -93,13 +94,14 @@ slot_lock_distribution = "Top Corners"; //["All", "Staggered", "Corners", "Top C
 //Slot entry direction can matter when installing in very tight space.
 slot_direction_flip = false;
 //Note changing shell thickness would also change container size.
-shell_thickness = 2.52; //0.42
+shell_thickness = 2.6; 
 //The thickness of the strut of honeycomb pattern.
-honeycomb_strut_hyp = 5.04; //0.42
-shell_to_slot_wall_thickness = 0.84;
+honeycomb_strut_hyp = 5.04; 
+shell_to_slot_wall_thickness = 0.84; 
+container_back_magnet_hole_position = "Bottom Corners"; //["All","Corners","Bottom Corners"]
 //Change this value to adjust how much container would pull out before attaching to side magnets. 
-side_magnet_shell_edge_distance = 0.84;
-side_magnet_container_edge_distance = 0.84;
+side_magnet_shell_edge_distance = 2.6; 
+side_magnet_container_edge_distance = 2.6; 
 container_height_clearance = 0.5; //0.05
 container_width_clearance = 0.4; //0.05
 container_depth_clearance = 0.4; //0.05
@@ -116,9 +118,9 @@ view_drawer_overlapped = false;
 // shell_main_divide_unit = "Width"; //["Width","Height"]
 // shell_width_dividers = "1,4";
 // shell_height_dividers = "2 3";
-back_magnet_hole_position = "Bottom Corners"; //["All","Corners","Bottom Corners"]
-magnet_hole_side_clearance = 0.1;
-magnet_hole_depth_clearance = 0.1;
+
+magnet_hole_side_clearance = 0.2;
+magnet_hole_depth_clearance = 0.15;
 
 $fa = 1;
 $fs = 0.4;
@@ -334,9 +336,9 @@ shell_hexpanel_height = shell_height - shell_inner_chamfer * 2;
 shell_hexpanel_depth = shell_depth + shell_thickness - shell_ocslot_part_thickness;
 
 //shell divider parameter
-shell_divideW = (shell_divider_unit == "Width");
+shell_divideW = (shell_divider_dimension == "Width");
 shell_main_divide_grids = shell_divideW ? horizontal_grids : vertical_grids;
-shell_main_divide_strs = str_split(str_strip(str_replace_char(shell_compartment_grids, " ", ","), ","), ",");
+shell_main_divide_strs = str_split(str_strip(str_replace_char(shell_compartment_list, " ", ","), ","), ",");
 shell_main_divide_nums = [for (i = [0:len(shell_main_divide_strs) - 1]) parse_num(shell_main_divide_strs[i])];
 shell_main_divide_cumnums = add_shell_divider ? [for (i = cumsum(shell_main_divide_nums)) if (i < shell_main_divide_grids) i] : [shell_main_divide_grids];
 shell_main_divide_tmp =
@@ -392,12 +394,12 @@ container_back_magnet_hole_thickness = container_back_magnet_thickness + magnet_
 back_magnet_hole_diameter = back_magnet_diameter + magnet_hole_side_clearance * 2;
 back_magnet_ocslot_offset = 3;
 back_magnet_grid_space =
-  back_magnet_hole_position == "Corners" ? [tile_size * (horizontal_grids - 2), tile_size * (vertical_grids - 1)]
-  : back_magnet_hole_position == "Bottom Corners" ? [tile_size * (horizontal_grids - 2), tile_size * (vertical_grids - 1)]
+  container_back_magnet_hole_position == "Corners" ? [tile_size * (horizontal_grids - 2), tile_size * (vertical_grids - 1)]
+  : container_back_magnet_hole_position == "Bottom Corners" ? [tile_size * (horizontal_grids - 2), tile_size * (vertical_grids - 1)]
   : [tile_size, tile_size];
 back_back_magnet_grid_count =
-  back_magnet_hole_position == "Corners" ? [min(horizontal_grids - 1, 2), min(vertical_grids, 2)]
-  : back_magnet_hole_position == "Bottom Corners" ? [min(horizontal_grids - 1, 2), 1]
+  container_back_magnet_hole_position == "Corners" ? [min(horizontal_grids - 1, 2), min(vertical_grids, 2)]
+  : container_back_magnet_hole_position == "Bottom Corners" ? [min(horizontal_grids - 1, 2), 1]
   : [horizontal_grids - 1, vertical_grids];
 
 shell_side_magnet_hole_thickness = shell_side_magnet_thickness + magnet_hole_depth_clearance;
@@ -522,7 +524,7 @@ module drawer_shell() {
               back(back_magnet_ocslot_offset + ocslot_to_grid_top_offset)
                 grid_copies(spacing=[tile_size, tile_size], n=[horizontal_grids - 1, vertical_grids])
                   attach(BOTTOM, BOTTOM, inside=true)
-                    tag("rm_outer") cyl(h=shell_back_magnet_hole_thickness, d=back_magnet_hole_diameter);
+                    tag("rm_outer") cyl(h=shell_back_magnet_hole_thickness, d=back_magnet_hole_diameter,chamfer1=-0.2);
             }
 
             for (i = [0:len(shell_horizontal_compartments) - 1]) {
@@ -575,11 +577,13 @@ module shell_divider() {
           tag_diff(tag=shell_divider_wall_type == "Honeycomb" ? "" : "kp1", remove="rm1") {
             cuboid([mainsolidwall_x, mainsolidwall_y, mainsolidwall_z]) {
               if (!shell_divideW && add_stopper_holes) {
-                tag("rm1") line_copies(tile_size * (horizontal_grids - 1), 2)
+                tag("rm1") line_copies(tile_size * (horizontal_grids - 1) + stopper_to_edge_offset * 2, 2)
                     attach(BACK, TOP, align=TOP, inset=shell_thickness, inside=true)
-                      cuboid([stopper_width + stopper_flank_width, stopper_height, stopper_flank_depth])
+                      cuboid([stopper_width + stopper_flank_width, stopper_height, shell_thickness])
                         attach(BOTTOM, TOP)
-                          cuboid([stopper_width, stopper_height, shell_divider_wall_thickness - stopper_flank_depth + eps], rounding=-stopper_rounding, edges=[TOP + LEFT, TOP + RIGHT], $fn=64);
+                          cuboid([stopper_width + stopper_flank_width, stopper_height, stopper_flank_depth])
+                            attach(BOTTOM, TOP)
+                              cuboid([stopper_width, stopper_height, shell_thickness - stopper_flank_depth + eps], rounding=-stopper_rounding, edges=[TOP + LEFT, TOP + RIGHT], $fn=64);
               }
               if (shell_divideW && add_side_magnet_holes) {
                 ycopies(tile_size, vertical_grids)
@@ -749,7 +753,7 @@ module drawer_container() {
               line_copies(back_magnet_grid_space[0], back_back_magnet_grid_count[0])
                 attach(BOTTOM + FRONT, BOTTOM + FRONT, inside=true)
                   tag("keep") cuboid([back_magnet_hole_diameter + 4.2, container_height - container_front_to_back_height_offset, container_back_wall_thickness]);
-            back(ocslot_to_grid_top_offset) back(back_magnet_ocslot_offset) fwd(back_magnet_hole_position == "Bottom Corners" ? (vertical_grids - 1) / 2 * tile_size : 0)
+            back(ocslot_to_grid_top_offset) back(back_magnet_ocslot_offset) fwd(container_back_magnet_hole_position == "Bottom Corners" ? (vertical_grids - 1) / 2 * tile_size : 0)
                   grid_copies(back_magnet_grid_space, back_back_magnet_grid_count) {
                     attach(BOTTOM, FRONT, inside=true)
                       tag("rm_outer") teardrop(h=container_back_magnet_hole_thickness, d=back_magnet_hole_diameter, cap_h=back_magnet_hole_diameter / 2 + 0.2);
@@ -762,11 +766,11 @@ module drawer_container() {
   }
 }
 module container_divider() {
-  container_main_divide_strs = str_split(str_strip(str_replace_char(container_compartment_grids, " ", ","), ","), ",");
+  container_main_divide_strs = str_split(str_strip(str_replace_char(container_compartment_list, " ", ","), ","), ",");
   container_main_divide_nums = [for (i = [0:len(container_main_divide_strs) - 1]) parse_num(container_main_divide_strs[i])];
-  container_main_divide_cumnums = [for (i = cumsum(container_main_divide_nums)) if (i < container_compartment_total_grid_count) i];
-  if (container_divider_unit != "Both")
-    sub_divider(container_divider_unit == "Width");
+  container_main_divide_cumnums = [for (i = cumsum(container_main_divide_nums)) if (i < container_compartment_total_grids) i];
+  if (container_divider_dimension != "Both")
+    sub_divider(container_divider_dimension == "Width");
   else {
     sub_divider(true);
     sub_divider(false);
@@ -781,7 +785,7 @@ module container_divider() {
     container_mainsolidwall_x = container_divideW ? container_divider_wall_thickness : container_width;
     container_mainsolidwall_y = min((container_height - container_front_to_back_height_offset - container_outer_chamfer), container_divider_wall_height + container_bottom_wall_thickness);
     container_mainsolidwall_z = container_divideW ? container_depth : container_divider_wall_thickness;
-    container_compartment_size_unit = container_inner_size / container_compartment_total_grid_count;
+    container_compartment_size_unit = container_inner_size / container_compartment_total_grids;
     container_first_wall_offset = container_divideW ? container_side_wall_thickness : container_front_wall_thickness;
 
     container_divider_fillet_edges = container_divideW ? [FRONT + LEFT, FRONT + RIGHT] : [FRONT + TOP, FRONT + BOTTOM];

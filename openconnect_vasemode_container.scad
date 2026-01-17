@@ -9,14 +9,14 @@ openConnect is a connector system designed for openGrid. openGrid is created by 
 include <BOSL2/std.scad>
 
 /* [Main Settings] */
-//Safe value for vase mode linewidth is 150% of nozzle size, i.e. 0.6mm linewidth for 0.4mm nozzles. But it's usually fine to go up to 200%, so feel free to experiment.
+//Safe value for vase mode linewidth is 150-200% of nozzle size, i.e. 0.6~0.8mm linewidth for 0.4mm nozzles. It can be fine to go higher, feel free to experiment.
 vase_linewidth = 0.6;
 //Multiple containers of same texture can be installed side by side as the pattern is designed to be complementary.
 vase_surface_texture = "checkers"; //["":None, "cubes":Cubes, "diamonds":Diagonal Ribs,"wave_ribs":Wave Ribs,"checkers":Checkers]
 
 horizontal_grids = 2;
 vertical_grids = 3;
-//Depth is not technically restrained by grid, so you can override it by enabling "use_custom_depth" below.
+//Depth is not technically restrained by grid. You can override this with "use_custom_depth" below.
 depth_grids = 2;
 
 //A tilt_angle can make it easier to take out contents. Set this to 0 for a normal straight up container.

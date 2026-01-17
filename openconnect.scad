@@ -365,7 +365,7 @@ else
   main_generate();
 module main_generate() {
   if (generate_screw == "openConnect" || generate_screw == "openConnect (Folded)")
-    fwd(0) back(view_overlapped || !generate_slot ? 0 : 28 * vertical_grids + 10) up(view_overlapped ? snap_thickness + ochead_total_height : 0) yrot(view_overlapped ? 180 : 0)
+    fwd(0) right(view_overlapped || !generate_slot ? 0 : 28 * vertical_grids + 10) up(view_overlapped ? snap_thickness + ochead_total_height : 0) yrot(view_overlapped ? 180 : 0)
             openconnect_screw(folded=generate_screw == "openConnect (Folded)");
   if (generate_slot) {
     down(0.84) fwd(15.6)

@@ -26,9 +26,8 @@ threads_end_type = "Blunt"; //["Blunt", "Basic"]
 /* [Snap Body Settings] */
 snap_body_width = 24.8;
 
-//Allowing adjustments of connector head/threads position. This doesn't affect self-expanding snaps.
-snap_center_x_position_offset = 0; //0.1
-snap_center_y_position_offset = 0; //0.1
+//Offset connector head/threads position in x and y. This does not affect Self-Expanding Snaps.
+snap_center_position_offset = [0,0]; //0.1
 
 snap_corner_edge_height = 1.5;
 snap_body_top_corner_extrude = 1.1;
@@ -532,7 +531,7 @@ module snap() {
                 if (uninstall_notch_width > eps)
                   tag("remove") snap_uninstall_notch();
               }
-              left(snap_center_x_position_offset) back(snap_center_y_position_offset) {
+              left(snap_center_position_offset[0]) back(snap_center_position_offset[1]) {
                   if (generate_snap == "Basic Threads" && !disable_snap_threads) {
                     tag_diff(tag="remove", remove="rm0")
                       down(eps / 2) up(reverse_threads_entryside ? snap_thickness + eps / 2 : 0) yrot(reverse_threads_entryside ? 180 : 0)
