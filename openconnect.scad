@@ -15,7 +15,7 @@ generate_slot = true;
 vertical_grids = 1;
 horizontal_grids = 1;
 
-generate_screw = "openConnect"; //["None", "openConnect", "openConnect (Folded)"]
+generate_screw = "None"; //["None", "openConnect", "openConnect (Folded)"]
 //Blunt end helps prevent cross-threading and overtightening. Models with blunt ends have a decorative 'lock' symbol at the bottom.
 threads_end_type = "Blunt"; //["Blunt", "Basic"]
 
@@ -24,8 +24,7 @@ snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm, 3.4:Lite Basic - 3.
 slot_lock_distribution = "Staggered"; //["All", "Staggered", "Corners", "Top Corners", "None"]
 //Slot entry direction can matter when installing in very tight space. Note when printing, the side with locking mechanism should be closer to print bed.
 slot_direction_flip = false;
-view_cross_section = "None"; //["None","Right","Back","Diagonal"]
-view_overlapped = false;
+
 
 /* [Hidden] */
 $fa = 1;
@@ -354,6 +353,10 @@ module fold_for_printing(body_thickness, fold_position = 0, fold_gap_width = fol
 }
 //END openConnect connectors
 
+
+view_cross_section = "None"; //["None","Right","Back","Diagonal"]
+view_overlapped = false;
+
 half_of_anchor =
   view_cross_section == "Right" ? RIGHT
   : view_cross_section == "Back" ? BACK
@@ -368,7 +371,7 @@ module main_generate() {
     fwd(0) right(view_overlapped || !generate_slot ? 0 : 28 * vertical_grids + 10) up(view_overlapped ? snap_thickness + ochead_total_height : 0) yrot(view_overlapped ? 180 : 0)
             openconnect_screw(folded=generate_screw == "openConnect (Folded)");
   if (generate_slot) {
-    down(0.84) fwd(15.6)
+    // down(0.84) fwd(15.6)
         diff() cuboid([tile_size * horizontal_grids, tile_size * vertical_grids, ocslot_total_height + 0.84], anchor=BOTTOM + FRONT) {
             attach(TOP, TOP, inside=true)
               tag("remove") openconnect_slot_grid(h_grid=horizontal_grids, v_grid=vertical_grids, grid_size=tile_size, lock_distribution=slot_lock_distribution, direction_flip=slot_direction_flip, excess_thickness=0);
