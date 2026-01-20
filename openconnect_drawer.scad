@@ -455,8 +455,8 @@ stopper_height = 2.4;
 stopper_rounding = 0.4;
 stopper_flank_width = 2;
 stopper_flank_depth = 0.84;
-//when set to 0, the center of the stopper is tile_size/2 to the edge of the drawer.
-stopper_to_edge_offset = 7;
+//when set to 0, the center of the stopper is 14mm to the edge of the drawer.
+stopper_to_edge_offset = 0;
 
 handle_chamfer = 0.4;
 
