@@ -303,14 +303,13 @@ vase_depth = use_custom_depth ? custom_depth : tile_size * depth_grids;
 final_vase_tilt_angle = min(adj_opp_to_ang(tile_size * vertical_grids, vase_depth - 1), vase_tilt_angle);
 vase_height = ang_hyp_to_adj(final_vase_tilt_angle, tile_size * vertical_grids);
 final_vase_front_inset_angle = min(adj_opp_to_ang(vase_height, max(0, vase_depth - ang_adj_to_opp(final_vase_tilt_angle, vase_height) - 1)), vase_front_inset_angle);
-
 final_surface_texture_size = surface_texture_size * (vase_surface_texture == "checkers" || vase_surface_texture == "cubes" ? 2 : 1);
 
 up(vase_height / 2) xrot(90 + final_vase_tilt_angle) {
     right(vase_surface_texture != "" ? surface_texture_depth / 2 : 0)
       xrot(-final_vase_tilt_angle)
         diff(remove="root_rm") diff(remove="remove", keep="keep root_rm")
-            prismoid(size1=[vase_width, vase_depth], h=vase_height, xang=[90, 90], yang=[90 - final_vase_front_inset_angle, 90 - final_vase_tilt_angle], chamfer=vase_surface_texture != "" ? [0, 0, 0, 0] : [0, 0, 1, 1], orient=FRONT, anchor=BACK) {
+            prismoid(size1=[vase_width, vase_depth], h=vase_height, xang=[90, 90], yang=[90 - final_vase_front_inset_angle, 90 - final_vase_tilt_angle], chamfer=0, orient=FRONT, anchor=BACK) {
               attach(BACK, BOTTOM, spin=180)
                 openconnect_slot_grid(grid_type="vase", horizontal_grids=horizontal_grids, vertical_grids=vertical_grids, tile_size=tile_size, slot_lock_distribution=slot_lock_distribution);
               if (vase_surface_texture != "") {
@@ -357,5 +356,9 @@ up(vase_height / 2) xrot(90 + final_vase_tilt_angle) {
                 tag("root_rm") attach(TOP, BACK)
                     cuboid([400, 400, 400]);
               }
+              else
+                tag("root_rm")
+                  edge_profile([LEFT + FRONT, RIGHT + FRONT], excess=10)
+                    mask2d_chamfer(x=1);
             }
   }
