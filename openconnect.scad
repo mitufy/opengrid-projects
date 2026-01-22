@@ -10,9 +10,13 @@ Inspired by David's multiConnect: https://www.printables.com/model/1008622-multi
 include <BOSL2/std.scad>
 include <BOSL2/threading.scad>
 
-generate_grid_type = "slot"; //[slot:Slot, vase:Vase Slot, none:None]
-vertical_grids = 1;
-horizontal_grids = 1;
+plate_size_unit = "mm"; //[grid:Grid Count, mm:Millimeter]
+//Depending on the plate_size_unit selected, you can input number either in grids or in millimeters.
+plate_horizontal_size = 84;
+plate_vertical_size = 56;
+//Slot alignment applies when the plate size is entered in millimeters and is not divisible by the tile_size (28mm).
+plate_slot_alignment = "Center"; //["Center", "Top", "Bottom", "Left", "Right"]
+plate_slot_type = "slot"; //[slot:Standard, vase:Vase Mode]
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
 slot_lock_distribution = "Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
 //The slot entry direction can matter when installing in very tight spaces. When printing on the side, the side with the locking mechanism should be closer to the print bed.
@@ -33,13 +37,13 @@ snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm, 3.4:Lite Basic - 3.
 
 //BEGIN openConnect slot parameters
 tile_size = 28;
-opengrid_snap_to_edge_offset = (tile_size - 24.8) / 2;
+opengrid_snap_to_edge_offset = 0; // There was 1.6mm here. It's gone now.
 
 ochead_bottom_height = 0.6;
 ochead_top_height = 0.6;
 ochead_middle_height = 1.4;
 ochead_large_rect_width = 17; //0.1
-ochead_large_rect_height = 11.2; //0.1
+ochead_large_rect_height = 10.6; //0.1
 
 ochead_nub_to_top_distance = 7.2;
 ochead_nub_depth = 0.6;
@@ -66,8 +70,7 @@ ochead_side_profile = [
   [0, ochead_bottom_height + ochead_middle_height + ochead_top_height],
 ];
 
-
-ocslot_move_distance = 11; //0.1
+ocslot_move_distance = 10.5; //0.1
 ocslot_onramp_clearance = 0.8;
 ocslot_bridge_offset = 0.4;
 ocslot_side_clearance = 0.15;
@@ -270,9 +273,9 @@ module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_
                         line_copies(spacing=tile_size, n=horizontal_grids - 2)
                           attach(BOTTOM, BOTTOM, inside=true) {
                             if (grid_type == "slot")
-                              openconnect_slot(add_nubs="left", slot_direction_flip=slot_direction_flip, excess_thickness=excess_thickness);
+                              openconnect_slot(add_nubs="", slot_direction_flip=slot_direction_flip, excess_thickness=excess_thickness);
                             else
-                              openconnect_vase_slot(add_nubs="left");
+                              openconnect_vase_slot(add_nubs="");
                           }
                     }
                     else
@@ -439,19 +442,27 @@ else
   main_generate();
 module main_generate() {
   if (generate_screw == "openConnect" || generate_screw == "openConnect (Folded)")
-    fwd(0) right(view_overlapped || !generate_slot ? 0 : 28 * vertical_grids + 10) up(view_overlapped ? snap_thickness + ochead_total_height : 0) yrot(view_overlapped ? 180 : 0)
-            openconnect_screw(folded=generate_screw == "openConnect (Folded)");
-  if (generate_grid_type != "none") {
-    // down(0.84) fwd(15.6)
-    backplate_thickness = max(eps, generate_grid_type == "slot" ? ocslot_total_height + backplate_extra_thickness : backplate_extra_thickness);
-    down(backplate_thickness == eps ? eps : 0) diff() hide("hidden")
-          tag(backplate_thickness == eps ? "hidden" : "") cuboid([tile_size * horizontal_grids, tile_size * vertical_grids, backplate_thickness], anchor=BOTTOM + FRONT + LEFT) {
-              if (generate_grid_type == "slot")
-                attach(TOP, TOP, inside=true)
-                  tag("remove") openconnect_slot_grid(grid_type=generate_grid_type, horizontal_grids=horizontal_grids, vertical_grids=vertical_grids, tile_size=tile_size, slot_lock_distribution=slot_lock_distribution, slot_direction_flip=slot_direction_flip, excess_thickness=0);
-              else if (generate_grid_type == "vase")
-                attach(TOP, BOTTOM)
-                  tag("") openconnect_slot_grid(grid_type=generate_grid_type, horizontal_grids=horizontal_grids, vertical_grids=vertical_grids, tile_size=tile_size, slot_lock_distribution=slot_lock_distribution, slot_direction_flip=slot_direction_flip, excess_thickness=0);
-            }
+    left(10) up(view_overlapped ? snap_thickness + ochead_total_height : 0) yrot(view_overlapped ? 180 : 0)
+          openconnect_screw(folded=generate_screw == "openConnect (Folded)");
+  if (plate_slot_type != "none") {
+    final_plate_width = max(1, plate_size_unit == "mm" ? plate_horizontal_size : plate_horizontal_size * tile_size);
+    final_plate_h_grids = max(1, plate_size_unit == "mm" ? floor(plate_horizontal_size / tile_size) : plate_horizontal_size);
+    final_plate_height = max(1, plate_size_unit == "mm" ? plate_vertical_size : plate_vertical_size * tile_size);
+    final_plate_v_grids = max(1, plate_size_unit == "mm" ? floor(plate_vertical_size / tile_size) : plate_vertical_size);
+    final_plate_thickness = max(eps, plate_slot_type == "slot" ? ocslot_total_height + backplate_extra_thickness : backplate_extra_thickness);
+    final_plate_alignment =
+      plate_slot_alignment == "Center" ? CENTER
+      : plate_slot_alignment == "Top" ? BACK
+      : plate_slot_alignment == "Bottom" ? FRONT
+      : plate_slot_alignment == "Left" ? LEFT : RIGHT;
+      down(final_plate_thickness == eps ? eps : 0) diff() hide("hidden")
+            tag(final_plate_thickness == eps ? "hidden" : "") cuboid([final_plate_width, final_plate_height, final_plate_thickness], anchor=BOTTOM + FRONT + LEFT) {
+                if (plate_slot_type == "slot")
+                  attach(TOP, TOP, align=final_plate_alignment, inside=true)
+                    tag("remove") openconnect_slot_grid(grid_type=plate_slot_type, horizontal_grids=final_plate_h_grids, vertical_grids=final_plate_v_grids, tile_size=tile_size, slot_lock_distribution=slot_lock_distribution, slot_direction_flip=slot_direction_flip, excess_thickness=0);
+                else if (plate_slot_type == "vase")
+                  attach(TOP, BOTTOM, align=final_plate_alignment)
+                    tag("") openconnect_slot_grid(grid_type=plate_slot_type, horizontal_grids=final_plate_h_grids, vertical_grids=final_plate_v_grids, tile_size=tile_size, slot_lock_distribution=slot_lock_distribution, slot_direction_flip=slot_direction_flip, excess_thickness=0);
+              }
   }
 }

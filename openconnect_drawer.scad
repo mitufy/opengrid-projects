@@ -28,7 +28,7 @@ shell_bottom_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
 shell_side_wall_type = "Solid"; //["Solid","Honeycomb"]
 
 /*[Container Wall Settings]*/
-container_solidwall_thickness = 1.7; 
+container_solidwall_thickness = 1.7;
 container_honeycombwall_thickness = 2.6;
 //How much lower back and side wall is compared to front wall. stopper_clips_length need to be larger than this value to be effective.
 container_front_to_back_height_offset = 3;
@@ -51,7 +51,7 @@ shell_compartment_list = "2,1";
 add_container_divider = false;
 //The height of divider walls. This value is automatically capped by side wall height.
 container_divider_wall_height = 40;
-container_divider_wall_thickness = 1.7; 
+container_divider_wall_thickness = 1.7;
 container_divider_wall_fillet = 2;
 //Example: divider_dimension="Both", compartment_total_grids="3", compartment_list="1,1,1" - a container with 3x3 grid.
 container_divider_dimension = "Width"; //["Width","Depth","Both"]
@@ -66,7 +66,7 @@ add_label_holder = true;
 label_width = 48;
 label_height = 10;
 label_depth = 1;
-handle_thickness = 2.6; 
+handle_thickness = 2.6;
 //How much the handle protrudes from the front of the drawer container.
 handle_depth = 10;
 
@@ -93,15 +93,19 @@ side_magnet_diameter = 6;
 slot_lock_distribution = "Top Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
 //The slot entry direction can matter when installing in very tight spaces.
 slot_direction_flip = false;
+shell_to_slot_wall_thickness = 0.84;
 //Note changing shell thickness would also change container size.
-shell_thickness = 2.6; 
-//The thickness of the strut of honeycomb pattern.
-honeycomb_strut_hyp = 5.04; 
-shell_to_slot_wall_thickness = 0.84; 
+shell_thickness = 2.6;
+shell_outer_chamfer = 2; //0.2
+shell_inner_chamfer = 0.8;
+container_outer_chamfer = 0.8;
+container_inner_chamfer = 0;
 container_back_magnet_hole_position = "Bottom Corners"; //["All","Corners","Bottom Corners"]
+//The thickness of the strut of honeycomb pattern.
+honeycomb_strut_hyp = 5.04;
 //Change this value to adjust how much container would pull out before attaching to side magnets. 
-side_magnet_shell_edge_distance = 2.6; 
-side_magnet_container_edge_distance = 2.6; 
+side_magnet_shell_edge_distance = 2.6;
+side_magnet_container_edge_distance = 2.6;
 container_height_clearance = 0.5; //0.05
 container_width_clearance = 0.4; //0.05
 container_depth_clearance = 0.4; //0.05
@@ -128,13 +132,13 @@ eps = 0.005;
 
 //BEGIN openConnect slot parameters
 tile_size = 28;
-opengrid_snap_to_edge_offset = (tile_size - 24.8) / 2;
+opengrid_snap_to_edge_offset = 0; // There was 1.6mm here. It's gone now.
 
 ochead_bottom_height = 0.6;
 ochead_top_height = 0.6;
 ochead_middle_height = 1.4;
 ochead_large_rect_width = 17; //0.1
-ochead_large_rect_height = 11.2; //0.1
+ochead_large_rect_height = 10.6; //0.1
 
 ochead_nub_to_top_distance = 7.2;
 ochead_nub_depth = 0.6;
@@ -161,8 +165,7 @@ ochead_side_profile = [
   [0, ochead_bottom_height + ochead_middle_height + ochead_top_height],
 ];
 
-
-ocslot_move_distance = 11; //0.1
+ocslot_move_distance = 10.5; //0.1
 ocslot_onramp_clearance = 0.8;
 ocslot_bridge_offset = 0.4;
 ocslot_side_clearance = 0.15;
@@ -366,9 +369,9 @@ module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_
                         line_copies(spacing=tile_size, n=horizontal_grids - 2)
                           attach(BOTTOM, BOTTOM, inside=true) {
                             if (grid_type == "slot")
-                              openconnect_slot(add_nubs="left", slot_direction_flip=slot_direction_flip, excess_thickness=excess_thickness);
+                              openconnect_slot(add_nubs="", slot_direction_flip=slot_direction_flip, excess_thickness=excess_thickness);
                             else
-                              openconnect_vase_slot(add_nubs="left");
+                              openconnect_vase_slot(add_nubs="");
                           }
                     }
                     else
@@ -390,10 +393,6 @@ module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_
 //END openConnect slot modules
 
 shell_ocslot_part_thickness = ocslot_total_height + shell_to_slot_wall_thickness;
-shell_outer_chamfer = 2; //0.2
-shell_inner_chamfer = 0.8;
-container_outer_chamfer = 0.8;
-container_inner_chamfer = 0;
 
 //shell parameters
 shell_width = horizontal_grids * tile_size + (shell_slot_position == "Left" || shell_slot_position == "Right" ? shell_ocslot_part_thickness - shell_thickness : 0);
@@ -464,7 +463,7 @@ handle_chamfer = 0.4;
 shell_back_magnet_hole_thickness = shell_back_magnet_thickness + magnet_hole_depth_clearance;
 container_back_magnet_hole_thickness = container_back_magnet_thickness + magnet_hole_depth_clearance;
 back_magnet_hole_diameter = back_magnet_diameter + magnet_hole_side_clearance * 2;
-back_magnet_ocslot_offset = 3;
+back_magnet_ocslot_offset = 4.6;
 back_magnet_grid_space =
   container_back_magnet_hole_position == "Corners" ? [tile_size * (horizontal_grids - 2), tile_size * (vertical_grids - 1)]
   : container_back_magnet_hole_position == "Bottom Corners" ? [tile_size * (horizontal_grids - 2), tile_size * (vertical_grids - 1)]
@@ -596,7 +595,7 @@ module drawer_shell() {
               back(back_magnet_ocslot_offset + opengrid_snap_to_edge_offset)
                 grid_copies(spacing=[tile_size, tile_size], n=[horizontal_grids - 1, vertical_grids])
                   attach(BOTTOM, BOTTOM, inside=true)
-                    tag("rm_outer") cyl(h=shell_back_magnet_hole_thickness, d=back_magnet_hole_diameter,chamfer1=-0.2);
+                    tag("rm_outer") cyl(h=shell_back_magnet_hole_thickness, d=back_magnet_hole_diameter, chamfer1=-0.2);
             }
 
             for (i = [0:len(shell_horizontal_compartments) - 1]) {
@@ -825,14 +824,14 @@ module drawer_container() {
               line_copies(back_magnet_grid_space[0], back_back_magnet_grid_count[0])
                 attach(BOTTOM + FRONT, BOTTOM + FRONT, inside=true)
                   tag("keep") cuboid([back_magnet_hole_diameter + 4.2, container_height - container_front_to_back_height_offset, container_back_wall_thickness]);
-            back(opengrid_snap_to_edge_offset) back(back_magnet_ocslot_offset) fwd(container_back_magnet_hole_position == "Bottom Corners" ? (vertical_grids - 1) / 2 * tile_size : 0)
-                  grid_copies(back_magnet_grid_space, back_back_magnet_grid_count) {
-                    attach(BOTTOM, FRONT, inside=true)
-                      tag("rm_outer") teardrop(h=container_back_magnet_hole_thickness, d=back_magnet_hole_diameter, cap_h=back_magnet_hole_diameter / 2 + 0.2);
-                    if (hole_extrude_thickness > eps)
-                      up(container_back_wall_thickness) attach(BOTTOM, FRONT, inside=true)
-                          tag("kp_root") teardrop(h=hole_extrude_thickness, d=back_magnet_hole_diameter + 0.2, cap_h=back_magnet_hole_diameter / 2 + 0.2, chamfer1=-hole_extrude_thickness);
-                  }
+            back(opengrid_snap_to_edge_offset + back_magnet_ocslot_offset) fwd(container_back_magnet_hole_position == "Bottom Corners" ? (vertical_grids - 1) / 2 * tile_size : 0)
+                grid_copies(back_magnet_grid_space, back_back_magnet_grid_count) {
+                  attach(BOTTOM, FRONT, inside=true)
+                    tag("rm_outer") teardrop(h=container_back_magnet_hole_thickness, d=back_magnet_hole_diameter, cap_h=back_magnet_hole_diameter / 2 + 0.2);
+                  if (hole_extrude_thickness > eps)
+                    up(container_back_wall_thickness) attach(BOTTOM, FRONT, inside=true)
+                        tag("kp_root") teardrop(h=hole_extrude_thickness, d=back_magnet_hole_diameter + 0.2, cap_h=back_magnet_hole_diameter / 2 + 0.2, chamfer1=-hole_extrude_thickness);
+                }
           }
         }
   }

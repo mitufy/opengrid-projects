@@ -37,8 +37,6 @@ truss_rounding = 3;
 /*[Advanced Settings]*/
 //Increase this value if you find the snap fit too tight.
 framefit_snap_clearance = 0.1; //0.01
-//Framefit hook now align with the top of the snap, just like openConnect. You can adjust the y offset to change this.
-framefit_snap_y_offset = 0; //0.1
 //3.4mm version can be installed simultaneously on both side of openGrid Standard board (6.8mm thick). Choose 4mm if there is no such need.
 framefit_snap_depth = 4; //[4:"Lite - 4mm", 3.4:"Lite Basic - 3.4mm"]
 hook_side_chamfer = 0.8;
@@ -136,95 +134,94 @@ tip_inner_fillet_cut_shape = difference(
     path_merge_collinear(mask2d_roundover(joint=hook_final_tip_fillet, mask_angle=180 - hook_final_tip_angle)),
   ]
 );
-opengrid_snap_to_edge_offset = (tile_size - 24.8) / 2;
 difference() {
   union() {
-    down(opengrid_snap_to_edge_offset - framefit_snap_y_offset) diff() {
-        cuboid([hook_final_width, hook_final_back_thickness, hook_final_height], anchor=FRONT) {
-          //bottom truss
-          if (truss_vertical_grid != 0) {
-            truss_angle = min(45, adj_opp_to_ang(truss_vertical_grid * tile_size, hook_final_length));
-            attach(BOTTOM, TOP)
-              cuboid([hook_final_width, hook_final_back_thickness, truss_vertical_grid * tile_size], anchor=FRONT) {
-                for (i = [1:truss_vertical_grid])
-                  attach(BACK, LEFT, align=TOP, spin=-90)
-                    truss_sweep(truss_height=i * tile_size, truss_thickness=truss_thickness, truss_width=hook_final_width, truss_rounding=truss_rounding, truss_angle=truss_angle);
-              }
-          }
-          edge_mask([TOP + BACK])
+    diff() {
+      cuboid([hook_final_width, hook_final_back_thickness, hook_final_height], anchor=FRONT) {
+        //bottom truss
+        if (truss_vertical_grid > 0) {
+          truss_angle = min(45, adj_opp_to_ang(truss_vertical_grid * tile_size, hook_final_length));
+          attach(BOTTOM, TOP)
+            cuboid([hook_final_width, hook_final_back_thickness, truss_vertical_grid * tile_size], anchor=FRONT) {
+              for (i = [1:truss_vertical_grid])
+                attach(BACK, LEFT, align=TOP, spin=-90)
+                  truss_sweep(truss_height=i * tile_size, truss_thickness=truss_thickness, truss_width=hook_final_width, truss_rounding=truss_rounding, truss_angle=truss_angle);
+            }
+        }
+        edge_mask([TOP + BACK])
+          chamfer_edge_mask(chamfer=hook_final_side_chamfer);
+        // corner_mask([TOP + BACK])
+        // chamfer_corner_mask(chamfer=hook_final_side_chamfer);
+        //applying bottom chamfer to diagonal hooks may make print surface too small.
+        if (hook_corner_angle == 0 && truss_vertical_grid <= 0)
+          edge_mask([BOTTOM + FRONT])
             chamfer_edge_mask(chamfer=hook_final_side_chamfer);
-          // corner_mask([TOP + BACK])
-          // chamfer_corner_mask(chamfer=hook_final_side_chamfer);
-          //applying bottom chamfer to diagonal hooks may make print surface too small.
-          if (hook_corner_angle == 0 && truss_vertical_grid == 0)
-            *edge_mask([BOTTOM + FRONT])
-              chamfer_edge_mask(chamfer=hook_final_side_chamfer);
-          //hook length bottom chamfer
-          if (truss_vertical_grid == 0)
-            attach(BOTTOM, FRONT, align=FRONT, spin=90)
-              tag("remove") offset_sweep(rect([hook_final_length + hook_final_back_thickness, 1]), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
-          //hook height front chamfer
-          if (hook_final_length - hook_final_tip_fillet - hook_final_corner_fillet > hook_final_side_chamfer)
-            attach(BACK, FRONT, align=TOP, spin=90)
-              tag("remove") offset_sweep(rect([max(eps, hook_final_height - hook_final_corner_fillet - hook_final_bottom_thickness / cos(hook_corner_angle)), 1]), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
-          position(BACK + BOTTOM)
-            xrot(hook_corner_angle) cuboid([hook_final_width, hook_final_length, hook_final_bottom_thickness], anchor=FRONT + BOTTOM) {
-                //hook flat top chamfer
-                if (hook_final_length - hook_final_tip_fillet - hook_final_corner_fillet > eps)
-                  back(hook_final_corner_fillet + hook_final_bottom_thickness * tan(hook_corner_angle))
-                    attach(TOP, FRONT, align=FRONT, spin=90)
-                      tag("remove") offset_sweep(rect([max(eps, hook_flat_top_width), 1]), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
-                //hook corner fillet fill
+        //hook length bottom chamfer
+        if (truss_vertical_grid <= 0)
+          attach(BOTTOM, FRONT, align=FRONT, spin=90)
+            tag("remove") offset_sweep(rect([hook_final_length + hook_final_back_thickness, 1]), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
+        //hook height front chamfer
+        if (hook_final_length - hook_final_tip_fillet - hook_final_corner_fillet > hook_final_side_chamfer)
+          attach(BACK, FRONT, align=TOP, spin=90)
+            tag("remove") offset_sweep(rect([max(eps, hook_final_height - hook_final_corner_fillet - hook_final_bottom_thickness / cos(hook_corner_angle)), 1]), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
+        position(BACK + BOTTOM)
+          xrot(hook_corner_angle) cuboid([hook_final_width, hook_final_length, hook_final_bottom_thickness], anchor=FRONT + BOTTOM) {
+              //hook flat top chamfer
+              if (hook_final_length - hook_final_tip_fillet - hook_final_corner_fillet > eps)
+                back(hook_final_corner_fillet + hook_final_bottom_thickness * tan(hook_corner_angle))
+                  attach(TOP, FRONT, align=FRONT, spin=90)
+                    tag("remove") offset_sweep(rect([max(eps, hook_flat_top_width), 1]), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
+              //hook corner fillet fill
+              back(hook_final_corner_fillet + hook_final_bottom_thickness * tan(hook_corner_angle))
+                position(FRONT + TOP)
+                  yrot(90) zrot(90) offset_sweep(mask2d_roundover(joint=hook_final_corner_fillet, mask_angle=90 - hook_corner_angle), height=hook_final_width, anchor=FRONT + RIGHT);
+              //hook corner fillet chamfer
+              if (hook_final_length - hook_final_tip_fillet - hook_final_corner_fillet > hook_final_side_chamfer)
                 back(hook_final_corner_fillet + hook_final_bottom_thickness * tan(hook_corner_angle))
                   position(FRONT + TOP)
-                    yrot(90) zrot(90) offset_sweep(mask2d_roundover(joint=hook_final_corner_fillet, mask_angle=90 - hook_corner_angle), height=hook_final_width, anchor=FRONT + RIGHT);
-                //hook corner fillet chamfer
-                if (hook_final_length - hook_final_tip_fillet - hook_final_corner_fillet > hook_final_side_chamfer)
-                  back(hook_final_corner_fillet + hook_final_bottom_thickness * tan(hook_corner_angle))
-                    position(FRONT + TOP)
-                      tag("remove") yrot(90) zrot(90) offset_sweep(corner_fillet_cut_shape, height=hook_final_width, anchor=FRONT + RIGHT, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
-                if (hook_has_tip) {
-                  position(BACK + BOTTOM)
-                    xrot(hook_final_tip_angle - 90) cuboid([hook_final_width, hook_final_tip_thickness, hook_final_tip_length], anchor=BACK + BOTTOM) {
-                        //hook tip fillet fill
+                    tag("remove") yrot(90) zrot(90) offset_sweep(corner_fillet_cut_shape, height=hook_final_width, anchor=FRONT + RIGHT, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
+              if (hook_has_tip) {
+                position(BACK + BOTTOM)
+                  xrot(hook_final_tip_angle - 90) cuboid([hook_final_width, hook_final_tip_thickness, hook_final_tip_length], anchor=BACK + BOTTOM) {
+                      //hook tip fillet fill
+                      down(max(eps, hook_final_tip_fillet_diff)) position(FRONT + TOP)
+                          yrot(90) zrot(180) offset_sweep(mask2d_roundover(joint=hook_final_tip_fillet, mask_angle=180 - hook_final_tip_angle), height=hook_final_width, anchor=FRONT + RIGHT);
+                      //hook tip fillet chamfer
+                      if (hook_final_length - hook_final_tip_fillet - hook_final_corner_fillet > hook_final_side_chamfer)
                         down(max(eps, hook_final_tip_fillet_diff)) position(FRONT + TOP)
-                            yrot(90) zrot(180) offset_sweep(mask2d_roundover(joint=hook_final_tip_fillet, mask_angle=180 - hook_final_tip_angle), height=hook_final_width, anchor=FRONT + RIGHT);
-                        //hook tip fillet chamfer
-                        if (hook_final_length - hook_final_tip_fillet - hook_final_corner_fillet > hook_final_side_chamfer)
-                          down(max(eps, hook_final_tip_fillet_diff)) position(FRONT + TOP)
-                              tag("remove") yrot(90) zrot(180) offset_sweep(tip_inner_fillet_cut_shape, height=hook_final_width, anchor=FRONT + RIGHT, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
-                        //hook tip rect top chamfer
-                        if (hook_final_length - hook_final_tip_fillet - hook_final_corner_fillet > hook_final_side_chamfer)
-                          attach(FRONT, FRONT, align=TOP, spin=90)
-                            tag("remove") offset_sweep(rect([max(eps, hook_final_tip_fillet_diff), 1]), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
-                        //hook tip rect bottom chamfer
-                        if (truss_vertical_grid == 0)
-                          attach(BACK, FRONT, align=BOTTOM, spin=90)
-                            tag("remove") offset_sweep(rect([hook_final_tip_length, 1]), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
-                        if (hook_tip_shape == "Rectangular" || horizontal_grids > 1) {
-                          edge_mask(FRONT + TOP)
-                            rounding_edge_mask(r=min(max(eps, hook_final_tip_fillet / 5), hook_tip_point_fillet, hook_final_side_chamfer, hook_final_tip_length - hook_min_tip_length), ang=95);
-                          edge_mask(BACK + TOP)
-                            chamfer_edge_mask(chamfer=hook_final_side_chamfer);
-                          corner_mask([TOP + LEFT + BACK, TOP + RIGHT + BACK])
-                            chamfer_corner_mask(chamfer=hook_final_side_chamfer);
-                          edge_mask([TOP + LEFT, TOP + RIGHT])
-                            chamfer_edge_mask(chamfer=hook_final_side_chamfer);
-                        } else {
-                          edge_mask([TOP + LEFT, TOP + RIGHT])
-                            rounding_edge_mask(l=hook_final_tip_thickness + hook_final_tip_fillet, r=hook_final_width / 2);
-                        }
+                            tag("remove") yrot(90) zrot(180) offset_sweep(tip_inner_fillet_cut_shape, height=hook_final_width, anchor=FRONT + RIGHT, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
+                      //hook tip rect top chamfer
+                      if (hook_final_length - hook_final_tip_fillet - hook_final_corner_fillet > hook_final_side_chamfer)
+                        attach(FRONT, FRONT, align=TOP, spin=90)
+                          tag("remove") offset_sweep(rect([max(eps, hook_final_tip_fillet_diff), 1]), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
+                      //hook tip rect bottom chamfer
+                      if (truss_vertical_grid <= 0)
+                        attach(BACK, FRONT, align=BOTTOM, spin=90)
+                          tag("remove") offset_sweep(rect([hook_final_tip_length, 1]), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
+                      if (hook_tip_shape == "Rectangular" || horizontal_grids > 1) {
+                        edge_mask(FRONT + TOP)
+                          rounding_edge_mask(r=min(max(eps, hook_final_tip_fillet / 5), hook_tip_point_fillet, hook_final_side_chamfer, hook_final_tip_length - hook_min_tip_length), ang=95);
+                        edge_mask(BACK + TOP)
+                          chamfer_edge_mask(chamfer=hook_final_side_chamfer);
+                        corner_mask([TOP + LEFT + BACK, TOP + RIGHT + BACK])
+                          chamfer_corner_mask(chamfer=hook_final_side_chamfer);
+                        edge_mask([TOP + LEFT, TOP + RIGHT])
+                          chamfer_edge_mask(chamfer=hook_final_side_chamfer);
+                      } else {
+                        edge_mask([TOP + LEFT, TOP + RIGHT])
+                          rounding_edge_mask(l=hook_final_tip_thickness + hook_final_tip_fillet, r=hook_final_width / 2);
                       }
-                }
+                    }
               }
-        }
-        if (hook_corner_angle != 0)
-          tag("remove") down(hook_final_height / 2) left(hook_final_width / 2) back(hook_final_back_thickness) zrot(90) xrot(90) offset_sweep(mask2d_chamfer(hook_final_length, mask_angle=hook_corner_angle), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
+            }
       }
-    zcopies(spacing=-tile_size, n=vertical_grids + truss_vertical_grid, sp=[0, 0, 0])
+      if (hook_corner_angle != 0)
+        tag("remove") down(hook_final_height / 2) left(hook_final_width / 2) back(hook_final_back_thickness) zrot(90) xrot(90) offset_sweep(mask2d_chamfer(hook_final_length, mask_angle=hook_corner_angle), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
+    }
+    zcopies(spacing=-tile_size, n=vertical_grids + max(0, truss_vertical_grid), sp=[0, 0, 0])
       frame_snap();
   }
-  up(tile_size / 2 - opengrid_snap_to_edge_offset + framefit_snap_y_offset) cuboid([50, 50, 50], anchor=BOTTOM);
+  up(tile_size / 2) cuboid([50, 50, 50], anchor=BOTTOM);
 }
 module frame_snap() {
   difference() {

@@ -56,7 +56,7 @@ generate_snap = "Self-Expanding Threads"; //["Self-Expanding Threads","Basic Thr
 snap_body_width = 24.8;
 
 //Offset connector head/threads position, in x and y.
-snap_center_position_offset = [0,0]; //0.1
+snap_center_position_offset = [0, 0]; //0.1
 
 snap_corner_edge_height = 1.5;
 snap_body_top_corner_extrude = 1.1;
@@ -134,7 +134,7 @@ expansion_distance_step = 0.05;
 // ochead_top_height = 0.6;
 // ochead_middle_height = 1.4;
 // ochead_large_rect_width = 17; //0.1
-// ochead_large_rect_height = 11.2; //0.1
+// ochead_large_rect_height = 10.6; //0.1
 // ochead_large_rect_chamfer = 4;
 
 // ochead_nub_to_top_distance = 7.2;
@@ -143,7 +143,7 @@ expansion_distance_step = 0.05;
 // ochead_nub_inner_fillet = 0.6;
 // ochead_nub_outer_fillet = 0.8;
 
-// ocslot_move_distance = 11; //0.1
+// ocslot_move_distance = 10.5; //0.1
 // ocslot_onramp_clearance = 0.8;
 // ocslot_bridge_offset = 0.4;
 // ocslot_side_clearance = 0.15;
@@ -596,13 +596,13 @@ module multiconnect_head(top_pattern = "coin_slot") {
 }
 //BEGIN openConnect slot parameters
 tile_size = 28;
-opengrid_snap_to_edge_offset = (tile_size - 24.8) / 2;
+opengrid_snap_to_edge_offset = 0; // There was 1.6mm here. It's gone now.
 
 ochead_bottom_height = 0.6;
 ochead_top_height = 0.6;
 ochead_middle_height = 1.4;
 ochead_large_rect_width = 17; //0.1
-ochead_large_rect_height = 11.2; //0.1
+ochead_large_rect_height = 10.6; //0.1
 
 ochead_nub_to_top_distance = 7.2;
 ochead_nub_depth = 0.6;
@@ -629,8 +629,7 @@ ochead_side_profile = [
   [0, ochead_bottom_height + ochead_middle_height + ochead_top_height],
 ];
 
-
-ocslot_move_distance = 11; //0.1
+ocslot_move_distance = 10.5; //0.1
 ocslot_onramp_clearance = 0.8;
 ocslot_bridge_offset = 0.4;
 ocslot_side_clearance = 0.15;
@@ -834,9 +833,9 @@ module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_
                         line_copies(spacing=tile_size, n=horizontal_grids - 2)
                           attach(BOTTOM, BOTTOM, inside=true) {
                             if (grid_type == "slot")
-                              openconnect_slot(add_nubs="left", slot_direction_flip=slot_direction_flip, excess_thickness=excess_thickness);
+                              openconnect_slot(add_nubs="", slot_direction_flip=slot_direction_flip, excess_thickness=excess_thickness);
                             else
-                              openconnect_vase_slot(add_nubs="left");
+                              openconnect_vase_slot(add_nubs="");
                           }
                     }
                     else
