@@ -24,6 +24,13 @@ vase_tilt_angle = 15; //[0:5:45]
 //Serves similar purpose as tilt_angle by angling the front of the container.
 vase_front_inset_angle = 0; //[0:5:45]
 
+/* [Label Settings] */
+//"Split" option allows two narrow containers placed side-by-side to share a single, long label.
+label_holder_type = "None"; //["None", "Default", "Split-Left", "Split-Right"]
+label_width = 48;
+label_height = 10;
+label_depth = 1;
+
 /* [Advanced Settings] */
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
 slot_lock_distribution = "Top Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
@@ -63,15 +70,7 @@ ochead_top_profile = back(ochead_small_rect_width / 2, rect([ochead_small_rect_w
 ochead_total_height = ochead_top_height + ochead_middle_height + ochead_bottom_height;
 ochead_middle_to_bottom = ochead_large_rect_height - ochead_large_rect_width / 2;
 
-ochead_side_profile = [
-  [0, 0],
-  [ochead_large_rect_width / 2, 0],
-  [ochead_large_rect_width / 2, ochead_bottom_height],
-  [ochead_small_rect_width / 2, ochead_bottom_height + ochead_middle_height],
-  [ochead_small_rect_width / 2, ochead_bottom_height + ochead_middle_height + ochead_top_height],
-  [0, ochead_bottom_height + ochead_middle_height + ochead_top_height],
-];
-
+//regular slot
 ocslot_move_distance = 10.5; //0.1
 ocslot_onramp_clearance = 0.8;
 ocslot_bridge_offset = 0.4;
@@ -81,7 +80,7 @@ ocslot_depth_clearance = 0.12;
 ocslot_bottom_height = ochead_bottom_height + ang_adj_to_opp(45 / 2, ocslot_side_clearance) + ocslot_depth_clearance;
 ocslot_top_height = ochead_top_height - ang_adj_to_opp(45 / 2, ocslot_side_clearance);
 ocslot_total_height = ocslot_top_height + ochead_middle_height + ocslot_bottom_height;
-ocslot_nub_to_top_distance = ochead_nub_to_top_distance + ocslot_side_clearance * 1.5;
+ocslot_nub_to_top_distance = ochead_nub_to_top_distance + ocslot_side_clearance;
 
 ocslot_small_rect_width = ochead_small_rect_width + ocslot_side_clearance * 2;
 ocslot_small_rect_height = ochead_small_rect_height + ocslot_side_clearance * 2;
@@ -93,44 +92,41 @@ ocslot_middle_to_bottom = ocslot_large_rect_height - ocslot_large_rect_width / 2
 ocslot_top_profile = back(ocslot_small_rect_width / 2, rect([ocslot_small_rect_width, ocslot_small_rect_height], chamfer=[ocslot_small_rect_chamfer, ocslot_small_rect_chamfer, 0, 0], anchor=BACK));
 ocslot_bottom_profile = back(ocslot_large_rect_width / 2, rect([ocslot_large_rect_width, ocslot_large_rect_height], chamfer=[ocslot_large_rect_chamfer, ocslot_large_rect_chamfer, 0, 0], anchor=BACK));
 
-ocslot_side_profile = [
+//vase slot
+ocvase_wall_thickness = vase_linewidth * 2;
+ocvase_bottom_height = ocslot_bottom_height + ang_adj_to_opp(45 / 2, ocvase_wall_thickness);
+ocvase_top_height = ocslot_top_height - ang_adj_to_opp(45 / 2, ocvase_wall_thickness);
+ocvase_sweep_profile_a = [
   [0, 0],
-  [ocslot_large_rect_width / 2, 0],
-  [ocslot_large_rect_width / 2, ocslot_bottom_height],
-  [ocslot_small_rect_width / 2, ocslot_bottom_height + ochead_middle_height],
-  [ocslot_small_rect_width / 2, ocslot_bottom_height + ochead_middle_height + ocslot_top_height],
-  [0, ocslot_bottom_height + ochead_middle_height + ocslot_top_height],
+  [0, ocvase_bottom_height],
+  [ochead_middle_height, ocvase_bottom_height + ochead_middle_height],
+  [ochead_middle_height, ocslot_total_height],
+  [ochead_middle_height + ocvase_wall_thickness, ocslot_total_height],
+  [ochead_middle_height + ocvase_wall_thickness, ocslot_bottom_height + ochead_middle_height],
+  [ocvase_wall_thickness, ocslot_bottom_height],
+  [ocvase_wall_thickness, 0],
 ];
-
-vase_wall_thickness = vase_linewidth * 2;
-vase_tilt_offset_angle = max(0, vase_tilt_angle - 20);
-
-ocvase_small_rect_width = ocslot_small_rect_width + vase_wall_thickness * 2;
-ocvase_small_rect_height = ocslot_small_rect_height + vase_wall_thickness + ang_adj_to_opp(45 + vase_tilt_offset_angle, ocslot_total_height);
-ocvase_small_rect_chamfer = ocslot_small_rect_chamfer + vase_wall_thickness - ang_adj_to_opp(45 / 2, vase_wall_thickness);
-ocvase_large_rect_width = ocslot_large_rect_width + vase_wall_thickness * 2;
-ocvase_large_rect_height = ocslot_large_rect_height + vase_wall_thickness + ang_adj_to_opp(45 + vase_tilt_offset_angle, ocslot_total_height);
-ocvase_large_rect_chamfer = ocslot_large_rect_chamfer + vase_wall_thickness - ang_adj_to_opp(45 / 2, vase_wall_thickness);
-ocvase_middle_to_bottom = ocvase_large_rect_height - ocvase_large_rect_width / 2;
-
-ocvase_nub_to_top_distance = ocslot_nub_to_top_distance + vase_wall_thickness * 1.5;
-ocvase_bottom_height = ocslot_bottom_height + ang_adj_to_opp(45 / 2, vase_wall_thickness);
-ocvase_top_height = ocslot_top_height - ang_adj_to_opp(45 / 2, vase_wall_thickness);
-ocvase_total_height = ocvase_top_height + ochead_middle_height + ocvase_bottom_height;
-ocvase_top_profile = back(ocvase_small_rect_width / 2, rect([ocvase_small_rect_width, ocvase_small_rect_height], chamfer=[ocvase_small_rect_chamfer, ocvase_small_rect_chamfer, 0, 0], anchor=BACK));
-ocvase_bottom_profile = back(ocvase_large_rect_width / 2, rect([ocvase_large_rect_width, ocvase_large_rect_height], chamfer=[ocvase_large_rect_chamfer, ocvase_large_rect_chamfer, 0, 0], anchor=BACK));
-
+ocvase_sweep_profile_b = [
+  [0, 0],
+  [0, ocvase_bottom_height],
+  [ocslot_total_height - ocvase_bottom_height, ocslot_total_height],
+  [ochead_middle_height + ocvase_wall_thickness, ocslot_total_height],
+  [ochead_middle_height + ocvase_wall_thickness, ocslot_bottom_height + ochead_middle_height],
+  [ocvase_wall_thickness, ocslot_bottom_height],
+  [ocvase_wall_thickness, 0],
+];
+ocvase_sweep_profile = ocslot_total_height - ocvase_bottom_height > ochead_middle_height ? ocvase_sweep_profile_a : ocvase_sweep_profile_b;
 //END openConnect slot parameters
 
 //BEGIN openConnect slot modules
-module openconnect_head(head_type = "head", add_nubs = "both", nub_flattop = true, nub_taperin = true, excess_thickness = 0, size_offset = 0, anchor = BOTTOM, spin = 0, orient = UP) {
-  bottom_profile = head_type == "slot" ? ocslot_bottom_profile : head_type == "vase" ? ocvase_bottom_profile : ochead_bottom_profile;
-  top_profile = head_type == "slot" ? ocslot_top_profile : head_type == "vase" ? ocvase_top_profile : ochead_top_profile;
-  bottom_height = head_type == "slot" ? ocslot_bottom_height : head_type == "vase" ? ocvase_bottom_height : ochead_bottom_height;
-  top_height = head_type == "slot" ? ocslot_top_height : head_type == "vase" ? ocvase_top_height : ochead_top_height;
-  large_rect_width = head_type == "slot" ? ocslot_large_rect_width : head_type == "vase" ? ocvase_large_rect_width : ochead_large_rect_width;
-  large_rect_height = head_type == "slot" ? ocslot_large_rect_height : head_type == "vase" ? ocvase_large_rect_height : ochead_large_rect_height;
-  nub_to_top_distance = head_type == "slot" ? ocslot_nub_to_top_distance : head_type == "vase" ? ocvase_nub_to_top_distance : ochead_nub_to_top_distance;
+module openconnect_head(head_type = "head", add_nubs = "both", nub_flattop = false, nub_taperin = true, excess_thickness = 0, size_offset = 0, anchor = BOTTOM, spin = 0, orient = UP) {
+  bottom_profile = head_type == "slot" ? ocslot_bottom_profile : ochead_bottom_profile;
+  top_profile = head_type == "slot" ? ocslot_top_profile : ochead_top_profile;
+  bottom_height = head_type == "slot" ? ocslot_bottom_height : ochead_bottom_height;
+  top_height = head_type == "slot" ? ocslot_top_height : ochead_top_height;
+  large_rect_width = head_type == "slot" ? ocslot_large_rect_width : ochead_large_rect_width;
+  large_rect_height = head_type == "slot" ? ocslot_large_rect_height : ochead_large_rect_height;
+  nub_to_top_distance = head_type == "slot" ? ocslot_nub_to_top_distance : ochead_nub_to_top_distance;
   nub_angle = nub_taperin ? adj_opp_to_ang(ochead_middle_height, ochead_middle_height - ochead_nub_depth) : 0;
   total_height = bottom_height + top_height + ochead_middle_height;
 
@@ -148,19 +144,24 @@ module openconnect_head(head_type = "head", add_nubs = "both", nub_flattop = tru
           }
           back(large_rect_width / 2 - nub_to_top_distance) {
             if (add_nubs == "left" || add_nubs == "both")
-              left(large_rect_width / 2 + size_offset - ochead_nub_depth + eps) zrot(-90) {
-                  linear_extrude(bottom_height) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[nub_flattop ? 90 : 45, 45], rounding=[ochead_nub_inner_fillet, nub_flattop ? 0 : ochead_nub_inner_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet, -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
-                  up(bottom_height) linear_extrude(1 / cos(nub_angle) * ochead_middle_height, v=[0, tan(nub_angle), 1]) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[nub_flattop ? 90 : 45, 45], rounding=[ochead_nub_inner_fillet, nub_flattop ? 0 : ochead_nub_inner_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet, -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
-                }
+              left(large_rect_width / 2 + size_offset + eps)
+                openconnect_lock(bottom_height=bottom_height, middle_height=ochead_middle_height, nub_angle=nub_angle, nub_flattop=nub_flattop);
             if (add_nubs == "right" || add_nubs == "both")
-              right(large_rect_width / 2 + size_offset - ochead_nub_depth + eps) zrot(90) {
-                  linear_extrude(bottom_height) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[45, nub_flattop ? 90 : 45], rounding=[nub_flattop ? 0 : ochead_nub_inner_fillet, ochead_nub_inner_fillet, -ochead_nub_outer_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
-                  up(bottom_height) linear_extrude(1 / cos(nub_angle) * ochead_middle_height, v=[0, tan(nub_angle), 1]) trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[45, nub_flattop ? 90 : 45], rounding=[nub_flattop ? 0 : ochead_nub_inner_fillet, ochead_nub_inner_fillet, -ochead_nub_outer_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
-                }
+              right(large_rect_width / 2 + size_offset + eps)
+                xflip() openconnect_lock(bottom_height=bottom_height, middle_height=ochead_middle_height, nub_angle=nub_angle, nub_flattop=nub_flattop);
           }
         }
     children();
   }
+}
+module openconnect_lock(bottom_height, middle_height, nub_angle = 0, nub_flattop = false) {
+  right(ochead_nub_depth) zrot(-90) {
+      linear_extrude(bottom_height)
+        trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[nub_flattop ? 90 : 45, 45], rounding=[ochead_nub_inner_fillet, nub_flattop ? 0 : ochead_nub_inner_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet, -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
+      up(bottom_height)
+        linear_extrude(v=[0, tan(nub_angle) * middle_height, middle_height])
+          trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[nub_flattop ? 90 : 45, 45], rounding=[ochead_nub_inner_fillet, nub_flattop ? 0 : ochead_nub_inner_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet, -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
+    }
 }
 module openconnect_slot(add_nubs = "left", slot_direction_flip = false, excess_thickness = 0, anchor = BOTTOM, spin = 0, orient = UP) {
   attachable(anchor, spin, orient, size=[ocslot_large_rect_width, ocslot_large_rect_width, ocslot_total_height]) {
@@ -207,26 +208,42 @@ module openconnect_slot(add_nubs = "left", slot_direction_flip = false, excess_t
     }
   }
 }
-module openconnect_vase_slot(add_nubs = "", anchor = BOTTOM, spin = 0, orient = UP) {
-  attachable(anchor, spin, orient, size=[ocvase_large_rect_width, ocvase_large_rect_width, ocvase_total_height]) {
-    tag_scope()
-      diff(remove="remove")
-        down(ocvase_total_height / 2) {
-          tag("") openconnect_head(head_type="vase", add_nubs=add_nubs, nub_flattop=false);
-          tag("remove") openconnect_head(head_type="slot", add_nubs=add_nubs, nub_flattop=false);
-          tag("remove") cuboid([ocslot_large_rect_width - ocslot_large_rect_chamfer * 2, ocslot_large_rect_height, ocslot_total_height], anchor=FRONT + BOTTOM);
-          fwd(ocvase_middle_to_bottom) xrot(-(45 + vase_tilt_offset_angle))
-              tag("remove") cuboid([ocvase_large_rect_width + eps, 20, 20], anchor=BACK + BOTTOM);
-          xrot(90) up(ocslot_middle_to_bottom)
-              force_tag("remove") linear_extrude(ocslot_move_distance + ocslot_onramp_clearance) xflip_copy() polygon(ocslot_side_profile);
-          up(ocslot_total_height)
-            tag("remove") cuboid([50, 50, 50], anchor=BOTTOM);
-        }
+module openconnect_vase_slot(add_nubs = "", overhang_angle = 45, anchor = BOTTOM, spin = 0, orient = UP) {
+  straight_base_length = ocslot_large_rect_height - ocslot_large_rect_chamfer;
+  straight_extra_length = tan(overhang_angle) * ocslot_total_height;
+  nub_angle = adj_opp_to_ang(ochead_middle_height, ochead_middle_height - ochead_nub_depth);
+  attachable(anchor, spin, orient, size=[ocslot_large_rect_width + ocvase_wall_thickness * 2, ocslot_large_rect_width + ocvase_wall_thickness * 2, ocslot_total_height]) {
+    tag_scope() down(ocslot_total_height / 2) fwd(ocslot_middle_to_bottom + straight_extra_length)
+          difference() {
+            union() {
+              left(ocvase_wall_thickness + ocslot_large_rect_width / 2) difference() {
+                  union() {
+                    yflip() xrot(90) {
+                        linear_extrude(straight_base_length + straight_extra_length) polygon(ocvase_sweep_profile);
+                        up(straight_base_length + straight_extra_length)
+                          linear_extrude(v=[ocslot_large_rect_chamfer, 0, ocslot_large_rect_chamfer]) polygon(ocvase_sweep_profile);
+                      }
+                    if (add_nubs != "")
+                      back(ocslot_large_rect_height + straight_extra_length - ocslot_nub_to_top_distance) right(ocvase_wall_thickness) openconnect_lock(bottom_height=ocslot_bottom_height, middle_height=ochead_middle_height, nub_angle=nub_angle);
+                  }
+                  if (add_nubs != "")
+                    back(ocslot_large_rect_height + straight_extra_length - ocslot_nub_to_top_distance) right(-eps) openconnect_lock(bottom_height=ocvase_bottom_height, middle_height=ochead_middle_height, nub_angle=nub_angle);
+                }
+              right(ocvase_wall_thickness + ocslot_large_rect_width / 2)
+                xflip() yflip() xrot(90) {
+                      linear_extrude(straight_base_length + straight_extra_length) polygon(ocvase_sweep_profile);
+                      up(straight_base_length + straight_extra_length)
+                        linear_extrude(v=[ocslot_large_rect_chamfer, 0, ocslot_large_rect_chamfer]) polygon(ocvase_sweep_profile);
+                    }
+            }
+            xrot(90 - overhang_angle) cuboid([tile_size, 60, ocslot_total_height * 2], anchor=BOTTOM + FRONT);
+          }
+
     children();
   }
 }
-module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_grids = 1, tile_size = 28, slot_lock_distribution = "None", slot_direction_flip = false, excess_thickness = 0, anchor = BOTTOM, spin = 0, orient = UP) {
-  grid_height = grid_type == "slot" ? ocslot_total_height : ocvase_total_height;
+module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_grids = 1, tile_size = 28, slot_lock_distribution = "None", slot_direction_flip = false, excess_thickness = 0, overhang_angle = 45, anchor = BOTTOM, spin = 0, orient = UP) {
+  grid_height = ocslot_total_height;
   attachable(anchor, spin, orient, size=[horizontal_grids * tile_size, vertical_grids * tile_size, grid_height]) {
     tag_scope() hide_this() cuboid([horizontal_grids * tile_size, vertical_grids * tile_size, grid_height]) {
           back(opengrid_snap_to_edge_offset) {
@@ -236,7 +253,7 @@ module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_
                   if (grid_type == "slot")
                     openconnect_slot(add_nubs=(horizontal_grids == 1 && vertical_grids == 1 && slot_lock_distribution == "Staggered") || slot_lock_distribution == "All" ? "left" : "", slot_direction_flip=slot_direction_flip, excess_thickness=excess_thickness);
                   else
-                    openconnect_vase_slot(add_nubs=(horizontal_grids == 1 && vertical_grids == 1 && slot_lock_distribution == "Staggered") || slot_lock_distribution == "All" ? "left" : "");
+                    openconnect_vase_slot(add_nubs=(horizontal_grids == 1 && vertical_grids == 1 && slot_lock_distribution == "Staggered") || slot_lock_distribution == "All" ? "left" : "", overhang_angle=overhang_angle);
                 }
             if (slot_lock_distribution == "Staggered")
               grid_copies([tile_size, tile_size], [horizontal_grids, vertical_grids], stagger="alt")
@@ -244,7 +261,7 @@ module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_
                   if (grid_type == "slot")
                     openconnect_slot(add_nubs="left", slot_direction_flip=slot_direction_flip, excess_thickness=excess_thickness);
                   else
-                    openconnect_vase_slot(add_nubs="left");
+                    openconnect_vase_slot(add_nubs="left", overhang_angle=overhang_angle);
                 }
             if (slot_lock_distribution == "Corners" || slot_lock_distribution == "Top Corners") {
               if (slot_lock_distribution == "Corners")
@@ -253,7 +270,7 @@ module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_
                     if (grid_type == "slot")
                       openconnect_slot(add_nubs="left", slot_direction_flip=slot_direction_flip, excess_thickness=excess_thickness);
                     else
-                      openconnect_vase_slot(add_nubs="left");
+                      openconnect_vase_slot(add_nubs="left", overhang_angle=overhang_angle);
                   }
               else {
                 back(tile_size * (vertical_grids - 1) / 2)
@@ -262,7 +279,7 @@ module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_
                       if (grid_type == "slot")
                         openconnect_slot(add_nubs="left", slot_direction_flip=slot_direction_flip, excess_thickness=excess_thickness);
                       else
-                        openconnect_vase_slot(add_nubs="left");
+                        openconnect_vase_slot(add_nubs="left", overhang_angle=overhang_angle);
                     }
               }
               omit_edge_rows =
@@ -277,7 +294,7 @@ module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_
                             if (grid_type == "slot")
                               openconnect_slot(add_nubs="", slot_direction_flip=slot_direction_flip, excess_thickness=excess_thickness);
                             else
-                              openconnect_vase_slot(add_nubs="");
+                              openconnect_vase_slot(add_nubs="", overhang_angle=overhang_angle);
                           }
                     }
                     else
@@ -286,7 +303,7 @@ module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_
                           if (grid_type == "slot")
                             openconnect_slot(add_nubs="", slot_direction_flip=slot_direction_flip, excess_thickness=excess_thickness);
                           else
-                            openconnect_vase_slot(add_nubs="");
+                            openconnect_vase_slot(add_nubs="", overhang_angle=overhang_angle);
                         }
                   }
               }
@@ -301,64 +318,97 @@ module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_
 vase_width = tile_size * horizontal_grids;
 vase_depth = use_custom_depth ? custom_depth : tile_size * depth_grids;
 final_vase_tilt_angle = min(adj_opp_to_ang(tile_size * vertical_grids, vase_depth - 1), vase_tilt_angle);
+vase_slot_overhang_angle = max(45, 45 + final_vase_tilt_angle - 15);
 vase_height = ang_hyp_to_adj(final_vase_tilt_angle, tile_size * vertical_grids);
 final_vase_front_inset_angle = min(adj_opp_to_ang(vase_height, max(0, vase_depth - ang_adj_to_opp(final_vase_tilt_angle, vase_height) - 1)), vase_front_inset_angle);
 final_surface_texture_size = surface_texture_size * (vase_surface_texture == "checkers" || vase_surface_texture == "cubes" ? 2 : 1);
 
+label_overhang_angle = max(10, 45 - final_vase_front_inset_angle);
+label_side_clearance = 0.2;
+label_depth_clearance = 0.3;
+label_holder_wall_thickness = vase_linewidth * 2;
+label_holder_depth = label_depth + label_depth_clearance + label_holder_wall_thickness;
+label_holder_side_width = vase_linewidth * 4;
+label_move =
+  label_holder_type == "Split-Left" ? -vase_width / 2
+  : label_holder_type == "Split-Right" ? vase_width / 2 : 0;
 up(vase_height / 2) xrot(90 + final_vase_tilt_angle) {
-    right(vase_surface_texture != "" ? surface_texture_depth / 2 : 0)
-      xrot(-final_vase_tilt_angle)
-        diff(remove="root_rm") diff(remove="remove", keep="keep root_rm")
-            prismoid(size1=[vase_width, vase_depth], h=vase_height, xang=[90, 90], yang=[90 - final_vase_front_inset_angle, 90 - final_vase_tilt_angle], chamfer=0, orient=FRONT, anchor=BACK) {
-              attach(BACK, BOTTOM, spin=180)
-                openconnect_slot_grid(grid_type="vase", horizontal_grids=horizontal_grids, vertical_grids=vertical_grids, tile_size=tile_size, slot_lock_distribution=slot_lock_distribution);
-              if (vase_surface_texture != "") {
-                frontwall_height = ang_adj_to_hyp(final_vase_front_inset_angle, vase_height) + ang_adj_to_opp(final_vase_front_inset_angle, surface_texture_depth);
-                quant_texture_size = vase_surface_texture == "cubes" ? sqrt(3) * final_surface_texture_size : final_surface_texture_size;
-                final_wall_height = quantup(frontwall_height, quant_texture_size);
-                final_wall_width = quantup(vase_width, quant_texture_size);
-                final_wall_depth = quantup(vase_depth, quant_texture_size);
-                final_texture = vase_surface_texture == "checkers" ? texture(vase_surface_texture, border=0.2) : texture(vase_surface_texture);
-                diff(remove="frontwall_rm") {
-                  attach(FRONT, BOTTOM, align=BOTTOM)
-                    textured_tile(final_texture, w1=final_wall_width, w2=final_wall_width, shift=0, ysize=final_wall_height, tex_depth=surface_texture_depth, tex_size=[final_surface_texture_size, final_surface_texture_size * (vase_surface_texture == "cubes" ? sqrt(3) : 1)]);
-                  tag("frontwall_rm") attach(BOTTOM, BACK)
-                      cuboid([400, 400, 400]);
-                  tag("frontwall_rm") attach(LEFT, BACK)
-                      cuboid([400, 400, 400]);
-                  tag("frontwall_rm") attach(RIGHT, BACK)
-                      cuboid([400, 400, 400]);
-                }
-                diff(remove="sidewall_rm") {
-                  attach(LEFT, BOTTOM, align=BOTTOM)
-                    textured_tile(final_texture, w1=final_wall_depth, w2=final_wall_depth, shift=0, ysize=final_wall_height, tex_depth=surface_texture_depth, tex_size=[final_surface_texture_size, final_surface_texture_size * (vase_surface_texture == "cubes" ? sqrt(3) : 1)]);
-                  tag("sidewall_rm") attach(FRONT, BACK)
-                      cuboid([400, 400, 400]);
-                  tag("sidewall_rm") attach(BACK, BACK)
-                      cuboid([400, 400, 400]);
-                }
-                tag("remove") diff(remove="sidewall_rm") {
-                    attach(RIGHT, BOTTOM, inside=true, align=BOTTOM)
-                      textured_tile(final_texture, w1=final_wall_depth, w2=final_wall_depth, shift=0, ysize=final_wall_height, tex_depth=surface_texture_depth, tex_size=[final_surface_texture_size, final_surface_texture_size * (vase_surface_texture == "cubes" ? sqrt(3) : 1)]);
-                    tag("sidewall_rm") attach(FRONT, BACK, shiftout=eps)
-                        cuboid([400, 400, 400]);
-                    tag("sidewall_rm") attach(BACK, BACK, shiftout=eps)
-                        cuboid([400, 400, 400]);
+    // right(vase_surface_texture != "" ? surface_texture_depth / 2 : 0)
+    xrot(-final_vase_tilt_angle)
+      diff(remove="root_rm") diff(remove="remove", keep="keep root_rm")
+          prismoid(size1=[vase_width, vase_depth], h=vase_height, xang=[90, 90], yang=[90 - final_vase_front_inset_angle, 90 - final_vase_tilt_angle], chamfer=0, orient=FRONT, anchor=BACK) {
+            attach(BACK, BOTTOM, spin=180)
+              openconnect_slot_grid(grid_type="vase", horizontal_grids=horizontal_grids, vertical_grids=vertical_grids, tile_size=tile_size, slot_lock_distribution=slot_lock_distribution, overhang_angle=vase_slot_overhang_angle);
+            if (vase_surface_texture != "") {
+              frontwall_height = ang_adj_to_hyp(final_vase_front_inset_angle, vase_height) + ang_adj_to_opp(final_vase_front_inset_angle, surface_texture_depth);
+              quant_texture_size = vase_surface_texture == "cubes" ? sqrt(3) * final_surface_texture_size : final_surface_texture_size;
+              final_wall_height = quantup(frontwall_height, quant_texture_size);
+              final_wall_width = quantup(vase_width, quant_texture_size);
+              final_wall_depth = quantup(vase_depth, quant_texture_size);
+              final_texture = vase_surface_texture == "checkers" ? texture(vase_surface_texture, border=0.2) : texture(vase_surface_texture);
+              diff(remove="frontwall_rm") {
+                attach(FRONT, BOTTOM, align=BOTTOM)
+                  textured_tile(final_texture, w1=final_wall_width, w2=final_wall_width, shift=0, ysize=final_wall_height, tex_depth=surface_texture_depth, tex_size=[final_surface_texture_size, final_surface_texture_size * (vase_surface_texture == "cubes" ? sqrt(3) : 1)]) {
+                    if (label_holder_type != "None")
+                      right(label_move) tag("frontwall_rm")
+                          attach(TOP, BOTTOM, align=FRONT, inside=true, shiftout=eps)
+                            prismoid(size2=[label_width + label_side_clearance * 2, label_height + label_side_clearance], xang=[90, 90], yang=[90, label_overhang_angle], h=surface_texture_depth);
                   }
-                tag("root_rm")
-                  left(surface_texture_depth + 1) fwd(surface_texture_depth + 1)
-                      edge_profile([LEFT + FRONT], excess=10)
-                        mask2d_chamfer(x=surface_texture_depth * 2 + 2);
-                tag("root_rm")
-                  right(surface_texture_depth) fwd(surface_texture_depth + 1)
-                      edge_profile([RIGHT + FRONT], excess=10)
-                        mask2d_chamfer(x=surface_texture_depth * 3 + 1);
-                tag("root_rm") attach(TOP, BACK)
+                tag("frontwall_rm") attach(BOTTOM, BACK)
+                    cuboid([400, 400, 400]);
+                tag("frontwall_rm") attach(LEFT, BACK)
+                    cuboid([400, 400, 400]);
+                tag("frontwall_rm") attach(RIGHT, BACK)
                     cuboid([400, 400, 400]);
               }
-              else
-                tag("root_rm")
-                  edge_profile([LEFT + FRONT, RIGHT + FRONT], excess=10)
-                    mask2d_chamfer(x=1);
+              diff(remove="sidewall_rm") {
+                attach(LEFT, BOTTOM, align=BOTTOM)
+                  textured_tile(final_texture, w1=final_wall_depth, w2=final_wall_depth, shift=0, ysize=final_wall_height, tex_depth=surface_texture_depth, tex_size=[final_surface_texture_size, final_surface_texture_size * (vase_surface_texture == "cubes" ? sqrt(3) : 1)]);
+                tag("sidewall_rm") attach(FRONT, BACK)
+                    cuboid([400, 400, 400]);
+                tag("sidewall_rm") attach(BACK, BACK)
+                    cuboid([400, 400, 400]);
+              }
+              tag("remove") diff(remove="sidewall_rm") {
+                  attach(RIGHT, BOTTOM, inside=true, align=BOTTOM)
+                    textured_tile(final_texture, w1=final_wall_depth, w2=final_wall_depth, shift=0, ysize=final_wall_height, tex_depth=surface_texture_depth, tex_size=[final_surface_texture_size, final_surface_texture_size * (vase_surface_texture == "cubes" ? sqrt(3) : 1)]);
+                  tag("sidewall_rm") attach(FRONT, BACK, shiftout=eps)
+                      cuboid([400, 400, 400]);
+                  tag("sidewall_rm") attach(BACK, BACK, shiftout=eps)
+                      cuboid([400, 400, 400]);
+                }
+              tag("root_rm")
+                left(surface_texture_depth + 1) fwd(surface_texture_depth + 1)
+                    edge_profile([LEFT + FRONT], excess=10)
+                      mask2d_chamfer(x=surface_texture_depth * 2 + 2);
+              tag("root_rm")
+                right(surface_texture_depth) fwd(surface_texture_depth + 1)
+                    edge_profile([RIGHT + FRONT], excess=10)
+                      mask2d_chamfer(x=surface_texture_depth * 3 + 1);
+              tag("root_rm") attach(TOP, BACK)
+                  cuboid([400, 400, 400]);
             }
+            else
+              tag("root_rm")
+                edge_profile([LEFT + FRONT, RIGHT + FRONT], excess=10)
+                  mask2d_chamfer(x=1);
+            if (label_holder_type != "None")
+              right(label_move)
+                tag_diff(tag="keep", remove="rm0") {
+                  if (label_holder_type != "Split-Right")
+                    right((label_width + label_side_clearance * 2) / 2)
+                      attach(FRONT, BOTTOM, align=BOTTOM)
+                        tag("") prismoid(size2=[label_holder_side_width, label_height + label_side_clearance], xang=[90, 90], yang=[90, label_overhang_angle], h=label_holder_depth) {
+                            attach(LEFT + BOTTOM, LEFT + BOTTOM, align=FRONT, inside=true)
+                              tag("rm0") prismoid(size2=[label_holder_side_width - vase_linewidth * 2, label_height + label_side_clearance], xang=[90, 90], yang=[90, label_overhang_angle], h=label_holder_depth - label_holder_wall_thickness);
+                          }
+                  if (label_holder_type != "Split-Left")
+                    left((label_width + label_side_clearance * 2) / 2)
+                      attach(FRONT, BOTTOM, align=BOTTOM)
+                        tag("") prismoid(size2=[label_holder_side_width, label_height + label_side_clearance], xang=[90, 90], yang=[90, label_overhang_angle], h=label_holder_depth) {
+                            attach(RIGHT + BOTTOM, RIGHT + BOTTOM, align=FRONT, inside=true)
+                              tag("rm0") prismoid(size2=[label_holder_side_width - vase_linewidth * 2, label_height + label_side_clearance], xang=[90, 90], yang=[90, label_overhang_angle], h=label_holder_depth - label_holder_wall_thickness);
+                          }
+                }
+          }
   }
