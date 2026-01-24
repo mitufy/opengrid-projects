@@ -1,5 +1,5 @@
 /* 
-Licensed Creative Commons Attribution-ShareAlike 4.0 International
+Licensed Creative Commons Attribution 4.0 International
 
 Created by mitufy. https://github.com/mitufy
 
