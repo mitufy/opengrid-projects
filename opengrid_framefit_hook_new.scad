@@ -29,10 +29,12 @@ hook_tip_shape = "Rectangular"; //[Round, Rectangular]
 hook_tip_corner_fillet = 6;
 
 /*[Hook Truss]*/
-//Add a truss for more strength. The angle is calculated and clamped at 45 degrees to avoid steep overhangs. Thanks to @agentharm for the idea!
+//Add a truss for more strength. Thanks to @agentharm for the idea!
 truss_vertical_grid = 0;
 truss_thickness = 3;
 truss_rounding = 3;
+//Truss angle is calculated according to truss height and hook length, then capped by truss_max_angle. Print with support if the result angle exceeds 45 degrees.
+truss_max_angle = 45; //[15:5:75]
 
 /*[Advanced Settings]*/
 //Increase this value if you find the snap fit too tight.
@@ -141,7 +143,7 @@ diff() {
         frame_snap();
     //bottom truss
     if (truss_vertical_grid > 0 && hook_corner_angle == 0) {
-      truss_angle = min(45, adj_opp_to_ang(truss_vertical_grid * tile_size, hook_final_length));
+      truss_angle = min(truss_max_angle, adj_opp_to_ang(truss_vertical_grid * tile_size, hook_final_length));
       attach(BOTTOM, TOP)
         cuboid([hook_final_width, hook_final_back_thickness, truss_vertical_grid * tile_size], anchor=FRONT) {
           zcopies(spacing=tile_size, n=truss_vertical_grid)
