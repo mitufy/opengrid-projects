@@ -11,8 +11,8 @@ include <BOSL2/threading.scad>
 include <BOSL2/rounding.scad>
 
 snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm, 3.4:Lite Basic - 3.4mm]
-//Blunt end helps prevent cross-threading and overtightening. Models with blunt ends have a decorative 'lock' symbol at the bottom.
-threads_end_type = "Blunt"; //["Blunt", "Basic"]
+//Blunt threads help prevent cross-threading and overtightening. Models with blunt threads have a decorative 'lock' symbol at the bottom.
+threads_type = "Blunt"; //["Blunt", "Basic"]
 clip_shape = "Circular"; //["Circular", "Rectangular","Elliptic"]
 //Decides the state of the clip when completely screwed in.
 clip_orientation = "Horizontal"; //["Horizontal", "Vertical"]
@@ -42,22 +42,24 @@ knurling_texture_depth = 1; //0.2
 /* [Advanced Settings] */
 //Height of the clip body. The value for complete symmetry is 13.2.
 clip_height = 13.2; //0.2
+//A stem to offset the clip from the board. Useful for holding hourglass-shaped items, for example.
+clip_stem_length = 0;
 //Only affects clips of Rectangular shape.
 clip_rect_rounding = 3; //1
 tip_angle = 180; //[90:15:270]
-//This value is automatically clamped to ensure a sufficiently large print surface.
+//Side chamfer is automatically clamped to ensure a sufficiently large print surface.
 body_side_chamfer = 0.8; //0.2
-//Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
-add_thickness_text = "Uncommon Only"; //[All, Uncommon Only, None]
 
 /* [Hidden] */
 $fa = 1;
 $fs = 0.4;
 eps = 0.005;
 
-add_threads_blunt_end_text = true;
-threads_blunt_end_text = "🔓";
-threads_blunt_end_text_font = "Noto Emoji"; // font
+//Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
+add_thickness_text = "Uncommon Only"; //[All, Uncommon Only, None]
+add_threads_blunt_text = true;
+threads_blunt_text = "🔓";
+threads_blunt_text_font = "Noto Emoji"; // font
 threads_pitch = 3;
 
 threads_side_slice_off = 1.4; //0.1
@@ -143,16 +145,16 @@ zrot(180) xrot(90) back(threads_offset)
       diff() {
         zrot(threads_offset_angle) {
           zrot(threads_compatiblity_angle) {
-            if (threads_end_type == "Blunt")
+            if (threads_type == "Blunt")
               blunt_threaded_rod(diameter=threads_diameter, rod_height=snap_thickness, top_cutoff=true);
             else
               generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=threads_pitch, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
           }
-          if (add_threads_blunt_end_text && threads_end_type == "Blunt")
+          if (add_threads_blunt_text && threads_type == "Blunt")
             up(snap_thickness - text_depth + eps / 2) right(final_add_thickness_text ? 2.4 : 0)
-                tag("remove") linear_extrude(height=text_depth + eps) zrot(0) fill() text(threads_blunt_end_text, size=4, anchor=str("center", CENTER), font=threads_blunt_end_text_font);
+                tag("remove") linear_extrude(height=text_depth + eps) zrot(0) fill() text(threads_blunt_text, size=4, anchor=str("center", CENTER), font=threads_blunt_text_font);
           if (final_add_thickness_text)
-            up(snap_thickness - text_depth + eps / 2) left(add_threads_blunt_end_text && threads_end_type == "Blunt" ? 2.4 : 0)
+            up(snap_thickness - text_depth + eps / 2) left(add_threads_blunt_text && threads_type == "Blunt" ? 2.4 : 0)
                 tag("remove") linear_extrude(height=text_depth + eps) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
         }
         //first inner diff
@@ -161,11 +163,12 @@ zrot(180) xrot(90) back(threads_offset)
             //second inner diff
             diff(remove="rm2", keep="kp2") {
               //Added shape connects the print surface of the threads to gadget.
-              fwd((clip_height - symmetric_clip_height) / 2) fwd(threads_offset) {
-                  cuboid([min(6, clip_main_width), min(clip_height, symmetric_clip_height), connect_cuboid_height], anchor=TOP + FRONT);
-                  zcyl(d=min(clip_height, symmetric_clip_height), h=connect_cuboid_height, anchor=TOP + FRONT);
+              fwd((clip_height - symmetric_clip_height) / 2) fwd(threads_offset)diff(remove="rm3") {
+                  tag("")cuboid([min(6, clip_main_width), symmetric_clip_height, connect_cuboid_height+clip_stem_length], anchor=TOP + FRONT);
+                  tag("")zcyl(d=symmetric_clip_height, h=connect_cuboid_height+clip_stem_length, anchor=TOP + FRONT);
+                  tag("rm3")back(clip_height)cuboid([30,30,connect_cuboid_height+clip_stem_length],anchor=TOP + FRONT);
                 }
-              down(clip_shape != "Circular" ? (clip_main_width / 2 + clip_thickness) * abs(final_clip_entry_tilt_angle) / 90 : -clip_thickness / 2 * (1 - clip_thickness_scale) * (abs(final_clip_entry_tilt_angle)) / 90)
+              down(clip_stem_length)down(clip_shape != "Circular" ? (clip_main_width / 2 + clip_thickness) * abs(final_clip_entry_tilt_angle) / 90 : -clip_thickness / 2 * (1 - clip_thickness_scale) * (abs(final_clip_entry_tilt_angle)) / 90)
                 right(clip_shape != "Circular" ? (clip_main_depth / 2 + clip_thickness) * final_clip_entry_tilt_angle / 90 : 0)
                   yrot(final_clip_entry_tilt_angle, cp=[0, 0, clip_shape != "Circular" ? 0 : -(clip_main_width / 2 + clip_thickness)])
                     down(clip_thickness / 2) {
