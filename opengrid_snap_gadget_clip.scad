@@ -3,6 +3,7 @@ Licensed Creative Commons Attribution-ShareAlike 4.0 International
 
 Created by mitufy. https://github.com/mitufy
 
+Recommended to use with openGrid - Self-Expanding Snap. https://www.printables.com/model/1294247-opengrid-self-expanding-snap
 The openGrid system is created by David D. https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem
 */
 
@@ -163,12 +164,11 @@ zrot(180) xrot(90) back(threads_offset)
             //second inner diff
             diff(remove="rm2", keep="kp2") {
               //Added shape connects the print surface of the threads to gadget.
-              fwd((clip_height - symmetric_clip_height) / 2) fwd(threads_offset)diff(remove="rm3") {
-                  tag("")cuboid([min(6, clip_main_width), symmetric_clip_height, connect_cuboid_height+clip_stem_length], anchor=TOP + FRONT);
-                  tag("")zcyl(d=symmetric_clip_height, h=connect_cuboid_height+clip_stem_length, anchor=TOP + FRONT);
-                  tag("rm3")back(clip_height)cuboid([30,30,connect_cuboid_height+clip_stem_length],anchor=TOP + FRONT);
+              fwd((clip_height - symmetric_clip_height) / 2 + threads_offset) diff(remove="rm3") {
+                  teardrop(r=symmetric_clip_height / 2, h=connect_cuboid_height + clip_stem_length, anchor=BACK + TOP, orient=FRONT);
+                  tag("rm3") back(clip_height) cuboid([30, 30, connect_cuboid_height + clip_stem_length], anchor=TOP + FRONT);
                 }
-              down(clip_stem_length)down(clip_shape != "Circular" ? (clip_main_width / 2 + clip_thickness) * abs(final_clip_entry_tilt_angle) / 90 : -clip_thickness / 2 * (1 - clip_thickness_scale) * (abs(final_clip_entry_tilt_angle)) / 90)
+              down(clip_shape != "Circular" ? (clip_main_width / 2 + clip_thickness) * abs(final_clip_entry_tilt_angle) / 90 : -clip_thickness / 2 * (1 - clip_thickness_scale) * (abs(final_clip_entry_tilt_angle)) / 90 + clip_stem_length)
                 right(clip_shape != "Circular" ? (clip_main_depth / 2 + clip_thickness) * final_clip_entry_tilt_angle / 90 : 0)
                   yrot(final_clip_entry_tilt_angle, cp=[0, 0, clip_shape != "Circular" ? 0 : -(clip_main_width / 2 + clip_thickness)])
                     down(clip_thickness / 2) {
@@ -231,7 +231,6 @@ zrot(180) xrot(90) back(threads_offset)
                               if (tip_diameter > 0)
                                 attach("end", "start")
                                   path_sweep(scale([clip_thickness_scale, 1, 1], clip_profile), path=turtle(tip_path))
-                                    //makerworld doesn't support newest path_sweep caps yet so it has to be done the old way.
                                     attach("end", "top")
                                       offset_sweep(scale([clip_thickness_scale, 1, 1], clip_profile), height=tip_rounding_radius + eps, bottom=os_circle(r=tip_rounding_radius));
                               else {

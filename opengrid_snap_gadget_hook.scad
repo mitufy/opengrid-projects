@@ -3,6 +3,7 @@ Licensed Creative Commons Attribution-ShareAlike 4.0 International
 
 Created by mitufy. https://github.com/mitufy
 
+Recommended to use with openGrid - Self-Expanding Snap. https://www.printables.com/model/1294247-opengrid-self-expanding-snap
 The openGrid system is created by David D. https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem
 */
 
@@ -165,8 +166,6 @@ up(threads_offset) xrot(90)
       }
       fwd(threads_offset - body_width / 2) {
         down(final_stem_length - eps) xrot(-90)
-            //path_sweep(final_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[final_thickness_scale, 1], caps=[true, os_circle(r=tip_rounding_radius)]);
-            //makerworld doesn't support newest path_sweep caps yet so it has to be done the old way.
             path_sweep(final_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[final_thickness_scale, 1])
               attach("end", "top")
                 back(profile_back_offset) offset_sweep(offset_sweep_profile, height=tip_rounding_radius + eps, bottom=os_circle(r=tip_rounding_radius), spin=profile_zrot);
