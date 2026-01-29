@@ -3,20 +3,21 @@ Licensed Creative Commons Attribution-ShareAlike 4.0 International
 
 Created by mitufy. https://github.com/mitufy
 
-openConnect is a connector system designed for openGrid. openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
+openConnect is a connector system designed for openGrid. https://www.printables.com/model/1559478-openconnect-opengrids-own-connector-system
+openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 */
 
 include <BOSL2/std.scad>
 include <BOSL2/rounding.scad>
 
 /* [Main Settings] */
-//Default hook height is vertical_grids x 28mm, which aligns with openGrid tiles. You can override it by enabling "use_custom_height" below.
+//Default height is vertical_grids × 28mm, which aligns with openGrid tiles. You can override it by enabling "use_custom_height" below.
 vertical_grids = 1;
 //Recommened minimum width is 20mm. For smaller hooks, try "openGrid framefit hook generator".
 hook_width = 28;
-//The total outer length of the hook can be calculated by adding hook_thickness, corner_radius, flat_length and tip_radius together.
+//Total inner length of the hook = corner_radius + flat_length + tip_radius - hook_thickness. This assumes thickness_scale = 1 and tip_angle = 180.
 hook_thickness = 7;
-//Corner_radius cannot be larger than hook_height (vertical_grids x 28). For example, a hook with 40 corner_radius needs at least 2 vertical_grids.
+//Corner_radius is capped by hook_height (vertical_grids x 28mm). For example, a hook needs at least 2 vertical_grids to truly have a 40mm corner_radius.
 hook_corner_radius = 16;
 //The length of the flat bottom part of the hook.
 hook_flat_length = 0;
@@ -27,16 +28,22 @@ hook_thickness_scale = 0.8; //[0.5:0.1:1]
 //Angle of the tip of the hook. Set this value to 90 and increase flat_length to generate a flat hook.
 hook_tip_angle = 165; //[90:15:210]
 
-/* [Advanced Settings] */
+/* [Slot Settings] */
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
 slot_lock_distribution = "Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
-//The slot entry direction can matter when installing in very tight spaces. Note the side with the locking mechanism should be closer to the print bed.
+//Slot entry direction can matter in tight spaces. When printing on the side, place the locking mechanism side closer to the print bed.
 slot_direction_flip = false;
 //Increase this value if the slots feel too tight. Reduce it if they are too loose.
 slot_side_clearance = 0.1; //0.01
+//Minimum width for bridges. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
+slot_bridge_min_width = 0.8; //0.01
+//Slot bottom acts as a wall when printed on its side. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
+slot_bottom_min_thickness = 0.8; //0.01
+
+/* [Advanced Settings] */
 use_custom_height = false;
 custom_hook_height = 70;
-//As custom height is not multiples of 28 (otherwise there is no reason to use custom height), slots' position alignment needs to be chosen.
+//As custom height is not multiples of 28mm (otherwise there is no reason to use custom height), a position alignment needs to be chosen.
 custom_height_slot_alignment = "Center"; //[Center,Top, Bottom]
 hook_side_rounding = 2.4; //0.2
 
@@ -46,7 +53,6 @@ $fs = 0.4;
 eps = 0.005;
 //Double Lock is intended for small models that only use one or two slots. 
 ocslot_lock_position = "Left"; //[Left:Standard, Both:Double]
-ocslot_bridge_widen = "Side";
 
 //BEGIN openConnect slot parameters
 tile_size = 28;
@@ -75,10 +81,12 @@ ochead_top_profile = back(ochead_small_rect_width / 2 + ochead_back_pos_offset, 
 ochead_total_height = ochead_top_height + ochead_middle_height + ochead_bottom_height;
 ochead_middle_to_bottom = ochead_large_rect_height - ochead_large_rect_width / 2 - ochead_back_pos_offset;
 
-//regular slot
+//standard slot
 ocslot_move_distance = 10.6; //0.1
 ocslot_onramp_clearance = 0.8;
-ocslot_bridge_thickness = 0.8;
+ocslot_bridge_min_width = slot_bridge_min_width;
+ocslot_bridge_widen = "Side";
+ocslot_bottom_min_thickness = slot_bottom_min_thickness;
 ocslot_side_clearance = slot_side_clearance;
 ocslot_depth_clearance = 0.12;
 
@@ -86,8 +94,8 @@ ocslot_bottom_height = ochead_bottom_height + ang_adj_to_opp(45 / 2, ocslot_side
 ocslot_top_height = ochead_top_height - ang_adj_to_opp(45 / 2, ocslot_side_clearance);
 ocslot_total_height = ocslot_top_height + ochead_middle_height + ocslot_bottom_height;
 ocslot_nub_to_top_distance = ochead_nub_to_top_distance + ocslot_side_clearance;
-ocslot_top_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Top" ? max(0, ocslot_bridge_thickness - ocslot_top_height) : 0;
-ocslot_side_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Side" ? max(0, ocslot_bridge_thickness - ocslot_top_height) : 0;
+ocslot_top_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Top" ? max(0, ocslot_bridge_min_width - ocslot_top_height) : 0;
+ocslot_side_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Side" ? max(0, ocslot_bridge_min_width - ocslot_top_height) : 0;
 
 ocslot_small_rect_width = ochead_small_rect_width + ocslot_side_clearance * 2;
 ocslot_small_rect_height = ochead_small_rect_height + ocslot_side_clearance * 2;
@@ -174,12 +182,12 @@ module openconnect_lock(bottom_height, middle_height, nub_angle = 0, nub_flattop
 }
 module openconnect_slot(add_nubs = "Left", slot_direction_flip = false, excess_thickness = 0, anchor = BOTTOM, spin = 0, orient = UP) {
   attachable(anchor, spin, orient, size=[ocslot_large_rect_width, ocslot_large_rect_width, ocslot_total_height]) {
-    tag_scope() down(ocslot_total_height / 2) union() {
-          if (slot_direction_flip)
-            xflip() ocslot_body(excess_thickness);
-          else
-            ocslot_body(excess_thickness);
-        }
+    tag_scope() down(ocslot_total_height / 2) {
+        if (slot_direction_flip)
+          xflip() ocslot_body(excess_thickness);
+        else
+          ocslot_body(excess_thickness);
+      }
     children();
   }
   module ocslot_body(excess_thickness = 0) {
@@ -192,19 +200,23 @@ module openconnect_slot(add_nubs = "Left", slot_direction_flip = false, excess_t
       [0, ocslot_bottom_height + ochead_middle_height + ocslot_top_height + excess_thickness],
     ];
     ocslot_bridge_offset_profile = right(ocslot_side_bridge_offset / 2, back(ocslot_small_rect_width / 2 + ochead_back_pos_offset + ocslot_top_bridge_offset, rect([ocslot_small_rect_width + ocslot_side_bridge_offset, ocslot_small_rect_height + ocslot_move_distance + ocslot_onramp_clearance + ocslot_top_bridge_offset], chamfer=[ocslot_small_rect_chamfer + ocslot_top_bridge_offset + ocslot_side_bridge_offset, ocslot_small_rect_chamfer + ocslot_top_bridge_offset, 0, 0], anchor=BACK)));
-    union() {
-      openconnect_head(head_type="slot", add_nubs=add_nubs, excess_thickness=excess_thickness);
-      back(ochead_back_pos_offset) xrot(90) up(ocslot_middle_to_bottom) linear_extrude(ocslot_move_distance + ocslot_onramp_clearance + ochead_back_pos_offset) xflip_copy() polygon(ocslot_side_excess_profile);
-      up(ocslot_bottom_height) linear_extrude(ocslot_top_height + ochead_middle_height) polygon(ocslot_bridge_offset_profile);
-      fwd(ocslot_move_distance) {
-        linear_extrude(ocslot_bottom_height) onramp_2d();
-        up(ocslot_bottom_height)
-          linear_extrude(ochead_middle_height * sqrt(2), v=[-1, 0, 1]) onramp_2d();
-        left(ochead_middle_height) up(ocslot_bottom_height + ochead_middle_height)
-            linear_extrude(ocslot_top_height + excess_thickness) onramp_2d();
+    difference() {
+      union() {
+        openconnect_head(head_type="slot", add_nubs=add_nubs, excess_thickness=excess_thickness);
+        back(ochead_back_pos_offset) xrot(90) up(ocslot_middle_to_bottom) linear_extrude(ocslot_move_distance + ocslot_onramp_clearance + ochead_back_pos_offset) xflip_copy() polygon(ocslot_side_excess_profile);
+        up(ocslot_bottom_height) linear_extrude(ocslot_top_height + ochead_middle_height) polygon(ocslot_bridge_offset_profile);
+        fwd(ocslot_move_distance) {
+          linear_extrude(ocslot_bottom_height) onramp_2d();
+          up(ocslot_bottom_height)
+            linear_extrude(ochead_middle_height * sqrt(2), v=[-1, 0, 1]) onramp_2d();
+          left(ochead_middle_height) up(ocslot_bottom_height + ochead_middle_height)
+              linear_extrude(ocslot_top_height + excess_thickness) onramp_2d();
+        }
+        if (excess_thickness > 0)
+          fwd(ocslot_small_rect_chamfer) cuboid([ocslot_small_rect_width, ocslot_small_rect_height, ocslot_total_height + excess_thickness], anchor=BOTTOM);
       }
-      if (excess_thickness > 0)
-        fwd(ocslot_small_rect_chamfer) cuboid([ocslot_small_rect_width, ocslot_small_rect_height, ocslot_total_height + excess_thickness], anchor=BOTTOM);
+      fwd(tile_size / 2)
+        cuboid([tile_size, ocslot_bottom_min_thickness, ocslot_bottom_height + ochead_middle_height + ocslot_top_height + excess_thickness + eps], anchor=FRONT + BOTTOM);
     }
   }
   module onramp_2d() {
@@ -368,8 +380,6 @@ diff(remove="rm0")
       attach(LEFT, TOP, align=hook_slot_alignment, inside=true, spin=90)
         tag("rm0") openconnect_slot_grid(horizontal_grids=horizontal_grids, vertical_grids=vertical_grids, tile_size=tile_size, slot_lock_distribution=slot_lock_distribution, ocslot_lock_position=ocslot_lock_position, slot_direction_flip=slot_direction_flip, excess_thickness=0);
     }
-    //path_sweep(final_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[final_thickness_scale, 1], caps=[true, os_circle(r=tip_rounding_radius)]);
-    //makerworld doesn't support newest path_sweep caps yet so it has to be done the old way.
     tag("kp1") up(hook_width / 2) fwd(stem_first_height - hook_thickness / 2 * (1 - ( (1 - hook_thickness_scale) * path_first_ratio))) {
           path_sweep(final_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[final_thickness_scale, 1])
             attach("end", "top")

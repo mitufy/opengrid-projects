@@ -3,7 +3,8 @@ Licensed Creative Commons Attribution-ShareAlike 4.0 International
 
 Created by mitufy. https://github.com/mitufy
 
-openConnect is a connector system designed for openGrid. openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
+openConnect is a connector system designed for openGrid. https://www.printables.com/model/1559478-openconnect-opengrids-own-connector-system
+openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 */
 
 include <BOSL2/std.scad>
@@ -11,9 +12,9 @@ include <BOSL2/walls.scad>
 include <BOSL2/rounding.scad>
 
 generate_drawer_shell = true;
-//"Back" is for wall-mounted drawers. "Top" is for underdesk drawers. Other options are niche and not commonly used. 
+//"Back" for wall-mounted drawers. "Top" for underdesk drawers. Other options are niche and not commonly used. 
 shell_slot_position = "Back"; //["Back", "Top", "Bottom", "Left", "Right"]
-//Inner size of the shell stay the same regardless of shell_slot_position, ensuring the container is always compatible.
+//Inner dimensions remain constant regardless of shell_slot_position, ensuring the container always fits.
 generate_drawer_container = true;
 generate_drawer_stopper_clips = true;
 
@@ -34,14 +35,14 @@ container_honeycombwall_thickness = 2.6;
 container_front_to_back_height_offset = 3;
 container_front_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
 container_back_wall_type = "Solid"; //["Solid","Honeycomb"]
-//Honeycomb patterns on the side of drawer_shell and drawer_container do not align. If you want to avoid the inconsistent look, use honeycomb side walls on only one part.
+//Honeycomb patterns on the side of shell and container do not align. To avoid the inconsistent, see-through look, use honeycomb on only one of the two parts.
 container_side_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
 
 /*[Shell Divider Settings]*/
 //Divide the drawer shell into several compartments. Enabling this hides the container, as they would need to be generated separately.
 add_shell_divider = false;
 shell_divider_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
-//Divide by height is drawers stacked one above another. Width is drawers side by side.
+//Divide by "Height" stacks drawers vertically. "Width" places them side-by-side.
 shell_divider_dimension = "Height"; //["Width","Height"]
 //Compartments by openGrid's grid size. These values also indicate the size of corresponding container.
 shell_compartment_list = "2,3";
@@ -90,14 +91,18 @@ shell_side_magnet_thickness = 1;
 container_side_magnet_thickness = 1;
 side_magnet_diameter = 6;
 
-/*[Advanced Settings]*/
+/* [Slot Settings] */
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
 slot_lock_distribution = "Top Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
-//The slot entry direction can matter when installing in very tight spaces.
+//Slot entry direction can matter in tight spaces.
 slot_direction_flip = false;
 //Increase this value if the slots feel too tight. Reduce it if they are too loose.
 slot_side_clearance = 0.1; //0.01
-shell_to_slot_wall_thickness = 0.84;
+//Minimum width for bridges. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
+slot_bridge_min_width = 0.8; //0.01
+
+/*[Advanced Settings]*/
+shell_to_slot_wall_thickness = 0.9;
 //Note changing shell thickness would also change container size.
 shell_thickness = 2.6;
 shell_outer_chamfer = 2; //0.2
@@ -119,6 +124,8 @@ container_depth_clearance = 0.4; //0.05
 container_bottom_wall_type = "Solid"; //["Solid","Honeycomb"]
 view_cross_section = "None"; //["None","Right","Back","Diagonal"]
 view_drawer_overlapped = false;
+//Slot bottom acts as a wall when printed on its side. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
+slot_bottom_min_thickness = 0.8; //0.01
 //Ratio of divider wall to side wall height. 0.9 means the divider walls are 70% as tall as the side walls.
 // container_divider_wall_height_scale = 0.9; //[0:0.01:1]
 // container_body_height_scale = 0.7; //[0.6:0.05:1]
@@ -129,7 +136,6 @@ view_drawer_overlapped = false;
 
 magnet_hole_side_clearance = 0.2;
 magnet_hole_depth_clearance = 0.15;
-ocslot_bridge_widen = shell_slot_position == "Back" ? "None" : "Side";
 
 $fa = 1;
 $fs = 0.4;
@@ -162,10 +168,12 @@ ochead_top_profile = back(ochead_small_rect_width / 2 + ochead_back_pos_offset, 
 ochead_total_height = ochead_top_height + ochead_middle_height + ochead_bottom_height;
 ochead_middle_to_bottom = ochead_large_rect_height - ochead_large_rect_width / 2 - ochead_back_pos_offset;
 
-//regular slot
+//standard slot
 ocslot_move_distance = 10.6; //0.1
 ocslot_onramp_clearance = 0.8;
-ocslot_bridge_thickness = 0.8;
+ocslot_bridge_min_width = slot_bridge_min_width;
+ocslot_bridge_widen = shell_slot_position == "Back" ? "None" : "Side";
+ocslot_bottom_min_thickness = slot_bottom_min_thickness;
 ocslot_side_clearance = slot_side_clearance;
 ocslot_depth_clearance = 0.12;
 
@@ -173,8 +181,8 @@ ocslot_bottom_height = ochead_bottom_height + ang_adj_to_opp(45 / 2, ocslot_side
 ocslot_top_height = ochead_top_height - ang_adj_to_opp(45 / 2, ocslot_side_clearance);
 ocslot_total_height = ocslot_top_height + ochead_middle_height + ocslot_bottom_height;
 ocslot_nub_to_top_distance = ochead_nub_to_top_distance + ocslot_side_clearance;
-ocslot_top_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Top" ? max(0, ocslot_bridge_thickness - ocslot_top_height) : 0;
-ocslot_side_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Side" ? max(0, ocslot_bridge_thickness - ocslot_top_height) : 0;
+ocslot_top_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Top" ? max(0, ocslot_bridge_min_width - ocslot_top_height) : 0;
+ocslot_side_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Side" ? max(0, ocslot_bridge_min_width - ocslot_top_height) : 0;
 
 ocslot_small_rect_width = ochead_small_rect_width + ocslot_side_clearance * 2;
 ocslot_small_rect_height = ochead_small_rect_height + ocslot_side_clearance * 2;
@@ -261,12 +269,12 @@ module openconnect_lock(bottom_height, middle_height, nub_angle = 0, nub_flattop
 }
 module openconnect_slot(add_nubs = "Left", slot_direction_flip = false, excess_thickness = 0, anchor = BOTTOM, spin = 0, orient = UP) {
   attachable(anchor, spin, orient, size=[ocslot_large_rect_width, ocslot_large_rect_width, ocslot_total_height]) {
-    tag_scope() down(ocslot_total_height / 2) union() {
-          if (slot_direction_flip)
-            xflip() ocslot_body(excess_thickness);
-          else
-            ocslot_body(excess_thickness);
-        }
+    tag_scope() down(ocslot_total_height / 2) {
+        if (slot_direction_flip)
+          xflip() ocslot_body(excess_thickness);
+        else
+          ocslot_body(excess_thickness);
+      }
     children();
   }
   module ocslot_body(excess_thickness = 0) {
@@ -279,19 +287,23 @@ module openconnect_slot(add_nubs = "Left", slot_direction_flip = false, excess_t
       [0, ocslot_bottom_height + ochead_middle_height + ocslot_top_height + excess_thickness],
     ];
     ocslot_bridge_offset_profile = right(ocslot_side_bridge_offset / 2, back(ocslot_small_rect_width / 2 + ochead_back_pos_offset + ocslot_top_bridge_offset, rect([ocslot_small_rect_width + ocslot_side_bridge_offset, ocslot_small_rect_height + ocslot_move_distance + ocslot_onramp_clearance + ocslot_top_bridge_offset], chamfer=[ocslot_small_rect_chamfer + ocslot_top_bridge_offset + ocslot_side_bridge_offset, ocslot_small_rect_chamfer + ocslot_top_bridge_offset, 0, 0], anchor=BACK)));
-    union() {
-      openconnect_head(head_type="slot", add_nubs=add_nubs, excess_thickness=excess_thickness);
-      back(ochead_back_pos_offset) xrot(90) up(ocslot_middle_to_bottom) linear_extrude(ocslot_move_distance + ocslot_onramp_clearance + ochead_back_pos_offset) xflip_copy() polygon(ocslot_side_excess_profile);
-      up(ocslot_bottom_height) linear_extrude(ocslot_top_height + ochead_middle_height) polygon(ocslot_bridge_offset_profile);
-      fwd(ocslot_move_distance) {
-        linear_extrude(ocslot_bottom_height) onramp_2d();
-        up(ocslot_bottom_height)
-          linear_extrude(ochead_middle_height * sqrt(2), v=[-1, 0, 1]) onramp_2d();
-        left(ochead_middle_height) up(ocslot_bottom_height + ochead_middle_height)
-            linear_extrude(ocslot_top_height + excess_thickness) onramp_2d();
+    difference() {
+      union() {
+        openconnect_head(head_type="slot", add_nubs=add_nubs, excess_thickness=excess_thickness);
+        back(ochead_back_pos_offset) xrot(90) up(ocslot_middle_to_bottom) linear_extrude(ocslot_move_distance + ocslot_onramp_clearance + ochead_back_pos_offset) xflip_copy() polygon(ocslot_side_excess_profile);
+        up(ocslot_bottom_height) linear_extrude(ocslot_top_height + ochead_middle_height) polygon(ocslot_bridge_offset_profile);
+        fwd(ocslot_move_distance) {
+          linear_extrude(ocslot_bottom_height) onramp_2d();
+          up(ocslot_bottom_height)
+            linear_extrude(ochead_middle_height * sqrt(2), v=[-1, 0, 1]) onramp_2d();
+          left(ochead_middle_height) up(ocslot_bottom_height + ochead_middle_height)
+              linear_extrude(ocslot_top_height + excess_thickness) onramp_2d();
+        }
+        if (excess_thickness > 0)
+          fwd(ocslot_small_rect_chamfer) cuboid([ocslot_small_rect_width, ocslot_small_rect_height, ocslot_total_height + excess_thickness], anchor=BOTTOM);
       }
-      if (excess_thickness > 0)
-        fwd(ocslot_small_rect_chamfer) cuboid([ocslot_small_rect_width, ocslot_small_rect_height, ocslot_total_height + excess_thickness], anchor=BOTTOM);
+      fwd(tile_size / 2)
+        cuboid([tile_size, ocslot_bottom_min_thickness, ocslot_bottom_height + ochead_middle_height + ocslot_top_height + excess_thickness + eps], anchor=FRONT + BOTTOM);
     }
   }
   module onramp_2d() {

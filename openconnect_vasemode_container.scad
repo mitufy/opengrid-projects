@@ -3,13 +3,14 @@ Licensed Creative Commons Attribution-ShareAlike 4.0 International
 
 Created by mitufy. https://github.com/mitufy
 
-openConnect is a connector system designed for openGrid. openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
+openConnect is a connector system designed for openGrid. https://www.printables.com/model/1559478-openconnect-opengrids-own-connector-system
+openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 */
 
 include <BOSL2/std.scad>
 
 /* [Main Settings] */
-//Safe value for vase mode linewidth is 150-200% of nozzle size, i.e. 0.6~0.8mm linewidth for 0.4mm nozzles. It can be fine to go higher, feel free to experiment.
+//Recommended: 150-200% of nozzle size (e.g. 0.6–0.8mm for a 0.4mm nozzle). Higher values may work, feel free to experiment.
 vase_slot_linewidth = 0.6;
 //Multiple containers of same texture can be installed side by side as the pattern is designed to be complementary.
 vase_surface_texture = "checkers"; //["":None, "cubes":Cubes, "diamonds":Diagonal Ribs,"wave_ribs":Wave Ribs,"checkers":Checkers]
@@ -19,14 +20,14 @@ vertical_grids = 3;
 //Depth is not technically restrained by grid. You can override this with "use_custom_depth" below.
 depth_grids = 2;
 
-//A tilt_angle can make it easier to take out contents. Set this to 0 for a normal straight up container.
+//Tilt the container forward for easier access of content. Set to 0 for a standard vertical container.
 vase_tilt_angle = 15; //[0:5:45]
-//Serves similar purpose as tilt_angle by angling the front of the container.
+//Serves similar purpose as tilt_angle by insetting the front face of the container.
 vase_front_inset_angle = 0; //[0:5:45]
 
 /* [Label Settings] */
 //"Split" option allows two narrow containers placed side-by-side to share a single, long label.
-label_holder_type = "None"; //["None", "Default", "Split-Left", "Split-Right"]
+label_holder_type = "None"; //["None", "Standard", "Split-Left", "Split-Right"]
 label_width = 48;
 label_height = 10;
 label_depth = 1;
@@ -73,10 +74,12 @@ ochead_top_profile = back(ochead_small_rect_width / 2 + ochead_back_pos_offset, 
 ochead_total_height = ochead_top_height + ochead_middle_height + ochead_bottom_height;
 ochead_middle_to_bottom = ochead_large_rect_height - ochead_large_rect_width / 2 - ochead_back_pos_offset;
 
-//regular slot
+//standard slot
 ocslot_move_distance = 10.6; //0.1
 ocslot_onramp_clearance = 0.8;
-ocslot_bridge_thickness = 0.8;
+ocslot_bridge_min_width = 0.8;
+ocslot_bridge_widen = "None";
+ocslot_bottom_min_thickness = 0.8;
 ocslot_side_clearance = slot_side_clearance;
 ocslot_depth_clearance = 0.12;
 
@@ -84,9 +87,8 @@ ocslot_bottom_height = ochead_bottom_height + ang_adj_to_opp(45 / 2, ocslot_side
 ocslot_top_height = ochead_top_height - ang_adj_to_opp(45 / 2, ocslot_side_clearance);
 ocslot_total_height = ocslot_top_height + ochead_middle_height + ocslot_bottom_height;
 ocslot_nub_to_top_distance = ochead_nub_to_top_distance + ocslot_side_clearance;
-ocslot_bridge_widen = "None";
-ocslot_top_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Top" ? max(0, ocslot_bridge_thickness - ocslot_top_height) : 0;
-ocslot_side_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Side" ? max(0, ocslot_bridge_thickness - ocslot_top_height) : 0;
+ocslot_top_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Top" ? max(0, ocslot_bridge_min_width - ocslot_top_height) : 0;
+ocslot_side_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Side" ? max(0, ocslot_bridge_min_width - ocslot_top_height) : 0;
 
 ocslot_small_rect_width = ochead_small_rect_width + ocslot_side_clearance * 2;
 ocslot_small_rect_height = ochead_small_rect_height + ocslot_side_clearance * 2;
@@ -172,12 +174,12 @@ module openconnect_lock(bottom_height, middle_height, nub_angle = 0, nub_flattop
 }
 module openconnect_slot(add_nubs = "Left", slot_direction_flip = false, excess_thickness = 0, anchor = BOTTOM, spin = 0, orient = UP) {
   attachable(anchor, spin, orient, size=[ocslot_large_rect_width, ocslot_large_rect_width, ocslot_total_height]) {
-    tag_scope() down(ocslot_total_height / 2) union() {
-          if (slot_direction_flip)
-            xflip() ocslot_body(excess_thickness);
-          else
-            ocslot_body(excess_thickness);
-        }
+    tag_scope() down(ocslot_total_height / 2) {
+        if (slot_direction_flip)
+          xflip() ocslot_body(excess_thickness);
+        else
+          ocslot_body(excess_thickness);
+      }
     children();
   }
   module ocslot_body(excess_thickness = 0) {
@@ -189,20 +191,24 @@ module openconnect_slot(add_nubs = "Left", slot_direction_flip = false, excess_t
       [ocslot_small_rect_width / 2, ocslot_bottom_height + ochead_middle_height + ocslot_top_height + excess_thickness],
       [0, ocslot_bottom_height + ochead_middle_height + ocslot_top_height + excess_thickness],
     ];
-    ocslot_bridge_offset_profile = right(ocslot_side_bridge_offset / 2, back(ocslot_small_rect_width / 2 + ochead_back_pos_offset + ocslot_top_bridge_offset, rect([ocslot_small_rect_width + ocslot_side_bridge_offset, ocslot_small_rect_height + ocslot_move_distance + ocslot_onramp_clearance + ocslot_top_bridge_offset], chamfer=[ocslot_small_rect_chamfer + ocslot_top_bridge_offset+ ocslot_side_bridge_offset, ocslot_small_rect_chamfer + ocslot_top_bridge_offset, 0, 0], anchor=BACK)));
-    union() {
-      openconnect_head(head_type="slot", add_nubs=add_nubs, excess_thickness=excess_thickness);
-      back(ochead_back_pos_offset) xrot(90) up(ocslot_middle_to_bottom) linear_extrude(ocslot_move_distance + ocslot_onramp_clearance + ochead_back_pos_offset) xflip_copy() polygon(ocslot_side_excess_profile);
-      up(ocslot_bottom_height) linear_extrude(ocslot_top_height + ochead_middle_height) polygon(ocslot_bridge_offset_profile);
-      fwd(ocslot_move_distance) {
-        linear_extrude(ocslot_bottom_height) onramp_2d();
-        up(ocslot_bottom_height)
-          linear_extrude(ochead_middle_height * sqrt(2), v=[-1, 0, 1]) onramp_2d();
-        left(ochead_middle_height) up(ocslot_bottom_height + ochead_middle_height)
-            linear_extrude(ocslot_top_height + excess_thickness) onramp_2d();
+    ocslot_bridge_offset_profile = right(ocslot_side_bridge_offset / 2, back(ocslot_small_rect_width / 2 + ochead_back_pos_offset + ocslot_top_bridge_offset, rect([ocslot_small_rect_width + ocslot_side_bridge_offset, ocslot_small_rect_height + ocslot_move_distance + ocslot_onramp_clearance + ocslot_top_bridge_offset], chamfer=[ocslot_small_rect_chamfer + ocslot_top_bridge_offset + ocslot_side_bridge_offset, ocslot_small_rect_chamfer + ocslot_top_bridge_offset, 0, 0], anchor=BACK)));
+    difference() {
+      union() {
+        openconnect_head(head_type="slot", add_nubs=add_nubs, excess_thickness=excess_thickness);
+        back(ochead_back_pos_offset) xrot(90) up(ocslot_middle_to_bottom) linear_extrude(ocslot_move_distance + ocslot_onramp_clearance + ochead_back_pos_offset) xflip_copy() polygon(ocslot_side_excess_profile);
+        up(ocslot_bottom_height) linear_extrude(ocslot_top_height + ochead_middle_height) polygon(ocslot_bridge_offset_profile);
+        fwd(ocslot_move_distance) {
+          linear_extrude(ocslot_bottom_height) onramp_2d();
+          up(ocslot_bottom_height)
+            linear_extrude(ochead_middle_height * sqrt(2), v=[-1, 0, 1]) onramp_2d();
+          left(ochead_middle_height) up(ocslot_bottom_height + ochead_middle_height)
+              linear_extrude(ocslot_top_height + excess_thickness) onramp_2d();
+        }
+        if (excess_thickness > 0)
+          fwd(ocslot_small_rect_chamfer) cuboid([ocslot_small_rect_width, ocslot_small_rect_height, ocslot_total_height + excess_thickness], anchor=BOTTOM);
       }
-      if (excess_thickness > 0)
-        fwd(ocslot_small_rect_chamfer) cuboid([ocslot_small_rect_width, ocslot_small_rect_height, ocslot_total_height + excess_thickness], anchor=BOTTOM);
+      fwd(tile_size / 2)
+        cuboid([tile_size, ocslot_bottom_min_thickness, ocslot_bottom_height + ochead_middle_height + ocslot_top_height + excess_thickness + eps], anchor=FRONT + BOTTOM);
     }
   }
   module onramp_2d() {

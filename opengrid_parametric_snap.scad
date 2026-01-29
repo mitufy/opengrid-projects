@@ -11,7 +11,6 @@ The openGrid system is created by David D. https://www.printables.com/model/1214
 
 include <BOSL2/std.scad>
 include <BOSL2/threading.scad>
-//It seems as of now (2025-08) makerworld's customizer needs rounding.scad to be included manually, despite the fact it should be included in std.scad according to BOSL2 wiki.
 include <BOSL2/rounding.scad>
 
 snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm, 3.4:Lite Basic - 3.4mm]
@@ -136,11 +135,13 @@ ochead_nub_tip_height = 1.2;
 ochead_nub_inner_fillet = 0.6;
 ochead_nub_outer_fillet = 0.8;
 
-ocslot_move_distance = 10.6; //0.1
-ocslot_onramp_clearance = 0.8;
-ocslot_bridge_thickness = 0.8;
-ocslot_side_clearance = 0.1;
-ocslot_depth_clearance = 0.12;
+// ocslot_move_distance = 10.6; //0.1
+// ocslot_onramp_clearance = 0.8;
+// ocslot_bridge_min_width = 0.8;
+// ocslot_bridge_widen = "None";
+// ocslot_bottom_min_thickness = 0.8;
+// ocslot_side_clearance = slot_side_clearance;
+// ocslot_depth_clearance = 0.12;
 
 /* [multiConnect Settings] */
 mchead_large_diameter = 20;
@@ -625,20 +626,21 @@ ochead_top_profile = back(ochead_small_rect_width / 2 + ochead_back_pos_offset, 
 ochead_total_height = ochead_top_height + ochead_middle_height + ochead_bottom_height;
 ochead_middle_to_bottom = ochead_large_rect_height - ochead_large_rect_width / 2 - ochead_back_pos_offset;
 
-//regular slot
-// ocslot_move_distance = 10.6; //0.1
-// ocslot_onramp_clearance = 0.8;
-// ocslot_bridge_thickness = 0.8;
-// ocslot_side_clearance = 0.1;
-// ocslot_depth_clearance = 0.12;
+//standard slot
+ocslot_move_distance = 10.6; //0.1
+ocslot_onramp_clearance = 0.8;
+ocslot_bridge_min_width = 0.8;
+ocslot_bridge_widen = "None";
+ocslot_bottom_min_thickness = 0.8;
+ocslot_side_clearance = 0.1;
+ocslot_depth_clearance = 0.12;
 
 ocslot_bottom_height = ochead_bottom_height + ang_adj_to_opp(45 / 2, ocslot_side_clearance) + ocslot_depth_clearance;
 ocslot_top_height = ochead_top_height - ang_adj_to_opp(45 / 2, ocslot_side_clearance);
 ocslot_total_height = ocslot_top_height + ochead_middle_height + ocslot_bottom_height;
 ocslot_nub_to_top_distance = ochead_nub_to_top_distance + ocslot_side_clearance;
-ocslot_bridge_widen = "None";
-ocslot_top_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Top" ? max(0, ocslot_bridge_thickness - ocslot_top_height) : 0;
-ocslot_side_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Side" ? max(0, ocslot_bridge_thickness - ocslot_top_height) : 0;
+ocslot_top_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Top" ? max(0, ocslot_bridge_min_width - ocslot_top_height) : 0;
+ocslot_side_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Side" ? max(0, ocslot_bridge_min_width - ocslot_top_height) : 0;
 
 ocslot_small_rect_width = ochead_small_rect_width + ocslot_side_clearance * 2;
 ocslot_small_rect_height = ochead_small_rect_height + ocslot_side_clearance * 2;
@@ -725,12 +727,12 @@ module openconnect_lock(bottom_height, middle_height, nub_angle = 0, nub_flattop
 }
 module openconnect_slot(add_nubs = "Left", slot_direction_flip = false, excess_thickness = 0, anchor = BOTTOM, spin = 0, orient = UP) {
   attachable(anchor, spin, orient, size=[ocslot_large_rect_width, ocslot_large_rect_width, ocslot_total_height]) {
-    tag_scope() down(ocslot_total_height / 2) union() {
-          if (slot_direction_flip)
-            xflip() ocslot_body(excess_thickness);
-          else
-            ocslot_body(excess_thickness);
-        }
+    tag_scope() down(ocslot_total_height / 2) {
+        if (slot_direction_flip)
+          xflip() ocslot_body(excess_thickness);
+        else
+          ocslot_body(excess_thickness);
+      }
     children();
   }
   module ocslot_body(excess_thickness = 0) {
@@ -743,19 +745,23 @@ module openconnect_slot(add_nubs = "Left", slot_direction_flip = false, excess_t
       [0, ocslot_bottom_height + ochead_middle_height + ocslot_top_height + excess_thickness],
     ];
     ocslot_bridge_offset_profile = right(ocslot_side_bridge_offset / 2, back(ocslot_small_rect_width / 2 + ochead_back_pos_offset + ocslot_top_bridge_offset, rect([ocslot_small_rect_width + ocslot_side_bridge_offset, ocslot_small_rect_height + ocslot_move_distance + ocslot_onramp_clearance + ocslot_top_bridge_offset], chamfer=[ocslot_small_rect_chamfer + ocslot_top_bridge_offset + ocslot_side_bridge_offset, ocslot_small_rect_chamfer + ocslot_top_bridge_offset, 0, 0], anchor=BACK)));
-    union() {
-      openconnect_head(head_type="slot", add_nubs=add_nubs, excess_thickness=excess_thickness);
-      back(ochead_back_pos_offset) xrot(90) up(ocslot_middle_to_bottom) linear_extrude(ocslot_move_distance + ocslot_onramp_clearance + ochead_back_pos_offset) xflip_copy() polygon(ocslot_side_excess_profile);
-      up(ocslot_bottom_height) linear_extrude(ocslot_top_height + ochead_middle_height) polygon(ocslot_bridge_offset_profile);
-      fwd(ocslot_move_distance) {
-        linear_extrude(ocslot_bottom_height) onramp_2d();
-        up(ocslot_bottom_height)
-          linear_extrude(ochead_middle_height * sqrt(2), v=[-1, 0, 1]) onramp_2d();
-        left(ochead_middle_height) up(ocslot_bottom_height + ochead_middle_height)
-            linear_extrude(ocslot_top_height + excess_thickness) onramp_2d();
+    difference() {
+      union() {
+        openconnect_head(head_type="slot", add_nubs=add_nubs, excess_thickness=excess_thickness);
+        back(ochead_back_pos_offset) xrot(90) up(ocslot_middle_to_bottom) linear_extrude(ocslot_move_distance + ocslot_onramp_clearance + ochead_back_pos_offset) xflip_copy() polygon(ocslot_side_excess_profile);
+        up(ocslot_bottom_height) linear_extrude(ocslot_top_height + ochead_middle_height) polygon(ocslot_bridge_offset_profile);
+        fwd(ocslot_move_distance) {
+          linear_extrude(ocslot_bottom_height) onramp_2d();
+          up(ocslot_bottom_height)
+            linear_extrude(ochead_middle_height * sqrt(2), v=[-1, 0, 1]) onramp_2d();
+          left(ochead_middle_height) up(ocslot_bottom_height + ochead_middle_height)
+              linear_extrude(ocslot_top_height + excess_thickness) onramp_2d();
+        }
+        if (excess_thickness > 0)
+          fwd(ocslot_small_rect_chamfer) cuboid([ocslot_small_rect_width, ocslot_small_rect_height, ocslot_total_height + excess_thickness], anchor=BOTTOM);
       }
-      if (excess_thickness > 0)
-        fwd(ocslot_small_rect_chamfer) cuboid([ocslot_small_rect_width, ocslot_small_rect_height, ocslot_total_height + excess_thickness], anchor=BOTTOM);
+      fwd(tile_size / 2)
+        cuboid([tile_size, ocslot_bottom_min_thickness, ocslot_bottom_height + ochead_middle_height + ocslot_top_height + excess_thickness + eps], anchor=FRONT + BOTTOM);
     }
   }
   module onramp_2d() {

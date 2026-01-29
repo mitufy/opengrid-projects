@@ -3,7 +3,8 @@ Licensed Creative Commons Attribution 4.0 International
 
 Created by mitufy. https://github.com/mitufy
 
-openConnect is a connector system designed for openGrid. openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
+openConnect is a connector system designed for openGrid. https://www.printables.com/model/1559478-openconnect-opengrids-own-connector-system
+openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 Inspired by David's multiConnect: https://www.printables.com/model/1008622-multiconnect-for-multiboard-v2-modeling-files.
 */
 
@@ -15,7 +16,7 @@ plate_size_unit = "mm"; //[grid:Grid Count, mm:Millimeter]
 //Depending on the plate_size_unit selected, you can input number either in grids or in millimeters.
 plate_horizontal_size = 84;
 plate_vertical_size = 56;
-//You can set this value to 0 if your model already has a wall and you don't want to increase its thickness.
+//You can set this to 0 if your model already has a wall and you don't want to thicken it. Does not affect Negative slots.
 plate_extra_thickness = 0.5;
 //Slot alignment applies when the plate size is entered in millimeters and is not divisible by the tile_size (28mm).
 plate_slot_alignment = "Center"; //["Center", "Top", "Bottom", "Left", "Right"]
@@ -23,21 +24,22 @@ plate_corner_rounding = "None"; //["None", "Chamfer", "Fillet"]
 plate_corner_rounding_size = 1;
 
 /* [Slot Settings] */
-slot_type = "slot"; //[slot:Standard,negslot:Standard Negative, vase:Vase Mode]
+//"Standard" to add to models. "Negative" to subtract from models. "Vase Mode" to add to specific models designed for vase mode.
+slot_type = "slot"; //[slot:Standard,negslot:Negative, vase:Vase Mode]
+//For vase mode slots. This value should match the slicer's linewidth setting when printing in vase mode.
+vase_slot_linewidth = 0.6;
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
 slot_lock_distribution = "Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
-//The slot entry direction can matter when installing in very tight spaces. When printing on the side, the side with the locking mechanism should be closer to the print bed.
+//Slot entry direction can matter in tight spaces. When printing on the side, place the locking mechanism side closer to the print bed.
 slot_direction_flip = false;
-//Applies to vase mode slots. This value should be the same as the slicer's linewidth setting when printing in vase mode.
-vase_slot_linewidth = 0.6;
-
-/* [Advanced Settings] */
 //Increase this value if the slots feel too tight. Reduce it if they are too loose.
 slot_side_clearance = 0.1; //0.01
-//Depending on the orientation, certain parts of the slot are printed as bridges. This setting ensures minimum thickness by trimming the geometry. "Both" is set as default for best compatibility.
+//Ensures minimum width for bridges. "Both" is default for compatibility, though only one (or none) may be needed depending on orientation.
 slot_bridge_widen = "Both"; //[Both, Top, Side, None]
-//Default is suitable for 0.4mm nozzles. Consider increasing this value if you use a larger nozzle and encountered bridging issues.
-slot_bridge_thickness = 0.8; //0.01
+//Minimum width for bridges when slot_bridge_widen is enabled. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
+slot_bridge_min_width = 0.8; //0.01
+//Slot bottom acts as a wall when printed on its side. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
+slot_bottom_min_thickness = 0.8; //0.01
 
 /* [Hidden] */
 $fa = 1;
@@ -50,7 +52,6 @@ generate_screw = "None"; //["None", "openConnect", "openConnect (Folded)"]
 //Blunt threads help prevent cross-threading and overtightening. Models with blunt threads have a decorative 'lock' symbol at the bottom.
 threads_type = "Blunt"; //["Blunt", "Basic"]
 snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm, 3.4:Lite Basic - 3.4mm]
-ocslot_bridge_widen = slot_bridge_widen;
 
 //BEGIN openConnect slot parameters
 tile_size = 28;
@@ -79,10 +80,12 @@ ochead_top_profile = back(ochead_small_rect_width / 2 + ochead_back_pos_offset, 
 ochead_total_height = ochead_top_height + ochead_middle_height + ochead_bottom_height;
 ochead_middle_to_bottom = ochead_large_rect_height - ochead_large_rect_width / 2 - ochead_back_pos_offset;
 
-//regular slot
+//standard slot
 ocslot_move_distance = 10.6; //0.1
 ocslot_onramp_clearance = 0.8;
-ocslot_bridge_thickness = slot_bridge_thickness;
+ocslot_bridge_min_width = slot_bridge_min_width;
+ocslot_bridge_widen = slot_bridge_widen;
+ocslot_bottom_min_thickness = slot_bottom_min_thickness;
 ocslot_side_clearance = slot_side_clearance;
 ocslot_depth_clearance = 0.12;
 
@@ -90,8 +93,8 @@ ocslot_bottom_height = ochead_bottom_height + ang_adj_to_opp(45 / 2, ocslot_side
 ocslot_top_height = ochead_top_height - ang_adj_to_opp(45 / 2, ocslot_side_clearance);
 ocslot_total_height = ocslot_top_height + ochead_middle_height + ocslot_bottom_height;
 ocslot_nub_to_top_distance = ochead_nub_to_top_distance + ocslot_side_clearance;
-ocslot_top_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Top" ? max(0, ocslot_bridge_thickness - ocslot_top_height) : 0;
-ocslot_side_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Side" ? max(0, ocslot_bridge_thickness - ocslot_top_height) : 0;
+ocslot_top_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Top" ? max(0, ocslot_bridge_min_width - ocslot_top_height) : 0;
+ocslot_side_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Side" ? max(0, ocslot_bridge_min_width - ocslot_top_height) : 0;
 
 ocslot_small_rect_width = ochead_small_rect_width + ocslot_side_clearance * 2;
 ocslot_small_rect_height = ochead_small_rect_height + ocslot_side_clearance * 2;
@@ -177,12 +180,12 @@ module openconnect_lock(bottom_height, middle_height, nub_angle = 0, nub_flattop
 }
 module openconnect_slot(add_nubs = "Left", slot_direction_flip = false, excess_thickness = 0, anchor = BOTTOM, spin = 0, orient = UP) {
   attachable(anchor, spin, orient, size=[ocslot_large_rect_width, ocslot_large_rect_width, ocslot_total_height]) {
-    tag_scope() down(ocslot_total_height / 2) union() {
-          if (slot_direction_flip)
-            xflip() ocslot_body(excess_thickness);
-          else
-            ocslot_body(excess_thickness);
-        }
+    tag_scope() down(ocslot_total_height / 2) {
+        if (slot_direction_flip)
+          xflip() ocslot_body(excess_thickness);
+        else
+          ocslot_body(excess_thickness);
+      }
     children();
   }
   module ocslot_body(excess_thickness = 0) {
@@ -195,19 +198,23 @@ module openconnect_slot(add_nubs = "Left", slot_direction_flip = false, excess_t
       [0, ocslot_bottom_height + ochead_middle_height + ocslot_top_height + excess_thickness],
     ];
     ocslot_bridge_offset_profile = right(ocslot_side_bridge_offset / 2, back(ocslot_small_rect_width / 2 + ochead_back_pos_offset + ocslot_top_bridge_offset, rect([ocslot_small_rect_width + ocslot_side_bridge_offset, ocslot_small_rect_height + ocslot_move_distance + ocslot_onramp_clearance + ocslot_top_bridge_offset], chamfer=[ocslot_small_rect_chamfer + ocslot_top_bridge_offset + ocslot_side_bridge_offset, ocslot_small_rect_chamfer + ocslot_top_bridge_offset, 0, 0], anchor=BACK)));
-    union() {
-      openconnect_head(head_type="slot", add_nubs=add_nubs, excess_thickness=excess_thickness);
-      back(ochead_back_pos_offset) xrot(90) up(ocslot_middle_to_bottom) linear_extrude(ocslot_move_distance + ocslot_onramp_clearance + ochead_back_pos_offset) xflip_copy() polygon(ocslot_side_excess_profile);
-      up(ocslot_bottom_height) linear_extrude(ocslot_top_height + ochead_middle_height) polygon(ocslot_bridge_offset_profile);
-      fwd(ocslot_move_distance) {
-        linear_extrude(ocslot_bottom_height) onramp_2d();
-        up(ocslot_bottom_height)
-          linear_extrude(ochead_middle_height * sqrt(2), v=[-1, 0, 1]) onramp_2d();
-        left(ochead_middle_height) up(ocslot_bottom_height + ochead_middle_height)
-            linear_extrude(ocslot_top_height + excess_thickness) onramp_2d();
+    difference() {
+      union() {
+        openconnect_head(head_type="slot", add_nubs=add_nubs, excess_thickness=excess_thickness);
+        back(ochead_back_pos_offset) xrot(90) up(ocslot_middle_to_bottom) linear_extrude(ocslot_move_distance + ocslot_onramp_clearance + ochead_back_pos_offset) xflip_copy() polygon(ocslot_side_excess_profile);
+        up(ocslot_bottom_height) linear_extrude(ocslot_top_height + ochead_middle_height) polygon(ocslot_bridge_offset_profile);
+        fwd(ocslot_move_distance) {
+          linear_extrude(ocslot_bottom_height) onramp_2d();
+          up(ocslot_bottom_height)
+            linear_extrude(ochead_middle_height * sqrt(2), v=[-1, 0, 1]) onramp_2d();
+          left(ochead_middle_height) up(ocslot_bottom_height + ochead_middle_height)
+              linear_extrude(ocslot_top_height + excess_thickness) onramp_2d();
+        }
+        if (excess_thickness > 0)
+          fwd(ocslot_small_rect_chamfer) cuboid([ocslot_small_rect_width, ocslot_small_rect_height, ocslot_total_height + excess_thickness], anchor=BOTTOM);
       }
-      if (excess_thickness > 0)
-        fwd(ocslot_small_rect_chamfer) cuboid([ocslot_small_rect_width, ocslot_small_rect_height, ocslot_total_height + excess_thickness], anchor=BOTTOM);
+      fwd(tile_size / 2)
+        cuboid([tile_size, ocslot_bottom_min_thickness, ocslot_bottom_height + ochead_middle_height + ocslot_top_height + excess_thickness + eps], anchor=FRONT + BOTTOM);
     }
   }
   module onramp_2d() {

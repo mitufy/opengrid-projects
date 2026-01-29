@@ -3,7 +3,8 @@ Licensed Creative Commons Attribution-ShareAlike 4.0 International
 
 Created by mitufy. https://github.com/mitufy
 
-openConnect is a connector system designed for openGrid. openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
+openConnect is a connector system designed for openGrid. https://www.printables.com/model/1559478-openconnect-opengrids-own-connector-system
+openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 connector_cutout_delete_tool() is written by BlackJackDuck. https://github.com/AndyLevesque/QuackWorks
 */
 
@@ -16,16 +17,16 @@ horizontal_grids = 3;
 depth_grids = 3;
 //"Standard" for maximum strength, "Slim" for lightweight applications.
 shelf_type = "Standard"; //["Standard", "Slim"]
-shelf_back_thickness = 4.4;
+shelf_back_thickness = 4; //0.1
 //When connector holes are enabled, bottom thickness would be at least 3.7mm.
-shelf_bottom_thickness = 3.7;
+shelf_bottom_thickness = 2.6;
 //corner_fillet needs to be larger than thickness to have effect.
 shelf_corner_fillet = 8;
 
 /* [Truss Settings] */
-truss_thickness = 3;
-//0.7 means truss would reach 70% of shelf depth.
-truss_beam_reach = 0.7; //[0.0:0.05:1]
+truss_thickness = 2.6; //0.1
+//0.75 means truss would reach 75% of shelf depth.
+truss_beam_reach = 0.75; //[0.0:0.05:1]
 //Space between each vertical truss strut. Set to 0 to disable.
 truss_strut_interval = 28;
 
@@ -41,20 +42,25 @@ add_left_edge = true;
 //Connector holes allow you to print shelf parts separately and later combine them together.
 add_left_connector_holes = false;
 add_right_edge = true;
-//Connectors used are the same as openGrid boards. 
+//Connectors used here are the same as openGrid boards. 
 add_right_connector_holes = false;
 shelf_side_edge_depth = 2;
-
 add_front_edge = true;
 shelf_front_edge_depth = 2;
 
-/* [Advanced Settings] */
+/* [Slot Settings] */
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
 slot_lock_distribution = "Top Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
-//The slot entry direction can matter when installing in very tight spaces. Note the side with the locking mechanism should be closer to the print bed.
+//Slot entry direction can matter in tight spaces. When printing on the side, place the locking mechanism side closer to the print bed.
 slot_direction_flip = false;
 //Increase this value if the slots feel too tight. Reduce it if they are too loose.
 slot_side_clearance = 0.1; //0.01
+//Minimum width for bridges. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
+slot_bridge_min_width = 0.8; //0.01
+//Slot bottom acts as a wall when printed on its side. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
+slot_bottom_min_thickness = 0.8; //0.01
+
+/* [Advanced Settings] */
 use_custom_depth = false;
 custom_depth = 80;
 truss_rounding = 3; //0.2
@@ -65,8 +71,6 @@ shelf_front_edge_thickness = 1;
 $fa = 1;
 $fs = 0.4;
 eps = 0.005;
-
-ocslot_bridge_widen = "Side";
 
 //BEGIN openConnect slot parameters
 tile_size = 28;
@@ -95,10 +99,12 @@ ochead_top_profile = back(ochead_small_rect_width / 2 + ochead_back_pos_offset, 
 ochead_total_height = ochead_top_height + ochead_middle_height + ochead_bottom_height;
 ochead_middle_to_bottom = ochead_large_rect_height - ochead_large_rect_width / 2 - ochead_back_pos_offset;
 
-//regular slot
+//standard slot
 ocslot_move_distance = 10.6; //0.1
 ocslot_onramp_clearance = 0.8;
-ocslot_bridge_thickness = 0.8;
+ocslot_bridge_min_width = slot_bridge_min_width;
+ocslot_bridge_widen = "Side";
+ocslot_bottom_min_thickness = slot_bottom_min_thickness;
 ocslot_side_clearance = slot_side_clearance;
 ocslot_depth_clearance = 0.12;
 
@@ -106,8 +112,8 @@ ocslot_bottom_height = ochead_bottom_height + ang_adj_to_opp(45 / 2, ocslot_side
 ocslot_top_height = ochead_top_height - ang_adj_to_opp(45 / 2, ocslot_side_clearance);
 ocslot_total_height = ocslot_top_height + ochead_middle_height + ocslot_bottom_height;
 ocslot_nub_to_top_distance = ochead_nub_to_top_distance + ocslot_side_clearance;
-ocslot_top_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Top" ? max(0, ocslot_bridge_thickness - ocslot_top_height) : 0;
-ocslot_side_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Side" ? max(0, ocslot_bridge_thickness - ocslot_top_height) : 0;
+ocslot_top_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Top" ? max(0, ocslot_bridge_min_width - ocslot_top_height) : 0;
+ocslot_side_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Side" ? max(0, ocslot_bridge_min_width - ocslot_top_height) : 0;
 
 ocslot_small_rect_width = ochead_small_rect_width + ocslot_side_clearance * 2;
 ocslot_small_rect_height = ochead_small_rect_height + ocslot_side_clearance * 2;
@@ -211,7 +217,7 @@ module openconnect_slot(add_nubs = "Left", slot_direction_flip = false, excess_t
       [ocslot_small_rect_width / 2, ocslot_bottom_height + ochead_middle_height + ocslot_top_height + excess_thickness],
       [0, ocslot_bottom_height + ochead_middle_height + ocslot_top_height + excess_thickness],
     ];
-    ocslot_bridge_offset_profile = right(ocslot_side_bridge_offset / 2, back(ocslot_small_rect_width / 2 + ochead_back_pos_offset + ocslot_top_bridge_offset, rect([ocslot_small_rect_width + ocslot_side_bridge_offset, ocslot_small_rect_height + ocslot_move_distance + ocslot_onramp_clearance + ocslot_top_bridge_offset], chamfer=[ocslot_small_rect_chamfer + ocslot_top_bridge_offset+ ocslot_side_bridge_offset, ocslot_small_rect_chamfer + ocslot_top_bridge_offset, 0, 0], anchor=BACK)));
+    ocslot_bridge_offset_profile = right(ocslot_side_bridge_offset / 2, back(ocslot_small_rect_width / 2 + ochead_back_pos_offset + ocslot_top_bridge_offset, rect([ocslot_small_rect_width + ocslot_side_bridge_offset, ocslot_small_rect_height + ocslot_move_distance + ocslot_onramp_clearance + ocslot_top_bridge_offset], chamfer=[ocslot_small_rect_chamfer + ocslot_top_bridge_offset + ocslot_side_bridge_offset, ocslot_small_rect_chamfer + ocslot_top_bridge_offset, 0, 0], anchor=BACK)));
     union() {
       openconnect_head(head_type="slot", add_nubs=add_nubs, excess_thickness=excess_thickness);
       back(ochead_back_pos_offset) xrot(90) up(ocslot_middle_to_bottom) linear_extrude(ocslot_move_distance + ocslot_onramp_clearance + ochead_back_pos_offset) xflip_copy() polygon(ocslot_side_excess_profile);
