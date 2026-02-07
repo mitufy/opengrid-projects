@@ -168,7 +168,7 @@ zrot(180) xrot(90) back(threads_offset)
                   teardrop(r=symmetric_clip_height / 2, h=connect_cuboid_height + clip_stem_length, anchor=BACK + TOP, orient=FRONT);
                   tag("rm3") back(clip_height) cuboid([30, 30, connect_cuboid_height + clip_stem_length], anchor=TOP + FRONT);
                 }
-              down(clip_shape != "Circular" ? (clip_main_width / 2 + clip_thickness) * abs(final_clip_entry_tilt_angle) / 90 : -clip_thickness / 2 * (1 - clip_thickness_scale) * (abs(final_clip_entry_tilt_angle)) / 90 + clip_stem_length)
+              down(clip_shape != "Circular" ? (clip_main_width / 2 + clip_thickness) * abs(final_clip_entry_tilt_angle) / 90 + clip_stem_length : -clip_thickness / 2 * (1 - clip_thickness_scale) * (abs(final_clip_entry_tilt_angle)) / 90 + clip_stem_length)
                 right(clip_shape != "Circular" ? (clip_main_depth / 2 + clip_thickness) * final_clip_entry_tilt_angle / 90 : 0)
                   yrot(final_clip_entry_tilt_angle, cp=[0, 0, clip_shape != "Circular" ? 0 : -(clip_main_width / 2 + clip_thickness)])
                     down(clip_thickness / 2) {
