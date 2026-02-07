@@ -135,14 +135,6 @@ ochead_nub_tip_height = 1.2;
 ochead_nub_inner_fillet = 0.6;
 ochead_nub_outer_fillet = 0.8;
 
-// ocslot_move_distance = 10.6; //0.1
-// ocslot_onramp_clearance = 0.8;
-// ocslot_bridge_min_width = 0.8;
-// ocslot_bridge_widen = "None";
-// ocslot_bottom_min_thickness = 0.8;
-// ocslot_side_clearance = slot_side_clearance;
-// ocslot_depth_clearance = 0.12;
-
 /* [multiConnect Settings] */
 mchead_large_diameter = 20;
 mchead_small_diameter = 15;
@@ -659,9 +651,10 @@ ochead_middle_to_bottom = ochead_large_rect_height - ochead_large_rect_width / 2
 //standard slot
 ocslot_move_distance = 10.6; //0.1
 ocslot_onramp_clearance = 0.8;
-ocslot_bridge_min_width = 0.8;
-ocslot_bridge_widen = "None";
-ocslot_bottom_min_thickness = 0.8;
+ocslot_edge_feature_widen = "None";
+ocslot_edge_bridge_min_width = 0.8;
+ocslot_edge_wall_min_width = 0.6;
+ocslot_bottom_min_thickness = ocslot_edge_wall_min_width;
 ocslot_side_clearance = 0.1;
 ocslot_depth_clearance = 0.12;
 
@@ -669,8 +662,9 @@ ocslot_bottom_height = ochead_bottom_height + ang_adj_to_opp(45 / 2, ocslot_side
 ocslot_top_height = ochead_top_height - ang_adj_to_opp(45 / 2, ocslot_side_clearance);
 ocslot_total_height = ocslot_top_height + ochead_middle_height + ocslot_bottom_height;
 ocslot_nub_to_top_distance = ochead_nub_to_top_distance + ocslot_side_clearance;
-ocslot_top_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Top" ? max(0, ocslot_bridge_min_width - ocslot_top_height) : 0;
-ocslot_side_bridge_offset = ocslot_bridge_widen == "Both" || ocslot_bridge_widen == "Side" ? max(0, ocslot_bridge_min_width - ocslot_top_height) : 0;
+ocslot_top_bridge_offset = ocslot_edge_feature_widen == "Both" || ocslot_edge_feature_widen == "Top" ? max(0, ocslot_edge_bridge_min_width - ocslot_top_height) : 0;
+ocslot_side_bridge_offset = ocslot_edge_feature_widen == "Both" || ocslot_edge_feature_widen == "Side" ? max(0, ocslot_edge_bridge_min_width - ocslot_top_height) : 0;
+ocslot_side_cliff_offset = ocslot_edge_feature_widen == "Both" || ocslot_edge_feature_widen == "Side" ? max(0, ocslot_edge_wall_min_width - ocslot_top_height) : 0;
 
 ocslot_small_rect_width = ochead_small_rect_width + ocslot_side_clearance * 2;
 ocslot_small_rect_height = ochead_small_rect_height + ocslot_side_clearance * 2;
@@ -774,12 +768,12 @@ module openconnect_slot(add_nubs = "Left", slot_direction_flip = false, excess_t
       [ocslot_small_rect_width / 2, ocslot_bottom_height + ochead_middle_height + ocslot_top_height + excess_thickness],
       [0, ocslot_bottom_height + ochead_middle_height + ocslot_top_height + excess_thickness],
     ];
-    ocslot_bridge_offset_profile = right(ocslot_side_bridge_offset / 2, back(ocslot_small_rect_width / 2 + ochead_back_pos_offset + ocslot_top_bridge_offset, rect([ocslot_small_rect_width + ocslot_side_bridge_offset, ocslot_small_rect_height + ocslot_move_distance + ocslot_onramp_clearance + ocslot_top_bridge_offset], chamfer=[ocslot_small_rect_chamfer + ocslot_top_bridge_offset + ocslot_side_bridge_offset, ocslot_small_rect_chamfer + ocslot_top_bridge_offset, 0, 0], anchor=BACK)));
+    ocslot_bridge_offset_profile = right(ocslot_side_bridge_offset / 2 - ocslot_side_cliff_offset / 2, back(ocslot_small_rect_width / 2 + ochead_back_pos_offset + ocslot_top_bridge_offset, rect([ocslot_small_rect_width + ocslot_side_bridge_offset + ocslot_side_cliff_offset, ocslot_small_rect_height + ocslot_move_distance + ocslot_onramp_clearance + ocslot_top_bridge_offset], chamfer=[ocslot_small_rect_chamfer + ocslot_top_bridge_offset + ocslot_side_bridge_offset, ocslot_small_rect_chamfer + ocslot_top_bridge_offset + ocslot_side_cliff_offset, 0, 0], anchor=BACK)));
     difference() {
       union() {
         openconnect_head(head_type="slot", add_nubs=add_nubs, excess_thickness=excess_thickness);
         back(ochead_back_pos_offset) xrot(90) up(ocslot_middle_to_bottom) linear_extrude(ocslot_move_distance + ocslot_onramp_clearance + ochead_back_pos_offset) xflip_copy() polygon(ocslot_side_excess_profile);
-        up(ocslot_bottom_height) linear_extrude(ocslot_top_height + ochead_middle_height) polygon(ocslot_bridge_offset_profile);
+        up(ocslot_bottom_height) linear_extrude(ocslot_top_height + ochead_middle_height + eps) polygon(ocslot_bridge_offset_profile);
         fwd(ocslot_move_distance) {
           linear_extrude(ocslot_bottom_height) onramp_2d();
           up(ocslot_bottom_height)
@@ -834,21 +828,25 @@ module openconnect_vase_slot(add_nubs = "", overhang_angle = 45, anchor = BOTTOM
     children();
   }
 }
-module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_grids = 1, tile_size = 28, slot_position = "All", slot_lock_distribution = "None", slot_lock_side = "Left", slot_direction_flip = false, excess_thickness = eps, overhang_angle = 45, except_slot_pos = [], anchor = BOTTOM, spin = 0, orient = UP) {
-  tag_scope() hide_this() cuboid([horizontal_grids * tile_size, vertical_grids * tile_size, ocslot_total_height], anchor=anchor, spin=spin, orient=orient) {
-        for (i = [0:horizontal_grids - 1])
-          for (j = [0:vertical_grids - 1]) {
-            if (is_grid_distribute(i, j, horizontal_grids, vertical_grids, slot_position, except_slot_pos)) {
-              right(i * tile_size) fwd(j * tile_size) {
-                  attach(BOTTOM + LEFT + BACK, BOTTOM + LEFT + BACK, inside=true) if (grid_type == "slot")
-                    openconnect_slot(add_nubs=is_grid_distribute(i, j, horizontal_grids, vertical_grids, slot_lock_distribution) ? slot_lock_side : "", slot_direction_flip=slot_direction_flip, excess_thickness=excess_thickness);
-                  else
-                    openconnect_vase_slot(is_grid_distribute(i, j, horizontal_grids, vertical_grids, slot_lock_distribution) ? slot_lock_side : "", overhang_angle=overhang_angle);
+module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_grids = 1, tile_size = 28, slot_position = "All", slot_lock_distribution = "None", slot_lock_side = "Left", slot_direction_flip = false, excess_thickness = eps, overhang_angle = 45, except_slot_pos = [], chamfer = 0, rounding = 0, anchor = BOTTOM, spin = 0, orient = UP) {
+  tag_scope() attachable(anchor, spin, orient, size=[horizontal_grids * tile_size, vertical_grids * tile_size, ocslot_total_height]) {
+      down(ocslot_total_height / 2) intersect() {
+          cuboid([horizontal_grids * tile_size, vertical_grids * tile_size, ocslot_total_height + excess_thickness], edges="Z", chamfer=chamfer, rounding=rounding, anchor=BOTTOM) {
+            for (i = [0:horizontal_grids - 1])
+              for (j = [0:vertical_grids - 1])
+                if (is_grid_distribute(i, j, horizontal_grids, vertical_grids, slot_position, except_slot_pos)) {
+                  right(i * tile_size) fwd(j * tile_size)
+                      attach(BOTTOM + LEFT + BACK, BOTTOM + LEFT + BACK, inside=true) {
+                        if (grid_type == "slot")
+                          tag("intersect") openconnect_slot(add_nubs=is_grid_distribute(i, j, horizontal_grids, vertical_grids, slot_lock_distribution) ? slot_lock_side : "", slot_direction_flip=slot_direction_flip, excess_thickness=excess_thickness);
+                        else
+                          tag("intersect") openconnect_vase_slot(is_grid_distribute(i, j, horizontal_grids, vertical_grids, slot_lock_distribution) ? slot_lock_side : "", overhang_angle=overhang_angle);
+                      }
                 }
-            }
           }
-        children();
-      }
+        }
+      children();
+    }
 }
 //END openConnect slot modules
 
