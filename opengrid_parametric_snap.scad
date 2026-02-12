@@ -656,7 +656,7 @@ ocslot_edge_bridge_min_width = 0.8;
 ocslot_edge_wall_min_width = 0.6;
 ocslot_bottom_min_thickness = ocslot_edge_wall_min_width;
 ocslot_side_clearance = 0.1;
-ocslot_depth_clearance = 0.12;
+ocslot_depth_clearance = 0.1;
 
 ocslot_bottom_height = ochead_bottom_height + ang_adj_to_opp(45 / 2, ocslot_side_clearance) + ocslot_depth_clearance;
 ocslot_top_height = ochead_top_height - ang_adj_to_opp(45 / 2, ocslot_side_clearance);
@@ -749,10 +749,10 @@ module openconnect_lock(bottom_height, middle_height, nub_angle = 0, nub_flattop
           trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[nub_flattop ? 90 : 45, 45], rounding=[ochead_nub_inner_fillet, nub_flattop ? 0 : ochead_nub_inner_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet, -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
     }
 }
-module openconnect_slot(add_nubs = "Left", slot_direction_flip = false, excess_thickness = eps, anchor = BOTTOM, spin = 0, orient = UP) {
+module openconnect_slot(add_nubs = "Left", slot_entryramp_flip = false, excess_thickness = eps, anchor = BOTTOM, spin = 0, orient = UP) {
   attachable(anchor, spin, orient, size=[tile_size, tile_size, ocslot_total_height]) {
     tag_scope() down(ocslot_total_height / 2) {
-        if (slot_direction_flip)
+        if (slot_entryramp_flip)
           xflip() ocslot_body(excess_thickness);
         else
           ocslot_body(excess_thickness);
@@ -828,17 +828,19 @@ module openconnect_vase_slot(add_nubs = "", overhang_angle = 45, anchor = BOTTOM
     children();
   }
 }
-module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_grids = 1, tile_size = 28, slot_position = "All", slot_lock_distribution = "None", slot_lock_side = "Left", slot_direction_flip = false, excess_thickness = eps, overhang_angle = 45, except_slot_pos = [], chamfer = 0, rounding = 0, anchor = BOTTOM, spin = 0, orient = UP) {
+module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_grids = 1, tile_size = 28, slot_slide_direction = "Up", slot_position = "All", slot_lock_distribution = "None", slot_lock_side = "Left", slot_entryramp_flip = false, excess_thickness = eps, overhang_angle = 45, except_slot_pos = [], chamfer = 0, rounding = 0, anchor = BOTTOM, spin = 0, orient = UP) {
   tag_scope() attachable(anchor, spin, orient, size=[horizontal_grids * tile_size, vertical_grids * tile_size, ocslot_total_height]) {
+      grid_slot_spin = slot_slide_direction == "Left" ? -90 : slot_slide_direction == "Right" ? 90 : slot_slide_direction == "Down" ? 180 : 0;
+      grid_slot_filp = slot_slide_direction == "Right" || slot_slide_direction == "Down" ? !slot_entryramp_flip : slot_entryramp_flip;
       down(ocslot_total_height / 2) intersect() {
           cuboid([horizontal_grids * tile_size, vertical_grids * tile_size, ocslot_total_height + excess_thickness], edges="Z", chamfer=chamfer, rounding=rounding, anchor=BOTTOM) {
             for (i = [0:horizontal_grids - 1])
               for (j = [0:vertical_grids - 1])
                 if (is_grid_distribute(i, j, horizontal_grids, vertical_grids, slot_position, except_slot_pos)) {
-                  right(i * tile_size) fwd(j * tile_size)
-                      attach(BOTTOM + LEFT + BACK, BOTTOM + LEFT + BACK, inside=true) {
+                  left((horizontal_grids - i * 2 - 1) * tile_size / 2) back((vertical_grids - j * 2 - 1) * tile_size / 2)
+                      attach(BOTTOM, BOTTOM, inside=true, spin=grid_slot_spin) {
                         if (grid_type == "slot")
-                          tag("intersect") openconnect_slot(add_nubs=is_grid_distribute(i, j, horizontal_grids, vertical_grids, slot_lock_distribution) ? slot_lock_side : "", slot_direction_flip=slot_direction_flip, excess_thickness=excess_thickness);
+                          tag("intersect") openconnect_slot(add_nubs=is_grid_distribute(i, j, horizontal_grids, vertical_grids, slot_lock_distribution) ? slot_lock_side : "", slot_entryramp_flip=grid_slot_filp, excess_thickness=excess_thickness);
                         else
                           tag("intersect") openconnect_vase_slot(is_grid_distribute(i, j, horizontal_grids, vertical_grids, slot_lock_distribution) ? slot_lock_side : "", overhang_angle=overhang_angle);
                       }
