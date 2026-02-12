@@ -97,11 +97,11 @@ side_magnet_diameter = 6;
 slot_position = "All"; //["All", "Staggered", "Edge Rows", "Edge Columns", "Corners"]
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
 slot_lock_distribution = "Top Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
-//Slot entry direction can matter in tight spaces.
-slot_direction_flip = false;
+//Entry ramp direction can matter in tight spaces.
+slot_entryramp_flip = false;
 //Increase clearances if the slots feel too tight. Reduce it if they are too loose.
 slot_side_clearance = 0.1; //0.01
-slot_depth_clearance = 0.12; //0.01
+slot_depth_clearance = 0.1; //0.01
 //Minimum width for bridges. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
 slot_edge_bridge_min_width = 0.8; //0.01
 //Minimum width for walls. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
@@ -111,14 +111,18 @@ slot_edge_wall_min_width = 0.6; //0.01
 container_height_clearance = 0.4; //0.05
 container_width_clearance = 0.3; //0.05
 container_depth_clearance = 0.4; //0.05
+//Distance the container pulls out before the stoppers engage.
+stopper_to_front_offset = 3;
+stopper_width_clearance = 0.2;
+stopper_height_clearance = 0.2;
+//Distance the container pulls out before the side magnets engage.
+side_magnet_container_edge_distance = 2.6;
+shell_to_slot_wall_thickness = 0.9;
 //The thickness of the strut of honeycomb pattern.
 honeycomb_strut_hyp = 5;
-//Change this value to adjust how much container would pull out before attaching to side magnets. 
-side_magnet_shell_edge_distance = 2.6;
-side_magnet_container_edge_distance = 2.6;
-shell_to_slot_wall_thickness = 0.8;
 
 /*[Hidden]*/
+side_magnet_shell_edge_distance = 2.6;
 shell_inner_chamfer = max(0, calc_inner_chamfer(shell_outer_chamfer, shell_thickness));
 container_outer_chamfer = shell_inner_chamfer;
 container_divider_wall_fillet = container_inner_fillet;
@@ -296,10 +300,10 @@ module openconnect_lock(bottom_height, middle_height, nub_angle = 0, nub_flattop
           trapezoid(h=ochead_nub_depth, w2=ochead_nub_tip_height, ang=[nub_flattop ? 90 : 45, 45], rounding=[ochead_nub_inner_fillet, nub_flattop ? 0 : ochead_nub_inner_fillet, nub_flattop ? 0 : -ochead_nub_outer_fillet, -ochead_nub_outer_fillet], anchor=BACK, $fn=64);
     }
 }
-module openconnect_slot(add_nubs = "Left", slot_direction_flip = false, excess_thickness = eps, anchor = BOTTOM, spin = 0, orient = UP) {
+module openconnect_slot(add_nubs = "Left", slot_entryramp_flip = false, excess_thickness = eps, anchor = BOTTOM, spin = 0, orient = UP) {
   attachable(anchor, spin, orient, size=[tile_size, tile_size, ocslot_total_height]) {
     tag_scope() down(ocslot_total_height / 2) {
-        if (slot_direction_flip)
+        if (slot_entryramp_flip)
           xflip() ocslot_body(excess_thickness);
         else
           ocslot_body(excess_thickness);
@@ -375,17 +379,19 @@ module openconnect_vase_slot(add_nubs = "", overhang_angle = 45, anchor = BOTTOM
     children();
   }
 }
-module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_grids = 1, tile_size = 28, slot_position = "All", slot_lock_distribution = "None", slot_lock_side = "Left", slot_direction_flip = false, excess_thickness = eps, overhang_angle = 45, except_slot_pos = [], chamfer = 0, rounding = 0, anchor = BOTTOM, spin = 0, orient = UP) {
+module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_grids = 1, tile_size = 28, slot_slide_direction = "Up", slot_position = "All", slot_lock_distribution = "None", slot_lock_side = "Left", slot_entryramp_flip = false, excess_thickness = eps, overhang_angle = 45, except_slot_pos = [], chamfer = 0, rounding = 0, anchor = BOTTOM, spin = 0, orient = UP) {
   tag_scope() attachable(anchor, spin, orient, size=[horizontal_grids * tile_size, vertical_grids * tile_size, ocslot_total_height]) {
+      grid_slot_spin = slot_slide_direction == "Left" ? -90 : slot_slide_direction == "Right" ? 90 : slot_slide_direction == "Down" ? 180 : 0;
+      grid_slot_filp = slot_slide_direction == "Right" || slot_slide_direction == "Down" ? !slot_entryramp_flip : slot_entryramp_flip;
       down(ocslot_total_height / 2) intersect() {
           cuboid([horizontal_grids * tile_size, vertical_grids * tile_size, ocslot_total_height + excess_thickness], edges="Z", chamfer=chamfer, rounding=rounding, anchor=BOTTOM) {
             for (i = [0:horizontal_grids - 1])
               for (j = [0:vertical_grids - 1])
                 if (is_grid_distribute(i, j, horizontal_grids, vertical_grids, slot_position, except_slot_pos)) {
-                  right(i * tile_size) fwd(j * tile_size)
-                      attach(BOTTOM + LEFT + BACK, BOTTOM + LEFT + BACK, inside=true) {
+                  left((horizontal_grids - i * 2 - 1) * tile_size / 2) back((vertical_grids - j * 2 - 1) * tile_size / 2)
+                      attach(BOTTOM, BOTTOM, inside=true, spin=grid_slot_spin) {
                         if (grid_type == "slot")
-                          tag("intersect") openconnect_slot(add_nubs=is_grid_distribute(i, j, horizontal_grids, vertical_grids, slot_lock_distribution) ? slot_lock_side : "", slot_direction_flip=slot_direction_flip, excess_thickness=excess_thickness);
+                          tag("intersect") openconnect_slot(add_nubs=is_grid_distribute(i, j, horizontal_grids, vertical_grids, slot_lock_distribution) ? slot_lock_side : "", slot_entryramp_flip=grid_slot_filp, excess_thickness=excess_thickness);
                         else
                           tag("intersect") openconnect_vase_slot(is_grid_distribute(i, j, horizontal_grids, vertical_grids, slot_lock_distribution) ? slot_lock_side : "", overhang_angle=overhang_angle);
                       }
@@ -528,11 +534,12 @@ if (half_of_anchor != 0) {
         xrot(view_drawer_overlapped ? 0 : 90)
           drawer_container();
   if (generate_drawer_stopper_clips)
-    right(generate_drawer_shell ? horizontal_grids * tile_size / 2 + 10 : 0) xrot(-90) {
-        drawer_stopper(hole_excess=shell_thickness);
-        right(tile_size)
-          drawer_stopper();
-      }
+    right(generate_drawer_shell ? horizontal_grids * tile_size / 2 + 10 : 0) up((stopper_height - stopper_height_clearance * 2)/2)
+        xrot(-90) {
+          drawer_stopper(hole_excess=shell_thickness);
+          right(tile_size)
+            drawer_stopper();
+        }
 }
 
 module drawer_shell() {
@@ -585,22 +592,14 @@ module drawer_shell() {
               : shell_slot_position == "Bottom" ? FRONT
               : shell_slot_position == "Left" ? LEFT
               : RIGHT;
-            slot_spin =
-              shell_slot_position == "Back" ? 0
-              : shell_slot_position == "Left" ? 90
-              : (shell_slot_position == "Top" || shell_slot_position == "Bottom") && slot_direction_flip ? 90
-              : -90;
-            slot_hgrids = shell_slot_position == "Back" ? horizontal_grids : depth_grids;
-            slot_vgrids = shell_slot_position == "Top" || shell_slot_position == "Bottom" ? horizontal_grids : vertical_grids;
+            slot_hgrids = shell_slot_position == "Left" || shell_slot_position == "Right" ? vertical_grids : horizontal_grids;
+            slot_vgrids = shell_slot_position == "Back" ? vertical_grids : depth_grids;
             except_slot_pos =
-              add_stopper_holes && shell_slot_position == "Top" && !slot_direction_flip ? [[0, 0], [0, slot_vgrids - 1]]
-              : add_stopper_holes && shell_slot_position == "Top" && slot_direction_flip ? [[slot_hgrids - 1, 0], [slot_hgrids - 1, slot_vgrids - 1]]
-              : add_side_magnet_holes && shell_slot_position == "Right" ? [[0, 0], [0, slot_vgrids - 1]]
-              : add_side_magnet_holes && shell_slot_position == "Left" ? [[slot_hgrids - 1, 0], [slot_hgrids - 1, slot_vgrids - 1]]
-              : [];
-            conditional_flip(axis="x", condition=shell_slot_position == "Top" || shell_slot_position == "Bottom")
-              attach(slot_parent_anchor, TOP, inside=true, spin=slot_spin)
-                tag("rm_outer") openconnect_slot_grid(horizontal_grids=slot_hgrids, vertical_grids=slot_vgrids, tile_size=tile_size, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_direction_flip=slot_direction_flip, excess_thickness=eps, except_slot_pos=except_slot_pos, chamfer=min(4, max(0.8, ocslot_bottom_min_thickness) + ochead_middle_height + 1));
+              (add_stopper_holes && shell_slot_position == "Top") || (add_side_magnet_holes && shell_slot_position == "Right") || (add_side_magnet_holes && shell_slot_position == "Left") ? [[0, 0], [slot_hgrids - 1, 0]] : [];
+            slot_slide_direction = shell_slot_position == "Top" || shell_slot_position == "Bottom" ? "Left" : "Up";
+            slot_chamfer = shell_slot_position == "Back" ? min(4, max(0.8, ocslot_bottom_min_thickness) + ochead_middle_height + 1) : 0;
+            attach(slot_parent_anchor, TOP, inside=true)
+              tag("rm_outer") openconnect_slot_grid(horizontal_grids=slot_hgrids, vertical_grids=slot_vgrids, tile_size=tile_size, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=eps, except_slot_pos=except_slot_pos, chamfer=slot_chamfer);
             if (add_side_magnet_holes) {
               if (left_hc)
                 attach(LEFT + FRONT, LEFT + FRONT, align=TOP, inside=true)
@@ -637,8 +636,8 @@ module drawer_shell() {
                 left(shell_width / 2 - tile_size / 2) right(i == 0 ? 0 : shell_width_divide_cumnums[i - 1] * tile_size) {
                     for (j = [0:shell_horizontal_compartments[i] == 1 ? 0 : 1])
                       left(shell_horizontal_compartments[i] == 1 ? 0 : j == 0 ? stopper_to_edge_offset : -stopper_to_edge_offset) right(j * (shell_horizontal_compartments[i] - 1) * tile_size) {
-                          tag("rm_outer") attach(BACK, TOP, align=TOP, inset=shell_thickness, inside=true)
-                              drawer_stopper(hole=true);
+                          tag("rm_outer") attach(BACK, TOP, align=TOP, inset=stopper_to_front_offset, inside=true)
+                              drawer_stopper(hole=true, hole_excess=shell_slot_position == "Top" ? ocslot_total_height + shell_to_slot_wall_thickness - shell_thickness : 0);
                         }
                   }
           }
@@ -794,7 +793,7 @@ module drawer_divider(is_shell, by_width) {
 
   hexwall_anchor = TOP;
   hexwall_spin = by_width ? 90 : 0;
-  hexwall_length = !by_width ? shell_hexwall_width : shell_hexwall_height;
+  hexwall_length = !by_width ? shell_width : shell_height;
   hexwall_depth = shell_hexwall_depth;
 
   compartment_size_unit = is_shell ? tile_size : inner_size / grid_count;
@@ -817,7 +816,7 @@ module drawer_divider(is_shell, by_width) {
                     left(shell_width / 2 - tile_size / 2) right(in_i == 0 ? 0 : shell_width_divide_cumnums[in_i - 1] * tile_size) {
                         for (in_j = [0:shell_horizontal_compartments[in_i] == 1 ? 0 : 1]) {
                           left(shell_horizontal_compartments[in_i] == 1 ? 0 : in_j == 0 ? stopper_to_edge_offset : -stopper_to_edge_offset) right(in_j * (shell_horizontal_compartments[in_i] - 1) * tile_size)
-                              tag("rm1") attach(BACK, TOP, align=TOP, inset=shell_thickness, inside=true)
+                              tag("rm1") attach(BACK, TOP, align=TOP, inset=stopper_to_front_offset, inside=true)
                                   drawer_stopper(hole=true, hole_excess=shell_thickness);
                         }
                       }
@@ -993,18 +992,16 @@ module container_label_holder() {
 
 module drawer_stopper(hole = false, hole_excess = 0, anchor = TOP, orient = UP, spin = 0) {
   stopper_leg_thickness = 1.6;
-  stopper_leg_outer_round = stopper_clips_length - stopper_rounding < 0.6 ? 0 : stopper_rounding;
-  stopper_leg_inner_round = min(stopper_rounding, stopper_clips_length / 2);
+  stopper_leg_outer_round = min(stopper_rounding, min(stopper_width - stopper_width_clearance * 2, stopper_clips_length) / 2);
+  stopper_leg_inner_round = min(stopper_rounding, min(stopper_width - stopper_leg_thickness * 2 - stopper_width_clearance * 2, stopper_clips_length) / 2);
   stopper_leg_nub_length = min(3, stopper_clips_length - stopper_leg_outer_round);
   stopper_leg_nub_width = min(0.6, stopper_leg_nub_length);
 
-  stopper_width_clearance = 0.1;
-  stopper_height_clearance = 0.15;
   stopper_clips_length_clearance = 0.1;
 
-  cuboid([stopper_width + stopper_flank_width - (hole ? 0 : stopper_width_clearance * 2), stopper_height - (hole ? 0 : stopper_height_clearance * 2), stopper_flank_depth - (hole ? 0 : stopper_clips_length_clearance)], anchor=anchor, orient=orient, spin=spin) {
-    attach(BOTTOM, TOP)
-      tag_scope() diff() cuboid([stopper_width - (hole ? 0 : stopper_width_clearance * 2), stopper_height - (hole ? 0 : stopper_height_clearance * 2), shell_thickness - stopper_flank_depth + (hole ? eps * 2 : 0)], rounding=-stopper_rounding, edges=[TOP + LEFT, TOP + RIGHT], $fn=64) {
+  tag_scope() cuboid([stopper_width + stopper_flank_width - (hole ? 0 : stopper_width_clearance * 2), stopper_height - (hole ? 0 : stopper_height_clearance * 2), stopper_flank_depth - (hole ? 0 : stopper_clips_length_clearance)], anchor=anchor, orient=orient, spin=spin) {
+      attach(BOTTOM, TOP)
+        diff() cuboid([stopper_width - (hole ? 0 : stopper_width_clearance * 2), stopper_height - (hole ? 0 : stopper_height_clearance * 2), shell_thickness - stopper_flank_depth + (hole ? eps * 2 : 0)], rounding=-stopper_rounding, edges=[TOP + LEFT, TOP + RIGHT], $fn=64) {
             if (hole && hole_excess > 0)
               attach(BOTTOM, TOP)
                 cuboid([stopper_width + stopper_flank_width, stopper_height, hole_excess]);
@@ -1022,5 +1019,5 @@ module drawer_stopper(hole = false, hole_excess = 0, anchor = TOP, orient = UP, 
                     prismoid(size1=[stopper_height - stopper_height_clearance * 2, stopper_leg_nub_length], size2=[stopper_height - stopper_height_clearance * 2, 0], shift=[0, stopper_leg_nub_length / 2], h=stopper_leg_nub_width);
                 }
           }
-  }
+    }
 }
