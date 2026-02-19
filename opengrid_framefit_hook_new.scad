@@ -8,7 +8,6 @@ Part of code is based on BlackjackDuck's "openGrid - Tile Generator". https://ma
 */
 
 include <BOSL2/std.scad>
-include <BOSL2/rounding.scad>
 
 /*[Main Settings]*/
 vertical_grids = 1;

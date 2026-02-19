@@ -9,7 +9,6 @@ The openGrid system is created by David D. https://www.printables.com/model/1214
 
 include <BOSL2/std.scad>
 include <BOSL2/threading.scad>
-include <BOSL2/rounding.scad>
 
 snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm, 3.4:Lite Basic - 3.4mm]
 //Blunt threads help prevent cross-threading and overtightening. Models with blunt threads have a decorative 'lock' symbol at the bottom.
@@ -65,7 +64,7 @@ threads_pitch = 3;
 
 threads_side_slice_off = 1.4; //0.1
 
-threads_compatiblity_angle = 53.5;
+threads_compatibility_angle = 53.5;
 threads_diameter = 16;
 threads_bottom_bevel_standard = 2; //0.1
 threads_bottom_bevel_lite = 1.2; //0.1
@@ -145,7 +144,7 @@ zrot(180) xrot(90) back(threads_offset)
       //main diff
       diff() {
         zrot(threads_offset_angle) {
-          zrot(threads_compatiblity_angle) {
+          zrot(threads_compatibility_angle) {
             if (threads_type == "Blunt")
               blunt_threaded_rod(diameter=threads_diameter, rod_height=snap_thickness, top_cutoff=true);
             else
@@ -153,7 +152,7 @@ zrot(180) xrot(90) back(threads_offset)
           }
           if (add_threads_blunt_text && threads_type == "Blunt")
             up(snap_thickness - text_depth + eps / 2) right(final_add_thickness_text ? 2.4 : 0)
-                tag("remove") linear_extrude(height=text_depth + eps) zrot(0) fill() text(threads_blunt_text, size=4, anchor=str("center", CENTER), font=threads_blunt_text_font);
+                tag("remove") linear_extrude(height=text_depth + eps) fill() text(threads_blunt_text, size=4, anchor=str("center", CENTER), font=threads_blunt_text_font);
           if (final_add_thickness_text)
             up(snap_thickness - text_depth + eps / 2) left(add_threads_blunt_text && threads_type == "Blunt" ? 2.4 : 0)
                 tag("remove") linear_extrude(height=text_depth + eps) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
