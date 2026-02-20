@@ -33,7 +33,7 @@ spring_hole_position_offset = 0;
 
 /* [Advanced Settings] */
 //Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
-add_thickness_text = "Uncommon Only"; //[All, Uncommon Only, None]
+add_thickness_text = "Uncommon"; //[All, Uncommon, None]
 stopper_depth = 3;
 stopper_front_rounding = 0.4; //0.2
 stem_top_rounding = 0.8; //0.2
@@ -49,9 +49,6 @@ add_threads_blunt_text = true;
 threads_blunt_text = "🔓";
 threads_blunt_text_font = "Noto Emoji"; // font
 threads_pitch = 3;
-
-threads_offset_angle = 0;
-threads_side_slice_off = 1.4; //0.1
 
 threads_compatibility_angle = 53.5;
 threads_diameter = 16;
@@ -74,15 +71,16 @@ tilt_angle_back_offset = ang_adj_to_opp(holder_tilt_angle, threads_diameter / 2 
 stem_base_depth = stem_depth * (1 - transition_depth_ratio) + tilt_angle_back_offset;
 stem_transition_depth = stem_depth * transition_depth_ratio;
 
+threads_diameter = 16;
 threads_connect_diameter = threads_diameter - 1.5;
-threads_offset = threads_diameter / 2 - threads_side_slice_off;
+threads_side_offset = threads_diameter / 2 - 1.4;
 
 //text parameters
 text_depth = 0.4;
 final_add_thickness_text =
   add_thickness_text == "None" ? false
   : add_thickness_text == "All" ? true
-  : add_thickness_text == "Uncommon Only" && snap_thickness != 3.4 && snap_thickness != 6.8 ? true
+  : add_thickness_text == "Uncommon" && snap_thickness != 3.4 && snap_thickness != 6.8 ? true
   : false;
 
 final_stem_top_width = max(eps, min(stem_bottom_width, stem_top_width));
@@ -91,8 +89,8 @@ plier_prismoid_bottom_rounding = max(eps, min(stem_bottom_rounding, stem_bottom_
 plier_prismoid_side_angle = opp_adj_to_ang((stem_bottom_width - final_stem_top_width) / 2, stem_height);
 stopper_side_angle = opp_adj_to_ang((stem_bottom_width - final_stem_top_width) * stopper_width_scale / 2, stem_height * stopper_height_scale);
 //align to front and bottom
-zrot(180) up(threads_offset) xrot(90) {
-      fwd(threads_offset) zrot(180) xrot(90) ycopies(n=plier_count, spacing=-stem_depth - stopper_depth + stopper_front_rounding, sp=[0, 0, 0])
+zrot(180) up(threads_side_offset) xrot(90) {
+      fwd(threads_side_offset) zrot(180) xrot(90) ycopies(n=plier_count, spacing=-stem_depth - stopper_depth + stopper_front_rounding, sp=[0, 0, 0])
               diff(remove="root_rm") {
                 diff() prismoid(size1=[stem_bottom_width, max(eps, stem_base_depth)], size2=[final_stem_top_width, max(eps, stem_base_depth)], h=stem_height, anchor=BACK + BOTTOM) {
                     edge_profile([BOTTOM + LEFT, BOTTOM + RIGHT], excess=2)
@@ -149,7 +147,7 @@ zrot(180) up(threads_offset) xrot(90) {
               up(snap_thickness - text_depth + eps / 2) left(add_threads_blunt_text && threads_type == "Blunt" ? 2.4 : 0)
                   tag("remove") linear_extrude(height=text_depth + eps) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
           }
-        tag("remove") fwd(threads_offset) cuboid([500, 500, 500], anchor=BACK);
+        tag("remove") fwd(threads_side_offset) cuboid([500, 500, 500], anchor=BACK);
       }
     }
 

@@ -51,47 +51,49 @@ tip_angle = 180; //[90:15:270]
 body_side_chamfer = 0.8; //0.2
 
 /* [Hidden] */
-$fa = 1;
-$fs = 0.4;
-eps = 0.005;
 
-//Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
-add_thickness_text = "Uncommon Only"; //[All, Uncommon Only, None]
-add_threads_blunt_text = true;
-threads_blunt_text = "🔓";
-threads_blunt_text_font = "Noto Emoji"; // font
-threads_pitch = 3;
+include <include/opengrid_snap_threads_lib.scad>
 
-threads_side_slice_off = 1.4; //0.1
+// $fa = 1;
+// $fs = 0.4;
+// eps = 0.005;
 
-threads_compatibility_angle = 53.5;
+// //Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
+// add_thickness_text = "Uncommon"; //[All, Uncommon, None]
+// add_threads_blunt_text = true;
+// threads_blunt_text = "🔓";
+// threads_blunt_text_font = "Noto Emoji"; // font
+// threads_pitch = 3;
+
+// threads_compatibility_angle = 53.5;
+// threads_diameter = 16;
+// threads_bottom_bevel_standard = 2; //0.1
+// threads_bottom_bevel_lite = 1.2; //0.1
+
+// //thread parameters
+// threads_bottom_bevel =
+//   snap_thickness == 6.8 ? threads_bottom_bevel_standard
+//   : threads_bottom_bevel_lite;
+
+// threads_profile = [
+//   [-1.25 / 3, -1 / 3],
+//   [-0.25 / 3, 0],
+//   [0.25 / 3, 0],
+//   [1.25 / 3, -1 / 3],
+// ];
+
+// //text parameters
+// text_depth = 0.4;
+// final_add_thickness_text =
+//   add_thickness_text == "None" ? false
+//   : add_thickness_text == "All" ? true
+//   : add_thickness_text == "Uncommon" && snap_thickness != 3.4 && snap_thickness != 6.8 ? true
+//   : false;
+
 threads_diameter = 16;
-threads_bottom_bevel_standard = 2; //0.1
-threads_bottom_bevel_lite = 1.2; //0.1
-
-//thread parameters
-threads_bottom_bevel =
-  snap_thickness == 6.8 ? threads_bottom_bevel_standard
-  : threads_bottom_bevel_lite;
-
-threads_profile = [
-  [-1.25 / 3, -1 / 3],
-  [-0.25 / 3, 0],
-  [0.25 / 3, 0],
-  [1.25 / 3, -1 / 3],
-];
-
 threads_connect_diameter = threads_diameter - 1.5;
-threads_offset = threads_diameter / 2 - threads_side_slice_off;
+threads_side_offset = threads_diameter / 2 - 1.4;
 threads_offset_angle = clip_orientation == "Horizontal" ? 0 : 90;
-
-//text parameters
-text_depth = 0.4;
-final_add_thickness_text =
-  add_thickness_text == "None" ? false
-  : add_thickness_text == "All" ? true
-  : add_thickness_text == "Uncommon Only" && snap_thickness != 3.4 && snap_thickness != 6.8 ? true
-  : false;
 
 symmetric_clip_height = 13.2;
 final_tip_diameter = max(eps, clip_thickness * clip_thickness_scale + 1, tip_diameter);
@@ -140,30 +142,31 @@ connect_cuboid_height =
   clip_shape == "Circular" || (clip_shape == "Elliptic" && abs(final_clip_entry_tilt_angle) == 90) ? clip_main_width / 2 + clip_thickness
   : clip_main_depth / 2;
 //align to front and bottom
-zrot(180) xrot(90) back(threads_offset)
+zrot(180) xrot(90) back(threads_side_offset)
       //main diff
       diff() {
-        zrot(threads_offset_angle) {
-          zrot(threads_compatibility_angle) {
-            if (threads_type == "Blunt")
-              blunt_threaded_rod(diameter=threads_diameter, rod_height=snap_thickness, top_cutoff=true);
-            else
-              generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=threads_pitch, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
-          }
-          if (add_threads_blunt_text && threads_type == "Blunt")
-            up(snap_thickness - text_depth + eps / 2) right(final_add_thickness_text ? 2.4 : 0)
-                tag("remove") linear_extrude(height=text_depth + eps) fill() text(threads_blunt_text, size=4, anchor=str("center", CENTER), font=threads_blunt_text_font);
-          if (final_add_thickness_text)
-            up(snap_thickness - text_depth + eps / 2) left(add_threads_blunt_text && threads_type == "Blunt" ? 2.4 : 0)
-                tag("remove") linear_extrude(height=text_depth + eps) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
-        }
+        // zrot(threads_offset_angle) {
+        //   zrot(threads_compatibility_angle) {
+        //     if (threads_type == "Blunt")
+        //       blunt_threaded_rod(diameter=threads_diameter, rod_height=snap_thickness, top_cutoff=true);
+        //     else
+        //       generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=threads_pitch, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
+        //   }
+        //   if (add_threads_blunt_text && threads_type == "Blunt")
+        //     up(snap_thickness - text_depth + eps / 2) right(final_add_thickness_text ? 2.4 : 0)
+        //         tag("remove") linear_extrude(height=text_depth + eps) fill() text(threads_blunt_text, size=4, anchor=str("center", CENTER), font=threads_blunt_text_font);
+        //   if (final_add_thickness_text)
+        //     up(snap_thickness - text_depth + eps / 2) left(add_threads_blunt_text && threads_type == "Blunt" ? 2.4 : 0)
+        //         tag("remove") linear_extrude(height=text_depth + eps) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
+        // }
+        snap_threads(threads_type=threads_type,snap_thickness=snap_thickness,threads_offset_angle=threads_offset_angle);
         //first inner diff
         diff(remove="rm1") {
-          fwd(threads_offset - clip_height / 2) {
+          fwd(threads_side_offset - clip_height / 2) {
             //second inner diff
             diff(remove="rm2", keep="kp2") {
               //Added shape connects the print surface of the threads to gadget.
-              fwd((clip_height - symmetric_clip_height) / 2 + threads_offset) diff(remove="rm3") {
+              fwd((clip_height - symmetric_clip_height) / 2 + threads_side_offset) diff(remove="rm3") {
                   teardrop(r=symmetric_clip_height / 2, h=connect_cuboid_height + clip_stem_length, anchor=BACK + TOP, orient=FRONT);
                   tag("rm3") back(clip_height) cuboid([30, 30, connect_cuboid_height + clip_stem_length], anchor=TOP + FRONT);
                 }
@@ -184,7 +187,7 @@ zrot(180) xrot(90) back(threads_offset)
                               back(final_clip_rect_rounding * (180 - clip_surround_angle) / 90 + knurling_outer_offset, rect([clip_main_width + clip_thickness * 2, clip_main_depth + clip_thickness], anchor=FRONT)),
                               rect([clip_main_width, clip_main_depth], rounding=final_clip_rect_rounding, anchor=FRONT)
                             );
-                            tag("kp2") back(clip_height - threads_offset) intersection() {
+                            tag("kp2") back(clip_height - threads_side_offset) intersection() {
                                   down(clip_main_depth + clip_thickness / 2) xrot(90) linear_sweep(
                                         rectangular_knurling_shape, clip_height, texture="diamonds", tex_size=[knurling_texture_size, knurling_texture_size],
                                         tex_depth=knurling_texture_depth, style=knurling_type == "Line" ? "default" : "concave"
@@ -213,7 +216,7 @@ zrot(180) xrot(90) back(threads_offset)
                             elliptic_knurling_shape = difference(
                               elliptic_part1, elliptic_part2
                             );
-                            tag("kp2") back(clip_height - threads_offset) intersection() {
+                            tag("kp2") back(clip_height - threads_side_offset) intersection() {
                                   down(clip_thickness / 2 + height_radius_start)
                                     xrot(90)
                                       linear_sweep(
@@ -242,32 +245,5 @@ zrot(180) xrot(90) back(threads_offset)
           }
           tag("rm1") cuboid([500, 500, 500], anchor=BOTTOM);
         }
-        tag("remove") fwd(threads_offset) cuboid([500, 500, 500], anchor=BACK);
+        tag("remove") fwd(threads_side_offset) cuboid([500, 500, 500], anchor=BACK);
       }
-
-module blunt_threaded_rod(diameter = threads_diameter, rod_height = snap_thickness, top_bevel = 0, bottom_bevel = 0, top_cutoff = false, blunt_ang = 10, anchor = CENTER, spin = 0, orient = UP) {
-  min_turns = 0.5;
-  offset_height = min(rod_height - 1.5 - bottom_bevel, 0);
-  turns = max(0, (rod_height - 1.5 - bottom_bevel) / 3) + min_turns;
-  attachable(anchor, spin, orient, d=diameter, h=rod_height) {
-    tag_scope() difference() {
-        union() {
-          cyl(d=diameter - 2 + eps, h=rod_height, anchor=BOTTOM, $fn=256);
-          difference() {
-            zrot(0.25 * 120) up(0.25)
-                zrot(-(min_turns * 3) * 120) up(-(min_turns * 3))
-                    zrot(offset_height * 120) up(offset_height)
-                        thread_helix(d=diameter, turns=turns, pitch=threads_pitch, profile=threads_profile, anchor=BOTTOM, internal=false, lead_in_ang2=blunt_ang, $fn=256);
-            up(rod_height + (diameter + 2) / 2) cube(diameter + 2, center=true);
-          }
-        }
-        if (top_cutoff || top_bevel > 0)
-          down((diameter + 2) / 2) cube(diameter + 2, center=true);
-        if (top_bevel > 0)
-          rotate_extrude() left(diameter / 2 - top_bevel / 2 + eps) right_triangle([top_bevel + eps, top_bevel + eps], anchor=BOTTOM);
-        if (bottom_bevel > 0)
-          up(rod_height) rotate_extrude() right(diameter / 2 - bottom_bevel + eps) right_triangle([bottom_bevel + eps, bottom_bevel + eps], anchor=BOTTOM, spin=180);
-      }
-    children();
-  }
-}

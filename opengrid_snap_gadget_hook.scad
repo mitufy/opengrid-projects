@@ -37,7 +37,7 @@ hook_stem_fillet = 4; //0.4
 //Chamfer is automatically clamped to ensure a sufficiently large print surface.
 body_max_chamfer = 0.8; //0.2
 //Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
-add_thickness_text = "Uncommon Only"; //[All, Uncommon Only, None]
+add_thickness_text = "Uncommon"; //[All, Uncommon, None]
 
 /* [Experimental Settings] */
 //Enable this to draw a custom hook shape with custom_shape_commands. For those who want wacky hooks.
@@ -54,8 +54,6 @@ add_threads_blunt_text = true;
 threads_blunt_text = "🔓";
 threads_blunt_text_font = "Noto Emoji"; // font
 threads_pitch = 3;
-
-threads_side_slice_off = 1.4; //0.1
 
 threads_compatibility_angle = 53.5;
 threads_diameter = 16;
@@ -74,15 +72,15 @@ threads_profile = [
   [1.25 / 3, -1 / 3],
 ];
 
+threads_diameter = 16;
 threads_connect_diameter = threads_diameter - 1.5;
-threads_offset = threads_diameter / 2 - threads_side_slice_off;
-
+threads_side_offset = threads_diameter / 2 - 1.4;
 //text parameters
 text_depth = 0.4;
 final_add_thickness_text =
   add_thickness_text == "None" ? false
   : add_thickness_text == "All" ? true
-  : add_thickness_text == "Uncommon Only" && snap_thickness != 3.4 && snap_thickness != 6.8 ? true
+  : add_thickness_text == "Uncommon" && snap_thickness != 3.4 && snap_thickness != 6.8 ? true
   : false;
 
 square_corner_radius = 1;
@@ -147,7 +145,7 @@ final_sweep_profile = ring_profile ? ring_sweep_profile : default_sweep_profile;
 offset_sweep_profile = scale([final_thickness_scale, 1, 1], final_sweep_profile);
 prism_fillet = max(0, min(final_stem_length, hook_stem_fillet));
 
-up(threads_offset) xrot(90)
+up(threads_side_offset) xrot(90)
     diff() {
       zrot(90 + threads_offset_angle) {
         zrot(threads_compatibility_angle) {
@@ -163,7 +161,7 @@ up(threads_offset) xrot(90)
           up(snap_thickness - text_depth + eps / 2) left(add_threads_blunt_text && threads_type == "Blunt" ? 2.4 : 0)
               tag("remove") linear_extrude(height=text_depth + eps) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
       }
-      fwd(threads_offset - body_width / 2) {
+      fwd(threads_side_offset - body_width / 2) {
         down(final_stem_length - eps) xrot(-90)
             path_sweep(final_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[final_thickness_scale, 1])
               attach("end", "top")
@@ -174,13 +172,13 @@ up(threads_offset) xrot(90)
               cuboid([100, 100, prism_fillet], anchor=TOP);
               union() {
                 cuboid([body_thickness, body_width, final_stem_length + eps * 2], chamfer=final_side_chamfer, edges="Z", anchor=TOP);
-                back(threads_offset - body_width / 2 + 0.1)
+                back(threads_side_offset - body_width / 2 + 0.1)
                   cyl(l=final_stem_length + eps * 2, d=threads_connect_diameter, anchor=TOP);
               }
             }
         }
       }
-      tag("remove") fwd(threads_offset - eps) cuboid([500, 500, 500], anchor=BACK);
+      tag("remove") fwd(threads_side_offset - eps) cuboid([500, 500, 500], anchor=BACK);
     }
 
 

@@ -114,7 +114,7 @@ expansion_distance_step = 0.05;
 
 /* [Text Settings] */
 //Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
-add_thickness_text = "Uncommon Only"; //[All, Uncommon Only, None]
+add_thickness_text = "Uncommon"; //[All, Uncommon, None]
 //Useful when experimenting with expansion distance.
 add_snap_expansion_distance_text = false;
 text_depth = 0.4;
@@ -223,7 +223,7 @@ directional_corner_slant_depth = directional_slant_depth / sqrt(2);
 final_add_thickness_text =
   add_thickness_text == "None" ? false
   : add_thickness_text == "All" ? true
-  : add_thickness_text == "Uncommon Only" && snap_thickness != 3.4 && snap_thickness != 6.8 ? true
+  : add_thickness_text == "Uncommon" && snap_thickness != 3.4 && snap_thickness != 6.8 ? true
   : false;
 
 //expand parameters
@@ -495,7 +495,7 @@ module expanding_thread(diameter, expand_width, entry_height, transition_height,
 }
 
 module snap() {
-  fold_for_printing(body_thickness=snap_thickness + ochead_total_height, fold_position=ochead_middle_to_bottom + eps, condition=generate_snap == "openConnect (Folded)")
+  conditional_fold(body_thickness=snap_thickness + ochead_total_height, fold_position=ochead_middle_to_bottom + eps, condition=generate_snap == "openConnect (Folded)")
     up(generate_snap == "Self-Expanding Threads" || generate_snap == "Basic Threads" ? 0 : snap_thickness)
       yrot(generate_snap == "Self-Expanding Threads" || generate_snap == "Basic Threads" ? 0 : 180)
         difference() {
@@ -594,7 +594,7 @@ module multiconnect_head(top_pattern = "coin_slot") {
 //BEGIN utility functions
 
 // Returns true if a slot should be placed at grid position [hgrid, vgrid].
-function is_slot_position(hgrid, vgrid, max_hgrid, max_vgrid, distri, except_pos = []) =
+function is_grid_pos_described(hgrid, vgrid, max_hgrid, max_vgrid, description, except_pos = []) =
   let (
     is_exception = in_list([hgrid, vgrid], except_pos),
     is_stagger = hgrid % 2 == vgrid % 2,
@@ -607,18 +607,18 @@ function is_slot_position(hgrid, vgrid, max_hgrid, max_vgrid, distri, except_pos
     is_corner = is_edge_row && is_edge_column,
     is_top_corner = is_corner && is_top_row,
     is_bottom_corner = is_corner && is_bottom_row,
-    matches_pattern = distri == "All" || (distri == "Staggered" && is_stagger) || (distri == "Corners" && is_corner) || (distri == "Top Corners" && is_top_corner) || (distri == "Bottom Corners" && is_bottom_corner) || (distri == "Edge Rows" && is_edge_row) || (distri == "Edge Columns" && is_edge_column)
+    matches_pattern = description == "All" || (description == "Staggered" && is_stagger) || (description == "Corners" && is_corner) || (description == "Top Corners" && is_top_corner) || (description == "Bottom Corners" && is_bottom_corner) || (description == "Edge Rows" && is_edge_row) || (description == "Edge Columns" && is_edge_column)
   ) !is_exception && matches_pattern;
 
-// Returns true if the slot footprint at center_point lies fully within limit_region.
-function is_slot_in_region(center_point, slide_direction, limit_region) =
+// Returns true if the slot footprint at cp lies fully within limit_region.
+function is_pos_shape_in_region(cp, slide_direction, limit_region) =
   let (
     slot_min_wall = 2,
     slot_rotate = slide_direction == "Left" ? 90
     : slide_direction == "Right" ? -90
     : slide_direction == "Down" ? 180 : 0,
     slot_rect = zrot(slot_rotate, fwd(ocslot_middle_to_bottom, rect([ocslot_large_rect_width + slot_min_wall * 2, ocslot_large_rect_width / 2 + ocslot_middle_to_bottom + slot_min_wall], chamfer=[ocslot_large_rect_chamfer + slot_min_wall - ang_adj_to_opp(45 / 2, slot_min_wall), ocslot_large_rect_chamfer + slot_min_wall - ang_adj_to_opp(45 / 2, slot_min_wall), 0, 0], anchor=FRONT))),
-    result = [for (i = slot_rect) point_in_region(center_point + i, limit_region) == 1]
+    result = [for (i = slot_rect) point_in_region(cp + i, limit_region) == 1]
   ) !in_list(list=result, val=false);
 
 // Conditionally flips children along the given axis. If copy=true, keep the original.
@@ -660,7 +660,6 @@ module conditional_half(v = LEFT, x = 0, obj_size = 300, condition) {
 
 //BEGIN openConnect slot parameters
 tile_size = 28;
-opengrid_snap_to_edge_offset = 0; // There was 1.6mm here. It's gone now.
 
 // ochead_bottom_height = 0.6;
 // ochead_top_height = 0.6;
@@ -874,14 +873,14 @@ module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_
               for (j = [0:vertical_grids - 1]) {
                 x_offset = -(horizontal_grids - i * 2 - 1) * tile_size / 2;
                 y_offset = (vertical_grids - j * 2 - 1) * tile_size / 2;
-                if (!is_region(limit_region) || is_slot_in_region(center_point=[x_offset, y_offset], slide_direction=slot_slide_direction, limit_region=limit_region))
-                  if (is_slot_position(i, j, horizontal_grids, vertical_grids, slot_position, except_slot_pos)) {
+                if (!is_region(limit_region) || is_pos_shape_in_region(cp=[x_offset, y_offset], slide_direction=slot_slide_direction, limit_region=limit_region))
+                  if (is_grid_pos_described(i, j, horizontal_grids, vertical_grids, slot_position, except_slot_pos)) {
                     right(x_offset) back(y_offset)
                         attach(BOTTOM, BOTTOM, inside=true, spin=grid_slot_spin) {
                           if (grid_type == "slot")
-                            tag("intersect") openconnect_slot(add_nubs=is_slot_position(i, j, horizontal_grids, vertical_grids, slot_lock_distribution) ? slot_lock_side : "", slot_entryramp_flip=grid_slot_flip, excess_thickness=excess_thickness);
+                            tag("intersect") openconnect_slot(add_nubs=is_grid_pos_described(i, j, horizontal_grids, vertical_grids, slot_lock_distribution) ? slot_lock_side : "", slot_entryramp_flip=grid_slot_flip, excess_thickness=excess_thickness);
                           else
-                            tag("intersect") openconnect_vase_slot(is_slot_position(i, j, horizontal_grids, vertical_grids, slot_lock_distribution) ? slot_lock_side : "", overhang_angle=overhang_angle);
+                            tag("intersect") openconnect_vase_slot(is_grid_pos_described(i, j, horizontal_grids, vertical_grids, slot_lock_distribution) ? slot_lock_side : "", overhang_angle=overhang_angle);
                         }
                   }
               }
@@ -894,7 +893,7 @@ module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_
 
 //BEGIN openConnect connectors
 // text_depth = 0.4;
-// add_thickness_text = "Uncommon Only"; //[All, Uncommon Only, None]
+// add_thickness_text = "Uncommon"; //[All, Uncommon, None]
 // fold_gap_width = 0.4;
 // fold_gap_height = 0.2;
 // connector_coin_slot_height = 2.6;
@@ -935,11 +934,11 @@ module openconnect_slot_grid(grid_type = "slot", horizontal_grids = 1, vertical_
 // final_add_thickness_text =
 //   add_thickness_text == "None" ? false
 //   : add_thickness_text == "All" ? true
-//   : add_thickness_text == "Uncommon Only" && snap_thickness != 3.4 && snap_thickness != 6.8 ? true
+//   : add_thickness_text == "Uncommon" && snap_thickness != 3.4 && snap_thickness != 6.8 ? true
 //   : false;
 
 module openconnect_screw(threads_height = threads_height, folded = false) {
-  fold_for_printing(body_thickness=snap_thickness + ochead_total_height, fold_position=ochead_middle_to_bottom + eps, fold_sliceoff=fold_gap_width / 2, condition=folded) {
+  conditional_fold(body_thickness=snap_thickness + ochead_total_height, fold_position=ochead_middle_to_bottom + eps, fold_sliceoff=fold_gap_width / 2, condition=folded) {
     up(threads_height + ochead_total_height) xrot(180) zrot(180)
           difference() {
             union() {
@@ -1004,7 +1003,7 @@ module blunt_threaded_rod(diameter = threads_diameter, rod_height = snap_thickne
   }
 }
 
-module fold_for_printing(body_thickness, fold_position = 0, fold_gap_width = fold_gap_width, fold_gap_height = fold_gap_height, fold_sliceoff = 0, rmobj_size = 100, condition = true) {
+module conditional_fold(body_thickness, fold_position = 0, fold_gap_width = fold_gap_width, fold_gap_height = fold_gap_height, fold_sliceoff = 0, rmobj_size = 100, condition = true) {
   if (condition) {
     back(fold_position) yrot(180) {
         xrot(-90, cp=[0, -fold_position, 0])
@@ -1045,7 +1044,7 @@ module main_generate() {
     right(generate_snap == "None" || view_snap_and_connector_overlapped ? 0 : 28) fwd(view_snap_and_connector_overlapped && generate_screw == "openConnect (Folded)" ? ochead_middle_to_bottom : 0)
         down(!view_snap_and_connector_overlapped ? 0 : generate_screw == "openConnect (Folded)" ? ochead_total_height : -snap_thickness)
           zrot(view_connector_rotated) xrot(!view_snap_and_connector_overlapped ? 0 : generate_screw == "openConnect (Folded)" ? -90 : -180)
-              zrot(view_snap_and_connector_overlapped || generate_screw == "openConnect (Folded)" ? 180 : 0) openconnect_screw(threads_height=snap_thickness, folded=generate_screw == "openConnect (Folded)");
+              zrot(view_snap_and_connector_overlapped || generate_screw == "openConnect (Folded)" ? 180 : 0) openconnect_screw(octhreads_height=snap_thickness, folded=generate_screw == "openConnect (Folded)");
 }
 
 half_of_anchor =
