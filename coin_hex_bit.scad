@@ -25,7 +25,7 @@ hex_rod_width = 6.3;//0.05
 /* [Hidden] */
 $fa = 1;
 $fs = 0.4;
-eps = 0.005;
+EPS = 0.005;
 hex_rod_bottom_chamfer = 0.4;
 coin_radius = coin_tip_height / 2 + coin_tip_width ^ 2 / (8 * coin_tip_height);
 

@@ -1,4 +1,4 @@
-/* 
+/*
 Licensed Creative Commons Attribution-ShareAlike 4.0 International
 
 Created by mitufy. https://github.com/mitufy
@@ -6,6 +6,9 @@ Created by mitufy. https://github.com/mitufy
 openConnect is a connector system designed for openGrid. https://www.printables.com/model/1559478-openconnect-opengrids-own-connector-system
 openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 */
+
+include <lib/opengrid_variable.scad>
+use <lib/openconnect_lib.scad>
 
 /* [Main Settings] */
 //Recommended: 150-200% of nozzle size (e.g. 0.6–0.8mm for a 0.4mm nozzle). Higher values may work, feel free to experiment.
@@ -44,15 +47,17 @@ surface_texture_depth = 1; //0.2
 
 /* [Hidden] */
 
-//putting the include statement here, so is_undef() function in the library can access customizer values.
-include <include/openconnect_lib.scad>
-
 //BEGIN container parameters
-vase_width = tile_size * horizontal_grids;
-vase_depth = use_custom_depth ? custom_depth : tile_size * depth_grids;
-final_vase_tilt_angle = min(adj_opp_to_ang(tile_size * vertical_grids, vase_depth - 1), vase_tilt_angle);
+vase_width = OG_TILE_SIZE * horizontal_grids;
+vase_depth = use_custom_depth ? custom_depth : OG_TILE_SIZE * depth_grids;
+final_vase_tilt_angle = min(adj_opp_to_ang(OG_TILE_SIZE * vertical_grids, vase_depth - 1), vase_tilt_angle);
 vase_slot_overhang_angle = max(45, 45 + final_vase_tilt_angle - 15);
-vase_height = ang_hyp_to_adj(final_vase_tilt_angle, tile_size * vertical_grids);
+vase_height = ang_hyp_to_adj(final_vase_tilt_angle, OG_TILE_SIZE * vertical_grids);
+_slot_cfg = ocslot_cfg(
+  side_clearance = slot_side_clearance,
+  depth_clearance = slot_depth_clearance,
+  vase_overhang_angle = vase_slot_overhang_angle
+);
 final_vase_front_inset_angle = min(adj_opp_to_ang(vase_height, max(0, vase_depth - ang_adj_to_opp(final_vase_tilt_angle, vase_height) - 1)), vase_front_inset_angle);
 final_surface_texture_size = surface_texture_size * (vase_surface_texture == "checkers" || vase_surface_texture == "cubes" ? 2 : 1);
 
@@ -73,7 +78,7 @@ up(vase_height / 2) xrot(90 + final_vase_tilt_angle) {
       diff(remove="root_rm") diff(remove="remove", keep="keep root_rm")
           prismoid(size1=[vase_width, vase_depth], h=vase_height, xang=[90, 90], yang=[90 - final_vase_front_inset_angle, 90 - final_vase_tilt_angle], chamfer=0, orient=FRONT, anchor=BACK) {
             attach(BACK, BOTTOM, spin=180)
-              openconnect_slot_grid(grid_type="vase", horizontal_grids=horizontal_grids, vertical_grids=vertical_grids, tile_size=tile_size, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, overhang_angle=vase_slot_overhang_angle);
+              openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="vase", horizontal_grids=horizontal_grids, vertical_grids=vertical_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution);
             if (vase_surface_texture != "") {
               frontwall_height = ang_adj_to_hyp(final_vase_front_inset_angle, vase_height) + ang_adj_to_opp(final_vase_front_inset_angle, surface_texture_depth);
               quant_texture_size = vase_surface_texture == "cubes" ? sqrt(3) * final_surface_texture_size : final_surface_texture_size;
@@ -86,7 +91,7 @@ up(vase_height / 2) xrot(90 + final_vase_tilt_angle) {
                   textured_tile(final_texture, w1=final_wall_width, w2=final_wall_width, shift=0, ysize=final_wall_height, tex_depth=surface_texture_depth, tex_size=[final_surface_texture_size, final_surface_texture_size * (vase_surface_texture == "cubes" ? sqrt(3) : 1)]) {
                     if (label_holder_type != "None")
                       right(label_move) tag("frontwall_rm")
-                          attach(TOP, BOTTOM, align=FRONT, inside=true, shiftout=eps)
+                          attach(TOP, BOTTOM, align=FRONT, inside=true, shiftout=EPS)
                             prismoid(size2=[label_width + label_side_clearance * 2, label_height + label_side_clearance], xang=[90, 90], yang=[90, label_overhang_angle], h=surface_texture_depth);
                   }
                 tag("frontwall_rm") attach(BOTTOM, BACK)
@@ -107,9 +112,9 @@ up(vase_height / 2) xrot(90 + final_vase_tilt_angle) {
               tag("remove") diff(remove="sidewall_rm") {
                   attach(RIGHT, BOTTOM, inside=true, align=BOTTOM)
                     textured_tile(final_texture, w1=final_wall_depth, w2=final_wall_depth, shift=0, ysize=final_wall_height, tex_depth=surface_texture_depth, tex_size=[final_surface_texture_size, final_surface_texture_size * (vase_surface_texture == "cubes" ? sqrt(3) : 1)]);
-                  tag("sidewall_rm") attach(FRONT, BACK, shiftout=eps)
+                  tag("sidewall_rm") attach(FRONT, BACK, shiftout=EPS)
                       cuboid([400, 400, 400]);
-                  tag("sidewall_rm") attach(BACK, BACK, shiftout=eps)
+                  tag("sidewall_rm") attach(BACK, BACK, shiftout=EPS)
                       cuboid([400, 400, 400]);
                 }
               tag("root_rm")

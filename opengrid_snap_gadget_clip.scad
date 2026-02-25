@@ -1,4 +1,4 @@
-/* 
+/*
 Licensed Creative Commons Attribution-ShareAlike 4.0 International
 
 Created by mitufy. https://github.com/mitufy
@@ -7,8 +7,9 @@ Recommended to use with openGrid - Self-Expanding Snap. https://www.printables.c
 The openGrid system is created by David D. https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem
 */
 
-include <BOSL2/std.scad>
+include <lib/opengrid_variable.scad>
 include <BOSL2/threading.scad>
+use <lib/opengrid_snap_threads_lib.scad>
 
 snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm, 3.4:Lite Basic - 3.4mm]
 //Blunt threads help prevent cross-threading and overtightening. Models with blunt threads have a decorative 'lock' symbol at the bottom.
@@ -52,51 +53,15 @@ body_side_chamfer = 0.8; //0.2
 
 /* [Hidden] */
 
-include <include/opengrid_snap_threads_lib.scad>
-
-// $fa = 1;
-// $fs = 0.4;
-// eps = 0.005;
-
-// //Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
-// add_thickness_text = "Uncommon"; //[All, Uncommon, None]
-// add_threads_blunt_text = true;
-// threads_blunt_text = "🔓";
-// threads_blunt_text_font = "Noto Emoji"; // font
-// threads_pitch = 3;
-
-// threads_compatibility_angle = 53.5;
-// threads_diameter = 16;
-// threads_bottom_bevel_standard = 2; //0.1
-// threads_bottom_bevel_lite = 1.2; //0.1
-
-// //thread parameters
-// threads_bottom_bevel =
-//   snap_thickness == 6.8 ? threads_bottom_bevel_standard
-//   : threads_bottom_bevel_lite;
-
-// threads_profile = [
-//   [-1.25 / 3, -1 / 3],
-//   [-0.25 / 3, 0],
-//   [0.25 / 3, 0],
-//   [1.25 / 3, -1 / 3],
-// ];
-
-// //text parameters
-// text_depth = 0.4;
-// final_add_thickness_text =
-//   add_thickness_text == "None" ? false
-//   : add_thickness_text == "All" ? true
-//   : add_thickness_text == "Uncommon" && snap_thickness != 3.4 && snap_thickness != 6.8 ? true
-//   : false;
-
 threads_diameter = 16;
 threads_connect_diameter = threads_diameter - 1.5;
 threads_side_offset = threads_diameter / 2 - 1.4;
 threads_offset_angle = clip_orientation == "Horizontal" ? 0 : 90;
 
+_threads_cfg = struct_set([], ["threads_offset_angle", OG_SNAP_THREADS_COMPATIBILITY_ANGLE + threads_offset_angle]);
+
 symmetric_clip_height = 13.2;
-final_tip_diameter = max(eps, clip_thickness * clip_thickness_scale + 1, tip_diameter);
+final_tip_diameter = max(EPS, clip_thickness * clip_thickness_scale + 1, tip_diameter);
 final_side_chamfer = max(0, min(clip_thickness / 2 * clip_thickness_scale - 0.84, clip_height / 2 - 0.84, body_side_chamfer));
 
 tip_path = ["arcleft", final_tip_diameter / 2, tip_angle];
@@ -105,10 +70,10 @@ circular_clip_path = ["arcright", clip_main_width / 2 + clip_thickness / 2, clip
 //unimplemented customizable inner angle for rect holders
 clip_rect_inner_angle = 90; //[0:15:180]
 
-final_clip_rect_rounding = max(eps, min((clip_main_width + clip_thickness) / 2, (clip_main_depth + clip_thickness) / 2, clip_rect_rounding));
-final_clip_inner_width = max(eps, clip_main_width / 2 + clip_thickness / 2 - final_clip_rect_rounding);
-final_clip_outer_width = max(eps, (clip_main_width / 2 + clip_thickness / 2) * (clip_surround_angle - 90) / 90 - final_clip_rect_rounding);
-final_clip_side_depth = max(eps, (clip_main_depth + clip_thickness - final_clip_rect_rounding * 2));
+final_clip_rect_rounding = max(EPS, min((clip_main_width + clip_thickness) / 2, (clip_main_depth + clip_thickness) / 2, clip_rect_rounding));
+final_clip_inner_width = max(EPS, clip_main_width / 2 + clip_thickness / 2 - final_clip_rect_rounding);
+final_clip_outer_width = max(EPS, (clip_main_width / 2 + clip_thickness / 2) * (clip_surround_angle - 90) / 90 - final_clip_rect_rounding);
+final_clip_side_depth = max(EPS, (clip_main_depth + clip_thickness - final_clip_rect_rounding * 2));
 
 rect_clip_threshold_angle = 90 + (final_clip_rect_rounding * 2) / (clip_main_width / 2 + clip_thickness / 2 + final_clip_rect_rounding * 2) * 90;
 rect_clip_has_bottom = clip_surround_angle >= rect_clip_threshold_angle;
@@ -137,7 +102,7 @@ knurling_outer_offset = 0;
 
 clip_profile = rect([clip_thickness, clip_height], chamfer=final_side_chamfer);
 final_clip_entry_tilt_angle = (clip_shape == "Circular" || abs(clip_entry_tilt_angle) == 90) ? clip_entry_tilt_angle : 0;
-tip_rounding_radius = max(0, min(clip_thickness * clip_thickness_scale - final_side_chamfer * 2, clip_height - final_side_chamfer * 2) / 2 - eps);
+tip_rounding_radius = max(0, min(clip_thickness * clip_thickness_scale - final_side_chamfer * 2, clip_height - final_side_chamfer * 2) / 2 - EPS);
 connect_cuboid_height =
   clip_shape == "Circular" || (clip_shape == "Elliptic" && abs(final_clip_entry_tilt_angle) == 90) ? clip_main_width / 2 + clip_thickness
   : clip_main_depth / 2;
@@ -148,18 +113,18 @@ zrot(180) xrot(90) back(threads_side_offset)
         // zrot(threads_offset_angle) {
         //   zrot(threads_compatibility_angle) {
         //     if (threads_type == "Blunt")
-        //       blunt_threaded_rod(diameter=threads_diameter, rod_height=snap_thickness, top_cutoff=true);
+        //       blunt_threads(diameter=threads_diameter, threads_height=snap_thickness, top_cutoff=true);
         //     else
         //       generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=threads_pitch, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
         //   }
         //   if (add_threads_blunt_text && threads_type == "Blunt")
-        //     up(snap_thickness - text_depth + eps / 2) right(final_add_thickness_text ? 2.4 : 0)
-        //         tag("remove") linear_extrude(height=text_depth + eps) fill() text(threads_blunt_text, size=4, anchor=str("center", CENTER), font=threads_blunt_text_font);
+        //     up(snap_thickness - text_depth + EPS / 2) right(final_add_thickness_text ? 2.4 : 0)
+        //         tag("remove") linear_extrude(height=text_depth + EPS) fill() text(OG_SNAP_THREADS_BLUNT_TEXT, size=4, anchor=str("center", CENTER), font=OG_SNAP_THREADS_BLUNT_TEXT_FONT);
         //   if (final_add_thickness_text)
-        //     up(snap_thickness - text_depth + eps / 2) left(add_threads_blunt_text && threads_type == "Blunt" ? 2.4 : 0)
-        //         tag("remove") linear_extrude(height=text_depth + eps) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
+        //     up(snap_thickness - text_depth + EPS / 2) left(add_threads_blunt_text && threads_type == "Blunt" ? 2.4 : 0)
+        //         tag("remove") linear_extrude(height=text_depth + EPS) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font=OG_SNAP_TEXT_FONT);
         // }
-        snap_threads(threads_type=threads_type,snap_thickness=snap_thickness,threads_offset_angle=threads_offset_angle);
+        snap_threads(threads_type=threads_type, snap_thickness=snap_thickness, threads_cfg=_threads_cfg);
         //first inner diff
         diff(remove="rm1") {
           fwd(threads_side_offset - clip_height / 2) {
@@ -234,10 +199,10 @@ zrot(180) xrot(90) back(threads_side_offset)
                                 attach("end", "start")
                                   path_sweep(scale([clip_thickness_scale, 1, 1], clip_profile), path=turtle(tip_path))
                                     attach("end", "top")
-                                      offset_sweep(scale([clip_thickness_scale, 1, 1], clip_profile), height=tip_rounding_radius + eps, bottom=os_circle(r=tip_rounding_radius));
+                                      offset_sweep(scale([clip_thickness_scale, 1, 1], clip_profile), height=tip_rounding_radius + EPS, bottom=os_circle(r=tip_rounding_radius));
                               else {
                                 attach("end", "top")
-                                  offset_sweep(scale([clip_thickness_scale, 1, 1], clip_profile), height=tip_rounding_radius + eps, bottom=os_circle(r=tip_rounding_radius));
+                                  offset_sweep(scale([clip_thickness_scale, 1, 1], clip_profile), height=tip_rounding_radius + EPS, bottom=os_circle(r=tip_rounding_radius));
                               }
                             }
                     }

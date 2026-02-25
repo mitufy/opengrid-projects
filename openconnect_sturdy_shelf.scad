@@ -1,4 +1,4 @@
-/* 
+/*
 Licensed Creative Commons Attribution-ShareAlike 4.0 International
 
 Created by mitufy. https://github.com/mitufy
@@ -7,6 +7,9 @@ openConnect is a connector system designed for openGrid. https://www.printables.
 openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 connector_cutout_delete_tool() is written by BlackJackDuck. https://github.com/AndyLevesque/QuackWorks
 */
+
+include <lib/opengrid_variable.scad>
+use <lib/openconnect_lib.scad>
 
 /* [Main Settings] */
 horizontal_grids = 3;
@@ -70,8 +73,13 @@ shelf_front_edge_thickness = 1;
 /* [Hidden] */
 slot_edge_feature_widen = "Side"; //[Both, Top, Side, None]
 
-//putting the include statement here, so is_undef() function in the library can access customizer values.
-include <include/openconnect_lib.scad>
+_slot_cfg = ocslot_cfg(
+  edge_feature = slot_edge_feature_widen,
+  edge_bridge_min_w = slot_edge_bridge_min_width,
+  edge_wall_min_w = slot_edge_wall_min_width,
+  side_clearance = slot_side_clearance,
+  depth_clearance = slot_depth_clearance
+);
 
 //BEGIN shelf parameters
 top_vertical_grids = 1;
@@ -80,13 +88,13 @@ bottom_vertical_grids = 1;
 shelf_side_edge_angle = 45; //[15:15:45]
 shelf_front_edge_angle = 45; //[15:15:90]
 
-shelf_depth = use_custom_depth ? custom_depth : tile_size * depth_grids;
-shelf_width = tile_size * horizontal_grids;
+shelf_depth = use_custom_depth ? custom_depth : OG_TILE_SIZE * depth_grids;
+shelf_width = OG_TILE_SIZE * horizontal_grids;
 
 shelf_linewidth = 0.42;
 final_shelf_bottom_thickness = add_left_connector_holes || add_right_connector_holes ? max(shelf_bottom_thickness, 2.4 + shelf_linewidth * 3) : shelf_bottom_thickness;
-bottom_shelf_back_height = tile_size * bottom_vertical_grids + final_shelf_bottom_thickness;
-top_shelf_back_height = tile_size * top_vertical_grids - final_shelf_bottom_thickness;
+bottom_shelf_back_height = OG_TILE_SIZE * bottom_vertical_grids + final_shelf_bottom_thickness;
+top_shelf_back_height = OG_TILE_SIZE * top_vertical_grids - final_shelf_bottom_thickness;
 
 top_sweep_startend_offset = 2;
 top_sweep_rect_height = min(shelf_back_thickness, final_shelf_bottom_thickness);
@@ -115,13 +123,13 @@ diff(remove="outer_rm")
       : add_left_edge ? BOTTOM : TOP;
     rough_wall_width_offset = (add_left_edge ? shelf_side_edge_depth + shelf_side_edge_thickness : 0) + (add_right_edge ? shelf_side_edge_depth + shelf_side_edge_thickness : 0);
     if (add_left_connector_holes)
-      left(shelf_depth % tile_size / 2)
+      left(shelf_depth % OG_TILE_SIZE / 2)
         attach(TOP, LEFT, inside=true, align=FRONT, inset=shelf_linewidth * 2)
-          tag("outer_rm") line_copies(spacing=tile_size, n=floor(shelf_depth / tile_size)) connector_cutout_delete_tool(anchor=LEFT);
+          tag("outer_rm") line_copies(spacing=OG_TILE_SIZE, n=floor(shelf_depth / OG_TILE_SIZE)) connector_cutout_delete_tool(anchor=LEFT);
     if (add_right_connector_holes)
-      left(shelf_depth % tile_size / 2)
+      left(shelf_depth % OG_TILE_SIZE / 2)
         attach(BOTTOM, LEFT, inside=true, align=FRONT, inset=shelf_linewidth * 2)
-          tag("outer_rm") line_copies(spacing=tile_size, n=floor(shelf_depth / tile_size)) connector_cutout_delete_tool(anchor=LEFT);
+          tag("outer_rm") line_copies(spacing=OG_TILE_SIZE, n=floor(shelf_depth / OG_TILE_SIZE)) connector_cutout_delete_tool(anchor=LEFT);
     if (add_texture)
       attach(BACK, BOTTOM, align=rough_wall_alignment)
         textured_tile("rough", w1=shelf_depth, w2=shelf_depth, ysize=shelf_width - rough_wall_width_offset, tex_depth=shelf_texture_depth, tex_size=[shelf_texture_size, shelf_texture_size], style="min_edge");
@@ -141,17 +149,17 @@ diff(remove="outer_rm")
             mask2d_rabbet(size=[shelf_front_edge_thickness, shelf_front_edge_depth], mask_angle=shelf_front_edge_angle, spin=180);
 
     if (shelf_type != "Slim") {
-      if (truss_inner_depth <= 0 || truss_inner_height <= 0 || truss_thickness <= eps)
+      if (truss_inner_depth <= 0 || truss_inner_height <= 0 || truss_thickness <= EPS)
         right(shelf_back_thickness) edge_mask(LEFT + FRONT)
-            tag("") rounding_edge_mask(r=min(truss_thickness * 3, tile_size - final_shelf_bottom_thickness), spin=-90);
+            tag("") rounding_edge_mask(r=min(truss_thickness * 3, OG_TILE_SIZE - final_shelf_bottom_thickness), spin=-90);
       //bottom shelf truss
       else {
         if (truss_inner_depth > 0 && truss_inner_height > 0) {
           truss_profile = difference(
             right_triangle([truss_depth, truss_height]),
-            round_corners(joint=min(truss_rounding, truss_inner_depth / 2 - eps, truss_inner_height / 2 - eps), path=right_triangle([truss_inner_depth, truss_inner_height]))
+            round_corners(joint=min(truss_rounding, truss_inner_depth / 2 - EPS, truss_inner_height / 2 - EPS), path=right_triangle([truss_inner_depth, truss_inner_height]))
           );
-          if (truss_strut_interval > eps) {
+          if (truss_strut_interval > EPS) {
             truss_strut_count = floor((truss_inner_depth - floor(truss_inner_depth / truss_strut_interval) * truss_thickness) / truss_strut_interval);
             intersect() {
               for (i = [0:truss_strut_count - 1]) {
@@ -174,12 +182,12 @@ diff(remove="outer_rm")
       }
     }
     //unused top shelf corner filler
-    if (final_shelf_corner_fillet > eps)
+    if (final_shelf_corner_fillet > EPS)
       tag_diff(tag="", remove="remove") {
         attach(BACK, FRONT, align=LEFT, inset=shelf_back_thickness)
           cuboid([final_shelf_corner_fillet, final_shelf_corner_fillet, shelf_width])
             back(final_shelf_corner_fillet / 2 - final_shelf_bottom_thickness / 2) right(final_shelf_corner_fillet / 2 - shelf_back_thickness / 2)
-                tag("remove") cyl(r=final_shelf_corner_fillet, h=shelf_width + eps * 2);
+                tag("remove") cyl(r=final_shelf_corner_fillet, h=shelf_width + EPS * 2);
       }
     //top shelf back
     tag_diff(tag="", remove="remove")
@@ -198,20 +206,20 @@ diff(remove="outer_rm")
               back(shelf_side_edge_thickness + (shelf_side_edge_angle == 90 ? 0 : ang_opp_to_adj(shelf_side_edge_angle, shelf_side_edge_depth)))
                 yflip()
                   tag("") mask2d_rabbet(size=[shelf_side_edge_thickness, shelf_side_edge_depth], mask_angle=shelf_side_edge_angle, spin=90);
-          if (final_shelf_corner_fillet > eps)
+          if (final_shelf_corner_fillet > EPS)
             right(max(0, shelf_back_thickness - final_shelf_bottom_thickness)) back(max(0, final_shelf_bottom_thickness - shelf_back_thickness)) fwd(final_shelf_bottom_thickness) fwd(top_shelf_back_height - final_shelf_corner_fillet - top_sweep_startend_offset)
                     attach(BACK + LEFT, BACK + LEFT, inside=true)
                       tag("") path_sweep(top_sweep_profile, path=path_merge_collinear(turtle(top_sweep_path)), scale=[1, 1], $fn=128);
           if (shelf_type == "Slim")
             attach(LEFT, TOP, inside=true, spin=90)
-              tag("remove") openconnect_slot_grid(horizontal_grids=horizontal_grids, vertical_grids=top_vertical_grids, tile_size=tile_size, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=eps);
+              tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=horizontal_grids, vertical_grids=top_vertical_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=EPS);
         }
     //bottom back and slots
-    fwd(shelf_type == "Slim" ? 0 : tile_size)
+    fwd(shelf_type == "Slim" ? 0 : OG_TILE_SIZE)
       attach(FRONT + LEFT, FRONT + LEFT, inside=true)
-        cuboid([shelf_back_thickness, shelf_type == "Slim" ? tile_size : tile_size * 2, shelf_width])
+        cuboid([shelf_back_thickness, shelf_type == "Slim" ? OG_TILE_SIZE : OG_TILE_SIZE * 2, shelf_width])
           attach(LEFT, TOP, align=BACK, inside=true, spin=90)
-            tag("outer_rm") openconnect_slot_grid(horizontal_grids=horizontal_grids, vertical_grids=shelf_type == "Standard" ? top_vertical_grids + bottom_vertical_grids : top_vertical_grids, tile_size=tile_size, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=eps);
+            tag("outer_rm") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=horizontal_grids, vertical_grids=shelf_type == "Standard" ? top_vertical_grids + bottom_vertical_grids : top_vertical_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=EPS);
   }
 //END generation
 

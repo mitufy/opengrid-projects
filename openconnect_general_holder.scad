@@ -1,4 +1,4 @@
-/* 
+/*
 Licensed Creative Commons Attribution-ShareAlike 4.0 International
 
 Created by mitufy. https://github.com/mitufy
@@ -6,6 +6,9 @@ Created by mitufy. https://github.com/mitufy
 openConnect is a connector system designed for openGrid. https://www.printables.com/model/1559478-openconnect-opengrids-own-connector-system
 openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 */
+
+include <lib/opengrid_variable.scad>
+use <lib/openconnect_lib.scad>
 
 /* [Item Size] */
 item_horizontal_count = 2;
@@ -49,20 +52,25 @@ slot_edge_bridge_min_width = 0.8; //0.01
 slot_edge_wall_min_width = 0.6; //0.01
 
 /* [Hidden] */
-slot_edge_feature_widen = "Top"; 
+slot_edge_feature_widen = "Top";
 //Slide and entry ramp direction can matter in tight spaces.
 slot_slide_direction = "Up";
 //A slot is generated for every tile by default.
 slot_position = "All"; //["All", "Staggered", "Edge Rows", "Edge Columns", "Corners"]
-//Double Lock can be very difficult to install. They are intended for small models that only use one or two slots. 
+//Double Lock can be very difficult to install. They are intended for small models that only use one or two slots.
 slot_lock_side = "Left"; //[Left:Standard, Both:Double]
 
-//putting the include statement here, so is_undef() function in the library can access customizer values.
-include <include/openconnect_lib.scad>
+_slot_cfg = ocslot_cfg(
+  edge_feature = slot_edge_feature_widen,
+  edge_bridge_min_w = slot_edge_bridge_min_width,
+  edge_wall_min_w = slot_edge_wall_min_width,
+  side_clearance = slot_side_clearance,
+  depth_clearance = slot_depth_clearance
+);
 
 slot_wall_min_height = 18;
-slot_wall_thickness = 1.2 + ocslot_total_height;
-holder_width = max(tile_size, item_width * item_horizontal_count + holder_width_divider_wall_thickness * max(0, item_horizontal_count - 1) + holder_outer_wall_thickness * 2);
+slot_wall_thickness = 1.2 + struct_val(_slot_cfg, "total_height");
+holder_width = max(OG_TILE_SIZE, item_width * item_horizontal_count + holder_width_divider_wall_thickness * max(0, item_horizontal_count - 1) + holder_outer_wall_thickness * 2);
 holder_depth = item_depth * item_vertical_count + holder_depth_divider_wall_thickness * max(0, item_vertical_count - 1) + holder_outer_wall_thickness + slot_wall_thickness;
 holder_added_depth = holder_depth + holder_back_offset;
 final_holder_height = max(ang_adj_to_hyp(holder_tilt_angle, slot_wall_min_height), holder_height);
@@ -84,8 +92,8 @@ item_shape = rect([item_width, item_depth], rounding=final_item_rounding);
 item_width_scale = item_taper_width / item_width;
 item_depth_scale = item_taper_depth / item_depth;
 
-final_slot_h_grids = max(1, floor(holder_width / tile_size));
-final_slot_v_grids = max(1, floor(ang_hyp_to_adj(holder_tilt_angle, final_holder_height) / tile_size));
+final_slot_h_grids = max(1, floor(holder_width / OG_TILE_SIZE));
+final_slot_v_grids = max(1, floor(ang_hyp_to_adj(holder_tilt_angle, final_holder_height) / OG_TILE_SIZE));
 
 // xrot(-holder_tilt_angle)
 hide_this()
@@ -95,24 +103,24 @@ hide_this()
         attach(FRONT, TOP, align=BOTTOM, inside=true)
           tag("") prismoid(size1=[holder_width, 0], h=ang_hyp_to_opp(holder_tilt_angle, final_holder_height), xang=[90, 90], yang=[180 - holder_tilt_angle, 90]) {
               attach(TOP, TOP, align=BACK, inside=true)
-                tag("remove") openconnect_slot_grid(grid_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, tile_size=tile_size, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=eps);
+                tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS);
             }
       else
         attach(FRONT, TOP, align=TOP, inside=true)
-          tag("remove") openconnect_slot_grid(grid_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, tile_size=tile_size, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=eps);
+          tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS);
       //main holder part
       attach(BOTTOM, "original_top", inside=true)
         tag("") linear_sweep(region=holder_shape, height=final_holder_height, scale=[1, 1], shift=[0, 0]) {
             fwd(holder_outer_wall_thickness - slot_wall_thickness - holder_back_offset / 2)
               grid_copies(spacing=[item_width + holder_width_divider_wall_thickness, item_depth + holder_depth_divider_wall_thickness], n=[item_horizontal_count, item_vertical_count])
-                attach("original_base", "original_base", inside=true, shiftout=eps)
+                attach("original_base", "original_base", inside=true, shiftout=EPS)
                   tag("remove") linear_sweep(region=item_shape, height=item_height, scale=[item_width_scale, item_depth_scale], shift=[0, 0]);
           }
       front_cutoff_depth = item_width - final_item_rounding * 2 - holder_front_cutoff_width > 0 ? holder_outer_wall_thickness : holder_outer_wall_thickness + final_item_rounding;
       if (holder_front_cutoff_width > 0 && holder_front_cutoff_height > 0)
         tag_diff(tag="remove", remove="rm1")
           line_copies(spacing=item_width + holder_width_divider_wall_thickness, n=item_horizontal_count)
-            attach(TOP, TOP, align=BACK, inset=-eps, inside=true)
+            attach(TOP, TOP, align=BACK, inset=-EPS, inside=true)
               tag("") prismoid(size2=[holder_front_cutoff_width, front_cutoff_depth], h=final_front_cutoff_height, xang=[90, 90], yang=[90 - final_depth_taper, 90]) {
                   if (front_cutoff_outer_fillet > 0)
                     fwd(ang_adj_to_opp(final_depth_taper, front_cutoff_outer_fillet) / 2)

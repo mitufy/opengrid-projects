@@ -1,4 +1,4 @@
-/* 
+/*
 Licensed Creative Commons Attribution-ShareAlike 4.0 International
 
 Created by mitufy. https://github.com/mitufy
@@ -6,6 +6,9 @@ Created by mitufy. https://github.com/mitufy
 openConnect is a connector system designed for openGrid. https://www.printables.com/model/1559478-openconnect-opengrids-own-connector-system
 openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 */
+
+include <lib/opengrid_variable.scad>
+use <lib/openconnect_lib.scad>
 
 /* [Main Settings] */
 //Default height is vertical_grids × 28mm, which aligns with openGrid tiles. You can override it by enabling "use_custom_height" below.
@@ -46,30 +49,35 @@ custom_height_slot_alignment = "Center"; //[Center,Top, Bottom]
 hook_side_rounding = 2.4; //0.2
 
 /* [Hidden] */
-//Double Lock is intended for small models that only use one or two slots. 
+//Double Lock is intended for small models that only use one or two slots.
 slot_lock_side = "Left"; //[Left:Standard, Both:Double]
 slot_edge_feature_widen = "Side"; //[Both, Top, Side, None]
 
-//putting the include statement here, so is_undef() function in the library can access customizer values.
-include <include/openconnect_lib.scad>
+_slot_cfg = ocslot_cfg(
+  edge_feature = slot_edge_feature_widen,
+  edge_bridge_min_w = slot_edge_bridge_min_width,
+  edge_wall_min_w = slot_edge_wall_min_width,
+  side_clearance = slot_side_clearance,
+  depth_clearance = slot_depth_clearance
+);
 
-horizontal_grids = max(1, floor(hook_width / tile_size));
+horizontal_grids = max(1, floor(hook_width / OG_TILE_SIZE));
 
-hook_stem_height = use_custom_height ? custom_hook_height : vertical_grids * tile_size;
+hook_stem_height = use_custom_height ? custom_hook_height : vertical_grids * OG_TILE_SIZE;
 hook_slot_alignment =
   !use_custom_height || custom_height_slot_alignment == "Center" ? CENTER
   : custom_height_slot_alignment == "Top" ? BACK : FRONT;
 final_hook_corner_radius = min(hook_corner_radius, hook_stem_height - hook_thickness / 2 - hook_side_rounding);
-stem_first_height = max(eps, hook_stem_height - final_hook_corner_radius);
+stem_first_height = max(EPS, hook_stem_height - final_hook_corner_radius);
 
 final_side_chamfer = max(0, min(hook_thickness / 2 * hook_thickness_scale - 0.84, hook_width / 2 - 0.84, hook_side_rounding));
 
 hook_path =
-  hook_tip_radius <= 0 || hook_tip_angle <= 90 ? ["setdir", -90, "arcleft", final_hook_corner_radius, "move", max(eps, hook_flat_length)]
-  : ["setdir", -90, "arcleft", final_hook_corner_radius, "move", max(eps, hook_flat_length), "arcleft", hook_tip_radius, max(1, hook_tip_angle - 90)];
+  hook_tip_radius <= 0 || hook_tip_angle <= 90 ? ["setdir", -90, "arcleft", final_hook_corner_radius, "move", max(EPS, hook_flat_length)]
+  : ["setdir", -90, "arcleft", final_hook_corner_radius, "move", max(EPS, hook_flat_length), "arcleft", hook_tip_radius, max(1, hook_tip_angle - 90)];
 hook_path_first_part = ["setdir", -90, "arcleft", final_hook_corner_radius];
 
-tip_rounding_radius = max(0, min(hook_thickness * hook_thickness_scale, hook_width - final_side_chamfer * 2) / 2 - eps);
+tip_rounding_radius = max(0, min(hook_thickness * hook_thickness_scale, hook_width - final_side_chamfer * 2) / 2 - EPS);
 path_first_ratio = path_length(turtle(hook_path_first_part)) / path_length(turtle(hook_path));
 
 final_sweep_profile = difference(
@@ -91,15 +99,15 @@ diff(remove="rm0")
         attach(FRONT, FRONT, align=LEFT, inside=true)
           tag("") cuboid([final_hook_corner_radius + hook_thickness / 2, final_hook_corner_radius + hook_thickness / 2, hook_width], chamfer=final_side_chamfer, edges=[LEFT + TOP, LEFT + BOTTOM])
               back(final_hook_corner_radius / 2) right(final_hook_corner_radius / 2)
-                  tag("rm2") zcyl(r=final_hook_corner_radius, h=hook_width + eps * 2);
+                  tag("rm2") zcyl(r=final_hook_corner_radius, h=hook_width + EPS * 2);
       }
       attach(LEFT, TOP, align=hook_slot_alignment, inside=true, spin=90)
-        tag("rm0") openconnect_slot_grid(horizontal_grids=horizontal_grids, vertical_grids=vertical_grids, tile_size=tile_size, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=eps);
+        tag("rm0") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=horizontal_grids, vertical_grids=vertical_grids, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=EPS);
     }
     tag("kp1") up(hook_width / 2) fwd(stem_first_height - hook_thickness / 2 * (1 - ( (1 - hook_thickness_scale) * path_first_ratio))) {
           path_sweep(final_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[hook_thickness_scale, 1])
             attach("end", "top")
-              offset_sweep(offset_sweep_profile, height=tip_rounding_radius + eps, bottom=os_circle(r=tip_rounding_radius), spin=180, $fn=128);
+              offset_sweep(offset_sweep_profile, height=tip_rounding_radius + EPS, bottom=os_circle(r=tip_rounding_radius), spin=180, $fn=128);
         }
   }
 //END generation

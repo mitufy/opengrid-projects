@@ -47,16 +47,16 @@ horizontal_grids = 1;
 /*[Hidden]*/
 $fa = 1;
 $fs = 0.2;
-eps = 0.005;
+EPS = 0.005;
 //0.42 is a common line width for 0.4mm nozzles.
 framesnap_thickness = 0.84; // 0.42
 
-hook_final_back_thickness = max(eps, hook_back_thickness);
-hook_final_bottom_thickness = max(eps, hook_bottom_thickness);
-hook_final_side_chamfer = max(eps, min(hook_final_back_thickness / 2 - eps, hook_final_bottom_thickness / 2 - eps, hook_side_chamfer));
+hook_final_back_thickness = max(EPS, hook_back_thickness);
+hook_final_bottom_thickness = max(EPS, hook_bottom_thickness);
+hook_final_side_chamfer = max(EPS, min(hook_final_back_thickness / 2 - EPS, hook_final_bottom_thickness / 2 - EPS, hook_side_chamfer));
 
-tile_size = 28;
-Tile_Thickness = 6.8;
+OG_TILE_SIZE = 28;
+Tile_Thickness = OG_STANDARD_THICKNESS;
 Outside_Extrusion = 0.8;
 Inside_Grid_Top_Chamfer = 0.4;
 Inside_Grid_Middle_Chamfer = 1;
@@ -67,16 +67,16 @@ Tile_Inner_Size_Difference = 3;
 
 //openGrid paramters
 calculatedCornerSquare =
-sqrt(tile_size ^ 2 + tile_size ^ 2) - 2 * sqrt(Intersection_Distance ^ 2 / 2) - Intersection_Distance / 2;
-Tile_Inner_Size = tile_size - Tile_Inner_Size_Difference; // 25mm default
-insideExtrusion = (tile_size - Tile_Inner_Size) / 2 - Outside_Extrusion; // 0.7 default
+sqrt(OG_TILE_SIZE ^ 2 + OG_TILE_SIZE ^ 2) - 2 * sqrt(Intersection_Distance ^ 2 / 2) - Intersection_Distance / 2;
+Tile_Inner_Size = OG_TILE_SIZE - Tile_Inner_Size_Difference; // 25mm default
+insideExtrusion = (OG_TILE_SIZE - Tile_Inner_Size) / 2 - Outside_Extrusion; // 0.7 default
 middleDistance = Tile_Thickness - Top_Capture_Initial_Inset * 2;
 cornerChamfer = Top_Capture_Initial_Inset - Inside_Grid_Middle_Chamfer; // 1.4 default
 
 CalculatedCornerChamfer = sqrt(Intersection_Distance ^ 2 / 2);
 cornerOffset = CalculatedCornerChamfer + Corner_Square_Thickness; // 5.56985 (half of 11.1397)
 
-path_tile = [[tile_size / 2, -tile_size / 2], [-tile_size / 2, -tile_size / 2]];
+path_tile = [[OG_TILE_SIZE / 2, -OG_TILE_SIZE / 2], [-OG_TILE_SIZE / 2, -OG_TILE_SIZE / 2]];
 
 //negative part dimensions are based on David D's "openGrid - Minimal Hook"
 negative_wall_profile = [
@@ -99,12 +99,12 @@ negative_corner_profile = [
 
 //function difference() has trouble handling extreme parameters and got worse when I updated BOSL2 on 2026-01-10. had to change minimum tip_angle from 1 to 3.
 hook_final_tip_angle = max(3, hook_tip_angle - hook_corner_angle);
-hook_final_tip_thickness = max(eps, min(hook_tip_thickness, hook_final_tip_angle == 90 ? 1000 : ang_adj_to_hyp(hook_final_tip_angle, hook_final_bottom_thickness)), hook_final_tip_angle == 90 ? eps : ang_hyp_to_adj(hook_final_tip_angle, hook_final_bottom_thickness));
-hook_min_tip_length = hook_final_tip_angle == 90 ? hook_final_bottom_thickness : ang_hyp_to_opp(hook_final_tip_angle, hook_final_bottom_thickness + hook_final_side_chamfer / 2) + eps;
-hook_final_tip_length = max(eps, hook_min_tip_length, hook_tip_length);
-hook_final_width = tile_size * (horizontal_grids - 1) + hook_width;
-hook_final_height = tile_size * vertical_grids;
-hook_final_length = max(eps, hook_length);
+hook_final_tip_thickness = max(EPS, min(hook_tip_thickness, hook_final_tip_angle == 90 ? 1000 : ang_adj_to_hyp(hook_final_tip_angle, hook_final_bottom_thickness)), hook_final_tip_angle == 90 ? EPS : ang_hyp_to_adj(hook_final_tip_angle, hook_final_bottom_thickness));
+hook_min_tip_length = hook_final_tip_angle == 90 ? hook_final_bottom_thickness : ang_hyp_to_opp(hook_final_tip_angle, hook_final_bottom_thickness + hook_final_side_chamfer / 2) + EPS;
+hook_final_tip_length = max(EPS, hook_min_tip_length, hook_tip_length);
+hook_final_width = OG_TILE_SIZE * (horizontal_grids - 1) + hook_width;
+hook_final_height = OG_TILE_SIZE * vertical_grids;
+hook_final_length = max(EPS, hook_length);
 
 large_opp = hook_final_tip_thickness * tan(hook_final_tip_angle);
 large_hyp = hook_final_tip_thickness / cos(hook_final_tip_angle);
@@ -112,15 +112,15 @@ small_opp = large_hyp - hook_final_bottom_thickness;
 small_hyp = small_opp / sin(hook_final_tip_angle);
 small_adj = hook_final_tip_angle == 90 ? hook_final_tip_thickness : small_opp / tan(hook_final_tip_angle);
 
-hook_min_tip_fillet = max(eps, min(1, hook_final_tip_length - hook_min_tip_length));
+hook_min_tip_fillet = max(EPS, min(1, hook_final_tip_length - hook_min_tip_length));
 hook_final_corner_fillet = max(min(1, hook_final_bottom_thickness, hook_final_length, hook_final_back_thickness), min(hook_corner_fillet, hook_final_length - hook_min_tip_fillet - hook_final_bottom_thickness * tan(hook_corner_angle) - small_adj, hook_final_height - hook_final_bottom_thickness / cos(hook_corner_angle)));
 hook_final_tip_fillet_pos_offset = hook_final_tip_angle == 90 ? hook_final_bottom_thickness : large_opp - small_hyp;
 hook_max_tip_fillet = hook_final_tip_length - hook_final_tip_fillet_pos_offset;
 hook_final_tip_fillet = max(hook_min_tip_fillet, min(hook_final_length - hook_final_corner_fillet - hook_final_bottom_thickness * tan(hook_corner_angle) - small_adj, hook_max_tip_fillet, hook_tip_corner_fillet));
 hook_final_tip_fillet_diff = hook_max_tip_fillet - hook_final_tip_fillet;
-hook_tip_point_fillet = max(eps, min(1, hook_final_tip_thickness / 2 - eps));
+hook_tip_point_fillet = max(EPS, min(1, hook_final_tip_thickness / 2 - EPS));
 
-hook_has_tip = hook_tip_thickness >= eps && hook_tip_length >= eps;
+hook_has_tip = hook_tip_thickness >= EPS && hook_tip_length >= EPS;
 hook_flat_top_width = hook_has_tip ? hook_final_length - hook_final_corner_fillet - hook_final_tip_fillet - small_adj - hook_final_bottom_thickness * tan(hook_corner_angle) : hook_final_length - hook_final_corner_fillet - hook_final_bottom_thickness * tan(hook_corner_angle);
 corner_fillet_cut_shape = difference(
   [
@@ -137,20 +137,20 @@ tip_inner_fillet_cut_shape = difference(
 
 diff() {
   cuboid([hook_final_width, hook_final_back_thickness, hook_final_height], anchor=FRONT) {
-    zcopies(spacing=tile_size, n=vertical_grids)
+    zcopies(spacing=OG_TILE_SIZE, n=vertical_grids)
       attach(FRONT, BOTTOM)
         frame_snap();
     //bottom truss
     if (truss_vertical_grid > 0 && hook_corner_angle == 0) {
-      truss_angle = min(truss_max_angle, adj_opp_to_ang(truss_vertical_grid * tile_size, hook_final_length));
+      truss_angle = min(truss_max_angle, adj_opp_to_ang(truss_vertical_grid * OG_TILE_SIZE, hook_final_length));
       attach(BOTTOM, TOP)
-        cuboid([hook_final_width, hook_final_back_thickness, truss_vertical_grid * tile_size], anchor=FRONT) {
-          zcopies(spacing=tile_size, n=truss_vertical_grid)
+        cuboid([hook_final_width, hook_final_back_thickness, truss_vertical_grid * OG_TILE_SIZE], anchor=FRONT) {
+          zcopies(spacing=OG_TILE_SIZE, n=truss_vertical_grid)
             attach(FRONT, BOTTOM)
               frame_snap();
           for (i = [1:truss_vertical_grid])
             attach(BACK, LEFT, align=TOP, spin=-90)
-              truss_sweep(truss_height=i * tile_size, truss_thickness=truss_thickness, truss_width=hook_final_width, truss_rounding=truss_rounding, truss_angle=truss_angle);
+              truss_sweep(truss_height=i * OG_TILE_SIZE, truss_thickness=truss_thickness, truss_width=hook_final_width, truss_rounding=truss_rounding, truss_angle=truss_angle);
         }
     }
     edge_mask([TOP + BACK])
@@ -168,14 +168,14 @@ diff() {
     //hook height front chamfer
     if (hook_final_length - hook_final_tip_fillet - hook_final_corner_fillet > hook_final_side_chamfer)
       attach(BACK, FRONT, align=TOP, spin=90)
-        tag("remove") offset_sweep(rect([max(eps, hook_final_height - hook_final_corner_fillet - hook_final_bottom_thickness / cos(hook_corner_angle)), 1]), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
+        tag("remove") offset_sweep(rect([max(EPS, hook_final_height - hook_final_corner_fillet - hook_final_bottom_thickness / cos(hook_corner_angle)), 1]), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
     position(BACK + BOTTOM)
       xrot(hook_corner_angle) cuboid([hook_final_width, hook_final_length, hook_final_bottom_thickness], anchor=FRONT + BOTTOM) {
           //hook flat top chamfer
           if (hook_final_length - hook_final_tip_fillet - hook_final_corner_fillet > hook_final_side_chamfer)
             back(hook_final_corner_fillet + hook_final_bottom_thickness * tan(hook_corner_angle))
               attach(TOP, FRONT, align=FRONT, spin=90)
-                tag("remove") offset_sweep(rect([max(eps, hook_flat_top_width), 1]), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
+                tag("remove") offset_sweep(rect([max(EPS, hook_flat_top_width), 1]), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
           //hook corner fillet fill
           back(hook_final_corner_fillet + hook_final_bottom_thickness * tan(hook_corner_angle))
             position(FRONT + TOP)
@@ -189,23 +189,23 @@ diff() {
             position(BACK + BOTTOM)
               xrot(hook_final_tip_angle - 90) cuboid([hook_final_width, hook_final_tip_thickness, hook_final_tip_length], anchor=BACK + BOTTOM) {
                   //hook tip fillet fill
-                  down(max(eps, hook_final_tip_fillet_diff)) position(FRONT + TOP)
+                  down(max(EPS, hook_final_tip_fillet_diff)) position(FRONT + TOP)
                       yrot(90) zrot(180) offset_sweep(mask2d_roundover(joint=hook_final_tip_fillet, mask_angle=180 - hook_final_tip_angle), height=hook_final_width, anchor=FRONT + RIGHT);
                   //hook tip fillet chamfer
                   if (hook_final_length - hook_final_tip_fillet - hook_final_corner_fillet > hook_final_side_chamfer)
-                    down(max(eps, hook_final_tip_fillet_diff)) position(FRONT + TOP)
+                    down(max(EPS, hook_final_tip_fillet_diff)) position(FRONT + TOP)
                         tag("remove") yrot(90) zrot(180) offset_sweep(tip_inner_fillet_cut_shape, height=hook_final_width, anchor=FRONT + RIGHT, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
                   //hook tip rect top chamfer
                   if (hook_final_length - hook_final_tip_fillet - hook_final_corner_fillet > hook_final_side_chamfer)
                     attach(FRONT, FRONT, align=TOP, spin=90)
-                      tag("remove") offset_sweep(rect([max(eps, hook_final_tip_fillet_diff), 1]), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
+                      tag("remove") offset_sweep(rect([max(EPS, hook_final_tip_fillet_diff), 1]), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
                   //hook tip rect bottom chamfer
                   if (truss_vertical_grid <= 0)
                     attach(BACK, FRONT, align=BOTTOM, spin=90)
                       tag("remove") offset_sweep(rect([hook_final_tip_length, 1]), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
                   if (hook_tip_shape == "Rectangular" || horizontal_grids > 1) {
                     edge_mask(FRONT + TOP)
-                      rounding_edge_mask(r=min(max(eps, hook_final_tip_fillet / 5), hook_tip_point_fillet, hook_final_side_chamfer, hook_final_tip_length - hook_min_tip_length), ang=95);
+                      rounding_edge_mask(r=min(max(EPS, hook_final_tip_fillet / 5), hook_tip_point_fillet, hook_final_side_chamfer, hook_final_tip_length - hook_min_tip_length), ang=95);
                     edge_mask(BACK + TOP)
                       chamfer_edge_mask(chamfer=hook_final_side_chamfer);
                     corner_mask([TOP + LEFT + BACK, TOP + RIGHT + BACK])
@@ -224,16 +224,16 @@ diff() {
     tag("remove") down(hook_final_height / 2) left(hook_final_width / 2) back(hook_final_back_thickness) zrot(90) xrot(90) offset_sweep(mask2d_chamfer(hook_final_length, mask_angle=hook_corner_angle), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
 }
 module frame_snap(anchor = BOTTOM, spin = 0, orient = UP) {
-  attachable(anchor, spin, orient, size=[tile_size, tile_size, framefit_snap_depth]) {
+  attachable(anchor, spin, orient, size=[OG_TILE_SIZE, OG_TILE_SIZE, framefit_snap_depth]) {
     down(framefit_snap_depth / 2) xflip_copy() yflip_copy()
           intersection() {
             difference() {
-              cube([min(min(hook_width, 11) / 2, tile_size / 2), tile_size / 2, framefit_snap_depth]);
-              up(3.4) right(1.1 - eps) prismoid(size1=[0, tile_size / 2], h=1, xang=135, yang=90, anchor=BOTTOM + FRONT);
+              cube([min(min(hook_width, 11) / 2, OG_TILE_SIZE / 2), OG_TILE_SIZE / 2, framefit_snap_depth]);
+              up(3.4) right(1.1 - EPS) prismoid(size1=[0, OG_TILE_SIZE / 2], h=1, xang=135, yang=90, anchor=BOTTOM + FRONT);
               //a prismoid to cut off overhang from snap. calculated position is not precise but works well enough.
-              back(tile_size / 2 - (5.2 - min(min(hook_width, 11), tile_size) / 2)) up(eps) prismoid(size1=[hook_width, 0], xang=90, yang=135, h=tile_size / 2);
+              back(OG_TILE_SIZE / 2 - (5.2 - min(min(hook_width, 11), OG_TILE_SIZE) / 2)) up(EPS) prismoid(size1=[hook_width, 0], xang=90, yang=135, h=OG_TILE_SIZE / 2);
             }
-            right(tile_size / 2) zrot(-90)
+            right(OG_TILE_SIZE / 2) zrot(-90)
                 difference() {
                   //offset grid created with minkowski
                   union() {
@@ -241,7 +241,7 @@ module frame_snap(anchor = BOTTOM, spin = 0, orient = UP) {
                       path_extrude2d(path_tile) polygon(negative_wall_profile);
                       sphere(framesnap_thickness);
                     }
-                    move([-tile_size / 2, -tile_size / 2]) rotate([0, 0, 45]) back(cornerOffset) rotate([90, 0, 0])
+                    move([-OG_TILE_SIZE / 2, -OG_TILE_SIZE / 2]) rotate([0, 0, 45]) back(cornerOffset) rotate([90, 0, 0])
                             minkowski() {
                               linear_extrude(cornerOffset * 2) polygon(negative_corner_profile);
                               sphere(framesnap_thickness);
@@ -250,7 +250,7 @@ module frame_snap(anchor = BOTTOM, spin = 0, orient = UP) {
                   //original negative grid
                   union() {
                     path_extrude2d(path_tile) polygon(negative_wall_profile);
-                    move([-tile_size / 2, -tile_size / 2]) rotate([0, 0, 45]) back(cornerOffset) rotate([90, 0, 0])
+                    move([-OG_TILE_SIZE / 2, -OG_TILE_SIZE / 2]) rotate([0, 0, 45]) back(cornerOffset) rotate([90, 0, 0])
                             linear_extrude(cornerOffset * 2) polygon(negative_corner_profile);
                   }
                 }
@@ -259,12 +259,12 @@ module frame_snap(anchor = BOTTOM, spin = 0, orient = UP) {
     children();
   }
 }
-module truss_sweep(truss_height, truss_thickness, truss_width, truss_rounding = eps, truss_angle = 45) {
+module truss_sweep(truss_height, truss_thickness, truss_width, truss_rounding = EPS, truss_angle = 45) {
   truss_depth = ang_adj_to_opp(truss_angle, truss_height);
-  truss_final_thickness = max(eps, min(truss_depth / 2 - eps, truss_thickness));
+  truss_final_thickness = max(EPS, min(truss_depth / 2 - EPS, truss_thickness));
   truss_inner_depth = truss_depth - ang_adj_to_hyp(truss_angle, truss_final_thickness);
   truss_inner_height = truss_height - ang_opp_to_hyp(truss_angle, truss_final_thickness);
-  truss_final_rounding = max(eps, min(truss_inner_depth / 2 - eps, truss_inner_height / 2 - eps, truss_rounding));
+  truss_final_rounding = max(EPS, min(truss_inner_depth / 2 - EPS, truss_inner_height / 2 - EPS, truss_rounding));
   truss_profile = difference(
     right_triangle([truss_depth, truss_height]),
     round_corners(joint=truss_final_rounding, path=right_triangle([truss_inner_depth, truss_inner_height]))

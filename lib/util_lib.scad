@@ -1,9 +1,5 @@
 include <BOSL2/std.scad>
 
-$fa = 1;
-$fs = 0.4;
-eps = 0.005;
-
 // Returns true if the position [hgrid, vgrid] fits the description.
 function is_grid_pos_described(hgrid, vgrid, max_hgrid, max_vgrid, description, except_pos = []) =
   let (
@@ -44,43 +40,43 @@ module conditional_flip(axis = "X", coordinate = 0, copy = false, condition) {
 }
 
 // Conditionally cuts children to the given half-space along v.
-module conditional_half(v = LEFT, pos_offset = 0, obj_size = 300, condition) {
+module conditional_half(v = LEFT, pos_offset = 0, mask_size = 300, condition) {
   if (condition) {
     if (v == LEFT || v == RIGHT)
-      half_of(v=v, cp=[pos_offset, 0, 0], s=obj_size) children();
+      half_of(v=v, cp=[pos_offset, 0, 0], s=mask_size) children();
     else if (v == FRONT || v == BACK)
-      half_of(v=v, cp=[0, pos_offset, 0], s=obj_size) children();
+      half_of(v=v, cp=[0, pos_offset, 0], s=mask_size) children();
     else if (v == TOP || v == BOTTOM)
-      half_of(v=v, cp=[0, 0, pos_offset], s=obj_size) children();
+      half_of(v=v, cp=[0, 0, pos_offset], s=mask_size) children();
     else
-      half_of(v, cp=pos_offset == 0 ? [0, 0, 0] : pos_offset, s=obj_size) children();
+      half_of(v, cp=pos_offset == 0 ? [0, 0, 0] : pos_offset, s=mask_size) children();
   }
   else
     children();
 }
 
-module conditional_fold(body_thickness, fold_position = 0, fold_gap_width = 0.4, fold_gap_height = 0.2, fold_sliceoff = 0, rmobj_size = 300, condition = true) {
+module conditional_fold(body_thickness, fold_position = 0, fold_gap_width = 0.4, fold_gap_height = 0.2, fold_sliceoff = 0, mask_size = 300, condition = true) {
   if (condition) {
     back(fold_position) yrot(180) {
         xrot(-90, cp=[0, -fold_position, 0])
           difference() {
             children();
-            fwd(fold_position) cuboid([rmobj_size, rmobj_size, rmobj_size], anchor=BACK);
+            fwd(fold_position) cuboid([mask_size, mask_size, mask_size], anchor=BACK);
           }
-        fwd(fold_gap_width - eps) up(fold_sliceoff)
+        fwd(fold_gap_width - EPS) up(fold_sliceoff)
             xrot(90, cp=[0, -fold_position, 0])
               difference() {
                 children();
                 fwd(fold_position + fold_sliceoff)
-                  cuboid([rmobj_size, rmobj_size, rmobj_size], anchor=FRONT);
+                  cuboid([mask_size, mask_size, mask_size], anchor=FRONT);
               }
         fwd(fold_gap_width) xrot(-90, cp=[0, -fold_position, 0])
-            linear_extrude(fold_gap_width + eps * 2) difference() {
+            linear_extrude(fold_gap_width + EPS * 2) difference() {
                 projection(cut=true)
                   down(0.01)
                     children();
-                fwd(fold_position - fold_gap_height) rect([rmobj_size, rmobj_size], anchor=FRONT);
-                fwd(fold_position) rect([rmobj_size, rmobj_size], anchor=BACK);
+                fwd(fold_position - fold_gap_height) rect([mask_size, mask_size], anchor=FRONT);
+                fwd(fold_position) rect([mask_size, mask_size], anchor=BACK);
               }
       }
   }

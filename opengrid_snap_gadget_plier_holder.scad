@@ -1,4 +1,4 @@
-/* 
+/*
 Licensed Creative Commons Attribution-ShareAlike 4.0 International
 
 Created by mitufy. https://github.com/mitufy
@@ -7,8 +7,9 @@ Recommended to use with openGrid - Self-Expanding Snap. https://www.printables.c
 The openGrid system is created by David D. https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem
 */
 
-include <BOSL2/std.scad>
+include <lib/opengrid_variable.scad>
 include <BOSL2/threading.scad>
+use <lib/opengrid_snap_threads_lib.scad>
 
 snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm, 3.4:Lite Basic - 3.4mm]
 //Blunt threads help prevent cross-threading and overtightening. Models with blunt threads have a decorative 'lock' symbol at the bottom.
@@ -33,7 +34,7 @@ spring_hole_position_offset = 0;
 
 /* [Advanced Settings] */
 //Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
-add_thickness_text = "Uncommon"; //[All, Uncommon, None]
+thickness_text_mode = "Uncommon"; //[All, Uncommon, None]
 stopper_depth = 3;
 stopper_front_rounding = 0.4; //0.2
 stem_top_rounding = 0.8; //0.2
@@ -71,7 +72,6 @@ tilt_angle_back_offset = ang_adj_to_opp(holder_tilt_angle, threads_diameter / 2 
 stem_base_depth = stem_depth * (1 - transition_depth_ratio) + tilt_angle_back_offset;
 stem_transition_depth = stem_depth * transition_depth_ratio;
 
-threads_diameter = 16;
 threads_connect_diameter = threads_diameter - 1.5;
 threads_side_offset = threads_diameter / 2 - 1.4;
 
@@ -136,7 +136,7 @@ zrot(180) up(threads_side_offset) xrot(90) {
           zrot(threads_offset_angle) {
             zrot(threads_compatibility_angle) {
               if (threads_type == "Blunt")
-                blunt_threaded_rod(diameter=threads_diameter, rod_height=snap_thickness, top_cutoff=true);
+                blunt_threads(diameter=threads_diameter, threads_height=snap_thickness, top_cutoff=true);
               else
                 generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=threads_pitch, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
             }
@@ -150,30 +150,3 @@ zrot(180) up(threads_side_offset) xrot(90) {
         tag("remove") fwd(threads_side_offset) cuboid([500, 500, 500], anchor=BACK);
       }
     }
-
-module blunt_threaded_rod(diameter = threads_diameter, rod_height = snap_thickness, top_bevel = 0, bottom_bevel = 0, top_cutoff = false, blunt_ang = 10, anchor = CENTER, spin = 0, orient = UP) {
-  min_turns = 0.5;
-  offset_height = min(rod_height - 1.5 - bottom_bevel, 0);
-  turns = max(0, (rod_height - 1.5 - bottom_bevel) / 3) + min_turns;
-  attachable(anchor, spin, orient, d=diameter, h=rod_height) {
-    tag_scope() difference() {
-        union() {
-          cyl(d=diameter - 2 + eps, h=rod_height, anchor=BOTTOM, $fn=256);
-          difference() {
-            zrot(0.25 * 120) up(0.25)
-                zrot(-(min_turns * 3) * 120) up(-(min_turns * 3))
-                    zrot(offset_height * 120) up(offset_height)
-                        thread_helix(d=diameter, turns=turns, pitch=threads_pitch, profile=threads_profile, anchor=BOTTOM, internal=false, lead_in_ang2=blunt_ang, $fn=256);
-            up(rod_height + (diameter + 2) / 2) cube(diameter + 2, center=true);
-          }
-        }
-        if (top_cutoff || top_bevel > 0)
-          down((diameter + 2) / 2) cube(diameter + 2, center=true);
-        if (top_bevel > 0)
-          rotate_extrude() left(diameter / 2 - top_bevel / 2 + eps) right_triangle([top_bevel + eps, top_bevel + eps], anchor=BOTTOM);
-        if (bottom_bevel > 0)
-          up(rod_height) rotate_extrude() right(diameter / 2 - bottom_bevel + eps) right_triangle([bottom_bevel + eps, bottom_bevel + eps], anchor=BOTTOM, spin=180);
-      }
-    children();
-  }
-}

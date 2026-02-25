@@ -53,7 +53,7 @@ flush_text_thickness = 0.4;
 /*[Hidden]*/
 $fa = 1;
 $fs = 0.4;
-eps = 0.005;
+EPS = 0.005;
 
 text_edge_offset = 3;
 left_text_metrics = textmetrics(text=label_left_text, font=left_text_font, size=left_font_size, valign="center", halign="center");
@@ -89,7 +89,7 @@ module label_body() {
             chamfer_corner_mask(chamfer=0.4);
         }
     if (label_text_style == "Flush")
-      up(label_thickness - flush_text_thickness) text_object(label_thickness + eps);
+      up(label_thickness - flush_text_thickness) text_object(label_thickness + EPS);
   }
 }
 module label_text() {
@@ -97,10 +97,10 @@ module label_text() {
     up(label_thickness - deboss_text_thickness)
       difference() {
         color("white") cuboid([label_width, label_height, deboss_text_thickness], chamfer=0.4, edges="Z", $fn=64, anchor=BOTTOM);
-        text_object(deboss_text_thickness + eps);
+        text_object(deboss_text_thickness + EPS);
       }
   } else {
-    color("white") up(label_text_style == "Emboss" ? label_thickness - eps : label_thickness - flush_text_thickness)
+    color("white") up(label_text_style == "Emboss" ? label_thickness - EPS : label_thickness - flush_text_thickness)
         text_object(label_text_style == "Emboss" ? emboss_text_thickness : flush_text_thickness);
   }
 }

@@ -1,4 +1,4 @@
-/* 
+/*
 Licensed Creative Commons Attribution-ShareAlike 4.0 International
 
 Created by mitufy. https://github.com/mitufy
@@ -7,8 +7,9 @@ openConnect is a connector system designed for openGrid. https://www.printables.
 openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 */
 
-include <BOSL2/std.scad>
+include <lib/opengrid_variable.scad>
 include <BOSL2/walls.scad>
+use <lib/openconnect_lib.scad>
 
 generate_drawer_shell = true;
 generate_drawer_container = true;
@@ -123,9 +124,6 @@ honeycomb_strut_hyp = 5;
 
 /*[Hidden]*/
 
-//putting the include statement here, so is_undef() function in the library can access customizer values.
-include <include/openconnect_lib.scad>
-
 function calc_inner_chamfer(outer_chamfer, wall_thickness) = (outer_chamfer / sqrt(2) + wall_thickness - wall_thickness * sqrt(2)) * sqrt(2);
 side_magnet_shell_edge_distance = 2.6;
 shell_inner_chamfer = max(0, calc_inner_chamfer(shell_outer_chamfer, shell_thickness));
@@ -143,17 +141,25 @@ slot_bottom_min_thickness = 0.8; //0.01
 //Ensures minimum feature width for 3d printing. "Both" is default for compatibility, though only one (or none) may be needed depending on orientation.
 slot_edge_feature_widen = shell_slot_position == "Back" ? "None" : "Side";
 
+_slot_cfg = ocslot_cfg(
+  edge_feature = slot_edge_feature_widen,
+  edge_bridge_min_w = slot_edge_bridge_min_width,
+  edge_wall_min_w = slot_edge_wall_min_width,
+  side_clearance = slot_side_clearance,
+  depth_clearance = slot_depth_clearance
+);
+
 magnet_hole_side_clearance = 0.2;
 magnet_hole_depth_clearance = 0.15;
 
 //shell parameters
-shell_ocslot_part_thickness = ocslot_total_height + shell_to_slot_wall_thickness;
-shell_width = horizontal_grids * tile_size + (shell_slot_position == "Left" || shell_slot_position == "Right" ? shell_ocslot_part_thickness - shell_thickness : 0);
-shell_height = vertical_grids * tile_size + (shell_slot_position == "Top" || shell_slot_position == "Bottom" ? shell_ocslot_part_thickness - shell_thickness : 0);
-shell_depth = depth_grids * tile_size;
-shell_inner_width = horizontal_grids * tile_size - shell_thickness * 2;
-shell_inner_height = vertical_grids * tile_size - shell_thickness * 2;
-shell_inner_depth = depth_grids * tile_size - shell_ocslot_part_thickness;
+shell_ocslot_part_thickness = struct_val(_slot_cfg, "total_height") + shell_to_slot_wall_thickness;
+shell_width = horizontal_grids * OG_TILE_SIZE + (shell_slot_position == "Left" || shell_slot_position == "Right" ? shell_ocslot_part_thickness - shell_thickness : 0);
+shell_height = vertical_grids * OG_TILE_SIZE + (shell_slot_position == "Top" || shell_slot_position == "Bottom" ? shell_ocslot_part_thickness - shell_thickness : 0);
+shell_depth = depth_grids * OG_TILE_SIZE;
+shell_inner_width = horizontal_grids * OG_TILE_SIZE - shell_thickness * 2;
+shell_inner_height = vertical_grids * OG_TILE_SIZE - shell_thickness * 2;
+shell_inner_depth = depth_grids * OG_TILE_SIZE - shell_ocslot_part_thickness;
 //hexwall size is calculated so outer strut overlap with shell wall
 shell_hexwall_width = shell_width - shell_inner_chamfer * 2;
 shell_hexwall_height = shell_height - shell_inner_chamfer * 2;
@@ -232,9 +238,9 @@ container_back_magnet_hole_thickness = container_back_magnet_thickness + magnet_
 back_magnet_hole_diameter = back_magnet_diameter + magnet_hole_side_clearance * 2;
 back_magnet_ocslot_offset = 4.6;
 back_magnet_grid_space =
-  container_back_magnet_hole_position == "Corners" ? [tile_size * (horizontal_grids - 2), tile_size * (vertical_grids - 1)]
-  : container_back_magnet_hole_position == "Bottom Corners" ? [tile_size * (horizontal_grids - 2), tile_size * (vertical_grids - 1)]
-  : [tile_size, tile_size];
+  container_back_magnet_hole_position == "Corners" ? [OG_TILE_SIZE * (horizontal_grids - 2), OG_TILE_SIZE * (vertical_grids - 1)]
+  : container_back_magnet_hole_position == "Bottom Corners" ? [OG_TILE_SIZE * (horizontal_grids - 2), OG_TILE_SIZE * (vertical_grids - 1)]
+  : [OG_TILE_SIZE, OG_TILE_SIZE];
 back_magnet_grid_count =
   container_back_magnet_hole_position == "Corners" ? [min(horizontal_grids - 1, 2), min(vertical_grids, 2)]
   : container_back_magnet_hole_position == "Bottom Corners" ? [min(horizontal_grids - 1, 2), 1]
@@ -266,13 +272,13 @@ module drawer_shell() {
               attach(TOP, RIGHT, align=LEFT, inside=true, spin=90)
                 tag("keep") hex_panel([shell_hexwall_depth, shell_hexwall_height, shell_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=shell_hex_frame_thickness);
             attach(TOP, TOP, align=LEFT, inside=true)
-              tag(left_hc ? "remove" : "keep") cuboid([shell_thickness + (left_hc ? eps : 0), shell_inner_height - shell_inner_chamfer * 2, shell_inner_depth]);
+              tag(left_hc ? "remove" : "keep") cuboid([shell_thickness + (left_hc ? EPS : 0), shell_inner_height - shell_inner_chamfer * 2, shell_inner_depth]);
             //right wall
             if (right_hc)
               attach(TOP, RIGHT, align=RIGHT, inside=true, spin=90)
                 tag("keep") hex_panel([shell_hexwall_depth, shell_hexwall_height, shell_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=shell_hex_frame_thickness);
             attach(TOP, TOP, align=RIGHT, inside=true)
-              tag(right_hc ? "remove" : "keep") cuboid([shell_thickness + (right_hc ? eps : 0), shell_inner_height - shell_inner_chamfer * 2, shell_inner_depth]);
+              tag(right_hc ? "remove" : "keep") cuboid([shell_thickness + (right_hc ? EPS : 0), shell_inner_height - shell_inner_chamfer * 2, shell_inner_depth]);
             //top wall
             if (top_hc)
               attach(TOP, RIGHT, align=BACK, inside=true)
@@ -281,13 +287,13 @@ module drawer_shell() {
               attach(BACK, BACK, align=TOP, inset=shell_thickness, inside=true)
                 tag("keep") cuboid([shell_inner_width, shell_thickness, shell_front_hex_offset]);
             attach(TOP, TOP, align=BACK, inside=true)
-              tag(top_hc ? "remove" : "keep") cuboid([shell_inner_width - shell_inner_chamfer * 2, shell_thickness + (top_hc ? eps : 0), shell_inner_depth]);
+              tag(top_hc ? "remove" : "keep") cuboid([shell_inner_width - shell_inner_chamfer * 2, shell_thickness + (top_hc ? EPS : 0), shell_inner_depth]);
             //bottom wall
             if (bottom_hc)
               attach(TOP, RIGHT, align=FRONT, inside=true)
                 tag("keep") hex_panel([shell_hexwall_depth, shell_hexwall_width, shell_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=shell_hex_frame_thickness);
             attach(TOP, TOP, align=FRONT, inside=true)
-              tag(bottom_hc ? "remove" : "keep") cuboid([shell_inner_width - shell_inner_chamfer * 2, shell_thickness + (bottom_hc ? eps : 0), shell_inner_depth]);
+              tag(bottom_hc ? "remove" : "keep") cuboid([shell_inner_width - shell_inner_chamfer * 2, shell_thickness + (bottom_hc ? EPS : 0), shell_inner_depth]);
             //openconnect slot
             slot_parent_anchor =
               shell_slot_position == "Back" ? BOTTOM
@@ -300,21 +306,21 @@ module drawer_shell() {
             except_slot_pos =
               (add_stopper_holes && shell_slot_position == "Top") || (add_side_magnet_holes && shell_slot_position == "Right") || (add_side_magnet_holes && shell_slot_position == "Left") ? [[0, 0], [slot_hgrids - 1, 0]] : [];
             slot_slide_direction = shell_slot_position == "Top" || shell_slot_position == "Bottom" ? "Left" : "Up";
-            slot_chamfer = shell_slot_position == "Back" ? min(4, max(0.8, slot_edge_wall_min_width) + ochead_middle_height + 1) : 0;
+            slot_chamfer = shell_slot_position == "Back" ? min(4, max(0.8, slot_edge_wall_min_width) + OCHEAD_MIDDLE_HEIGHT + 1) : 0;
             attach(slot_parent_anchor, TOP, inside=true)
-              tag("rm_outer") openconnect_slot_grid(horizontal_grids=slot_hgrids, vertical_grids=slot_vgrids, tile_size=tile_size, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=eps, except_slot_pos=except_slot_pos, chamfer=slot_chamfer);
+              tag("rm_outer") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=slot_hgrids, vertical_grids=slot_vgrids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, except_slot_pos=except_slot_pos, chamfer=slot_chamfer);
             if (add_side_magnet_holes) {
               if (left_hc)
                 attach(LEFT + FRONT, LEFT + FRONT, align=TOP, inside=true)
                   tag("keep") cuboid([shell_thickness, shell_height, side_magnet_fill_width]);
-              ycopies(tile_size, vertical_grids)
-                right(shell_slot_position == "Left" ? shell_ocslot_part_thickness : shell_thickness) left(shell_side_magnet_hole_thickness - eps * 2) attach(LEFT, FRONT, align=TOP, inset=side_magnet_shell_edge_distance, inside=true)
+              ycopies(OG_TILE_SIZE, vertical_grids)
+                right(shell_slot_position == "Left" ? shell_ocslot_part_thickness : shell_thickness) left(shell_side_magnet_hole_thickness - EPS * 2) attach(LEFT, FRONT, align=TOP, inset=side_magnet_shell_edge_distance, inside=true)
                       tag("rm_outer") teardrop(h=shell_side_magnet_hole_thickness, d=side_magnet_hole_diameter, cap_h=side_magnet_hole_diameter / 2 + 0.2);
               if (right_hc)
                 attach(RIGHT + FRONT, RIGHT + FRONT, align=TOP, inside=true)
                   tag("keep") cuboid([shell_thickness, shell_height, side_magnet_fill_width]);
-              ycopies(tile_size, vertical_grids)
-                left(shell_slot_position == "Right" ? shell_ocslot_part_thickness : shell_thickness) right(shell_side_magnet_hole_thickness - eps * 2) attach(RIGHT, FRONT, align=TOP, inset=side_magnet_shell_edge_distance, inside=true)
+              ycopies(OG_TILE_SIZE, vertical_grids)
+                left(shell_slot_position == "Right" ? shell_ocslot_part_thickness : shell_thickness) right(shell_side_magnet_hole_thickness - EPS * 2) attach(RIGHT, FRONT, align=TOP, inset=side_magnet_shell_edge_distance, inside=true)
                       tag("rm_outer") teardrop(h=shell_side_magnet_hole_thickness, d=side_magnet_hole_diameter, cap_h=side_magnet_hole_diameter / 2 + 0.2);
             }
             if (add_shell_divider == "Width" || add_shell_divider == "Both")
@@ -324,11 +330,11 @@ module drawer_shell() {
             if (add_back_magnet_holes) {
               for (i = [0:len(shell_vertical_compartments) - 1]) {
                 for (j = [0:len(shell_horizontal_compartments) - 1]) {
-                  back(i == 0 ? 0 : shell_height_divide_cumnums[i - 1] * tile_size)
-                    right(j == 0 ? 0 : shell_width_divide_cumnums[j - 1] * tile_size)
-                      left((horizontal_grids - 2) / 2 * tile_size)
-                        fwd((vertical_grids - 1) / 2 * tile_size - back_magnet_ocslot_offset)
-                          line_copies(spacing=tile_size * max(shell_horizontal_compartments[j] - 2, 0), n=min(shell_horizontal_compartments[j] - 1, 2), p1=[0, 0, 0])
+                  back(i == 0 ? 0 : shell_height_divide_cumnums[i - 1] * OG_TILE_SIZE)
+                    right(j == 0 ? 0 : shell_width_divide_cumnums[j - 1] * OG_TILE_SIZE)
+                      left((horizontal_grids - 2) / 2 * OG_TILE_SIZE)
+                        fwd((vertical_grids - 1) / 2 * OG_TILE_SIZE - back_magnet_ocslot_offset)
+                          line_copies(spacing=OG_TILE_SIZE * max(shell_horizontal_compartments[j] - 2, 0), n=min(shell_horizontal_compartments[j] - 1, 2), p1=[0, 0, 0])
                             attach(BOTTOM, BOTTOM, inside=true)
                               tag("rm_outer") cyl(h=shell_back_magnet_hole_thickness, d=back_magnet_hole_diameter, chamfer1=-0.2);
                 }
@@ -336,11 +342,11 @@ module drawer_shell() {
             }
             if (add_stopper_holes)
               for (i = [0:len(shell_horizontal_compartments) - 1])
-                left(shell_width / 2 - tile_size / 2) right(i == 0 ? 0 : shell_width_divide_cumnums[i - 1] * tile_size) {
+                left(shell_width / 2 - OG_TILE_SIZE / 2) right(i == 0 ? 0 : shell_width_divide_cumnums[i - 1] * OG_TILE_SIZE) {
                     for (j = [0:shell_horizontal_compartments[i] == 1 ? 0 : 1])
-                      left(shell_horizontal_compartments[i] == 1 ? 0 : j == 0 ? stopper_to_edge_offset : -stopper_to_edge_offset) right(j * (shell_horizontal_compartments[i] - 1) * tile_size) {
+                      left(shell_horizontal_compartments[i] == 1 ? 0 : j == 0 ? stopper_to_edge_offset : -stopper_to_edge_offset) right(j * (shell_horizontal_compartments[i] - 1) * OG_TILE_SIZE) {
                           tag("rm_outer") attach(BACK, TOP, align=TOP, inset=stopper_to_front_offset, inside=true)
-                              drawer_stopper(hole=true, hole_excess=shell_slot_position == "Top" ? ocslot_total_height + shell_to_slot_wall_thickness - shell_thickness : 0);
+                              drawer_stopper(hole=true, hole_excess=shell_slot_position == "Top" ? shell_ocslot_part_thickness - shell_thickness : 0);
                         }
                   }
           }
@@ -378,26 +384,26 @@ module drawer_container() {
             attach(FRONT, LEFT, align=TOP, inside=true)
               tag("keep") hex_panel([container_height, container_width, container_front_wall_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=min(container_side_wall_thickness, container_bottom_wall_thickness));
           attach(TOP, TOP, align=FRONT, inset=container_bottom_wall_thickness + container_inner_bottom_fillet, inside=true)
-            tag(front_hc ? "remove" : "keep") cuboid([container_width - container_side_wall_thickness * 2 - (front_hc ? container_inner_side_fillet * 2 : 0), container_height - container_bottom_wall_thickness - (front_hc ? container_top_frame_thickness + container_inner_bottom_fillet : 0), container_front_wall_thickness + (front_hc ? eps : 0)]);
+            tag(front_hc ? "remove" : "keep") cuboid([container_width - container_side_wall_thickness * 2 - (front_hc ? container_inner_side_fillet * 2 : 0), container_height - container_bottom_wall_thickness - (front_hc ? container_top_frame_thickness + container_inner_bottom_fillet : 0), container_front_wall_thickness + (front_hc ? EPS : 0)]);
           //back wall
           if (back_hc)
             attach(FRONT, LEFT, align=BOTTOM, inside=true)
               tag("keep") hex_panel([container_height, container_width, container_back_wall_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=min(container_side_wall_thickness, container_bottom_wall_thickness));
           attach(BOTTOM, BOTTOM, align=FRONT, inset=container_bottom_wall_thickness + container_inner_bottom_fillet, inside=true)
-            tag(back_hc ? "remove" : "keep") cuboid([container_width - container_side_wall_thickness * 2 - (back_hc ? container_inner_side_fillet * 2 : 0), back_hc ? container_back_wall_height - container_bottom_wall_thickness - container_top_frame_thickness - container_inner_bottom_fillet : container_back_wall_height, container_back_wall_thickness + (back_hc ? eps : 0)]);
+            tag(back_hc ? "remove" : "keep") cuboid([container_width - container_side_wall_thickness * 2 - (back_hc ? container_inner_side_fillet * 2 : 0), back_hc ? container_back_wall_height - container_bottom_wall_thickness - container_top_frame_thickness - container_inner_bottom_fillet : container_back_wall_height, container_back_wall_thickness + (back_hc ? EPS : 0)]);
           //side walls
           if (side_hc)
             attach(FRONT, LEFT, align=[LEFT, RIGHT], inside=true, spin=90)
               tag("keep") hex_panel([container_height, container_depth, container_side_wall_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=min(container_side_wall_thickness, container_bottom_wall_thickness));
           down(container_front_wall_thickness) back(container_bottom_wall_thickness + container_inner_bottom_fillet)
               attach(FRONT + TOP, FRONT + TOP, align=[LEFT, RIGHT], inside=true)
-                tag(side_hc ? "remove" : "keep") cuboid([container_side_wall_thickness + (side_hc ? eps : 0), container_side_wall_height - container_bottom_wall_thickness - (side_hc ? container_top_frame_thickness + container_inner_bottom_fillet : 0), container_depth - container_front_wall_thickness - container_back_wall_thickness - (side_hc ? container_inner_side_fillet * 2 : 0)]);
+                tag(side_hc ? "remove" : "keep") cuboid([container_side_wall_thickness + (side_hc ? EPS : 0), container_side_wall_height - container_bottom_wall_thickness - (side_hc ? container_top_frame_thickness + container_inner_bottom_fillet : 0), container_depth - container_front_wall_thickness - container_back_wall_thickness - (side_hc ? container_inner_side_fillet * 2 : 0)]);
           //bottom wall
           if (bottom_hc)
             attach(TOP, LEFT, align=FRONT, inside=true)
               tag("keep") hex_panel([container_depth, container_width, container_bottom_wall_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=min(container_side_wall_thickness, container_back_wall_thickness, container_front_wall_thickness));
           attach(FRONT, FRONT, align=BOTTOM, inset=container_back_wall_thickness, inside=true)
-            tag(bottom_hc ? "remove" : "keep") cuboid([container_width - container_side_wall_thickness * 2 - (bottom_hc ? container_inner_side_fillet * 2 : 0), container_bottom_wall_thickness + (bottom_hc ? eps : 0), container_depth - container_front_wall_thickness - container_back_wall_thickness - (bottom_hc ? container_inner_bottom_fillet * 2 : 0)]);
+            tag(bottom_hc ? "remove" : "keep") cuboid([container_width - container_side_wall_thickness * 2 - (bottom_hc ? container_inner_side_fillet * 2 : 0), container_bottom_wall_thickness + (bottom_hc ? EPS : 0), container_depth - container_front_wall_thickness - container_back_wall_thickness - (bottom_hc ? container_inner_bottom_fillet * 2 : 0)]);
 
           
           tag("mask") {
@@ -417,29 +423,29 @@ module drawer_container() {
             drawer_divider(is_shell=false, by_width=false);
           if (add_side_magnet_holes)
             xflip_copy() {
-              hole_extrude_thickness = container_side_magnet_hole_thickness - container_side_wall_thickness + 0.45 + eps;
+              hole_extrude_thickness = container_side_magnet_hole_thickness - container_side_wall_thickness + 0.45 + EPS;
               if (container_side_wall_type == "Honeycomb")
                 attach(LEFT + FRONT, LEFT + FRONT, align=BOTTOM, inside=true)
                   tag("keep") cuboid([container_side_wall_thickness, container_height - container_front_back_height_diff - container_outer_chamfer, shell_front_hex_offset + honeycomb_unit_space_hyp / 2]);
-              ycopies(tile_size, vertical_grids) {
+              ycopies(OG_TILE_SIZE, vertical_grids) {
                 attach(LEFT, FRONT, align=BOTTOM, inset=side_magnet_container_edge_distance, inside=true, spin=90)
                   tag("rm_outer") teardrop(h=container_side_magnet_hole_thickness, d=side_magnet_hole_diameter, cap_h=side_magnet_hole_diameter / 2 + 0.2);
-                if (hole_extrude_thickness > eps)
+                if (hole_extrude_thickness > EPS)
                   right(container_side_wall_thickness) attach(LEFT, FRONT, align=BOTTOM, inset=side_magnet_container_edge_distance, inside=true, spin=90)
                       tag("kp_root") teardrop(h=hole_extrude_thickness, d=side_magnet_hole_diameter + 0.2, cap_h=side_magnet_hole_diameter / 2 + 0.2, chamfer1=-hole_extrude_thickness);
               }
             }
           if (add_back_magnet_holes) {
-            hole_extrude_thickness = container_back_magnet_hole_thickness - container_back_wall_thickness + 0.45 + eps;
+            hole_extrude_thickness = container_back_magnet_hole_thickness - container_back_wall_thickness + 0.45 + EPS;
             if (back_hc)
               line_copies(back_magnet_grid_space[0], back_magnet_grid_count[0])
                 attach(BOTTOM + FRONT, BOTTOM + FRONT, inside=true)
                   tag("keep") cuboid([back_magnet_hole_diameter + 4.2, container_height - container_front_back_height_diff, container_back_wall_thickness]);
-            fwd((vertical_grids - 1) / 2 * tile_size - back_magnet_ocslot_offset)
+            fwd((vertical_grids - 1) / 2 * OG_TILE_SIZE - back_magnet_ocslot_offset)
               line_copies(back_magnet_grid_space[0], back_magnet_grid_count[0]) {
                 attach(BOTTOM, FRONT, inside=true)
                   tag("rm_outer") teardrop(h=container_back_magnet_hole_thickness, d=back_magnet_hole_diameter, cap_h=back_magnet_hole_diameter / 2 + 0.2);
-                if (hole_extrude_thickness > eps)
+                if (hole_extrude_thickness > EPS)
                   up(container_back_wall_thickness) attach(BOTTOM, FRONT, inside=true)
                       tag("kp_root") teardrop(h=hole_extrude_thickness, d=back_magnet_hole_diameter + 0.2, cap_h=back_magnet_hole_diameter / 2 + 0.2, chamfer1=-hole_extrude_thickness);
               }
@@ -492,7 +498,7 @@ module drawer_divider(is_shell, by_width) {
   hexwall_length = !by_width ? shell_width : shell_height;
   hexwall_depth = shell_hexwall_depth;
 
-  compartment_size_unit = is_shell ? tile_size : inner_size / grid_count;
+  compartment_size_unit = is_shell ? OG_TILE_SIZE : inner_size / grid_count;
   compartment_first_wall_offset =
     by_width && !is_shell ? container_side_wall_thickness
     : !by_width && !is_shell ? container_front_wall_thickness
@@ -509,9 +515,9 @@ module drawer_divider(is_shell, by_width) {
               if (is_shell) {
                 if (!by_width && add_stopper_holes) {
                   for (in_i = [0:len(shell_horizontal_compartments) - 1]) {
-                    left(shell_width / 2 - tile_size / 2) right(in_i == 0 ? 0 : shell_width_divide_cumnums[in_i - 1] * tile_size) {
+                    left(shell_width / 2 - OG_TILE_SIZE / 2) right(in_i == 0 ? 0 : shell_width_divide_cumnums[in_i - 1] * OG_TILE_SIZE) {
                         for (in_j = [0:shell_horizontal_compartments[in_i] == 1 ? 0 : 1]) {
-                          left(shell_horizontal_compartments[in_i] == 1 ? 0 : in_j == 0 ? stopper_to_edge_offset : -stopper_to_edge_offset) right(in_j * (shell_horizontal_compartments[in_i] - 1) * tile_size)
+                          left(shell_horizontal_compartments[in_i] == 1 ? 0 : in_j == 0 ? stopper_to_edge_offset : -stopper_to_edge_offset) right(in_j * (shell_horizontal_compartments[in_i] - 1) * OG_TILE_SIZE)
                               tag("rm1") attach(BACK, TOP, align=TOP, inset=stopper_to_front_offset, inside=true)
                                   drawer_stopper(hole=true, hole_excess=shell_thickness);
                         }
@@ -519,10 +525,10 @@ module drawer_divider(is_shell, by_width) {
                   }
                 }
                 if (by_width && add_side_magnet_holes) {
-                  ycopies(tile_size, vertical_grids)
+                  ycopies(OG_TILE_SIZE, vertical_grids)
                     attach(LEFT, FRONT, align=TOP, inset=side_magnet_shell_edge_distance, inside=true)
                       tag("rm1") teardrop(h=shell_side_magnet_hole_thickness, d=side_magnet_hole_diameter, cap_h=side_magnet_hole_diameter / 2 + 0.2);
-                  ycopies(tile_size, vertical_grids)
+                  ycopies(OG_TILE_SIZE, vertical_grids)
                     attach(RIGHT, FRONT, align=TOP, inset=side_magnet_shell_edge_distance, inside=true)
                       tag("rm1") teardrop(h=shell_side_magnet_hole_thickness, d=side_magnet_hole_diameter, cap_h=side_magnet_hole_diameter / 2 + 0.2);
                 }
@@ -580,15 +586,15 @@ module container_handle() {
   handle_sweep_turtle_path_left = ["move", turtle_start_offset, "arcleft", handle_thickness, 90, "move", turtle_handle_width];
   handle_sweep_turtle_path_right = ["move", turtle_start_offset, "arcright", handle_thickness, 90, "move", turtle_handle_width];
 
-  up(pull_handle_transition_depth - eps) fwd(container_height / 2 - fronthex_bottom_strut_height / 2) left(handle_strut_number % 2 == 0 ? left_turtle_offset : -left_turtle_offset)
+  up(pull_handle_transition_depth - EPS) fwd(container_height / 2 - fronthex_bottom_strut_height / 2) left(handle_strut_number % 2 == 0 ? left_turtle_offset : -left_turtle_offset)
         attach(TOP, "start-centroid")
           path_sweep(rect([handle_thickness, fronthex_bottom_strut_height], chamfer=handle_chamfer), path=turtle(handle_sweep_turtle_path_left));
-  up(pull_handle_transition_depth - eps) fwd(container_height / 2 - fronthex_bottom_strut_height / 2) left(handle_strut_number % 2 == 0 ? right_turtle_offset : -right_turtle_offset)
+  up(pull_handle_transition_depth - EPS) fwd(container_height / 2 - fronthex_bottom_strut_height / 2) left(handle_strut_number % 2 == 0 ? right_turtle_offset : -right_turtle_offset)
         attach(TOP, "start-centroid")
           path_sweep(rect([handle_thickness, fronthex_bottom_strut_height], chamfer=handle_chamfer), path=turtle(handle_sweep_turtle_path_right));
   //middle truss
   if (turtle_handle_width > 50) {
-    up((container_depth) / 2 - eps) fwd(container_height / 2) {
+    up((container_depth) / 2 - EPS) fwd(container_height / 2) {
         left(handle_strut_number % 2 == 0 ? left_transition_offset : -left_transition_offset) {
           if ( (fronthex_width_struts - 1) / 2 % 2 == 0)
             right((fronthex_width_struts - handle_strut_number * 2 - 1) / 2 * honeycomb_unit_space_adj)
@@ -599,14 +605,14 @@ module container_handle() {
         }
       }
   }
-  up((container_depth) / 2 - eps) fwd(container_height / 2)
+  up((container_depth) / 2 - EPS) fwd(container_height / 2)
       left(handle_strut_number % 2 == 0 ? left_transition_offset : -left_transition_offset) {
         if (handle_strut_number % 2 == 0)
           handle_transition(trans_offset=left_transition_target_x, starting_thickness=honeycomb_strut_hyp, target_thickness=handle_thickness);
         else
           xflip() handle_transition(trans_offset=left_transition_target_x, starting_thickness=honeycomb_strut_hyp, target_thickness=handle_thickness);
       }
-  up((container_depth) / 2 - eps) fwd(container_height / 2)
+  up((container_depth) / 2 - EPS) fwd(container_height / 2)
       left(handle_strut_number % 2 == 0 ? right_transition_offset : -right_transition_offset) {
         if (handle_strut_number % 2 == 0)
           handle_transition(trans_offset=right_transition_target_x, starting_thickness=honeycomb_strut_hyp, target_thickness=handle_thickness);
@@ -636,14 +642,14 @@ module container_handle() {
     x_unit = target_x / steps;
     render() {
       if (wide_bottom) {
-        down(container_front_wall_thickness - eps) linear_extrude(container_front_wall_thickness) polygon(handle_profile_func(first_ang=starting_angle, second_ang=0, thickness=starting_thickness));
+        down(container_front_wall_thickness - EPS) linear_extrude(container_front_wall_thickness) polygon(handle_profile_func(first_ang=starting_angle, second_ang=0, thickness=starting_thickness));
       }
       for (i = [1:1:steps]) {
         handle_profile1 = handle_profile_func(first_ang=starting_angle - ang_unit * (i - 1), second_ang=wide_bottom ? ang_unit * (i - 1) : starting_angle, thickness=starting_thickness + thickness_unit * (i - 1));
         handle_profile2 = handle_profile_func(first_ang=starting_angle - ang_unit * (i), second_ang=wide_bottom ? ang_unit * (i) : starting_angle, thickness=starting_thickness + thickness_unit * (i));
         hull() {
-          right(x_unit * (i - 1)) up(up_unit * (i - 1)) linear_extrude(eps) polygon(handle_profile1);
-          right(x_unit * i) up(up_unit * i) linear_extrude(eps) polygon(handle_profile2);
+          right(x_unit * (i - 1)) up(up_unit * (i - 1)) linear_extrude(EPS) polygon(handle_profile1);
+          right(x_unit * i) up(up_unit * i) linear_extrude(EPS) polygon(handle_profile2);
         }
       }
       if (add_front > 0) {
@@ -678,9 +684,9 @@ module container_label_holder() {
       tag("") prismoid(size1=[label_holder_width, label_holder_height], xang=[90, 90], yang=[45, 90], h=label_holder_depth, rounding=[0, 0, 0.8, 0.8], $fn=64) {
           edge_mask([TOP + LEFT, TOP + RIGHT])
             tag("label_remove") rounding_edge_mask(r=0.4, l=$edge_length + 5);
-          back(eps) attach(BACK, BACK, align=BOTTOM, inside=true)
+          back(EPS) attach(BACK, BACK, align=BOTTOM, inside=true)
               tag("label_remove") cuboid([label_holder_width - label_holder_wall_thickness * 2, label_height + label_side_clearance, label_holder_depth - label_holder_wall_thickness]);
-          attach(BACK, BACK, align=TOP, inside=true, shiftout=eps)
+          attach(BACK, BACK, align=TOP, inside=true, shiftout=EPS)
             tag("label_remove") cuboid([label_holder_width - label_holder_wall_thickness * 2 - label_holder_wall_thickness * 4, label_height + label_side_clearance, label_holder_depth - label_holder_wall_thickness]);
         }
   }
@@ -697,15 +703,15 @@ module drawer_stopper(hole = false, hole_excess = 0, anchor = TOP, orient = UP, 
 
   tag_scope() cuboid([stopper_width + stopper_flank_width - (hole ? 0 : stopper_width_clearance * 2), stopper_height - (hole ? 0 : stopper_height_clearance * 2), stopper_flank_depth - (hole ? 0 : stopper_clips_length_clearance)], anchor=anchor, orient=orient, spin=spin) {
       attach(BOTTOM, TOP)
-        diff() cuboid([stopper_width - (hole ? 0 : stopper_width_clearance * 2), stopper_height - (hole ? 0 : stopper_height_clearance * 2), shell_thickness - stopper_flank_depth + (hole ? eps * 2 : 0)], rounding=-stopper_rounding, edges=[TOP + LEFT, TOP + RIGHT], $fn=64) {
+        diff() cuboid([stopper_width - (hole ? 0 : stopper_width_clearance * 2), stopper_height - (hole ? 0 : stopper_height_clearance * 2), shell_thickness - stopper_flank_depth + (hole ? EPS * 2 : 0)], rounding=-stopper_rounding, edges=[TOP + LEFT, TOP + RIGHT], $fn=64) {
             if (hole && hole_excess > 0)
               attach(BOTTOM, TOP)
                 cuboid([stopper_width + stopper_flank_width, stopper_height, hole_excess]);
-            if (!hole && stopper_clips_length > eps)
+            if (!hole && stopper_clips_length > EPS)
               attach(BOTTOM, TOP)
                 cuboid([stopper_width - stopper_width_clearance * 2, stopper_height - stopper_height_clearance * 2, stopper_clips_length], rounding=stopper_leg_outer_round, edges=[BOTTOM + LEFT, BOTTOM + RIGHT], $fn=64) {
                   attach(BOTTOM, BOTTOM, inside=true)
-                    cuboid([stopper_width - stopper_leg_thickness * 2 - stopper_width_clearance * 2, stopper_height - stopper_height_clearance * 2 + eps, stopper_clips_length], rounding=stopper_leg_inner_round, edges=[TOP + LEFT, TOP + RIGHT], $fn=64) {
+                    cuboid([stopper_width - stopper_leg_thickness * 2 - stopper_width_clearance * 2, stopper_height - stopper_height_clearance * 2 + EPS, stopper_clips_length], rounding=stopper_leg_inner_round, edges=[TOP + LEFT, TOP + RIGHT], $fn=64) {
                       edge_mask([BOTTOM + LEFT, BOTTOM + RIGHT])
                         rounding_edge_mask(r=stopper_leg_inner_round, spin=90);
                     }
@@ -728,7 +734,7 @@ module drawer_stopper(hole = false, hole_excess = 0, anchor = TOP, orient = UP, 
 //             drawer_shell();
 //   if (generate_drawer_container && !(generate_drawer_shell && add_shell_divider != "None"))
 //     half_of(half_of_anchor, s=300)
-//       left(view_drawer_overlapped ? 0 : horizontal_grids * tile_size)
+//       left(view_drawer_overlapped ? 0 : horizontal_grids * OG_TILE_SIZE)
 //         up(container_depth_clearance)
 //           drawer_container();
 
@@ -745,15 +751,15 @@ conditional_half(v=half_of_anchor, condition=half_of_anchor != 0) {
         left(shell_slot_position == "Left" ? (shell_ocslot_part_thickness - shell_thickness) / 2 : shell_slot_position == "Right" ? -(shell_ocslot_part_thickness - shell_thickness) / 2 : 0)
           drawer_shell();
   if (generate_drawer_container && !(generate_drawer_shell && add_shell_divider != "None"))
-    fwd(view_drawer_overlapped || !generate_drawer_shell ? 0 : vertical_grids * tile_size / 2 + 10)
+    fwd(view_drawer_overlapped || !generate_drawer_shell ? 0 : vertical_grids * OG_TILE_SIZE / 2 + 10)
       up(view_drawer_overlapped ? container_depth_clearance : container_height / 2)
         xrot(view_drawer_overlapped ? 0 : 90)
           drawer_container();
   if (generate_drawer_stopper_clips)
-    right(generate_drawer_shell ? horizontal_grids * tile_size / 2 + 10 : 0) up((stopper_height - stopper_height_clearance * 2) / 2)
+    right(generate_drawer_shell ? horizontal_grids * OG_TILE_SIZE / 2 + 10 : 0) up((stopper_height - stopper_height_clearance * 2) / 2)
         xrot(-90) {
           drawer_stopper(hole_excess=shell_thickness);
-          right(tile_size)
+          right(OG_TILE_SIZE)
             drawer_stopper();
         }
 }

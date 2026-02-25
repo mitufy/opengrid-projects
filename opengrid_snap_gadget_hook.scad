@@ -37,7 +37,7 @@ hook_stem_fillet = 4; //0.4
 //Chamfer is automatically clamped to ensure a sufficiently large print surface.
 body_max_chamfer = 0.8; //0.2
 //Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
-add_thickness_text = "Uncommon"; //[All, Uncommon, None]
+thickness_text_mode = "Uncommon"; //[All, Uncommon, None]
 
 /* [Experimental Settings] */
 //Enable this to draw a custom hook shape with custom_shape_commands. For those who want wacky hooks.
@@ -72,7 +72,6 @@ threads_profile = [
   [1.25 / 3, -1 / 3],
 ];
 
-threads_diameter = 16;
 threads_connect_diameter = threads_diameter - 1.5;
 threads_side_offset = threads_diameter / 2 - 1.4;
 //text parameters
@@ -105,7 +104,7 @@ rect_straight_hook_path = ["setdir", 90, "move", hook_main_size / 2, "arcleft", 
 rect_center_hook_path = ["setdir", 90, "arcright", min_ang_radius, 90, "move", hook_main_size / 2 - square_corner_radius, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcleft", square_corner_radius, 90 + rect_offset_angle * rect_center_middle_ratio, "move", hook_main_size - square_corner_radius];
 rect_hook_tip_path = ["arcleft", square_corner_radius, 90, "move", rect_tip_corner_length];
 
-rect_loop_hook_path = ["setdir", 90, "arcright", min_ang_radius, 90, "move", hook_main_size / 2 - square_corner_radius-min_ang_radius, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2];
+rect_loop_hook_path = ["setdir", 90, "arcright", min_ang_radius, 90, "move", hook_main_size / 2 - square_corner_radius - min_ang_radius, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2];
 
 function to_turtle(x) = is_num(parse_num(x)) ? parse_num(x) : x;
 temp_path = str_split(str_strip(str_replace_char(str_replace_char(custom_shape_commands, " ", ""), "\"", ""), ","), ",");
@@ -150,7 +149,7 @@ up(threads_side_offset) xrot(90)
       zrot(90 + threads_offset_angle) {
         zrot(threads_compatibility_angle) {
           if (threads_type == "Blunt")
-            blunt_threaded_rod(diameter=threads_diameter, rod_height=snap_thickness, top_cutoff=true);
+            blunt_threads(diameter=threads_diameter, threads_height=snap_thickness, top_cutoff=true);
           else
             generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=threads_pitch, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
         }
@@ -180,31 +179,3 @@ up(threads_side_offset) xrot(90)
       }
       tag("remove") fwd(threads_side_offset - eps) cuboid([500, 500, 500], anchor=BACK);
     }
-
-
-module blunt_threaded_rod(diameter = threads_diameter, rod_height = snap_thickness, top_bevel = 0, bottom_bevel = 0, top_cutoff = false, blunt_ang = 10, anchor = CENTER, spin = 0, orient = UP) {
-  min_turns = 0.5;
-  offset_height = min(rod_height - 1.5 - bottom_bevel, 0);
-  turns = max(0, (rod_height - 1.5 - bottom_bevel) / 3) + min_turns;
-  attachable(anchor, spin, orient, d=diameter, h=rod_height) {
-    tag_scope() difference() {
-        union() {
-          cyl(d=diameter - 2 + eps, h=rod_height, anchor=BOTTOM, $fn=256);
-          difference() {
-            zrot(0.25 * 120) up(0.25)
-                zrot(-(min_turns * 3) * 120) up(-(min_turns * 3))
-                    zrot(offset_height * 120) up(offset_height)
-                        thread_helix(d=diameter, turns=turns, pitch=threads_pitch, profile=threads_profile, anchor=BOTTOM, internal=false, lead_in_ang2=blunt_ang, $fn=256);
-            up(rod_height + (diameter + 2) / 2) cube(diameter + 2, center=true);
-          }
-        }
-        if (top_cutoff || top_bevel > 0)
-          down((diameter + 2) / 2) cube(diameter + 2, center=true);
-        if (top_bevel > 0)
-          rotate_extrude() left(diameter / 2 - top_bevel / 2 + eps) right_triangle([top_bevel + eps, top_bevel + eps], anchor=BOTTOM);
-        if (bottom_bevel > 0)
-          up(rod_height) rotate_extrude() right(diameter / 2 - bottom_bevel + eps) right_triangle([bottom_bevel + eps, bottom_bevel + eps], anchor=BOTTOM, spin=180);
-      }
-    children();
-  }
-}
