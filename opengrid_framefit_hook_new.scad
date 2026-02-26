@@ -47,7 +47,6 @@ horizontal_grids = 1;
 /*[Hidden]*/
 $fa = 1;
 $fs = 0.2;
-EPS = 0.005;
 //0.42 is a common line width for 0.4mm nozzles.
 framesnap_thickness = 0.84; // 0.42
 

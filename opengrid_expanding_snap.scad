@@ -9,11 +9,10 @@ and Jan's work here: https://github.com/jp-embedded/opengrid
 The openGrid system is created by David D. https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem
 */
 
-include <lib/opengrid_variable.scad>
-include <BOSL2/threading.scad>
-use <lib/util_lib.scad>
+include <lib/opengrid_base.scad>
 use <lib/openconnect_lib.scad>
-use <lib/opengrid_snap_threads_lib.scad>
+use <lib/opengrid_threads_lib.scad>
+use <lib/opengrid_snap_lib.scad>
 
 snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm]
 //Directional for vertical wall-mounted boards. Symmetric for horizontal boards, often used with Underware.
@@ -46,93 +45,190 @@ spring_gap = 0.42;
 threads_offset_angle = 0; //[0:15:345]
 
 /* [Hidden] */
+$fa = 1;
+$fs = 0.4;
 
-module snap() {
-  conditional_fold(body_thickness=snap_thickness + OCHEAD_TOTAL_HEIGHT, fold_position=OCHEAD_MIDDLE_TO_BOTTOM + EPS, condition=generate_snap == "openConnect (Folded)")
-    up(generate_snap == "Self-Expanding Threads" || generate_snap == "Basic Threads" ? 0 : snap_thickness)
-      yrot(generate_snap == "Self-Expanding Threads" || generate_snap == "Basic Threads" ? 0 : 180)
-        difference() {
-          if (generate_snap == "Self-Expanding Threads") {
-            diff() {
-              expanding_snap_shape(anchor=BOTTOM) {
-                if (!disable_snap_corners)
-                  snap_corner();
-                if (!disable_snap_nubs)
-                  snap_nub();
-                if (!disable_snap_directional_slants && snap_body_shape == "Directional")
-                  tag("remove") snap_directional_slant();
-                if (uninstall_notch_width > EPS)
-                  tag("remove") snap_uninstall_notch();
-              }
-              if (!disable_snap_expanding_springs) {
-                tag("remove") down(EPS / 2) zrot(expand_split_angle) expanding_spring(snap_body_shape == "Directional" && snap_thickness == OG_STANDARD_THICKNESS ? "Corners" : "None");
-                tag("remove") down(EPS / 2) zrot(expand_split_angle - 180) expanding_spring(snap_body_shape == "Directional" ? "Slant" : "None");
-              }
-            }
-          } else {
-            diff(remove="remove") {
-              snap_shape(anchor=BOTTOM) {
-                if (!disable_snap_corners)
-                  snap_corner();
-                if (!disable_snap_nubs)
-                  snap_nub();
-                if (!disable_snap_cuts)
-                  snap_cut();
-                if (!disable_snap_directional_slants && snap_body_shape == "Directional")
-                  tag("remove") snap_directional_slant();
-                if (uninstall_notch_width > EPS)
-                  tag("remove") snap_uninstall_notch();
-              }
-              left(snap_center_position_offset[0]) back(snap_center_position_offset[1]) {
-                  if (generate_snap == "Basic Threads" && !disable_snap_threads) {
-                    tag_diff(tag="remove", remove="rm0")
-                      down(EPS / 2) up(reverse_threads_entryside ? snap_thickness + EPS / 2 : 0) yrot(reverse_threads_entryside ? 180 : 0)
-                            zrot(threads_compatibility_angle + threads_offset_angle) {
-                              if (threads_type == "Blunt")
-                                blunt_threads(diameter=(OG_SNAP_THREADS_DIAMETER + OG_SNAP_THREADS_CLEARANCE), threads_height=snap_thickness + EPS);
-                              else
-                                generic_threaded_rod(d=(OG_SNAP_THREADS_DIAMETER + OG_SNAP_THREADS_CLEARANCE), l=snap_thickness + EPS, pitch=threads_pitch, profile=threads_profile, bevel1=0, bevel2=min(threads_bottom_bevel, snap_thickness), anchor=BOTTOM, blunt_start=false, internal=false);
-                            }
-                  }
-                  if (generate_snap == "openConnect" || generate_snap == "openConnect (Folded)")
-                    down(OCHEAD_TOTAL_HEIGHT) force_tag("") openconnect_head(add_nubs="Both");
-                  if (generate_snap == "multiConnect")
-                    multiconnect_head("dimple");
-                }
-            }
-          }
-          if (add_threads_blunt_text && threads_type == "Blunt" && generate_snap != "openConnect" && generate_snap != "multiConnect")
-            up(snap_thickness - text_depth) fwd(0) left(expand_split_angle < 0 ? 0.5 : -0.5) zrot(-expand_split_angle) linear_extrude(height=text_depth) back(OG_SNAP_WIDTH / 2 - 2) zrot(45) fill() text(OG_SNAP_THREADS_BLUNT_TEXT, size=4, anchor=str("center", CENTER), font=OG_SNAP_THREADS_BLUNT_TEXT_FONT);
-          if (final_add_thickness_text)
-            up(snap_thickness - text_depth) fwd(1.1) left(expand_split_angle < 0 ? -0.7 : 0.7) zrot(-expand_split_angle) linear_extrude(height=text_depth) fwd(OG_SNAP_WIDTH / 2 - 2) zrot(45) text(str(floor(snap_thickness)), size=4, anchor=str("baseline", CENTER), font=OG_SNAP_TEXT_FONT);
-          if (add_snap_expansion_distance_text && generate_snap == "Self-Expanding Threads")
-            up(snap_thickness - text_depth) linear_extrude(height=text_depth + EPS) fwd(OG_SNAP_WIDTH / 2 - 1.6) text(str(expand_distance), size=3.2, anchor=str("baseline", CENTER), font=OG_SNAP_TEXT_FONT);
-          //arrow
-          if (snap_body_shape == "Directional")
-            zrot(-90) up(snap_thickness + EPS / 2) left(OG_SNAP_WIDTH / 2 - 1.1) zrot(180) regular_prism(3, side=3.3, h=directional_arrow_depth + EPS, chamfer1=directional_arrow_depth, anchor=RIGHT + TOP);
+expand_split_angle = 45;
+
+// ── Cfg packing ──────────────────────────────────────────────────────────────
+_snapnotch_cfg = snap_notch_cfg(
+  notch_width=uninstall_notch_width,
+);
+_add_blunt_text = threads_type == "Blunt";
+_add_thickness_text = thickness_text_mode == "All" || (thickness_text_mode == "Uncommon" && snap_thickness != OG_LITE_BASIC_THICKNESS && snap_thickness != OG_STANDARD_THICKNESS);
+_add_arrow = snap_body_shape == "Directional";
+
+_snaptext_texts = [
+  if (_add_blunt_text) OG_SNAP_BLUNT_TEXT,
+  if (_add_thickness_text) str(floor(snap_thickness)),
+  if (_add_arrow) OG_SNAP_DIRECTIONAL_ARROW_TEXT,
+];
+_snaptext_sizes = [
+  if (_add_blunt_text) 4,
+  if (_add_thickness_text) 4,
+  if (_add_arrow) 3.6,
+];
+_snaptext_fonts = [
+  if (_add_blunt_text) OG_SNAP_EMOJI_FONT,
+  if (_add_thickness_text) OG_SNAP_TEXT_FONT,
+  if (_add_arrow) OG_SNAP_EMOJI_FONT,
+];
+_snaptext_fills = [
+  if (_add_blunt_text) true,
+  if (_add_thickness_text) false,
+  if (_add_arrow) true,
+];
+_snaptext_body_pos = [
+  if (_add_blunt_text) [OG_SNAP_WIDTH / 2 - 4.6, OG_SNAP_WIDTH / 2 - 4.6],
+  if (_add_thickness_text) [-(OG_SNAP_WIDTH / 2 - 4.2), -(OG_SNAP_WIDTH / 2 - 6)],
+  if (_add_arrow) [0, OG_SNAP_WIDTH / 2 - 2.6],
+];
+_snaptext_screw_pos = [
+  if (_add_blunt_text) [_add_thickness_text ? 2.4 : 0, 0],
+  if (_add_thickness_text) [-(_add_blunt_text ? 2.4 : 0), 0],
+];
+
+_snapbody_text_cfg = text_cfg(
+  texts=_snaptext_texts, sizes=_snaptext_sizes, fonts=_snaptext_fonts, fills=_snaptext_fills,
+  pos_offsets=_snaptext_body_pos, text_depth=text_depth
+);
+_screw_text_cfg = text_cfg(
+  texts=[if (_add_blunt_text) OG_SNAP_BLUNT_TEXT, if (_add_thickness_text) str(floor(snap_thickness))],
+  sizes=[for (s = _snaptext_sizes) _add_blunt_text && s == 4 ? 4 : 4.5],
+  fonts=[if (_add_blunt_text) OG_SNAP_EMOJI_FONT, if (_add_thickness_text) OG_SNAP_TEXT_FONT],
+  fills=[if (_add_blunt_text) true, if (_add_thickness_text) false],
+  pos_offsets=_snaptext_screw_pos, text_depth=text_depth
+);
+
+_espring_cfg = espring_cfg(
+  spring_thickness=spring_thickness,
+  spring_to_center_thickness=spring_to_center_thickness,
+  spring_gap=spring_gap,
+);
+_snapbody_cfg = snap_body_cfg(
+  snap_width=OG_SNAP_WIDTH,
+  snap_height=OG_SNAP_WIDTH,
+  snap_thickness=snap_thickness,
+  snap_body_shape=snap_body_shape
+);
+_snapcorner_cfg = snap_corner_cfg();
+_snapnub_cfg = snap_nub_cfg();
+_snapcut_cfg = snap_cut_cfg();
+
+_expand_cfg = expand_cfg(
+  expand_distance_standard=expand_distance_standard,
+  expand_distance_lite=expand_distance_lite
+);
+_threads_cfg = threads_cfg(
+  threads_type=threads_type,
+  threads_offset_angle=threads_offset_angle
+);
+
+_ochead_cfg = ochead_cfg(
+  bottom_height=OCHEAD_BOTTOM_HEIGHT,
+  top_height=OCHEAD_TOP_HEIGHT,
+  middle_height=OCHEAD_MIDDLE_HEIGHT,
+  large_rect_width=OCHEAD_LARGE_RECT_WIDTH,
+  large_rect_height=OCHEAD_LARGE_RECT_HEIGHT,
+  large_rect_chamfer=OCHEAD_LARGE_RECT_CHAMFER,
+  nub_to_top_distance=OCHEAD_NUB_TO_TOP_DISTANCE,
+  nub_depth=OCHEAD_NUB_DEPTH,
+  nub_tip_height=OCHEAD_NUB_TIP_HEIGHT,
+  nub_fillet=OCHEAD_NUB_FILLET,
+  back_pos_offset=OCHEAD_BACK_POS_OFFSET
+);
+
+_connectorslot_cfg = connector_slot_cfg();
+mchead_total_height = 4; // Standard Height for MultiConnect Head
+
+module multiconnect_screw(connectorslot_cfg = [], text_cfg = [], threads_cfg = []) {
+  tag_scope() {
+    multiconnect_head(connectorslot_cfg=connectorslot_cfg, top_pattern="coin_slot", anchor=BOTTOM)
+      attach(TOP, BOTTOM)
+        snap_threads(threads_height=_snap_thickness, text_cfg=text_cfg, threads_cfg=struct_set(threads_cfg, ["threads_clearance", 0]));
+  }
+}
+
+module multiconnect_head(connectorslot_cfg = [], top_pattern = "coin_slot", anchor = BOTTOM, spin = 0, orient = UP) {
+  _coin_slot_height = struct_val(connectorslot_cfg, "coin_slot_height", 2.6);
+  _coin_slot_radius = struct_val(connectorslot_cfg, "coin_slot_radius", 13);
+  _coin_slot_thickness = struct_val(connectorslot_cfg, "coin_slot_thickness", 2.4);
+  attachable(anchor, spin, orient, r=mchead_small_diameter / 2, h=mchead_total_height) {
+    tag_scope() up(mchead_total_height / 2) difference() {
+          cylinder(h=mchead_top_height, r=mchead_small_diameter / 2, anchor=TOP)
+            attach(BOTTOM, TOP) cylinder(h=mchead_middle_height, r2=mchead_large_diameter / 2 - mchead_middle_height, r1=mchead_large_diameter / 2)
+                attach(BOTTOM, TOP) cylinder(h=mchead_bottom_height, r=mchead_large_diameter / 2);
+          //In David's original design the slot is created in shapr3d by a fillet with a mysterious curvature parameter. I have no idea how to replicate that so here's a circle. Difference in geometry is negligible.
+          if (top_pattern == "coin_slot")
+            down(mchead_total_height - _coin_slot_height) xrot(90) cyl(r=_coin_slot_radius, h=_coin_slot_thickness, $fn=128, anchor=BACK);
+          if (top_pattern == "dimple")
+            down(mchead_total_height) cyl(d1=2, d2=EPS, h=1, $fn=128, anchor=BOTTOM);
         }
+    children();
+  }
+}
+module expanding_snap(
+  snapbody_cfg = [],
+  snapcorner_cfg = [],
+  snapnub_cfg = [],
+  snapcut_cfg = [],
+  snapnotch_cfg = [],
+  text_cfg = [],
+  espring_cfg = [],
+  expand_cfg = [],
+  threads_cfg = []
+) {
+  _snap_thickness = struct_val(snapbody_cfg, "snap_thickness", OG_STANDARD_THICKNESS);
+  expand_cut_cfg = struct_set(snapcut_cfg, ["disable_all_side_cut", true, "disable_all_bottom_cut", true]);
+  _expand_cfg = struct_merge(expand_cfg(), expand_cfg);
+  _expand_distance = _snap_thickness >= OG_STANDARD_THICKNESS ? struct_val(_expand_cfg, "expand_distance_standard") : struct_val(_expand_cfg, "expand_distance_lite");
+  _texts = struct_val(text_cfg, "texts", []);
+  _sizes = struct_val(text_cfg, "sizes", []);
+  _fonts = struct_val(text_cfg, "fonts", []);
+  _pos_offsets = struct_val(text_cfg, "pos_offsets", []);
+
+  expand_text_cfg =
+    add_snap_expansion_distance_text ? struct_set(
+        text_cfg, [
+          "texts",
+          concat(_texts, [str(round(_expand_distance * 10) / 10)]),
+          "sizes",
+          concat(_sizes, [3.2]),
+          "fonts",
+          concat(_fonts, [OG_SNAP_TEXT_FONT]),
+          "pos_offsets",
+          concat(_pos_offsets, [[0, -(OG_SNAP_WIDTH / 2 - 3.2)]]),
+        ]
+      )
+    : text_cfg;
+  difference() {
+    up(_snap_thickness) yrot(180)
+        base_snap(
+          snapbody_cfg=snapbody_cfg, snapcorner_cfg=snapcorner_cfg, snapnub_cfg=snapnub_cfg,
+          snapcut_cfg=expand_cut_cfg, snapnotch_cfg=snapnotch_cfg, text_cfg=expand_text_cfg
+        );
+    down(EPS) expanding_threads(
+        threads_height=_snap_thickness,
+        expand_cfg=expand_cfg, threads_cfg=threads_cfg
+      );
+    zrot(expand_split_angle)
+      expanding_spring(
+        snapbody_cfg, espring_cfg, snapcorner_cfg, snapcut_cfg
+      );
+  }
 }
 
-module main_generate() {
-  if (generate_snap != "None")
-    zrot(view_snap_rotated)
-      snap();
-  if (generate_screw == "multiConnect")
-    left(generate_snap == "None" || view_snap_and_connector_overlapped ? 0 : 28) up(view_snap_and_connector_overlapped ? 0 : mchead_total_height) zrot(view_connector_rotated)
-          multiconnect_screw();
-  if (generate_screw == "openConnect" || generate_screw == "openConnect (Folded)")
-    right(generate_snap == "None" || view_snap_and_connector_overlapped ? 0 : 28) fwd(view_snap_and_connector_overlapped && generate_screw == "openConnect (Folded)" ? OCHEAD_MIDDLE_TO_BOTTOM : 0)
-        down(!view_snap_and_connector_overlapped ? 0 : generate_screw == "openConnect (Folded)" ? OCHEAD_TOTAL_HEIGHT : -snap_thickness)
-          zrot(view_connector_rotated) xrot(!view_snap_and_connector_overlapped ? 0 : generate_screw == "openConnect (Folded)" ? -90 : -180)
-              zrot(view_snap_and_connector_overlapped || generate_screw == "openConnect (Folded)" ? 180 : 0) openconnect_screw(snap_thickness=snap_thickness, threads_type=threads_type, folded=generate_screw == "openConnect (Folded)");
-}
-
-half_of_anchor =
-  view_cross_section == "Right" ? RIGHT
-  : view_cross_section == "Back" ? BACK
-  : view_cross_section == "Diagonal" ? RIGHT + BACK
-  : 0;
-if (half_of_anchor != 0)
-  half_of(half_of_anchor) main_generate();
-else
-  main_generate();
+expanding_snap(
+  snapbody_cfg=_snapbody_cfg, snapcorner_cfg=_snapcorner_cfg, snapnub_cfg=_snapnub_cfg,
+  snapcut_cfg=_snapcut_cfg, snapnotch_cfg=_snapnotch_cfg, text_cfg=_snapbody_text_cfg,
+  espring_cfg=_espring_cfg, expand_cfg=_expand_cfg,
+  threads_cfg=_threads_cfg
+);
+if (generate_screw == "multiConnect")
+  right(OG_TILE_SIZE)
+    up(mchead_total_height)
+      multiconnect_screw(connectorslot_cfg=_connectorslot_cfg, text_cfg=_screw_text_cfg, threads_cfg=_threads_cfg);
+if (generate_screw == "openConnect" || generate_screw == "openConnect (Folded)")
+  right(OG_TILE_SIZE)
+    zrot(generate_screw == "openConnect (Folded)" ? 180 : 0)
+      openconnect_screw(threads_height=snap_thickness, head_cfg=_ochead_cfg, text_cfg=_screw_text_cfg, connectorslot_cfg=_connectorslot_cfg, threads_cfg=_threads_cfg, folded=generate_screw == "openConnect (Folded)");

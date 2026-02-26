@@ -7,12 +7,12 @@ Recommended to use with openGrid - Self-Expanding Snap. https://www.printables.c
 The openGrid system is created by David D. https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem
 */
 
-include <lib/opengrid_variable.scad>
+include <lib/opengrid_base.scad>
 include <BOSL2/threading.scad>
-use <lib/opengrid_snap_threads_lib.scad>
+use <lib/opengrid_threads_lib.scad>
 
 snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm, 3.4:Lite Basic - 3.4mm]
-//Blunt threads help prevent cross-threading and overtightening. Models with blunt threads have a decorative 'lock' symbol at the bottom.
+//Blunt threads help prevent cross-threading and overtightening. Models with blunt threads have a decorative 'lock' symbol.
 threads_type = "Blunt"; //["Blunt", "Basic"]
 plier_count = 1;
 
@@ -43,54 +43,42 @@ stem_bottom_rounding = 0.8; //0.2
 /* [Hidden] */
 $fa = 1;
 $fs = 0.2;
-eps = 0.005;
 
 holder_tilt_angle = 0; //[0:5:45]
-add_threads_blunt_text = true;
-threads_blunt_text = "🔓";
-threads_blunt_text_font = "Noto Emoji"; // font
-threads_pitch = 3;
 
-threads_compatibility_angle = 53.5;
-threads_diameter = 16;
-threads_bottom_bevel_standard = 2; //0.1
-threads_bottom_bevel_lite = 1.2; //0.1
+_add_blunt_text = threads_type == "Blunt";
+_add_thickness_text = thickness_text_mode == "All" || (thickness_text_mode == "Uncommon" && snap_thickness != OG_LITE_BASIC_THICKNESS && snap_thickness != OG_STANDARD_THICKNESS);
 
-//thread parameters
-threads_bottom_bevel =
-  snap_thickness == 6.8 ? threads_bottom_bevel_standard
-  : threads_bottom_bevel_lite;
+_snaptext_texts = [if (_add_blunt_text) OG_SNAP_BLUNT_TEXT, if (_add_thickness_text) str(floor(snap_thickness))];
+_snaptext_sizes = [if (_add_blunt_text) 4, if (_add_thickness_text) 4.5];
+_snaptext_fonts = [if (_add_blunt_text) OG_SNAP_EMOJI_FONT, if (_add_thickness_text) OG_SNAP_TEXT_FONT];
+_snaptext_fills = [if (_add_blunt_text) true, if (_add_thickness_text) false];
+_snaptext_pos = [if (_add_blunt_text) [_add_thickness_text ? 2.4 : 0, 0], if (_add_thickness_text) [-(_add_blunt_text ? 2.4 : 0), 0]];
 
-threads_profile = [
-  [-1.25 / 3, -1 / 3],
-  [-0.25 / 3, 0],
-  [0.25 / 3, 0],
-  [1.25 / 3, -1 / 3],
-];
+text_depth = 0.4;
+_text_cfg = text_cfg(texts=_snaptext_texts, sizes=_snaptext_sizes, fonts=_snaptext_fonts, fills=_snaptext_fills, pos_offsets=_snaptext_pos, text_depth=text_depth);
 
-tilt_angle_back_offset = ang_adj_to_opp(holder_tilt_angle, threads_diameter / 2 - 1);
+_threads_cfg = threads_cfg(
+  threads_type=threads_type
+);
+_threads_diameter = struct_val(_threads_cfg, "threads_diameter");
+_threads_pitch = struct_val(_threads_cfg, "threads_pitch");
+
+tilt_angle_back_offset = ang_adj_to_opp(holder_tilt_angle, _threads_diameter / 2 - 1);
 stem_base_depth = stem_depth * (1 - transition_depth_ratio) + tilt_angle_back_offset;
 stem_transition_depth = stem_depth * transition_depth_ratio;
 
-threads_connect_diameter = threads_diameter - 1.5;
-threads_side_offset = threads_diameter / 2 - 1.4;
+_threads_connect_diameter = _threads_diameter - 1.5;
+_threads_side_offset = _threads_diameter / 2 - 1.4;
 
-//text parameters
-text_depth = 0.4;
-final_add_thickness_text =
-  add_thickness_text == "None" ? false
-  : add_thickness_text == "All" ? true
-  : add_thickness_text == "Uncommon" && snap_thickness != 3.4 && snap_thickness != 6.8 ? true
-  : false;
-
-final_stem_top_width = max(eps, min(stem_bottom_width, stem_top_width));
-plier_prismoid_top_rounding = max(eps, min(stem_top_rounding, final_stem_top_width, stem_height / 2));
-plier_prismoid_bottom_rounding = max(eps, min(stem_bottom_rounding, stem_bottom_width / 2, stem_height / 2));
+final_stem_top_width = max(EPS, min(stem_bottom_width, stem_top_width));
+plier_prismoid_top_rounding = max(EPS, min(stem_top_rounding, final_stem_top_width, stem_height / 2));
+plier_prismoid_bottom_rounding = max(EPS, min(stem_bottom_rounding, stem_bottom_width / 2, stem_height / 2));
 plier_prismoid_side_angle = opp_adj_to_ang((stem_bottom_width - final_stem_top_width) / 2, stem_height);
 stopper_side_angle = opp_adj_to_ang((stem_bottom_width - final_stem_top_width) * stopper_width_scale / 2, stem_height * stopper_height_scale);
 //align to front and bottom
-zrot(180) up(threads_side_offset) xrot(90) {
-      fwd(threads_side_offset) zrot(180) xrot(90) ycopies(n=plier_count, spacing=-stem_depth - stopper_depth + stopper_front_rounding, sp=[0, 0, 0])
+zrot(180) up(_threads_side_offset) xrot(90) {
+      fwd(_threads_side_offset) zrot(180) xrot(90) ycopies(n=plier_count, spacing=-stem_depth - stopper_depth + stopper_front_rounding, sp=[0, 0, 0])
               diff(remove="root_rm") {
                 diff() prismoid(size1=[stem_bottom_width, max(eps, stem_base_depth)], size2=[final_stem_top_width, max(eps, stem_base_depth)], h=stem_height, anchor=BACK + BOTTOM) {
                     edge_profile([BOTTOM + LEFT, BOTTOM + RIGHT], excess=2)
@@ -129,24 +117,8 @@ zrot(180) up(threads_side_offset) xrot(90) {
               }
 
       diff() {
-        // down(ang_adj_to_opp(holder_tilt_angle, threads_diameter / 2 - 1))
         fwd(ang_hyp_to_opp(holder_tilt_angle, snap_thickness))
-          // xrot(-holder_tilt_angle)
-          //   back(threads_side_slice_off - 1)
-          zrot(threads_offset_angle) {
-            zrot(threads_compatibility_angle) {
-              if (threads_type == "Blunt")
-                blunt_threads(diameter=threads_diameter, threads_height=snap_thickness, top_cutoff=true);
-              else
-                generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=threads_pitch, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
-            }
-            if (add_threads_blunt_text && threads_type == "Blunt")
-              up(snap_thickness - text_depth + eps / 2) right(final_add_thickness_text ? 2.4 : 0)
-                  tag("remove") linear_extrude(height=text_depth + eps) fill() text(threads_blunt_text, size=4, anchor=str("center", CENTER), font=threads_blunt_text_font);
-            if (final_add_thickness_text)
-              up(snap_thickness - text_depth + eps / 2) left(add_threads_blunt_text && threads_type == "Blunt" ? 2.4 : 0)
-                  tag("remove") linear_extrude(height=text_depth + eps) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
-          }
-        tag("remove") fwd(threads_side_offset) cuboid([500, 500, 500], anchor=BACK);
+          snap_threads(threads_height=snap_thickness, threads_cfg=_threads_cfg, text_cfg=_text_cfg);
+        tag("remove") fwd(_threads_side_offset) cuboid([500, 500, 500], anchor=BACK);
       }
     }

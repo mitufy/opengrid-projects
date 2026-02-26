@@ -7,7 +7,7 @@ openConnect is a connector system designed for openGrid. https://www.printables.
 openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 */
 
-include <lib/opengrid_variable.scad>
+include <lib/opengrid_base.scad>
 use <lib/openconnect_lib.scad>
 
 /* [Item Size] */
@@ -52,6 +52,8 @@ slot_edge_bridge_min_width = 0.8; //0.01
 slot_edge_wall_min_width = 0.6; //0.01
 
 /* [Hidden] */
+$fa = 1;
+$fs = 0.4;
 slot_edge_feature_widen = "Top";
 //Slide and entry ramp direction can matter in tight spaces.
 slot_slide_direction = "Up";
@@ -61,11 +63,11 @@ slot_position = "All"; //["All", "Staggered", "Edge Rows", "Edge Columns", "Corn
 slot_lock_side = "Left"; //[Left:Standard, Both:Double]
 
 _slot_cfg = ocslot_cfg(
-  edge_feature = slot_edge_feature_widen,
-  edge_bridge_min_w = slot_edge_bridge_min_width,
-  edge_wall_min_w = slot_edge_wall_min_width,
-  side_clearance = slot_side_clearance,
-  depth_clearance = slot_depth_clearance
+  edge_feature=slot_edge_feature_widen,
+  edge_bridge_min_w=slot_edge_bridge_min_width,
+  edge_wall_min_w=slot_edge_wall_min_width,
+  side_clearance=slot_side_clearance,
+  depth_clearance=slot_depth_clearance
 );
 
 slot_wall_min_height = 18;

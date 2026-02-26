@@ -15,12 +15,12 @@ hex_rod_to_coin_transition_height = 10;
 
 coin_tip_height = 2.6;
 coin_tip_width = 13;
-coin_thickness = 2;//0.05
+coin_thickness = 2; //0.05
 
 /* [Advanced Settings] */
 flat_tip_width = 17;
-flat_tip_height = 2;//0.2
-hex_rod_width = 6.3;//0.05
+flat_tip_height = 2; //0.2
+hex_rod_width = 6.3; //0.05
 
 /* [Hidden] */
 $fa = 1;

@@ -7,12 +7,12 @@ Recommended to use with openGrid - Self-Expanding Snap. https://www.printables.c
 The openGrid system is created by David D. https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem
 */
 
-include <lib/opengrid_variable.scad>
+include <lib/opengrid_base.scad>
 include <BOSL2/threading.scad>
-use <lib/opengrid_snap_threads_lib.scad>
+use <lib/opengrid_threads_lib.scad>
 
 snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm, 3.4:Lite Basic - 3.4mm]
-//Blunt threads help prevent cross-threading and overtightening. Models with blunt threads have a decorative 'lock' symbol at the bottom.
+//Blunt threads help prevent cross-threading and overtightening. Models with blunt threads have a decorative 'lock' symbol.
 threads_type = "Blunt"; //["Blunt", "Basic"]
 clip_shape = "Circular"; //["Circular", "Rectangular","Elliptic"]
 //Decides the state of the clip when completely screwed in.
@@ -52,13 +52,28 @@ tip_angle = 180; //[90:15:270]
 body_side_chamfer = 0.8; //0.2
 
 /* [Hidden] */
+$fa = 1;
+$fs = 0.4;
 
-threads_diameter = 16;
-threads_connect_diameter = threads_diameter - 1.5;
-threads_side_offset = threads_diameter / 2 - 1.4;
 threads_offset_angle = clip_orientation == "Horizontal" ? 0 : 90;
 
-_threads_cfg = struct_set([], ["threads_offset_angle", OG_SNAP_THREADS_COMPATIBILITY_ANGLE + threads_offset_angle]);
+_add_blunt_text = threads_type == "Blunt";
+_add_thickness_text = thickness_text_mode == "All" || (thickness_text_mode == "Uncommon" && snap_thickness != OG_LITE_BASIC_THICKNESS && snap_thickness != OG_STANDARD_THICKNESS);
+
+_snaptext_texts = [if (_add_blunt_text) OG_SNAP_BLUNT_TEXT, if (_add_thickness_text) str(floor(snap_thickness))];
+_snaptext_sizes = [if (_add_blunt_text) 4, if (_add_thickness_text) 4.5];
+_snaptext_fonts = [if (_add_blunt_text) OG_SNAP_EMOJI_FONT, if (_add_thickness_text) OG_SNAP_TEXT_FONT];
+_snaptext_fills = [if (_add_blunt_text) true, if (_add_thickness_text) false];
+_snaptext_pos = [if (_add_blunt_text) [_add_thickness_text ? 2.4 : 0, 0], if (_add_thickness_text) [-(_add_blunt_text ? 2.4 : 0), 0]];
+
+text_depth = 0.4;
+_text_cfg = text_cfg(texts=_snaptext_texts, sizes=_snaptext_sizes, fonts=_snaptext_fonts, fills=_snaptext_fills, pos_offsets=_snaptext_pos, text_depth=text_depth);
+
+_threads_cfg = threads_cfg(
+  threads_type=threads_type,
+  threads_offset_angle=threads_offset_angle
+);
+_threads_side_offset = struct_val(_threads_cfg, "threads_diameter") / 2 - 1.4;
 
 symmetric_clip_height = 13.2;
 final_tip_diameter = max(EPS, clip_thickness * clip_thickness_scale + 1, tip_diameter);
@@ -107,31 +122,16 @@ connect_cuboid_height =
   clip_shape == "Circular" || (clip_shape == "Elliptic" && abs(final_clip_entry_tilt_angle) == 90) ? clip_main_width / 2 + clip_thickness
   : clip_main_depth / 2;
 //align to front and bottom
-zrot(180) xrot(90) back(threads_side_offset)
+zrot(180) xrot(90) back(_threads_side_offset)
       //main diff
       diff() {
-        // zrot(threads_offset_angle) {
-        //   zrot(threads_compatibility_angle) {
-        //     if (threads_type == "Blunt")
-        //       blunt_threads(diameter=threads_diameter, threads_height=snap_thickness, top_cutoff=true);
-        //     else
-        //       generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=threads_pitch, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
-        //   }
-        //   if (add_threads_blunt_text && threads_type == "Blunt")
-        //     up(snap_thickness - text_depth + EPS / 2) right(final_add_thickness_text ? 2.4 : 0)
-        //         tag("remove") linear_extrude(height=text_depth + EPS) fill() text(OG_SNAP_THREADS_BLUNT_TEXT, size=4, anchor=str("center", CENTER), font=OG_SNAP_THREADS_BLUNT_TEXT_FONT);
-        //   if (final_add_thickness_text)
-        //     up(snap_thickness - text_depth + EPS / 2) left(add_threads_blunt_text && threads_type == "Blunt" ? 2.4 : 0)
-        //         tag("remove") linear_extrude(height=text_depth + EPS) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font=OG_SNAP_TEXT_FONT);
-        // }
-        snap_threads(threads_type=threads_type, snap_thickness=snap_thickness, threads_cfg=_threads_cfg);
-        //first inner diff
+        snap_threads(threads_height=snap_thickness, threads_cfg=_threads_cfg, text_cfg=_text_cfg);
         diff(remove="rm1") {
-          fwd(threads_side_offset - clip_height / 2) {
+          fwd(_threads_side_offset - clip_height / 2) {
             //second inner diff
             diff(remove="rm2", keep="kp2") {
               //Added shape connects the print surface of the threads to gadget.
-              fwd((clip_height - symmetric_clip_height) / 2 + threads_side_offset) diff(remove="rm3") {
+              fwd((clip_height - symmetric_clip_height) / 2 + _threads_side_offset) diff(remove="rm3") {
                   teardrop(r=symmetric_clip_height / 2, h=connect_cuboid_height + clip_stem_length, anchor=BACK + TOP, orient=FRONT);
                   tag("rm3") back(clip_height) cuboid([30, 30, connect_cuboid_height + clip_stem_length], anchor=TOP + FRONT);
                 }
@@ -152,7 +152,7 @@ zrot(180) xrot(90) back(threads_side_offset)
                               back(final_clip_rect_rounding * (180 - clip_surround_angle) / 90 + knurling_outer_offset, rect([clip_main_width + clip_thickness * 2, clip_main_depth + clip_thickness], anchor=FRONT)),
                               rect([clip_main_width, clip_main_depth], rounding=final_clip_rect_rounding, anchor=FRONT)
                             );
-                            tag("kp2") back(clip_height - threads_side_offset) intersection() {
+                            tag("kp2") back(clip_height - _threads_side_offset) intersection() {
                                   down(clip_main_depth + clip_thickness / 2) xrot(90) linear_sweep(
                                         rectangular_knurling_shape, clip_height, texture="diamonds", tex_size=[knurling_texture_size, knurling_texture_size],
                                         tex_depth=knurling_texture_depth, style=knurling_type == "Line" ? "default" : "concave"
@@ -181,7 +181,7 @@ zrot(180) xrot(90) back(threads_side_offset)
                             elliptic_knurling_shape = difference(
                               elliptic_part1, elliptic_part2
                             );
-                            tag("kp2") back(clip_height - threads_side_offset) intersection() {
+                            tag("kp2") back(clip_height - _threads_side_offset) intersection() {
                                   down(clip_thickness / 2 + height_radius_start)
                                     xrot(90)
                                       linear_sweep(
@@ -210,5 +210,5 @@ zrot(180) xrot(90) back(threads_side_offset)
           }
           tag("rm1") cuboid([500, 500, 500], anchor=BOTTOM);
         }
-        tag("remove") fwd(threads_side_offset) cuboid([500, 500, 500], anchor=BACK);
+        tag("remove") fwd(_threads_side_offset) cuboid([500, 500, 500], anchor=BACK);
       }

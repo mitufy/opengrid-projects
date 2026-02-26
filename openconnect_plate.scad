@@ -8,7 +8,7 @@ openGrid is created by David D: https://www.printables.com/model/1214361-opengri
 Inspired by David's multiConnect: https://www.printables.com/model/1008622-multiconnect-for-multiboard-v2-modeling-files.
 */
 
-include <lib/opengrid_variable.scad>
+include <lib/opengrid_base.scad>
 use <lib/openconnect_lib.scad>
 
 /* [Plate Settings] */
@@ -45,6 +45,8 @@ slot_edge_bridge_min_width = 0.8; //0.01
 slot_edge_wall_min_width = 0.6; //0.01
 
 /* [Hidden] */
+$fa = 1;
+$fs = 0.4;
 slot_cfg = ocslot_cfg(
   edge_feature=slot_edge_feature_widen,
   edge_bridge_min_w=slot_edge_bridge_min_width,

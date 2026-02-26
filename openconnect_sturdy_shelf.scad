@@ -8,7 +8,7 @@ openGrid is created by David D: https://www.printables.com/model/1214361-opengri
 connector_cutout_delete_tool() is written by BlackJackDuck. https://github.com/AndyLevesque/QuackWorks
 */
 
-include <lib/opengrid_variable.scad>
+include <lib/opengrid_base.scad>
 use <lib/openconnect_lib.scad>
 
 /* [Main Settings] */
@@ -71,14 +71,16 @@ shelf_side_edge_thickness = 1;
 shelf_front_edge_thickness = 1;
 
 /* [Hidden] */
+$fa = 1;
+$fs = 0.4;
 slot_edge_feature_widen = "Side"; //[Both, Top, Side, None]
 
 _slot_cfg = ocslot_cfg(
-  edge_feature = slot_edge_feature_widen,
-  edge_bridge_min_w = slot_edge_bridge_min_width,
-  edge_wall_min_w = slot_edge_wall_min_width,
-  side_clearance = slot_side_clearance,
-  depth_clearance = slot_depth_clearance
+  edge_feature=slot_edge_feature_widen,
+  edge_bridge_min_w=slot_edge_bridge_min_width,
+  edge_wall_min_w=slot_edge_wall_min_width,
+  side_clearance=slot_side_clearance,
+  depth_clearance=slot_depth_clearance
 );
 
 //BEGIN shelf parameters
@@ -222,8 +224,6 @@ diff(remove="outer_rm")
             tag("outer_rm") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=horizontal_grids, vertical_grids=shelf_type == "Standard" ? top_vertical_grids + bottom_vertical_grids : top_vertical_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=EPS);
   }
 //END generation
-
-
 
 //code by BlackJackDuck
 module connector_cutout_delete_tool(anchor = CENTER, spin = 0, orient = UP) {

@@ -9,9 +9,11 @@ The openGrid system is created by David D. https://www.printables.com/model/1214
 
 include <BOSL2/std.scad>
 include <BOSL2/threading.scad>
+include <lib/opengrid_base.scad>
+use <lib/opengrid_threads_lib.scad>
 
 snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm, 3.4:Lite Basic - 3.4mm]
-//Blunt threads help prevent cross-threading and overtightening. Models with blunt threads have a decorative 'lock' symbol at the bottom.
+//Blunt threads help prevent cross-threading and overtightening. Models with blunt threads have a decorative 'lock' symbol.
 threads_type = "Blunt"; //["Blunt", "Basic"]
 hook_shape_type = "Centered"; //["Straight", "Centered", "Loop"]
 corner_type = "Circular"; //["Circular", "Rectangular"]
@@ -30,7 +32,7 @@ body_thickness_scale = 0.6; //[0.1:0.1:1]
 hook_tip_angle = 165; //[15:15:255]
 
 /* [Advanced Settings] */
-//Counterclockwisely offset which direction the gadget faces when it's completely screwed in. 270 means it would face 3 o’clock direction.
+//Counterclockwisely offset which direction the gadget faces when it's completely screwed in. 270 means it would face 3 o'clock direction.
 threads_offset_angle = 0; //[0:15:345]
 //Size of fillet at the part hook stem connects to threads.
 hook_stem_fillet = 4; //0.4
@@ -48,44 +50,33 @@ custom_shape_commands = "setdir,90,arcright,5,45,move,15,arcleft,5,135,move,30";
 /* [Hidden] */
 $fa = 1;
 $fs = 0.4;
-eps = 0.005;
 
-add_threads_blunt_text = true;
-threads_blunt_text = "🔓";
-threads_blunt_text_font = "Noto Emoji"; // font
-threads_pitch = 3;
+_add_blunt_text = threads_type == "Blunt";
+_add_thickness_text = thickness_text_mode == "All" || (thickness_text_mode == "Uncommon" && snap_thickness != OG_LITE_BASIC_THICKNESS && snap_thickness != OG_STANDARD_THICKNESS);
 
-threads_compatibility_angle = 53.5;
-threads_diameter = 16;
-threads_bottom_bevel_standard = 2; //0.1
-threads_bottom_bevel_lite = 1.2; //0.1
+_snaptext_texts = [if (_add_blunt_text) OG_SNAP_BLUNT_TEXT, if (_add_thickness_text) str(floor(snap_thickness))];
+_snaptext_sizes = [if (_add_blunt_text) 4, if (_add_thickness_text) 4.5];
+_snaptext_fonts = [if (_add_blunt_text) OG_SNAP_EMOJI_FONT, if (_add_thickness_text) OG_SNAP_TEXT_FONT];
+_snaptext_fills = [if (_add_blunt_text) true, if (_add_thickness_text) false];
+_snaptext_pos = [if (_add_blunt_text) [_add_thickness_text ? 2.4 : 0, 0], if (_add_thickness_text) [-(_add_blunt_text ? 2.4 : 0), 0]];
 
-//thread parameters
-threads_bottom_bevel =
-  snap_thickness == 6.8 ? threads_bottom_bevel_standard
-  : threads_bottom_bevel_lite;
-
-threads_profile = [
-  [-1.25 / 3, -1 / 3],
-  [-0.25 / 3, 0],
-  [0.25 / 3, 0],
-  [1.25 / 3, -1 / 3],
-];
-
-threads_connect_diameter = threads_diameter - 1.5;
-threads_side_offset = threads_diameter / 2 - 1.4;
-//text parameters
 text_depth = 0.4;
-final_add_thickness_text =
-  add_thickness_text == "None" ? false
-  : add_thickness_text == "All" ? true
-  : add_thickness_text == "Uncommon" && snap_thickness != 3.4 && snap_thickness != 6.8 ? true
-  : false;
+_text_cfg = text_cfg(texts=_snaptext_texts, sizes=_snaptext_sizes, fonts=_snaptext_fonts, fills=_snaptext_fills, pos_offsets=_snaptext_pos, text_depth=text_depth);
+
+_threads_cfg = threads_cfg(
+  threads_type=threads_type,
+  threads_offset_angle=threads_offset_angle
+);
+_threads_diameter = struct_val(_threads_cfg, "threads_diameter");
+_threads_pitch = struct_val(_threads_cfg, "threads_pitch");
+
+_threads_connect_diameter = _threads_diameter - 1.5;
+_threads_side_offset = _threads_diameter / 2 - 1.4;
 
 square_corner_radius = 1;
 min_ang_radius = 1;
-final_tip_size = max(eps, hook_main_size);
-final_stem_length = max(eps, hook_stem_length);
+final_tip_size = max(EPS, hook_main_size);
+final_stem_length = max(EPS, hook_stem_length);
 final_thickness_scale = !use_custom_shape && hook_shape_type == "Loop" ? 1 : body_thickness_scale;
 final_side_chamfer = max(0, min(body_thickness / 2 * final_thickness_scale - 0.84, body_width / 2 - 0.84, body_max_chamfer));
 
@@ -93,17 +84,15 @@ circular_straight_hook_path = ["setdir", 90, "arcleft", final_tip_size / 2, hook
 circular_center_hook_path = ["setdir", 90, "arcright", min_ang_radius, 90, "arcleft", final_tip_size / 2, hook_tip_angle + 90];
 circular_loop_hook_path = ["setdir", 0, "arcleft", final_tip_size / 2, 359.9];
 
-//a rough calculation of the offset angle. the goal is to make bottom of the rectagular hook flat when thickness scale is less than 1.
 rect_offset_angle = opp_adj_to_ang((body_thickness - body_thickness * final_thickness_scale) / 2, final_tip_size);
 rect_corner_arc_length = PI / 2 * square_corner_radius;
-rect_tip_corner_length = max(eps, (hook_main_size - square_corner_radius * 2) * (hook_tip_angle - 135) / 90);
+rect_tip_corner_length = max(EPS, (hook_main_size - square_corner_radius * 2) * (hook_tip_angle - 135) / 90);
 rect_straight_middle_ratio = (hook_main_size - square_corner_radius) / (hook_tip_angle > 135 ? (rect_corner_arc_length + rect_tip_corner_length + hook_main_size * 1.5 + rect_corner_arc_length - square_corner_radius) : (hook_main_size * 1.5 + rect_corner_arc_length - square_corner_radius));
 rect_center_middle_ratio = (hook_main_size - square_corner_radius) / (hook_tip_angle > 135 ? (rect_corner_arc_length + rect_tip_corner_length + hook_main_size * 2.5 - square_corner_radius * 4 + rect_corner_arc_length * 2) : (hook_main_size * 2.5 - square_corner_radius * 4 + rect_corner_arc_length * 2));
 
 rect_straight_hook_path = ["setdir", 90, "move", hook_main_size / 2, "arcleft", min_ang_radius, 90 + rect_offset_angle * rect_straight_middle_ratio, "move", hook_main_size - square_corner_radius];
 rect_center_hook_path = ["setdir", 90, "arcright", min_ang_radius, 90, "move", hook_main_size / 2 - square_corner_radius, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcleft", square_corner_radius, 90 + rect_offset_angle * rect_center_middle_ratio, "move", hook_main_size - square_corner_radius];
 rect_hook_tip_path = ["arcleft", square_corner_radius, 90, "move", rect_tip_corner_length];
-
 rect_loop_hook_path = ["setdir", 90, "arcright", min_ang_radius, 90, "move", hook_main_size / 2 - square_corner_radius - min_ang_radius, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2, "arcleft", square_corner_radius, 90, "move", hook_main_size - square_corner_radius * 2];
 
 function to_turtle(x) = is_num(parse_num(x)) ? parse_num(x) : x;
@@ -127,55 +116,36 @@ hook_path =
   : corner_type == "Circular" ? circular_hook_path
   : rect_hook_path;
 
-tip_rounding_radius = max(0, min(body_thickness * final_thickness_scale, body_width - final_side_chamfer * 2) / 2 - eps);
-
-//unimplemented ring profile
-ring_profile = false;
-ring_main_width = body_width;
-ring_main_thickness = ring_main_width / 2;
-ring_sweep_profile = back(2, right(body_width / 2, zrot(90, ring(width=ring_main_width, thickness=ring_main_thickness, ring_width=body_thickness / 2, n=32, full=false))));
-ring_hook_path = ["setdir", 90, "arcright", ring_main_thickness, 90, "arcleft", final_tip_size / 2, hook_tip_angle + 90];
-profile_zrot = ring_profile ? 180 : 0;
-profile_back_offset = ring_profile ? 4 : 0;
+tip_rounding_radius = max(0, min(body_thickness * final_thickness_scale, body_width - final_side_chamfer * 2) / 2 - EPS);
 
 default_sweep_profile = rect([body_thickness, body_width], chamfer=final_side_chamfer);
-
-final_sweep_profile = ring_profile ? ring_sweep_profile : default_sweep_profile;
+final_sweep_profile = default_sweep_profile;
 offset_sweep_profile = scale([final_thickness_scale, 1, 1], final_sweep_profile);
 prism_fillet = max(0, min(final_stem_length, hook_stem_fillet));
 
-up(threads_side_offset) xrot(90)
+up(_threads_side_offset) xrot(90)
     diff() {
-      zrot(90 + threads_offset_angle) {
-        zrot(threads_compatibility_angle) {
-          if (threads_type == "Blunt")
-            blunt_threads(diameter=threads_diameter, threads_height=snap_thickness, top_cutoff=true);
-          else
-            generic_threaded_rod(d=threads_diameter, l=snap_thickness, pitch=threads_pitch, profile=threads_profile, bevel1=0.5, bevel2=threads_bottom_bevel, blunt_start=false, anchor=BOTTOM, internal=false);
-        }
-        if (add_threads_blunt_text && threads_type == "Blunt")
-          up(snap_thickness - text_depth + eps / 2) right(final_add_thickness_text ? 2.4 : 0)
-              tag("remove") linear_extrude(height=text_depth + eps) fill() text(threads_blunt_text, size=4, anchor=str("center", CENTER), font=threads_blunt_text_font);
-        if (final_add_thickness_text)
-          up(snap_thickness - text_depth + eps / 2) left(add_threads_blunt_text && threads_type == "Blunt" ? 2.4 : 0)
-              tag("remove") linear_extrude(height=text_depth + eps) text(str(floor(snap_thickness)), size=4.5, anchor=str("center", CENTER), font="Merriweather Sans:style=Bold");
-      }
-      fwd(threads_side_offset - body_width / 2) {
-        down(final_stem_length - eps) xrot(-90)
+      zrot(90)
+        snap_threads(threads_height=snap_thickness, threads_cfg=_threads_cfg, text_cfg=_text_cfg);
+      fwd(_threads_side_offset - body_width / 2)
+        down(final_stem_length - EPS) xrot(-90)
             path_sweep(final_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[final_thickness_scale, 1])
               attach("end", "top")
-                back(profile_back_offset) offset_sweep(offset_sweep_profile, height=tip_rounding_radius + eps, bottom=os_circle(r=tip_rounding_radius), spin=profile_zrot);
-        difference() {
-          zrot(profile_zrot) xrot(180) join_prism(final_sweep_profile, base="plane", length=final_stem_length, base_fillet=prism_fillet, overlap=0);
-          up(eps) difference() {
-              cuboid([100, 100, prism_fillet], anchor=TOP);
-              union() {
-                cuboid([body_thickness, body_width, final_stem_length + eps * 2], chamfer=final_side_chamfer, edges="Z", anchor=TOP);
-                back(threads_side_offset - body_width / 2 + 0.1)
-                  cyl(l=final_stem_length + eps * 2, d=threads_connect_diameter, anchor=TOP);
+                offset_sweep(offset_sweep_profile, height=tip_rounding_radius + EPS, bottom=os_circle(r=tip_rounding_radius));
+      diff("rm2") {
+        fwd(_threads_side_offset - body_width / 2)
+          zrot(180) xrot(180)
+              join_prism(final_sweep_profile, base="plane", length=final_stem_length, base_fillet=prism_fillet, overlap=0) {
+                up(EPS) tag_diff(tag="rm2", remove="rm1")
+                    cuboid([100, 100, prism_fillet], anchor=TOP) {
+                      tag("rm1") cuboid([body_thickness, body_width, final_stem_length + EPS * 2], chamfer=final_side_chamfer, edges="Z", anchor=TOP);
+                      tag("rm1") back(_threads_side_offset - body_width / 2 + 0.1)
+                          cyl(l=final_stem_length + EPS * 2, d=_threads_connect_diameter, anchor=TOP);
+                    }
               }
-            }
-        }
+        tag_diff(tag="rm2", remove="rm1") cyl(l=final_stem_length, d=_threads_connect_diameter * 2, anchor=TOP)
+            attach(CENTER, CENTER, inside=true)
+              tag("rm1") cyl(l=final_stem_length + EPS * 2, d=_threads_connect_diameter);
       }
-      tag("remove") fwd(threads_side_offset - eps) cuboid([500, 500, 500], anchor=BACK);
+      tag("remove") fwd(_threads_side_offset - EPS) cuboid([500, 500, 500], anchor=BACK);
     }

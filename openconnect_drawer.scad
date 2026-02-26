@@ -7,7 +7,7 @@ openConnect is a connector system designed for openGrid. https://www.printables.
 openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 */
 
-include <lib/opengrid_variable.scad>
+include <lib/opengrid_base.scad>
 include <BOSL2/walls.scad>
 use <lib/openconnect_lib.scad>
 
@@ -123,7 +123,8 @@ shell_to_slot_wall_thickness = 0.9;
 honeycomb_strut_hyp = 5;
 
 /*[Hidden]*/
-
+$fa = 1;
+$fs = 0.4;
 function calc_inner_chamfer(outer_chamfer, wall_thickness) = (outer_chamfer / sqrt(2) + wall_thickness - wall_thickness * sqrt(2)) * sqrt(2);
 side_magnet_shell_edge_distance = 2.6;
 shell_inner_chamfer = max(0, calc_inner_chamfer(shell_outer_chamfer, shell_thickness));
@@ -142,11 +143,11 @@ slot_bottom_min_thickness = 0.8; //0.01
 slot_edge_feature_widen = shell_slot_position == "Back" ? "None" : "Side";
 
 _slot_cfg = ocslot_cfg(
-  edge_feature = slot_edge_feature_widen,
-  edge_bridge_min_w = slot_edge_bridge_min_width,
-  edge_wall_min_w = slot_edge_wall_min_width,
-  side_clearance = slot_side_clearance,
-  depth_clearance = slot_depth_clearance
+  edge_feature=slot_edge_feature_widen,
+  edge_bridge_min_w=slot_edge_bridge_min_width,
+  edge_wall_min_w=slot_edge_wall_min_width,
+  side_clearance=slot_side_clearance,
+  depth_clearance=slot_depth_clearance
 );
 
 magnet_hole_side_clearance = 0.2;

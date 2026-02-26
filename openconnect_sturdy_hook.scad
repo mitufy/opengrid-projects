@@ -7,7 +7,7 @@ openConnect is a connector system designed for openGrid. https://www.printables.
 openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 */
 
-include <lib/opengrid_variable.scad>
+include <lib/opengrid_base.scad>
 use <lib/openconnect_lib.scad>
 
 /* [Main Settings] */
@@ -49,16 +49,18 @@ custom_height_slot_alignment = "Center"; //[Center,Top, Bottom]
 hook_side_rounding = 2.4; //0.2
 
 /* [Hidden] */
+$fa = 1;
+$fs = 0.4;
 //Double Lock is intended for small models that only use one or two slots.
 slot_lock_side = "Left"; //[Left:Standard, Both:Double]
 slot_edge_feature_widen = "Side"; //[Both, Top, Side, None]
 
 _slot_cfg = ocslot_cfg(
-  edge_feature = slot_edge_feature_widen,
-  edge_bridge_min_w = slot_edge_bridge_min_width,
-  edge_wall_min_w = slot_edge_wall_min_width,
-  side_clearance = slot_side_clearance,
-  depth_clearance = slot_depth_clearance
+  edge_feature=slot_edge_feature_widen,
+  edge_bridge_min_w=slot_edge_bridge_min_width,
+  edge_wall_min_w=slot_edge_wall_min_width,
+  side_clearance=slot_side_clearance,
+  depth_clearance=slot_depth_clearance
 );
 
 horizontal_grids = max(1, floor(hook_width / OG_TILE_SIZE));
