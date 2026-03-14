@@ -269,8 +269,7 @@ _snapbody_text_cfg = text_cfg(
   sizes=_snaptext_sizes,
   fonts=_snaptext_fonts,
   fills=_snaptext_fills,
-  pos_offsets=_snaptext_body_pos,
-  add_expand_distance_text=add_snap_expansion_distance_text
+  pos_offsets=_snaptext_body_pos
 );
 _screw_add_blunt_text = threads_type == "Blunt";
 _screw_text_cfg = text_cfg(
@@ -373,7 +372,8 @@ module opengrid_snap(
         expanding_snap(
           snapbody_cfg=snapbody_cfg, snapcorner_cfg=snapcorner_cfg, snapnub_cfg=snapnub_cfg,
           snapcut_cfg=snapcut_cfg, snapnotch_cfg=snapnotch_cfg, text_cfg=text_cfg,
-          spring_cfg=spring_cfg, expand_cfg=expand_cfg, threads_cfg=threads_cfg
+          spring_cfg=spring_cfg, expand_cfg=expand_cfg, threads_cfg=threads_cfg,
+          add_expand_distance_text=add_snap_expansion_distance_text
         );
       else {
         disable_features = concat(

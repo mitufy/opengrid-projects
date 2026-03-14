@@ -10,6 +10,7 @@ The openGrid system is created by David D. https://www.printables.com/model/1214
 */
 
 include <opengrid_base.scad>
+use <opengrid_threads_lib.scad>
 
 function snap_body_cfg(
   snap_width = OG_SNAP_WIDTH,
@@ -509,7 +510,8 @@ module expanding_snap(
   text_cfg = [],
   spring_cfg = [],
   expand_cfg = [],
-  threads_cfg = []
+  threads_cfg = [],
+  add_expand_distance_text = false
 ) {
   _snap_thickness = struct_val(snapbody_cfg, "snap_thickness", OG_STANDARD_THICKNESS);
   _snap_width = struct_val(snapbody_cfg, "snap_width", OG_SNAP_WIDTH);
@@ -523,7 +525,7 @@ module expanding_snap(
   _pos_offsets = struct_val(text_cfg, "pos_offsets", []);
 
   expand_text_cfg =
-    struct_val(text_cfg, "add_expand_distance_text", false) ? struct_set(
+    add_expand_distance_text ? struct_set(
         text_cfg, [
           "texts",
           concat(_texts, [str(_expand_distance)]),

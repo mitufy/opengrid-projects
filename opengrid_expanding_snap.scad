@@ -90,7 +90,7 @@ _snaptext_screw_pos = [
 
 _snapbody_text_cfg = text_cfg(
   texts=_snaptext_texts, sizes=_snaptext_sizes, fonts=_snaptext_fonts, fills=_snaptext_fills,
-  pos_offsets=_snaptext_body_pos, add_expand_distance_text=add_snap_expansion_distance_text
+  pos_offsets=_snaptext_body_pos
 );
 _screw_text_cfg = text_cfg(
   texts=[if (_add_blunt_text) OG_SNAP_BLUNT_TEXT, if (_add_thickness_text) str(floor(_snap_thickness))],
@@ -154,7 +154,7 @@ expanding_snap(
   snapbody_cfg=_snapbody_cfg, snapcorner_cfg=_snapcorner_cfg, snapnub_cfg=_snapnub_cfg,
   snapcut_cfg=_snapcut_cfg, snapnotch_cfg=_snapnotch_cfg, text_cfg=_snapbody_text_cfg,
   spring_cfg=_espring_cfg, expand_cfg=_expand_cfg,
-  threads_cfg=_threads_cfg
+  threads_cfg=_threads_cfg, add_expand_distance_text=add_snap_expansion_distance_text
 );
 if (generate_screw == "multiConnect")
   right(OG_TILE_SIZE)

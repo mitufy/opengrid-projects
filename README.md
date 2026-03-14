@@ -1,7 +1,7 @@
 A place to store my OpenSCAD models for openGrid.
 
 # How to use:
-I recommend installing **OpenSCAD** and the **BOSL2 library** on your computer to generate 3D models locally using the `.scad` files. This is faster and more reliable than rendering online. However, if you prefer a simpler method, you can just use the customizer on the **MakerWorld** model pages.
+To generate the models locally, download the repository and install **OpenSCAD** and the **BOSL2 library** on your computer. This is faster and more reliable than rendering online. However, if you prefer a simpler method, you can just use the customizer on the **MakerWorld** model pages.
 
 * **OpenSCAD Snapshot:** The stable version is currently outdated; the Snapshot version is recommended. Find it here: [openscad.org/downloads.html#snapshots](https://openscad.org/downloads.html#snapshots)
 * **BOSL2 Library:** Files and installation instructions can be found here: [github.com/BelfrySCAD/BOSL2](https://github.com/BelfrySCAD/BOSL2)
@@ -76,8 +76,10 @@ A generator for a "coin screwdriver" hex bit. Often used for installing self-exp
 
 ---
 
+Following a recent refactor, the codebase is split into modular library files. The standalone files uploaded to MakerWorld are automatically bundled from this repository using [`openscad-toolkit`](https://github.com/zing3d-labs/openscad-toolkit) by `zing3d-labs`. A huge thanks to the creator of that tool!
+
+Feel free to use the code; feedback and suggestions are always welcome.
+
 **License:**
 * The **openConnect system** is licensed under **CC-BY 4.0**.
 * All **other customizable models** are licensed under **CC-BY-SA 4.0**.
-
-Feel free to use the code; feedback and suggestions are always welcome.

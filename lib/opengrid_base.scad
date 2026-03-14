@@ -74,8 +74,7 @@ function text_cfg(
   fonts = OG_GADGET_TEXT_FONTS,
   fills = OG_GADGET_TEXT_FILLS,
   pos_offsets = [[0, 0]],
-  text_depth = 0.4,
-  add_expand_distance_text = false
+  text_depth = 0.4
 ) =
   struct_set(
     [], [
@@ -91,8 +90,6 @@ function text_cfg(
       pos_offsets,
       "text_depth",
       text_depth,
-      "add_expand_distance_text",
-      add_expand_distance_text,
     ]
   );
 
