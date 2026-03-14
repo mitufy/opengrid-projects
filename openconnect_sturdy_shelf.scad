@@ -8,9 +8,6 @@ openGrid is created by David D: https://www.printables.com/model/1214361-opengri
 connector_cutout_delete_tool() is written by BlackJackDuck. https://github.com/AndyLevesque/QuackWorks
 */
 
-include <lib/opengrid_base.scad>
-use <lib/openconnect_lib.scad>
-
 /* [Main Settings] */
 horizontal_grids = 3;
 //Depth is not technically restrained by grid. You can override this with "use_custom_depth" below.
@@ -73,6 +70,8 @@ shelf_front_edge_thickness = 1;
 /* [Hidden] */
 $fa = 1;
 $fs = 0.4;
+include <lib/opengrid_base.scad>
+use <lib/openconnect_lib.scad>
 slot_edge_feature_widen = "Side"; //[Both, Top, Side, None]
 
 _slot_cfg = ocslot_cfg(

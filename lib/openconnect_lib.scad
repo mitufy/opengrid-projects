@@ -7,7 +7,6 @@ openConnect is a connector system designed for openGrid. https://www.printables.
 openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 Inspired by David's multiConnect: https://www.printables.com/model/1008622-multiconnect-for-multiboard-v2-modeling-files.
 */
-include <BOSL2/std.scad>
 include <opengrid_base.scad>
 use <opengrid_threads_lib.scad>
 
@@ -218,7 +217,7 @@ function connector_slot_cfg(
   coin_slot_height = 2.6,
   coin_slot_width = 13,
   coin_slot_thickness = 2.4,
-  flat_slot_height = 4.4,
+  flat_slot_height = 5,
   flat_slot_width = 6.5,
   flat_slot_height_offset = 0.7,
   flat_slot_start_thickness = 1.8,
@@ -251,7 +250,7 @@ function connector_slot_cfg(
 
 module openconnect_head(head_type = "head", head_cfg = [], slot_cfg = [], add_nubs = "Both", nub_flattop = false, nub_taperin = true, excess_thickness = 0, size_offset = 0, anchor = BOTTOM, spin = 0, orient = UP) {
   _head_cfg = struct_merge(ochead_cfg(), head_cfg);
-  cfg = head_type == "head" ? _head_cfg : struct_merge(ocslot_cfg(), slot_cfg);
+  cfg = head_type == "head" ? _head_cfg : struct_merge(ocslot_cfg(head_cfg=_head_cfg), slot_cfg);
 
   _nub_depth = struct_val(_head_cfg, "nub_depth");
   _nub_tip_height = struct_val(_head_cfg, "nub_tip_height");
@@ -269,8 +268,8 @@ module openconnect_head(head_type = "head", head_cfg = [], slot_cfg = [], add_nu
 
   total_height = bottom_height + top_height + _middle_height;
 
-  // Slot heads may inset the right nub when the top bridge widens.
-  nub_inset_right = struct_val(cfg, "side_bridge_offset", default=0);
+  // Slot heads may inset the right nub when the top bridge widens. ochead_cfg does not have this parameter.
+  nub_inset_right = struct_val(cfg, "side_bridge_offset", 0);
 
   nub_angle_left = nub_taperin ? adj_opp_to_ang(_middle_height, _middle_height - _nub_depth) : 0;
   nub_angle_right =
@@ -449,25 +448,23 @@ module openconnect_slot_grid(slot_cfg = [], slot_type = "slot", horizontal_grids
 //BEGIN openConnect connectors
 module openconnect_screw(threads_height = OG_STANDARD_THICKNESS, text_cfg = [], head_cfg = [], connectorslot_cfg = [], threads_cfg = [], folded = false) {
   _head_cfg = struct_merge(ochead_cfg(), head_cfg);
-  _total_height = struct_val(_head_cfg, "total_height", OCHEAD_TOTAL_HEIGHT);
-  _middle_to_bot = struct_val(_head_cfg, "middle_to_bottom", OCHEAD_MIDDLE_TO_BOTTOM);
+  _total_height = struct_val(_head_cfg, "total_height");
+  _middle_to_bot = struct_val(_head_cfg, "middle_to_bottom");
+  _slot_cfg = struct_merge(connector_slot_cfg(), connectorslot_cfg);
 
   ocfold_gap_width = 0.4;
   ocfold_gap_height = 0.2;
   ocscrew_overhang_cyl_diameter = 15.6;
 
-  ocscrew_coin_slot_height = struct_val(connectorslot_cfg, "coin_slot_height", 2.6);
-  ocscrew_coin_slot_width = struct_val(connectorslot_cfg, "coin_slot_width", 13);
-  ocscrew_coin_slot_thickness = struct_val(connectorslot_cfg, "coin_slot_thickness", 2.4);
-  ocscrew_coin_slot_radius = struct_val(
-    connectorslot_cfg, "coin_slot_radius",
-    ocscrew_coin_slot_height / 2 + ocscrew_coin_slot_width ^ 2 / (8 * ocscrew_coin_slot_height)
-  );
-  ocscrew_flat_slot_height = struct_val(connectorslot_cfg, "flat_slot_height", 4.4);
-  ocscrew_flat_slot_width = struct_val(connectorslot_cfg, "flat_slot_width", 6.5);
-  ocscrew_flat_slot_height_offset = struct_val(connectorslot_cfg, "flat_slot_height_offset", 0.7);
-  ocscrew_flat_slot_start_thickness = struct_val(connectorslot_cfg, "flat_slot_start_thickness", 1.8);
-  ocscrew_flat_slot_end_thickness = struct_val(connectorslot_cfg, "flat_slot_end_thickness", 1.2);
+  ocscrew_coin_slot_height = struct_val(_slot_cfg, "coin_slot_height");
+  ocscrew_coin_slot_width = struct_val(_slot_cfg, "coin_slot_width");
+  ocscrew_coin_slot_thickness = struct_val(_slot_cfg, "coin_slot_thickness");
+  ocscrew_coin_slot_radius = struct_val(_slot_cfg, "coin_slot_radius");
+  ocscrew_flat_slot_height = struct_val(_slot_cfg, "flat_slot_height");
+  ocscrew_flat_slot_width = struct_val(_slot_cfg, "flat_slot_width");
+  ocscrew_flat_slot_height_offset = struct_val(_slot_cfg, "flat_slot_height_offset");
+  ocscrew_flat_slot_start_thickness = struct_val(_slot_cfg, "flat_slot_start_thickness");
+  ocscrew_flat_slot_end_thickness = struct_val(_slot_cfg, "flat_slot_end_thickness");
 
   _screw_threads_cfg = struct_set(threads_cfg, ["threads_clearance", 0]);
   _shifted_offsets = [for (p = struct_val(text_cfg, "pos_offsets", [])) [p[0], p[1] + (folded ? 2 : 0)]];

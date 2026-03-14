@@ -7,7 +7,6 @@ Inspired by David D's "openGrid - Minimal Hook". https://www.printables.com/mode
 Part of code is based on BlackjackDuck's "openGrid - Tile Generator". https://makerworld.com/en/models/1304337-opengrid-tile-generator
 */
 
-include <BOSL2/std.scad>
 
 /*[Main Settings]*/
 vertical_grids = 1;
@@ -32,8 +31,8 @@ hook_tip_corner_fillet = 6;
 truss_vertical_grid = 0;
 truss_thickness = 3;
 truss_rounding = 3;
-//Truss angle is calculated according to truss height and hook length, then capped by truss_max_angle. Print with support if the result angle exceeds 45 degrees.
-truss_max_angle = 45; //[15:5:75]
+//Keeping this value to 45 ensures that the truss can be printed without support.
+truss_max_angle = 45; //[45:5:75]
 
 /*[Advanced Settings]*/
 //Increase this value if you find the snap fit too tight.
@@ -41,12 +40,13 @@ framefit_snap_clearance = 0.1; //0.01
 //3.4mm version can be installed simultaneously on both side of openGrid Standard board (6.8mm thick). Choose 4mm if there is no such need.
 framefit_snap_depth = 4; //[4:"Lite - 4mm", 3.4:"Lite Basic - 3.4mm"]
 hook_side_chamfer = 0.8;
-//What is a hook anyways?
-horizontal_grids = 1;
 
 /*[Hidden]*/
 $fa = 1;
 $fs = 0.2;
+include <BOSL2/std.scad>
+include <lib/opengrid_base.scad>
+
 //0.42 is a common line width for 0.4mm nozzles.
 framesnap_thickness = 0.84; // 0.42
 
@@ -54,7 +54,6 @@ hook_final_back_thickness = max(EPS, hook_back_thickness);
 hook_final_bottom_thickness = max(EPS, hook_bottom_thickness);
 hook_final_side_chamfer = max(EPS, min(hook_final_back_thickness / 2 - EPS, hook_final_bottom_thickness / 2 - EPS, hook_side_chamfer));
 
-OG_TILE_SIZE = 28;
 Tile_Thickness = OG_STANDARD_THICKNESS;
 Outside_Extrusion = 0.8;
 Inside_Grid_Top_Chamfer = 0.4;
@@ -101,7 +100,7 @@ hook_final_tip_angle = max(3, hook_tip_angle - hook_corner_angle);
 hook_final_tip_thickness = max(EPS, min(hook_tip_thickness, hook_final_tip_angle == 90 ? 1000 : ang_adj_to_hyp(hook_final_tip_angle, hook_final_bottom_thickness)), hook_final_tip_angle == 90 ? EPS : ang_hyp_to_adj(hook_final_tip_angle, hook_final_bottom_thickness));
 hook_min_tip_length = hook_final_tip_angle == 90 ? hook_final_bottom_thickness : ang_hyp_to_opp(hook_final_tip_angle, hook_final_bottom_thickness + hook_final_side_chamfer / 2) + EPS;
 hook_final_tip_length = max(EPS, hook_min_tip_length, hook_tip_length);
-hook_final_width = OG_TILE_SIZE * (horizontal_grids - 1) + hook_width;
+hook_final_width = hook_width;
 hook_final_height = OG_TILE_SIZE * vertical_grids;
 hook_final_length = max(EPS, hook_length);
 
@@ -202,7 +201,7 @@ diff() {
                   if (truss_vertical_grid <= 0)
                     attach(BACK, FRONT, align=BOTTOM, spin=90)
                       tag("remove") offset_sweep(rect([hook_final_tip_length, 1]), height=hook_final_width, bottom=os_chamfer(width=-hook_final_side_chamfer), top=os_chamfer(width=-hook_final_side_chamfer));
-                  if (hook_tip_shape == "Rectangular" || horizontal_grids > 1) {
+                  if (hook_tip_shape == "Rectangular") {
                     edge_mask(FRONT + TOP)
                       rounding_edge_mask(r=min(max(EPS, hook_final_tip_fillet / 5), hook_tip_point_fillet, hook_final_side_chamfer, hook_final_tip_length - hook_min_tip_length), ang=95);
                     edge_mask(BACK + TOP)

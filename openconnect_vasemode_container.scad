@@ -7,9 +7,6 @@ openConnect is a connector system designed for openGrid. https://www.printables.
 openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 */
 
-include <lib/opengrid_base.scad>
-use <lib/openconnect_lib.scad>
-
 /* [Main Settings] */
 //Recommended: 150-200% of nozzle size (e.g. 0.6–0.8mm for a 0.4mm nozzle). Higher values may work, feel free to experiment.
 ocvase_linewidth = 0.6;
@@ -48,6 +45,9 @@ surface_texture_depth = 1; //0.2
 /* [Hidden] */
 $fa = 1;
 $fs = 0.4;
+include <lib/opengrid_base.scad>
+use <lib/openconnect_lib.scad>
+
 //BEGIN container parameters
 vase_width = OG_TILE_SIZE * horizontal_grids;
 vase_depth = use_custom_depth ? custom_depth : OG_TILE_SIZE * depth_grids;

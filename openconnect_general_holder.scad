@@ -98,38 +98,42 @@ final_slot_h_grids = max(1, floor(holder_width / OG_TILE_SIZE));
 final_slot_v_grids = max(1, floor(ang_hyp_to_adj(holder_tilt_angle, final_holder_height) / OG_TILE_SIZE));
 
 // xrot(-holder_tilt_angle)
-hide_this()
-  prismoid(size1=[holder_width, holder_added_depth], h=final_holder_height, xang=[90, 90], yang=[90 + holder_tilt_angle, 90]) diff() {
-      //back holder part, a triangle holder_tilt_angle
-      if (holder_tilt_angle > 0)
-        attach(FRONT, TOP, align=BOTTOM, inside=true)
-          tag("") prismoid(size1=[holder_width, 0], h=ang_hyp_to_opp(holder_tilt_angle, final_holder_height), xang=[90, 90], yang=[180 - holder_tilt_angle, 90]) {
-              attach(TOP, TOP, align=BACK, inside=true)
-                tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS);
-            }
-      else
-        attach(FRONT, TOP, align=TOP, inside=true)
-          tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS);
-      //main holder part
-      attach(BOTTOM, "original_top", inside=true)
-        tag("") linear_sweep(region=holder_shape, height=final_holder_height, scale=[1, 1], shift=[0, 0]) {
-            fwd(holder_outer_wall_thickness - slot_wall_thickness - holder_back_offset / 2)
-              grid_copies(spacing=[item_width + holder_width_divider_wall_thickness, item_depth + holder_depth_divider_wall_thickness], n=[item_horizontal_count, item_vertical_count])
-                attach("original_base", "original_base", inside=true, shiftout=EPS)
-                  tag("remove") linear_sweep(region=item_shape, height=item_height, scale=[item_width_scale, item_depth_scale], shift=[0, 0]);
+// hide_this()
+prismoid(size1=[holder_width, holder_added_depth], h=final_holder_height, xang=[90, 90], yang=[90 + holder_tilt_angle, 90], rounding=[5, 5, 0, 0]) diff() {
+    //back holder part, a triangle holder_tilt_angle
+    if (holder_tilt_angle > 0)
+      attach(FRONT, TOP, align=BOTTOM, inside=true)
+        #tag("") prismoid(size1=[holder_width, 0], h=ang_hyp_to_opp(holder_tilt_angle, final_holder_height), xang=[90, 90], yang=[180 - holder_tilt_angle, 90]) {
+            #attach(TOP, TOP, align=BACK, inside=true)
+              tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS);
           }
-      front_cutoff_depth = item_width - final_item_rounding * 2 - holder_front_cutoff_width > 0 ? holder_outer_wall_thickness : holder_outer_wall_thickness + final_item_rounding;
-      if (holder_front_cutoff_width > 0 && holder_front_cutoff_height > 0)
-        tag_diff(tag="remove", remove="rm1")
-          line_copies(spacing=item_width + holder_width_divider_wall_thickness, n=item_horizontal_count)
-            attach(TOP, TOP, align=BACK, inset=-EPS, inside=true)
-              tag("") prismoid(size2=[holder_front_cutoff_width, front_cutoff_depth], h=final_front_cutoff_height, xang=[90, 90], yang=[90 - final_depth_taper, 90]) {
-                  if (front_cutoff_outer_fillet > 0)
-                    fwd(ang_adj_to_opp(final_depth_taper, front_cutoff_outer_fillet) / 2)
-                      tag("") edge_mask(holder_bottom_thickness > 0 || final_front_cutoff_height < item_height ? [TOP + LEFT, TOP + RIGHT] : [TOP + LEFT, TOP + RIGHT, BOTTOM + LEFT, BOTTOM + RIGHT])
-                          rounding_edge_mask(r=front_cutoff_outer_fillet, spin=90, l=$edge_length + ang_adj_to_opp(final_depth_taper, front_cutoff_outer_fillet));
-                  if (front_cutoff_inner_fillet > 0 && (holder_bottom_thickness > 0 || final_front_cutoff_height < item_height))
-                    tag("rm1") edge_mask([BOTTOM + LEFT, BOTTOM + RIGHT])
-                        rounding_edge_mask(r=front_cutoff_inner_fillet);
-                }
+    else
+      #attach(FRONT, TOP, align=TOP, inside=true)
+        tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS);
+    //main holder part
+    // attach(BOTTOM, TOP, inside=true)
+    *diff() {
+      tag("") linear_sweep(region=holder_shape, height=final_holder_height, scale=[1, 1], shift=[0, 0]) {
+          // fwd(holder_outer_wall_thickness - slot_wall_thickness - holder_back_offset / 2)
+        }
+      // grid_copies(spacing=[item_width + holder_width_divider_wall_thickness, item_depth + holder_depth_divider_wall_thickness], n=[item_horizontal_count, item_vertical_count])
+      // fwd(holder_outer_wall_thickness - slot_wall_thickness - holder_back_offset / 2)
+      // up((final_holder_height - item_height) / 2) up(10)
+      // tag("remove") 
+      back(20) #linear_sweep(region=item_shape, height=item_height, scale=[item_width_scale, item_depth_scale], shift=[0, 0]);
     }
+    front_cutoff_depth = item_width - final_item_rounding * 2 - holder_front_cutoff_width > 0 ? holder_outer_wall_thickness : holder_outer_wall_thickness + final_item_rounding;
+    if (holder_front_cutoff_width > 0 && holder_front_cutoff_height > 0)
+      *tag_diff(tag="remove", remove="rm1")
+        line_copies(spacing=item_width + holder_width_divider_wall_thickness, n=item_horizontal_count)
+          attach(TOP, TOP, align=BACK, inset=-EPS, inside=true)
+            tag("") prismoid(size2=[holder_front_cutoff_width, front_cutoff_depth], h=final_front_cutoff_height, xang=[90, 90], yang=[90 - final_depth_taper, 90]) {
+                if (front_cutoff_outer_fillet > 0)
+                  fwd(ang_adj_to_opp(final_depth_taper, front_cutoff_outer_fillet) / 2)
+                    tag("") edge_mask(holder_bottom_thickness > 0 || final_front_cutoff_height < item_height ? [TOP + LEFT, TOP + RIGHT] : [TOP + LEFT, TOP + RIGHT, BOTTOM + LEFT, BOTTOM + RIGHT])
+                        rounding_edge_mask(r=front_cutoff_outer_fillet, spin=90, l=$edge_length + ang_adj_to_opp(final_depth_taper, front_cutoff_outer_fillet));
+                if (front_cutoff_inner_fillet > 0 && (holder_bottom_thickness > 0 || final_front_cutoff_height < item_height))
+                  tag("rm1") edge_mask([BOTTOM + LEFT, BOTTOM + RIGHT])
+                      rounding_edge_mask(r=front_cutoff_inner_fillet);
+              }
+  }

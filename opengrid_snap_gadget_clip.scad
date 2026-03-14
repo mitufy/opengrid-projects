@@ -7,10 +7,6 @@ Recommended to use with openGrid - Self-Expanding Snap. https://www.printables.c
 The openGrid system is created by David D. https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem
 */
 
-include <lib/opengrid_base.scad>
-include <BOSL2/threading.scad>
-use <lib/opengrid_threads_lib.scad>
-
 snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm, 3.4:Lite Basic - 3.4mm]
 //Blunt threads help prevent cross-threading and overtightening. Models with blunt threads have a decorative 'lock' symbol.
 threads_type = "Blunt"; //["Blunt", "Basic"]
@@ -50,34 +46,37 @@ clip_rect_rounding = 3; //1
 tip_angle = 180; //[90:15:270]
 //Side chamfer is automatically clamped to ensure a sufficiently large print surface.
 body_side_chamfer = 0.8; //0.2
+//Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
+thickness_text_mode = "Uncommon"; //[All, Uncommon, None]
 
 /* [Hidden] */
 $fa = 1;
 $fs = 0.4;
+include <lib/opengrid_base.scad>
+include <BOSL2/threading.scad>
+use <lib/opengrid_threads_lib.scad>
 
 threads_offset_angle = clip_orientation == "Horizontal" ? 0 : 90;
 
 _add_blunt_text = threads_type == "Blunt";
 _add_thickness_text = thickness_text_mode == "All" || (thickness_text_mode == "Uncommon" && snap_thickness != OG_LITE_BASIC_THICKNESS && snap_thickness != OG_STANDARD_THICKNESS);
 
-_snaptext_texts = [if (_add_blunt_text) OG_SNAP_BLUNT_TEXT, if (_add_thickness_text) str(floor(snap_thickness))];
-_snaptext_sizes = [if (_add_blunt_text) 4, if (_add_thickness_text) 4.5];
-_snaptext_fonts = [if (_add_blunt_text) OG_SNAP_EMOJI_FONT, if (_add_thickness_text) OG_SNAP_TEXT_FONT];
-_snaptext_fills = [if (_add_blunt_text) true, if (_add_thickness_text) false];
-_snaptext_pos = [if (_add_blunt_text) [_add_thickness_text ? 2.4 : 0, 0], if (_add_thickness_text) [-(_add_blunt_text ? 2.4 : 0), 0]];
+_snaptext_texts = [_add_blunt_text ? OG_SNAP_BLUNT_TEXT : "", _add_thickness_text ? str(floor(snap_thickness)) : ""];
 
 text_depth = 0.4;
-_text_cfg = text_cfg(texts=_snaptext_texts, sizes=_snaptext_sizes, fonts=_snaptext_fonts, fills=_snaptext_fills, pos_offsets=_snaptext_pos, text_depth=text_depth);
+_text_cfg = text_cfg(
+  texts=_snaptext_texts,
+  pos_offsets=(_add_blunt_text && _add_thickness_text) ? OG_GADGET_TEXT_POSITIONS : [[0, 0], [0, 0]]
+);
 
 _threads_cfg = threads_cfg(
   threads_type=threads_type,
   threads_offset_angle=threads_offset_angle
 );
-_threads_side_offset = struct_val(_threads_cfg, "threads_diameter") / 2 - 1.4;
-
-symmetric_clip_height = 13.2;
+_threads_side_offset = struct_val(_threads_cfg, "threads_diameter") / 2 - OG_SNAP_THREADS_SIDE_OFFSET;
+symmetric_clip_height = struct_val(_threads_cfg, "threads_diameter") - OG_SNAP_THREADS_SIDE_OFFSET * 2;
 final_tip_diameter = max(EPS, clip_thickness * clip_thickness_scale + 1, tip_diameter);
-final_side_chamfer = max(0, min(clip_thickness / 2 * clip_thickness_scale - 0.84, clip_height / 2 - 0.84, body_side_chamfer));
+final_side_chamfer = max(0, min(clip_thickness / 2 * clip_thickness_scale - OG_MIN_WALL_WIDTH, clip_height / 2 - OG_MIN_WALL_WIDTH, body_side_chamfer));
 
 tip_path = ["arcleft", final_tip_diameter / 2, tip_angle];
 circular_clip_path = ["arcright", clip_main_width / 2 + clip_thickness / 2, clip_surround_angle];

@@ -8,8 +8,6 @@ openConnect is a connector system designed for openGrid. https://www.printables.
 openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 */
 
-include <lib/opengrid_base.scad>
-use <lib/openconnect_lib.scad>
 
 /* [Item Settings] */
 //Dimensions of the item to be held. You can set values slightly higher for more wriggle room.
@@ -58,6 +56,8 @@ slot_edge_bridge_min_width = 0.8; //0.01
 slot_edge_wall_min_width = 0.6; //0.01
 
 /* [Hidden] */
+include <lib/opengrid_base.scad>
+use <lib/openconnect_lib.scad>
 $fa = 1;
 $fs = 0.4;
 //A slot is generated for every tile by default.

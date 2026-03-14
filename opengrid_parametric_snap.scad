@@ -9,11 +9,6 @@ and Jan's work here: https://github.com/jp-embedded/opengrid
 The openGrid system is created by David D. https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem
 */
 
-include <lib/opengrid_base.scad>
-include <lib/openconnect_lib.scad>
-include <lib/opengrid_snap_lib.scad>
-include <lib/opengrid_threads_lib.scad>
-
 snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm, 3.4:Lite Basic - 3.4mm]
 //Directional for vertical wall-mounted boards. Symmetric for horizontal boards, often used with Underware.
 snap_body_shape = "Directional"; //["Directional","Symmetric"]
@@ -111,8 +106,6 @@ spring_face_chamfer = 0.2;
 //The part at the bottom that completely expands to target width. It's not recommended to set this lower than threads_bottom_bevel.
 expand_end_height_standard = 2; //0.1
 expand_end_height_lite = 1.2; //0.1
-//this value dictates how much the width of each layer of threads differs from the last. Setting it lower makes the threads smoother and takes longer to generate. For 3d printing, 0.05 should be more than sufficient.
-expansion_distance_step = 0.05;
 
 /* [Text Settings] */
 //Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
@@ -145,7 +138,7 @@ mchead_bottom_height = 1;
 connector_coin_slot_height = 2.6;
 connector_coin_slot_width = 13;
 connector_coin_slot_thickness = 2.2;
-connector_flat_slot_height = 4.4;
+connector_flat_slot_height = 5;
 connector_flat_slot_width = 6.5;
 connector_flat_slot_height_offset = 0.7;
 connector_flat_slot_start_thickness = 1.8;
@@ -176,6 +169,10 @@ disable_snap_expanding_springs = false;
 /* [Hidden] */
 $fa = 1;
 $fs = 0.4;
+include <lib/opengrid_base.scad>
+use <lib/openconnect_lib.scad>
+use <lib/opengrid_snap_lib.scad>
+use <lib/opengrid_threads_lib.scad>
 
 // ── Derived per-thickness values ─────────────────────────────────────────────
 _snap_thickness = override_snap_thickness ? custom_snap_thickness : snap_thickness;
@@ -236,16 +233,16 @@ _snapnotch_cfg = snap_notch_cfg(
   notch_gap_height_standard=uninstall_notch_gap_height_standard,
   notch_gap_height_lite=uninstall_notch_gap_height_lite
 );
-_add_blunt_text = threads_type == "Blunt";
-_add_thickness_text = thickness_text_mode == "All" || (thickness_text_mode == "Uncommon" && snap_thickness != OG_LITE_BASIC_THICKNESS && snap_thickness != OG_STANDARD_THICKNESS);
+_add_blunt_text = threads_type == "Blunt" && (generate_snap == "Self-Expanding Threads" || generate_snap == "Basic Threads");
+_add_thickness_text = thickness_text_mode == "All" || (thickness_text_mode == "Uncommon" && _snap_thickness != OG_LITE_BASIC_THICKNESS && _snap_thickness != OG_STANDARD_THICKNESS);
 _add_arrow = snap_body_shape == "Directional";
 
 _snaptext_texts = [
   if (_add_blunt_text) OG_SNAP_BLUNT_TEXT,
-  if (_add_thickness_text) str(floor(snap_thickness)),
+  if (_add_thickness_text) str(floor(_snap_thickness)),
   if (_add_arrow) OG_SNAP_DIRECTIONAL_ARROW_TEXT,
 ];
-echo(_snaptext_texts);
+
 _snaptext_sizes = [
   if (_add_blunt_text) 4,
   if (_add_thickness_text) 4,
@@ -266,23 +263,21 @@ _snaptext_body_pos = [
   if (_add_thickness_text) [-(snap_width / 2 - 4.2), -(snap_height / 2 - 6)],
   if (_add_arrow) [0, snap_height / 2 - 2.6],
 ];
-_snaptext_screw_pos = [
-  if (_add_blunt_text) [_add_thickness_text ? 2.4 : 0, 0],
-  if (_add_thickness_text) [-(_add_blunt_text ? 2.4 : 0), 0],
-];
 
 _snapbody_text_cfg = text_cfg(
-  texts=_snaptext_texts, sizes=_snaptext_sizes, fonts=_snaptext_fonts, fills=_snaptext_fills,
-  pos_offsets=_snaptext_body_pos, text_depth=text_depth
+  texts=_snaptext_texts,
+  sizes=_snaptext_sizes,
+  fonts=_snaptext_fonts,
+  fills=_snaptext_fills,
+  pos_offsets=_snaptext_body_pos,
+  add_expand_distance_text=add_snap_expansion_distance_text
 );
+_screw_add_blunt_text = threads_type == "Blunt";
 _screw_text_cfg = text_cfg(
-  texts=[if (_add_blunt_text) OG_SNAP_BLUNT_TEXT, if (_add_thickness_text) str(floor(snap_thickness))],
-  sizes=[for (s = _snaptext_sizes) _add_blunt_text && s == 4 ? 4 : 4.5],
-  fonts=[if (_add_blunt_text) OG_SNAP_EMOJI_FONT, if (_add_thickness_text) OG_SNAP_TEXT_FONT],
-  fills=[if (_add_blunt_text) true, if (_add_thickness_text) false],
-  pos_offsets=_snaptext_screw_pos, text_depth=text_depth
+  texts=[if (_screw_add_blunt_text) OG_SNAP_BLUNT_TEXT, if (_add_thickness_text) str(floor(_snap_thickness))],
+  pos_offsets=(_screw_add_blunt_text && _add_thickness_text) ? OG_GADGET_TEXT_POSITIONS : [[0, 0]]
 );
-_espring_cfg = espring_cfg(
+_espring_cfg = snap_spring_cfg(
   spring_thickness=spring_thickness,
   spring_to_center_thickness=spring_to_center_thickness,
   spring_gap=spring_gap,
@@ -298,7 +293,7 @@ _threads_cfg = threads_cfg(
   threads_bottom_bevel_lite=threads_bottom_bevel_lite,
   threads_offset_angle=threads_offset_angle
 );
-_expand_cfg = expand_cfg(
+_expand_cfg = snap_expand_cfg(
   expand_distance_standard=expand_distance_standard,
   expand_distance_lite=expand_distance_lite,
   expand_entry_height_standard=expand_entry_height_standard,
@@ -306,7 +301,7 @@ _expand_cfg = expand_cfg(
   expand_entry_height_blunt=expand_entry_height_blunt,
   expand_end_height_standard=expand_end_height_standard,
   expand_end_height_lite=expand_end_height_lite,
-  fold_angle=expand_split_angle
+  expand_split_angle=expand_split_angle
 );
 _connectorslot_cfg = connector_slot_cfg(
   coin_slot_height=connector_coin_slot_height,
@@ -331,6 +326,8 @@ _ochead_cfg = ochead_cfg(
   nub_fillet=ochead_nub_fillet,
   back_pos_offset=ochead_back_pos_offset
 );
+_ochead_total_height = struct_val(_ochead_cfg, "total_height");
+_ochead_middle_to_bottom = struct_val(_ochead_cfg, "middle_to_bottom");
 
 // ── Modules ───────────────────────────────────────────────────────────────────
 module multiconnect_screw(connectorslot_cfg = [], text_cfg = [], threads_cfg = []) {
@@ -359,48 +356,6 @@ module multiconnect_head(connectorslot_cfg = [], top_pattern = "coin_slot", anch
     children();
   }
 }
-module expanding_snap(
-  snapbody_cfg = [],
-  snapcorner_cfg = [],
-  snapnub_cfg = [],
-  snapcut_cfg = [],
-  snapnotch_cfg = [],
-  text_cfg = [],
-  espring_cfg = [],
-  expand_cfg = []
-) {
-  _snap_body_shape = struct_val(snapbody_cfg, "snap_body_shape", "Directional");
-  _snap_thickness = struct_val(snapbody_cfg, "snap_thickness", OG_STANDARD_THICKNESS);
-  expand_cut_cfg = struct_set(snapcut_cfg, ["disable_all_side_cut", true, "disable_all_bottom_cut", true]);
-  _expand_cfg = struct_merge(expand_cfg(), expand_cfg);
-  _expand_distance = _snap_thickness >= OG_STANDARD_THICKNESS ? struct_val(_expand_cfg, "expand_distance_standard") : struct_val(_expand_cfg, "expand_distance_lite");
-  expand_text_cfg = struct_set(
-    text_cfg, [
-      "add_custom_text",
-      add_snap_expansion_distance_text,
-      "custom_text",
-      str(_expand_distance),
-      "custom_text_size",
-      3.2,
-    ]
-  );
-  tag_scope() diff() {
-      up(_snap_thickness) yrot(180)
-          base_snap(
-            snapbody_cfg=snapbody_cfg, snapcorner_cfg=snapcorner_cfg, snapnub_cfg=snapnub_cfg,
-            snapcut_cfg=expand_cut_cfg, snapnotch_cfg=snapnotch_cfg, text_cfg=expand_text_cfg
-          );
-      up(reverse_threads_entryside ? _snap_thickness + EPS / 2 : 0) yrot(reverse_threads_entryside ? 180 : 0)
-          down(EPS / 2) tag("remove") expanding_threads(
-                threads_height=_snap_thickness,
-                expand_cfg=expand_cfg
-              );
-      zrot(expand_split_angle)
-        tag("remove") expanding_spring(
-            snapbody_cfg, espring_cfg, snapcorner_cfg, snapcut_cfg
-          );
-    }
-}
 module opengrid_snap(
   snapbody_cfg = [],
   snapcorner_cfg = [],
@@ -408,17 +363,17 @@ module opengrid_snap(
   snapcut_cfg = [],
   snapnotch_cfg = [],
   text_cfg = [],
-  espring_cfg = [],
+  spring_cfg = [],
   expand_cfg = [],
   threads_cfg = []
 ) {
-  _snap_thickness = struct_val(snapbody_cfg, "snap_thickness", OG_STANDARD_THICKNESS);
-  tag_scope() conditional_fold(body_thickness=_snap_thickness + OCHEAD_TOTAL_HEIGHT, fold_position=OCHEAD_MIDDLE_TO_BOTTOM + EPS, condition=generate_snap == "openConnect (Folded)") {
+  _snap_thickness = struct_val(snapbody_cfg, "snap_thickness");
+  conditional_fold(body_thickness=_snap_thickness + _ochead_total_height, fold_position=_ochead_middle_to_bottom + EPS, condition=generate_snap == "openConnect (Folded)") tag_scope() {
       if (generate_snap == "Self-Expanding Threads")
         expanding_snap(
           snapbody_cfg=snapbody_cfg, snapcorner_cfg=snapcorner_cfg, snapnub_cfg=snapnub_cfg,
           snapcut_cfg=snapcut_cfg, snapnotch_cfg=snapnotch_cfg, text_cfg=text_cfg,
-          espring_cfg=espring_cfg, expand_cfg=expand_cfg
+          spring_cfg=spring_cfg, expand_cfg=expand_cfg, threads_cfg=threads_cfg
         );
       else {
         disable_features = concat(
@@ -434,11 +389,12 @@ module opengrid_snap(
           ) {
             left(snap_center_position_offset[0]) back(snap_center_position_offset[1]) {
                 if (generate_snap == "Basic Threads" && !disable_snap_threads)
-                  attach(TOP, BOTTOM, inside=true, shiftout=EPS / 2)
-                    snap_threads(threads_height=_snap_thickness + EPS, text_cfg=text_cfg, threads_cfg=threads_cfg);
+                  up(reverse_threads_entryside ? _snap_thickness : 0) yrot(reverse_threads_entryside ? 180 : 0)
+                      attach(TOP, BOTTOM, inside=true, shiftout=EPS / 2)
+                        snap_threads(threads_height=_snap_thickness + EPS, text_cfg=text_cfg, threads_cfg=threads_cfg);
                 if (generate_snap == "openConnect" || generate_snap == "openConnect (Folded)")
                   attach(TOP, TOP)
-                    openconnect_head(add_nubs="Both");
+                    openconnect_head(add_nubs="Both", head_cfg=_ochead_cfg);
                 if (generate_snap == "multiConnect")
                   attach(TOP, TOP)
                     multiconnect_head(top_pattern="dimple");
@@ -459,7 +415,7 @@ conditional_half(v=half_of_anchor, condition=!is_undef(half_of_anchor)) {
       opengrid_snap(
         snapbody_cfg=_snapbody_cfg,
         snapcorner_cfg=_snapcorner_cfg, snapnub_cfg=_snapnub_cfg, snapcut_cfg=_snapcut_cfg,
-        snapnotch_cfg=_snapnotch_cfg, text_cfg=_snapbody_text_cfg, espring_cfg=_espring_cfg,
+        snapnotch_cfg=_snapnotch_cfg, text_cfg=_snapbody_text_cfg, spring_cfg=_espring_cfg,
         expand_cfg=_expand_cfg, threads_cfg=_threads_cfg
       );
   if (generate_screw == "multiConnect")

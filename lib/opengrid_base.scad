@@ -1,7 +1,5 @@
 include <BOSL2/std.scad>
 
-// ── Constants ────────────────────────────────────────────────────────────────
-
 EPS = 0.005;
 OG_TILE_SIZE = 28;
 OG_STANDARD_THICKNESS = 6.8;
@@ -28,6 +26,19 @@ OG_SNAP_THREADS_CLEARANCE = 0.5;
 OG_SNAP_THREADS_COMPATIBILITY_ANGLE = 53.5;
 
 OG_SNAP_THREADS_PITCH = 3;
+OG_SNAP_THREADS_SIDE_OFFSET = 1.4;
+OG_THREADS_CONNECT_OFFSET = 1.5;
+OG_MIN_WALL_WIDTH = 0.8;
+
+OG_SNAP_TEXT_SIZE = 4;
+OG_GADGET_TEXT_SIZES = [OG_SNAP_TEXT_SIZE, OG_SNAP_TEXT_SIZE];
+OG_GADGET_TEXT_FONTS = [OG_SNAP_EMOJI_FONT, OG_SNAP_TEXT_FONT];
+OG_GADGET_TEXT_FILLS = [true, false];
+OG_GADGET_TEXT_POSITIONS = [[2.4, 0], [-2.4, 0]];
+
+OG_SNAP_TEXT_SIZES = [OG_SNAP_TEXT_SIZE, OG_SNAP_TEXT_SIZE, 3.6];
+OG_SNAP_TEXT_FONTS = [OG_SNAP_EMOJI_FONT, OG_SNAP_TEXT_FONT, OG_SNAP_EMOJI_FONT];
+OG_SNAP_TEXT_FILLS = [true, false, true];
 
 OCHEAD_BOTTOM_HEIGHT = 0.6;
 OCHEAD_TOP_HEIGHT = 0.6;
@@ -42,14 +53,8 @@ OCHEAD_NUB_TIP_HEIGHT = 1.2;
 OCHEAD_NUB_FILLET = 0.8;
 
 OCHEAD_BACK_POS_OFFSET = 0.4;
-OCHEAD_SMALL_RECT_WIDTH = OCHEAD_LARGE_RECT_WIDTH - OCHEAD_MIDDLE_HEIGHT * 2;
-OCHEAD_SMALL_RECT_HEIGHT = OCHEAD_LARGE_RECT_HEIGHT - OCHEAD_MIDDLE_HEIGHT;
-OCHEAD_SMALL_RECT_CHAMFER = OCHEAD_LARGE_RECT_CHAMFER - OCHEAD_MIDDLE_HEIGHT + ang_adj_to_opp(45 / 2, OCHEAD_MIDDLE_HEIGHT);
 OCHEAD_TOTAL_HEIGHT = OCHEAD_TOP_HEIGHT + OCHEAD_MIDDLE_HEIGHT + OCHEAD_BOTTOM_HEIGHT;
 OCHEAD_MIDDLE_TO_BOTTOM = OCHEAD_LARGE_RECT_HEIGHT - OCHEAD_LARGE_RECT_WIDTH / 2 - OCHEAD_BACK_POS_OFFSET;
-
-OCHEAD_BOTTOM_PROFILE = back(OCHEAD_LARGE_RECT_WIDTH / 2 + OCHEAD_BACK_POS_OFFSET, rect([OCHEAD_LARGE_RECT_WIDTH, OCHEAD_LARGE_RECT_HEIGHT], chamfer=[OCHEAD_LARGE_RECT_CHAMFER, OCHEAD_LARGE_RECT_CHAMFER, 0, 0], anchor=BACK));
-OCHEAD_TOP_PROFILE = back(OCHEAD_SMALL_RECT_WIDTH / 2 + OCHEAD_BACK_POS_OFFSET, rect([OCHEAD_SMALL_RECT_WIDTH, OCHEAD_SMALL_RECT_HEIGHT], chamfer=[OCHEAD_SMALL_RECT_CHAMFER, OCHEAD_SMALL_RECT_CHAMFER, 0, 0], anchor=BACK));
 
 OCSLOT_MOVE_DISTANCE = 10.6;
 OCSLOT_ONRAMP_CLEARANCE = 0.8;
@@ -65,11 +70,12 @@ function struct_merge(struct_a, struct_b) =
 
 function text_cfg(
   texts = [],
-  sizes = [],
-  fonts = [],
-  fills = [],
-  pos_offsets = [],
-  text_depth = 0.4
+  sizes = OG_GADGET_TEXT_SIZES,
+  fonts = OG_GADGET_TEXT_FONTS,
+  fills = OG_GADGET_TEXT_FILLS,
+  pos_offsets = [[0, 0]],
+  text_depth = 0.4,
+  add_expand_distance_text = false
 ) =
   struct_set(
     [], [
@@ -85,6 +91,8 @@ function text_cfg(
       pos_offsets,
       "text_depth",
       text_depth,
+      "add_expand_distance_text",
+      add_expand_distance_text,
     ]
   );
 
@@ -95,27 +103,33 @@ module snap_text(
   spin = 0,
   orient = UP
 ) {
-  _texts = struct_val(text_cfg, "texts", []);
-  _sizes = struct_val(text_cfg, "sizes", []);
-  _fonts = struct_val(text_cfg, "fonts", []);
-  _fills = struct_val(text_cfg, "fills", []);
-  _offsets = struct_val(text_cfg, "pos_offsets", []);
-  _depth = struct_val(text_cfg, "text_depth", 0.4);
+  _cfg = struct_merge(text_cfg(), text_cfg);
+  _texts = struct_val(_cfg, "texts");
+  _sizes = struct_val(_cfg, "sizes");
+  _fonts = struct_val(_cfg, "fonts");
+  _fills = struct_val(_cfg, "fills");
+  _offsets = struct_val(_cfg, "pos_offsets");
+  _depth = struct_val(_cfg, "text_depth");
 
-  attachable(anchor, spin, orient, size=[1, 1, _depth]) {
-    tag_scope() down(_depth / 2)for (i = [0:(len(_texts) == 0 ? -1 : len(_texts) - 1)]) {
-        _size = len(_sizes) > i ? _sizes[i] : (len(_sizes) > 0 ? _sizes[0] : 4);
-        _font = len(_fonts) > i ? _fonts[i] : (len(_fonts) > 0 ? _fonts[0] : OG_SNAP_TEXT_FONT);
-        _fill = len(_fills) > i ? _fills[i] : (len(_fills) > 0 ? _fills[0] : false);
-        _offset = len(_offsets) > i ? _offsets[i] : (len(_offsets) > 0 ? _offsets[0] : [0, 0]);
-        right(_offset[0]) back(_offset[1])
-            linear_extrude(height=_depth + EPS) if (_fill)
-              fill() text(_texts[i], size=_size, anchor=str("center", CENTER), font=_font);
-            else
-              text(_texts[i], size=_size, anchor=str("center", CENTER), font=_font);
-      }
-    children();
-  }
+  _text_count = len(_texts);
+  if (_text_count > 0)
+    attachable(anchor, spin, orient, size=[1, 1, _depth]) {
+      tag_scope() down(_depth / 2)for (i = [0:_text_count - 1]) {
+          if (_texts[i] != "") {
+            _size = len(_sizes) > i ? _sizes[i] : _sizes[0];
+            _font = len(_fonts) > i ? _fonts[i] : _fonts[0];
+            _fill = len(_fills) > i ? _fills[i] : _fills[0];
+
+            _offset = len(_offsets) > i ? _offsets[i] : _offsets[0];
+            right(_offset[0]) back(_offset[1])
+                linear_extrude(height=_depth + EPS) if (_fill)
+                  fill() text(_texts[i], size=_size, anchor=str("center", CENTER), font=_font);
+                else
+                  text(_texts[i], size=_size, anchor=str("center", CENTER), font=_font);
+          }
+        }
+      children();
+    }
 }
 
 // ── Utility Functions & Modules ──────────────────────────────────────────────

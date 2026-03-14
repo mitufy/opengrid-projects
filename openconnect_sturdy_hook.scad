@@ -7,9 +7,6 @@ openConnect is a connector system designed for openGrid. https://www.printables.
 openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 */
 
-include <lib/opengrid_base.scad>
-use <lib/openconnect_lib.scad>
-
 /* [Main Settings] */
 //Default height is vertical_grids × 28mm, which aligns with openGrid tiles. You can override it by enabling "use_custom_height" below.
 vertical_grids = 1;
@@ -27,6 +24,8 @@ hook_tip_radius = 16;
 hook_thickness_scale = 0.8; //[0.5:0.1:1]
 //Angle of the tip of the hook. Set this value to 90 and increase flat_length to generate a flat hook.
 hook_tip_angle = 165; //[90:15:210]
+
+
 
 /* [Slot Settings] */
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
@@ -51,6 +50,12 @@ hook_side_rounding = 2.4; //0.2
 /* [Hidden] */
 $fa = 1;
 $fs = 0.4;
+include <lib/opengrid_base.scad>
+use <lib/openconnect_lib.scad>
+// /* [Truss Settings] */
+truss_vertical_grids = 0;
+truss_rounding = 1;
+truss_thickness = 5;
 //Double Lock is intended for small models that only use one or two slots.
 slot_lock_side = "Left"; //[Left:Standard, Both:Double]
 slot_edge_feature_widen = "Side"; //[Both, Top, Side, None]
@@ -93,18 +98,35 @@ offset_sweep_profile = scale([hook_thickness_scale, 1, 1], final_sweep_profile);
 diff(remove="rm0")
   diff(remove="rm1", keep="kp1 rm0") {
     cuboid([hook_thickness, hook_stem_height, hook_width], anchor=BACK + BOTTOM, rounding=final_side_chamfer, edges=[BACK + RIGHT], $fn=128) {
-      tag("rm1") edge_profile([TOP + RIGHT, BOTTOM + RIGHT, BACK + TOP, BACK + BOTTOM])
+      tag("rm1") edge_profile([TOP + RIGHT, BOTTOM + RIGHT, BACK + TOP, BACK + BOTTOM], excess=0)
           mask2d_teardrop(r=final_side_chamfer, $fn=64);
       tag("rm1") corner_profile([BACK + TOP + RIGHT, BACK + BOTTOM + RIGHT], r=final_side_chamfer)
           mask2d_teardrop(r=final_side_chamfer, $fn=128);
       tag_diff(remove="rm2", tag="kp1") {
-        attach(FRONT, FRONT, align=LEFT, inside=true)
+        attach(FRONT, FRONT, align=LEFT, inside=true, shiftout=0)
           tag("") cuboid([final_hook_corner_radius + hook_thickness / 2, final_hook_corner_radius + hook_thickness / 2, hook_width], chamfer=final_side_chamfer, edges=[LEFT + TOP, LEFT + BOTTOM])
               back(final_hook_corner_radius / 2) right(final_hook_corner_radius / 2)
                   tag("rm2") zcyl(r=final_hook_corner_radius, h=hook_width + EPS * 2);
       }
       attach(LEFT, TOP, align=hook_slot_alignment, inside=true, spin=90)
         tag("rm0") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=horizontal_grids, vertical_grids=vertical_grids, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=EPS);
+      //truss begin
+      truss_height = truss_vertical_grids * OG_TILE_SIZE;
+      truss_depth = final_hook_corner_radius + hook_flat_length - hook_thickness / 2;
+      truss_angle = adj_opp_to_ang(truss_depth, truss_height);
+      truss_final_thickness = max(EPS, min(truss_depth / 2 - EPS, truss_thickness));
+      truss_inner_depth = max(0, truss_depth - ang_adj_to_hyp(truss_angle, truss_final_thickness));
+      truss_inner_height = max(0, (truss_height - ang_adj_to_hyp(truss_angle, truss_final_thickness)));
+
+      truss_height_offset = (1 - hook_thickness_scale) / 2 * hook_thickness;
+      trap_large = trapezoid(w1=truss_height + truss_height_offset, w2=EPS, h=truss_depth + truss_height_offset, shift=-(truss_height + truss_height_offset - EPS) / 2, anchor=FRONT + LEFT);
+      trap_small = truss_inner_depth <= 0 || truss_inner_height <= 0 ? undef : trapezoid(w1=truss_inner_height + truss_height_offset, w2=EPS, h=truss_inner_depth + truss_height_offset, shift=-(truss_inner_height + truss_height_offset - EPS) / 2, anchor=FRONT + LEFT);
+      truss_profile_trap = is_undef(trap_small) ? zrot(-90, trap_large) : zrot(-90, difference(trap_large, round_corners(joint=min(truss_rounding, truss_inner_depth / 2 - EPS, truss_inner_height / 2 - EPS), path=remove_eps_points(trap_small))));
+      attach(FRONT, BACK)
+        cuboid([hook_thickness, truss_height, hook_width])
+          back(truss_height_offset) down(hook_width / 2) position(RIGHT + BACK)
+                linear_sweep(region=truss_profile_trap, height=hook_width);
+      //truss end
     }
     tag("kp1") up(hook_width / 2) fwd(stem_first_height - hook_thickness / 2 * (1 - ( (1 - hook_thickness_scale) * path_first_ratio))) {
           path_sweep(final_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[hook_thickness_scale, 1])
@@ -113,3 +135,4 @@ diff(remove="rm0")
         }
   }
 //END generation
+function remove_eps_points(points) = [for (i = points) if (!(abs(i[0]) != 0 && abs(i[0]) <= EPS) && !(abs(i[1]) != 0 && abs(i[1]) <= EPS)) i];

@@ -8,9 +8,6 @@ openGrid is created by David D: https://www.printables.com/model/1214361-opengri
 Inspired by David's multiConnect: https://www.printables.com/model/1008622-multiconnect-for-multiboard-v2-modeling-files.
 */
 
-include <lib/opengrid_base.scad>
-use <lib/openconnect_lib.scad>
-
 /* [Plate Settings] */
 plate_size_unit = "mm"; //[grid:Grid Count, mm:Millimeter]
 //Depending on the plate_size_unit selected, you can input number either in grids or in millimeters.
@@ -43,10 +40,12 @@ slot_edge_feature_widen = "Both"; //[Both, Top, Side, None]
 slot_edge_bridge_min_width = 0.8; //0.01
 //Minimum width for walls under slot_edge_feature_widen. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
 slot_edge_wall_min_width = 0.6; //0.01
-
 /* [Hidden] */
 $fa = 1;
 $fs = 0.4;
+include <lib/opengrid_base.scad>
+use <lib/openconnect_lib.scad>
+
 slot_cfg = ocslot_cfg(
   edge_feature=slot_edge_feature_widen,
   edge_bridge_min_w=slot_edge_bridge_min_width,

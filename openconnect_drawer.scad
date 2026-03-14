@@ -7,10 +7,6 @@ openConnect is a connector system designed for openGrid. https://www.printables.
 openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 */
 
-include <lib/opengrid_base.scad>
-include <BOSL2/walls.scad>
-use <lib/openconnect_lib.scad>
-
 generate_drawer_shell = true;
 generate_drawer_container = true;
 generate_drawer_stopper_clips = false;
@@ -38,7 +34,7 @@ container_side_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
 container_solidwall_thickness = 1.6;
 container_honeycombwall_thickness = 2;
 //How much lower the back and side walls are compared to the front. "stopper_clips_length" needs to be larger than this value to work.
-container_front_back_height_diff = 3;
+container_front_back_height_offset = 3;
 container_inner_fillet = 2;
 
 /*[Shell Divider]*/
@@ -55,7 +51,7 @@ shell_width_compartment_list = "3,3";
 add_container_divider = "None"; //["None","Width","Depth","Both"]
 container_divider_wall_thickness = 1.2;
 //Difference between the height of divider walls and side walls. Increase this value to make the dividers shorter.
-container_divider_wall_height_diff = 0;
+container_divider_wall_height_offset = 0;
 //Container compartment's unit size is its inner space divided by grid_count.
 container_width_grid_count = 3;
 //Compartment sizes separated by commas.
@@ -123,6 +119,9 @@ shell_to_slot_wall_thickness = 0.9;
 honeycomb_strut_hyp = 5;
 
 /*[Hidden]*/
+include <BOSL2/walls.scad>
+include <lib/opengrid_base.scad>
+use <lib/openconnect_lib.scad>
 $fa = 1;
 $fs = 0.4;
 function calc_inner_chamfer(outer_chamfer, wall_thickness) = (outer_chamfer / sqrt(2) + wall_thickness - wall_thickness * sqrt(2)) * sqrt(2);
@@ -199,9 +198,9 @@ container_front_wall_thickness = container_front_wall_type == "Solid" ? containe
 container_bottom_wall_thickness = container_bottom_wall_type == "Solid" ? container_solidwall_thickness : container_honeycombwall_thickness;
 container_side_wall_thickness = container_side_wall_type == "Solid" ? container_solidwall_thickness : container_honeycombwall_thickness;
 container_back_wall_thickness = container_back_wall_type == "Solid" ? container_solidwall_thickness : container_honeycombwall_thickness;
-container_back_wall_height = container_height - container_front_back_height_diff;
+container_back_wall_height = container_height - container_front_back_height_offset;
 container_side_wall_height = container_back_wall_height - container_outer_chamfer;
-container_divider_wall_height = container_side_wall_height - container_divider_wall_height_diff;
+container_divider_wall_height = container_side_wall_height - container_divider_wall_height_offset;
 
 //hexwall parameters
 honeycomb_unit_space_adj = 14;
@@ -251,6 +250,35 @@ side_magnet_fill_width = 10.8;
 shell_side_magnet_hole_thickness = shell_side_magnet_thickness + magnet_hole_depth_clearance;
 container_side_magnet_hole_thickness = container_side_magnet_thickness + magnet_hole_depth_clearance;
 side_magnet_hole_diameter = side_magnet_diameter + magnet_hole_side_clearance * 2;
+
+
+//BEGIN generation
+half_of_anchor =
+  view_cross_section == "Right" ? RIGHT
+  : view_cross_section == "Back" ? BACK
+  : view_cross_section == "Diagonal" ? RIGHT + BACK
+  : 0;
+
+conditional_half(v=half_of_anchor, condition=half_of_anchor != 0) {
+  if (generate_drawer_shell)
+    down(view_drawer_overlapped ? shell_ocslot_part_thickness : 0)
+      back(shell_slot_position == "Top" ? (shell_ocslot_part_thickness - shell_thickness) / 2 : shell_slot_position == "Bottom" ? -(shell_ocslot_part_thickness - shell_thickness) / 2 : 0)
+        left(shell_slot_position == "Left" ? (shell_ocslot_part_thickness - shell_thickness) / 2 : shell_slot_position == "Right" ? -(shell_ocslot_part_thickness - shell_thickness) / 2 : 0)
+          drawer_shell();
+  if (generate_drawer_container && !(generate_drawer_shell && add_shell_divider != "None"))
+    fwd(view_drawer_overlapped || !generate_drawer_shell ? 0 : vertical_grids * OG_TILE_SIZE / 2 + 10)
+      up(view_drawer_overlapped ? container_depth_clearance : container_height / 2)
+        xrot(view_drawer_overlapped ? 0 : 90)
+          drawer_container();
+  if (generate_drawer_stopper_clips)
+    right(generate_drawer_shell ? horizontal_grids * OG_TILE_SIZE / 2 + 10 : 0) up((stopper_height - stopper_height_clearance * 2) / 2)
+        xrot(-90) {
+          drawer_stopper(hole_excess=shell_thickness);
+          right(OG_TILE_SIZE)
+            drawer_stopper();
+        }
+}
+//END generation
 
 module drawer_shell() {
   difference() {
@@ -427,7 +455,7 @@ module drawer_container() {
               hole_extrude_thickness = container_side_magnet_hole_thickness - container_side_wall_thickness + 0.45 + EPS;
               if (container_side_wall_type == "Honeycomb")
                 attach(LEFT + FRONT, LEFT + FRONT, align=BOTTOM, inside=true)
-                  tag("keep") cuboid([container_side_wall_thickness, container_height - container_front_back_height_diff - container_outer_chamfer, shell_front_hex_offset + honeycomb_unit_space_hyp / 2]);
+                  tag("keep") cuboid([container_side_wall_thickness, container_height - container_front_back_height_offset - container_outer_chamfer, shell_front_hex_offset + honeycomb_unit_space_hyp / 2]);
               ycopies(OG_TILE_SIZE, vertical_grids) {
                 attach(LEFT, FRONT, align=BOTTOM, inset=side_magnet_container_edge_distance, inside=true, spin=90)
                   tag("rm_outer") teardrop(h=container_side_magnet_hole_thickness, d=side_magnet_hole_diameter, cap_h=side_magnet_hole_diameter / 2 + 0.2);
@@ -441,7 +469,7 @@ module drawer_container() {
             if (back_hc)
               line_copies(back_magnet_grid_space[0], back_magnet_grid_count[0])
                 attach(BOTTOM + FRONT, BOTTOM + FRONT, inside=true)
-                  tag("keep") cuboid([back_magnet_hole_diameter + 4.2, container_height - container_front_back_height_diff, container_back_wall_thickness]);
+                  tag("keep") cuboid([back_magnet_hole_diameter + 4.2, container_height - container_front_back_height_offset, container_back_wall_thickness]);
             fwd((vertical_grids - 1) / 2 * OG_TILE_SIZE - back_magnet_ocslot_offset)
               line_copies(back_magnet_grid_space[0], back_magnet_grid_count[0]) {
                 attach(BOTTOM, FRONT, inside=true)
@@ -488,7 +516,7 @@ module drawer_divider(is_shell, by_width) {
   solidwall_y =
     by_width && is_shell ? shell_height
     : !by_width && is_shell ? divider_wall_thickness
-    : min((container_height - container_front_back_height_diff - container_outer_chamfer), container_divider_wall_height + container_bottom_wall_thickness);
+    : min((container_height - container_front_back_height_offset - container_outer_chamfer), container_divider_wall_height + container_bottom_wall_thickness);
   solidwall_z =
     by_width && !is_shell ? container_depth
     : !by_width && !is_shell ? divider_wall_thickness
@@ -724,45 +752,3 @@ module drawer_stopper(hole = false, hole_excess = 0, anchor = TOP, orient = UP, 
           }
     }
 }
-
-//BEGIN generation
-// if (half_of_anchor != 0) {
-//   if (generate_drawer_shell)
-//     half_of(half_of_anchor, s=300)
-//       down(shell_ocslot_part_thickness)
-//         back(shell_slot_position == "Top" ? (shell_ocslot_part_thickness - shell_thickness) / 2 : shell_slot_position == "Bottom" ? -(shell_ocslot_part_thickness - shell_thickness) / 2 : 0)
-//           left(shell_slot_position == "Left" ? (shell_ocslot_part_thickness - shell_thickness) / 2 : shell_slot_position == "Right" ? -(shell_ocslot_part_thickness - shell_thickness) / 2 : 0)
-//             drawer_shell();
-//   if (generate_drawer_container && !(generate_drawer_shell && add_shell_divider != "None"))
-//     half_of(half_of_anchor, s=300)
-//       left(view_drawer_overlapped ? 0 : horizontal_grids * OG_TILE_SIZE)
-//         up(container_depth_clearance)
-//           drawer_container();
-
-half_of_anchor =
-  view_cross_section == "Right" ? RIGHT
-  : view_cross_section == "Back" ? BACK
-  : view_cross_section == "Diagonal" ? RIGHT + BACK
-  : 0;
-
-conditional_half(v=half_of_anchor, condition=half_of_anchor != 0) {
-  if (generate_drawer_shell)
-    down(view_drawer_overlapped ? shell_ocslot_part_thickness : 0)
-      back(shell_slot_position == "Top" ? (shell_ocslot_part_thickness - shell_thickness) / 2 : shell_slot_position == "Bottom" ? -(shell_ocslot_part_thickness - shell_thickness) / 2 : 0)
-        left(shell_slot_position == "Left" ? (shell_ocslot_part_thickness - shell_thickness) / 2 : shell_slot_position == "Right" ? -(shell_ocslot_part_thickness - shell_thickness) / 2 : 0)
-          drawer_shell();
-  if (generate_drawer_container && !(generate_drawer_shell && add_shell_divider != "None"))
-    fwd(view_drawer_overlapped || !generate_drawer_shell ? 0 : vertical_grids * OG_TILE_SIZE / 2 + 10)
-      up(view_drawer_overlapped ? container_depth_clearance : container_height / 2)
-        xrot(view_drawer_overlapped ? 0 : 90)
-          drawer_container();
-  if (generate_drawer_stopper_clips)
-    right(generate_drawer_shell ? horizontal_grids * OG_TILE_SIZE / 2 + 10 : 0) up((stopper_height - stopper_height_clearance * 2) / 2)
-        xrot(-90) {
-          drawer_stopper(hole_excess=shell_thickness);
-          right(OG_TILE_SIZE)
-            drawer_stopper();
-        }
-}
-
-//END generation
