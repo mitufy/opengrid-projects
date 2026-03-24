@@ -158,13 +158,13 @@ function is_pos_shape_in_region(cp, footprint, limit_region) =
 module conditional_flip(axis = "X", coordinate = 0, copy = false, condition) {
   if (condition) {
     if (axis == "X")
-      xflip(x=coordinate) tag_scope() children();
+      xflip(x=coordinate) children();
     else if (axis == "Y")
-      yflip(y=coordinate) tag_scope() children();
+      yflip(y=coordinate) children();
     else if (axis == "Z")
-      zflip(z=coordinate) tag_scope() children();
+      zflip(z=coordinate) children();
     if (copy)
-      tag_scope() children();
+      children();
   }
   else
     children();

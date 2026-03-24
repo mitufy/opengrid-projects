@@ -272,9 +272,10 @@ module openconnect_head(head_type = "head", head_cfg = [], slot_cfg = [], add_nu
   nub_inset_right = struct_val(cfg, "side_bridge_offset", 0);
 
   nub_angle_left = nub_taperin ? adj_opp_to_ang(_middle_height, _middle_height - _nub_depth) : 0;
-  nub_angle_right =
-    nub_taperin && _middle_height - _nub_depth - nub_inset_right > 0 ? adj_opp_to_ang(_middle_height - nub_inset_right, _middle_height - _nub_depth - nub_inset_right)
-    : 0;
+  // bridging doesn't work well with tapered nub
+  // nub_angle_right =
+  //   nub_taperin && _middle_height - _nub_depth - nub_inset_right > 0 ? adj_opp_to_ang(_middle_height - nub_inset_right, _middle_height - _nub_depth - nub_inset_right)
+  //   : 0;
 
   attachable(anchor, spin, orient, size=[large_rect_width, large_rect_width, total_height]) {
     tag_scope() down(total_height / 2) difference() {

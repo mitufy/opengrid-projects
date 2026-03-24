@@ -128,7 +128,7 @@ up(generate_holder_part == "Both" ? holder_depth / 2 : holder_width / 2) yrot(ge
             rounding_edges = side_cutoff_bottom_offset > 0 ? "X" : [FRONT + TOP, BACK + TOP];
             if (side_cutoff_height > 0 && side_cutoff_depth > 0)
               back(holder_front_thickness + side_cutoff_front_offset + holder_height_edge) down(holder_top_thickness + side_cutoff_top_offset) {
-                  conditional_flip(axis="x", copy=holder_side_cutoff == "Both", condition=(holder_side_cutoff == "Both" || holder_side_cutoff == "Left"))
+                  conditional_flip(axis="X", copy=holder_side_cutoff == "Both", condition=(holder_side_cutoff == "Both" || holder_side_cutoff == "Left"))
                     attach(FRONT + TOP, FRONT + TOP, align=RIGHT, inside=true)
                       cuboid([side_cutoff_width, side_cutoff_height + EPS, side_cutoff_depth + EPS], edges=rounding_edges, rounding=min(side_cutoff_height / 2, side_cutoff_depth / 2, 2)) {
                         if (side_cutoff_front_offset - final_corner_rounding > EPS && side_cutoff_back_offset - final_corner_rounding > EPS && holder_width_edge > EPS) {
