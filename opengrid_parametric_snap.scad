@@ -425,12 +425,16 @@ conditional_half(v=half_of_anchor, condition=!is_undef(half_of_anchor)) {
     right(generate_snap == "None" || view_snap_and_connector_overlapped ? 0 : OG_TILE_SIZE)
       up(view_snap_and_connector_overlapped && generate_snap == "Self-Expanding Threads" ? -mchead_total_height : view_snap_and_connector_overlapped && generate_snap != "Self-Expanding Threads" ? _screw_threads_height + mchead_total_height : 0)
         yrot(view_snap_and_connector_overlapped && generate_snap != "Self-Expanding Threads" ? 180 : 0)
-          zrot(view_connector_rotated)
-            multiconnect_screw(threads_height=_screw_threads_height, connectorslot_cfg=_connectorslot_cfg, text_cfg=_screw_text_cfg, threads_cfg=_threads_cfg);
+          right(view_snap_and_connector_overlapped && generate_snap != "None" ? snap_center_position_offset[0] : 0)
+            back(view_snap_and_connector_overlapped && generate_snap != "None" ? snap_center_position_offset[1] : 0)
+              zrot(view_connector_rotated)
+                multiconnect_screw(threads_height=_screw_threads_height, connectorslot_cfg=_connectorslot_cfg, text_cfg=_screw_text_cfg, threads_cfg=_threads_cfg);
   if (generate_screw == "openConnect" || generate_screw == "openConnect (Folded)")
     right(generate_snap == "None" || view_snap_and_connector_overlapped ? 0 : OG_TILE_SIZE)
       up(view_snap_and_connector_overlapped && generate_snap == "Self-Expanding Threads" ? _screw_threads_height : 0)
         yrot(view_snap_and_connector_overlapped && generate_snap == "Self-Expanding Threads" ? 180 : 0)
-          zrot(generate_screw == "openConnect (Folded)" ? 180 + view_connector_rotated : view_connector_rotated)
-            openconnect_screw(threads_height=_screw_threads_height, head_cfg=_ochead_cfg, text_cfg=_screw_text_cfg, connectorslot_cfg=_connectorslot_cfg, threads_cfg=_threads_cfg, folded=generate_screw == "openConnect (Folded)");
+          right(view_snap_and_connector_overlapped && generate_snap != "None" ? snap_center_position_offset[0] : 0)
+            back(view_snap_and_connector_overlapped && generate_snap != "None" ? snap_center_position_offset[1] : 0)
+              zrot(generate_screw == "openConnect (Folded)" ? 180 + view_connector_rotated : view_connector_rotated)
+                openconnect_screw(threads_height=_screw_threads_height, head_cfg=_ochead_cfg, text_cfg=_screw_text_cfg, connectorslot_cfg=_connectorslot_cfg, threads_cfg=_threads_cfg, folded=generate_screw == "openConnect (Folded)");
 }

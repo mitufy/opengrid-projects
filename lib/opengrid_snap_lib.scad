@@ -391,8 +391,9 @@ module expanding_spring(snapbody_cfg = [], spring_cfg = [], snapcorner_cfg = [],
 
   _snap_thickness = struct_val(_body_cfg, "snap_thickness");
   _snap_body_shape = struct_val(_body_cfg, "snap_body_shape");
+  _disable_directional_slant = struct_val(_cut_cfg, "disable_directional_slant");
   bottom_type_back = _snap_body_shape == "Directional" && _snap_thickness >= OG_STANDARD_THICKNESS ? "Corners" : "None";
-  bottom_type_front = _snap_body_shape == "Directional" ? "Slant" : "None";
+  bottom_type_front = _snap_body_shape == "Directional" && !_disable_directional_slant ? "Slant" : "None";
 
   for (i = [0:1]) {
     bottom_type = i == 0 ? bottom_type_back : bottom_type_front;
