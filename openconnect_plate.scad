@@ -9,13 +9,13 @@ Inspired by David's multiConnect: https://www.printables.com/model/1008622-multi
 */
 
 /* [Plate Settings] */
+//Size can be inputted in either grids or millimeters. 1 grid = 28mm.
 plate_size_unit = "mm"; //[grid:Grid Count, mm:Millimeter]
-//Depending on the plate_size_unit selected, you can input number either in grids or in millimeters.
 plate_horizontal_size = 84;
 plate_vertical_size = 56;
 //You can set this to 0 if your model already has a wall and you don't want to thicken it. Does not affect Negative slots.
 plate_extra_thickness = 0.5;
-//Slot alignment applies when the plate size is entered in millimeters and is not divisible by the OG_TILE_SIZE (28mm).
+//Slot alignment applies when the plate size is in millimeters and not divisible by 28.
 plate_slot_alignment = "Center"; //["Center", "Top", "Bottom", "Left", "Right"]
 plate_corner_rounding = "None"; //["None", "Chamfer", "Fillet"]
 plate_corner_rounding_size = 0;
@@ -34,7 +34,7 @@ vase_linewidth = 0.6;
 //Increase clearances if the slots feel too tight. Reduce it if they are too loose.
 slot_side_clearance = 0.1; //0.01
 slot_depth_clearance = 0.1; //0.01
-//Ensures minimum feature width for 3d printing. "Both" is default for compatibility, though only one (or none) may be needed depending on orientation.
+//Ensures minimum feature width for printing. "Both" is default for compatibility, though only one (or none) may be needed depending on orientation.
 slot_edge_feature_widen = "Both"; //[Both, Top, Side, None]
 //Minimum width for bridges under slot_edge_feature_widen. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
 slot_edge_bridge_min_width = 0.8; //0.01

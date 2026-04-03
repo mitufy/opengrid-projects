@@ -22,7 +22,7 @@ threads_type = "Blunt"; //["Blunt", "Basic"]
 snap_width = 24.8;
 snap_height = 24.8;
 
-//Offset connector head/threads position in x and y. This does not affect Self-Expanding Snaps.
+//Offset connector head/threads position in x and y.
 snap_center_position_offset = [0, 0]; //0.1
 
 snap_corner_edge_height = 1.5;
@@ -176,6 +176,7 @@ use <lib/opengrid_threads_lib.scad>
 
 // ── Derived per-thickness values ─────────────────────────────────────────────
 _snap_thickness = override_snap_thickness ? custom_snap_thickness : snap_thickness;
+_screw_threads_height = override_snap_thickness ? custom_snap_thickness : _snap_thickness;
 mchead_total_height = mchead_top_height + mchead_middle_height + mchead_bottom_height;
 
 // ── Cfg packing ──────────────────────────────────────────────────────────────
@@ -222,7 +223,8 @@ _snapcut_cfg = snap_cut_cfg(
   side_cut_depth=side_cut_depth,
   side_cut_offset_to_top=side_cut_offset_to_top,
   directional_slant_depth_standard=directional_slant_depth_standard,
-  directional_slant_depth_lite=directional_slant_depth_lite
+  directional_slant_depth_lite=directional_slant_depth_lite,
+  disable_directional_slant=disable_snap_directional_slants
 );
 _snapnotch_cfg = snap_notch_cfg(
   notch_width=uninstall_notch_width,
@@ -329,11 +331,11 @@ _ochead_total_height = struct_val(_ochead_cfg, "total_height");
 _ochead_middle_to_bottom = struct_val(_ochead_cfg, "middle_to_bottom");
 
 // ── Modules ───────────────────────────────────────────────────────────────────
-module multiconnect_screw(connectorslot_cfg = [], text_cfg = [], threads_cfg = []) {
+module multiconnect_screw(threads_height = OG_STANDARD_THICKNESS, connectorslot_cfg = [], text_cfg = [], threads_cfg = []) {
   tag_scope() {
     multiconnect_head(connectorslot_cfg=connectorslot_cfg, top_pattern="coin_slot", anchor=BOTTOM)
       attach(TOP, BOTTOM)
-        snap_threads(threads_height=_snap_thickness, text_cfg=text_cfg, threads_cfg=struct_set(threads_cfg, ["threads_clearance", 0]));
+        snap_threads(threads_height=threads_height, text_cfg=text_cfg, threads_cfg=struct_set(threads_cfg, ["threads_clearance", 0]));
   }
 }
 
@@ -373,7 +375,8 @@ module opengrid_snap(
           snapbody_cfg=snapbody_cfg, snapcorner_cfg=snapcorner_cfg, snapnub_cfg=snapnub_cfg,
           snapcut_cfg=snapcut_cfg, snapnotch_cfg=snapnotch_cfg, text_cfg=text_cfg,
           spring_cfg=spring_cfg, expand_cfg=expand_cfg, threads_cfg=threads_cfg,
-          add_expand_distance_text=add_snap_expansion_distance_text
+          add_expand_distance_text=add_snap_expansion_distance_text,
+          center_position_offset=snap_center_position_offset
         );
       else {
         disable_features = concat(
@@ -387,7 +390,7 @@ module opengrid_snap(
             snapcorner_cfg=snapcorner_cfg, snapnub_cfg=snapnub_cfg,
             snapcut_cfg=snapcut_cfg, snapnotch_cfg=snapnotch_cfg, text_cfg=text_cfg
           ) {
-            left(snap_center_position_offset[0]) back(snap_center_position_offset[1]) {
+            right(snap_center_position_offset[0]) back(snap_center_position_offset[1]) {
                 if (generate_snap == "Basic Threads" && !disable_snap_threads)
                   up(reverse_threads_entryside ? _snap_thickness : 0) yrot(reverse_threads_entryside ? 180 : 0)
                       attach(TOP, BOTTOM, inside=true, shiftout=EPS / 2)
@@ -420,14 +423,14 @@ conditional_half(v=half_of_anchor, condition=!is_undef(half_of_anchor)) {
       );
   if (generate_screw == "multiConnect")
     right(generate_snap == "None" || view_snap_and_connector_overlapped ? 0 : OG_TILE_SIZE)
-      up(view_snap_and_connector_overlapped && generate_snap == "Self-Expanding Threads" ? -mchead_total_height : view_snap_and_connector_overlapped && generate_snap != "Self-Expanding Threads" ? _snap_thickness + mchead_total_height : 0)
+      up(view_snap_and_connector_overlapped && generate_snap == "Self-Expanding Threads" ? -mchead_total_height : view_snap_and_connector_overlapped && generate_snap != "Self-Expanding Threads" ? _screw_threads_height + mchead_total_height : 0)
         yrot(view_snap_and_connector_overlapped && generate_snap != "Self-Expanding Threads" ? 180 : 0)
           zrot(view_connector_rotated)
-            multiconnect_screw(connectorslot_cfg=_connectorslot_cfg, text_cfg=_screw_text_cfg, threads_cfg=_threads_cfg);
+            multiconnect_screw(threads_height=_screw_threads_height, connectorslot_cfg=_connectorslot_cfg, text_cfg=_screw_text_cfg, threads_cfg=_threads_cfg);
   if (generate_screw == "openConnect" || generate_screw == "openConnect (Folded)")
     right(generate_snap == "None" || view_snap_and_connector_overlapped ? 0 : OG_TILE_SIZE)
-      up(view_snap_and_connector_overlapped && generate_snap == "Self-Expanding Threads" ? _snap_thickness : 0)
+      up(view_snap_and_connector_overlapped && generate_snap == "Self-Expanding Threads" ? _screw_threads_height : 0)
         yrot(view_snap_and_connector_overlapped && generate_snap == "Self-Expanding Threads" ? 180 : 0)
           zrot(generate_screw == "openConnect (Folded)" ? 180 + view_connector_rotated : view_connector_rotated)
-            openconnect_screw(threads_height=_snap_thickness, head_cfg=_ochead_cfg, text_cfg=_screw_text_cfg, connectorslot_cfg=_connectorslot_cfg, threads_cfg=_threads_cfg, folded=generate_screw == "openConnect (Folded)");
+            openconnect_screw(threads_height=_screw_threads_height, head_cfg=_ochead_cfg, text_cfg=_screw_text_cfg, connectorslot_cfg=_connectorslot_cfg, threads_cfg=_threads_cfg, folded=generate_screw == "openConnect (Folded)");
 }

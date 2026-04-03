@@ -511,7 +511,8 @@ module expanding_snap(
   spring_cfg = [],
   expand_cfg = [],
   threads_cfg = [],
-  add_expand_distance_text = false
+  add_expand_distance_text = false,
+  center_position_offset = [0, 0]
 ) {
   _snap_thickness = struct_val(snapbody_cfg, "snap_thickness", OG_STANDARD_THICKNESS);
   _snap_width = struct_val(snapbody_cfg, "snap_width", OG_SNAP_WIDTH);
@@ -544,13 +545,15 @@ module expanding_snap(
             snapbody_cfg=snapbody_cfg, snapcorner_cfg=snapcorner_cfg, snapnub_cfg=snapnub_cfg,
             snapcut_cfg=expand_cut_cfg, snapnotch_cfg=snapnotch_cfg, text_cfg=expand_text_cfg
           );
-      down(EPS / 2) tag("remove") expanding_threads(
-            threads_height=_snap_thickness,
-            expand_cfg=expand_cfg, threads_cfg=threads_cfg
-          );
-      zrot(_expand_split_angle)
-        tag("remove") expanding_spring(
-            snapbody_cfg, spring_cfg, snapcorner_cfg, snapcut_cfg
-          );
+      left(center_position_offset[0]) back(center_position_offset[1]) {
+        down(EPS / 2) tag("remove") expanding_threads(
+              threads_height=_snap_thickness,
+              expand_cfg=expand_cfg, threads_cfg=threads_cfg
+            );
+        zrot(_expand_split_angle)
+          tag("remove") expanding_spring(
+              snapbody_cfg, spring_cfg, snapcorner_cfg, snapcut_cfg
+            );
+      }
     }
 }

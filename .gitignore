@@ -2,3 +2,9 @@
 *.stl
 *.json
 *.3mf
+blender/
+mesh/
+ref/
+build/
+scripts/
+AGENT.md

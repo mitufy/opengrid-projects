@@ -138,7 +138,7 @@ view_cross_section = "None"; //["None","Right","Back","Diagonal"]
 view_drawer_overlapped = false;
 //Slot bottom acts as a wall when printed on its side. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
 slot_bottom_min_thickness = 0.8; //0.01
-//Ensures minimum feature width for 3d printing. "Both" is default for compatibility, though only one (or none) may be needed depending on orientation.
+//Ensures minimum feature width for printing. "Both" is default for compatibility, though only one (or none) may be needed depending on orientation.
 slot_edge_feature_widen = shell_slot_position == "Back" ? "None" : "Side";
 
 _slot_cfg = ocslot_cfg(

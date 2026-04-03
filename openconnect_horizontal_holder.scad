@@ -64,7 +64,7 @@ $fs = 0.4;
 slot_position = "All"; //["All", "Staggered", "Edge Rows", "Edge Columns", "Corners"]
 //Double Lock can be very difficult to install. They are intended for small models that only use one or two slots.
 slot_lock_side = "Left"; //[Left:Standard, Both:Double]
-//Ensures minimum feature width for 3d printing. "Both" is default for compatibility, though only one (or none) may be needed depending on orientation.
+//Ensures minimum feature width for printing. "Both" is default for compatibility, though only one (or none) may be needed depending on orientation.
 slot_edge_feature_widen = "Top"; //[Both, Top, Side, None]
 
 _slot_cfg = ocslot_cfg(

@@ -1,23 +1,20 @@
 A place to store my OpenSCAD models for openGrid.
 
 # How to use:
-To generate the models locally, download the repository and install **OpenSCAD** and the **BOSL2 library** on your computer. This is faster and more reliable than rendering online. However, if you prefer a simpler method, you can just use the customizer on the **MakerWorld** model pages.
+To generate the models locally, download the repository and install **OpenSCAD** and the **BOSL2 library** on your computer. This is faster and more reliable than rendering online. However, if you prefer a simpler method, you can just use the customizer on the MakerWorld model pages.
 
-* **OpenSCAD Snapshot:** The stable version is currently outdated; the Snapshot version is recommended. Find it here: [openscad.org/downloads.html#snapshots](https://openscad.org/downloads.html#snapshots)
+* **OpenSCAD Snapshot:** The stable version is outdated. Use the Snapshot version here: [openscad.org/downloads.html#snapshots](https://openscad.org/downloads.html#snapshots)
 * **BOSL2 Library:** Files and installation instructions can be found here: [github.com/BelfrySCAD/BOSL2](https://github.com/BelfrySCAD/BOSL2)
 
-
-After installing and opening OpenSCAD, go to **Edit -> Preferences -> Advanced** and ensure the **3D Rendering Backend** is set to **"Manifold."** This significantly shortens rendering times. 
-
-While there, you can also go to **Edit -> Preferences -> 3D Print -> Local Application** and input the path to your slicer. This allows you to press **F8** to send a model directly to your slicer, which can be quite convenient.
+After installing OpenSCAD, go to **Edit -> Preferences -> Advanced** and ensure the 3D Rendering Backend is set to **"Manifold."** This significantly shortens rendering times. 
 
 ---
 
 ## openConnect
 Inspired by David's MultiConnect, openConnect is a connector system designed specifically for openGrid. It is backwards compatible with MultiConnect while offering multiple improvements, including more printing orientations, a smaller footprint, and support for Vase Mode.
 
-#### openconnect [(online)](https://makerworld.com/en/models/2257440-openconnect-opengrid-s-own-connector-system)
-This file contains most code for openConnect. Its customizer options are primarily used to generate grids of openConnect slots (regular and vase mode) that can be attached to other models.
+#### openconnect_plate [(online)](https://makerworld.com/en/models/2257440-openconnect-opengrid-s-own-connector-system)
+This file contains most code for openConnect. Its customizer options are used to generate grids of openConnect slots (regular and vase mode) that can be attached to other models.
 
 #### openconnect_vasemode_container [(online)](https://makerworld.com/en/models/2257502-openconnect-vase-mode-container-generator)
 A container generator utilizing the openConnect system. Designed to be printed in **Vase Mode**, it offers fast print times, low filament usage, and a striking appearance when used with transparent filament. 
@@ -25,7 +22,7 @@ A container generator utilizing the openConnect system. Designed to be printed i
 
 #### openconnect_drawer [(online)](https://makerworld.com/en/models/2257496-openconnect-drawer-generator)
 A drawer generator that creates drawer shells, containers, stopper clips. Depending on the slot positions chosen, the drawer can be wall-mounted or underdesk mounted.
-**Customizable:** size, slot positions, wall patterns (solid/honeycomb), and compartments.
+**Customizable:** size, slot positions, wall patterns (solid/honeycomb), and drawer compartments.
 
 #### openconnect_drawer_label [(online)](https://makerworld.com/en/models/2257496-openconnect-drawer-generator)
 A label generator for the openConnect drawer. 
@@ -33,11 +30,11 @@ A label generator for the openConnect drawer.
 
 #### openconnect_sturdy_shelf [(online)](https://makerworld.com/en/models/2257523-openconnect-sturdy-shelf-generator)
 A wall-mounted shelf generator. It is "sturdy" because it is designed to be printed on its side, which eliminates the most common failure point in 3D prints: layer line separation. 
-**Customizable:** type (standard/slim), size, thickness, truss length, edge styles, and surface textures.
+**Customizable:** type (standard/slim), size, thickness, truss length, edge styles, surface textures.
 
 #### openconnect_sturdy_hook [(online)](https://makerworld.com/en/models/2257476-openconnect-sturdy-hook-generator)
 A hook generator for openGrid. Like the sturdy shelf, it is printed on its side for maximum strength. Note its minimum width is 20mm. For thinner hooks, see `opengrid_framefit_hook_new` below.
-**Customizable:** size, radius, thickness, tip angle, and thickness scaling. 
+**Customizable:** size, radius, thickness, truss, tip angle, thickness scaling. 
 
 ---
 ## openGrid Snaps and Framefit
@@ -76,10 +73,10 @@ A generator for a "coin screwdriver" hex bit. Often used for installing self-exp
 
 ---
 
-Following a recent refactor, the codebase is split into modular library files. The standalone files uploaded to MakerWorld are automatically bundled from this repository using [`openscad-toolkit`](https://github.com/zing3d-labs/openscad-toolkit) by `zing3d-labs`. A huge thanks to the creator of that tool!
+Following a recent refactor, the codebase is split into modular library files. The standalone files uploaded to MakerWorld are automatically bundled from this repository using [`openscad-toolkit`](https://github.com/zing3d-labs/openscad-toolkit) by `zing3d-labs`. A huge thanks to the creator of that tool.
 
 Feel free to use the code; feedback and suggestions are always welcome.
 
 **License:**
-* The **openConnect system** is licensed under **CC-BY 4.0**.
-* All **other customizable models** are licensed under **CC-BY-SA 4.0**.
+* The openConnect system is licensed under **CC-BY 4.0**.
+* All other customizable models are licensed under **CC-BY-SA 4.0**.
