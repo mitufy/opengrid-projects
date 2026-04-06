@@ -49,6 +49,7 @@ slot_edge_wall_min_width = 0.6; //0.01
 use_custom_height = false;
 custom_hook_height = 70;
 hook_side_rounding = 2.4; //0.2
+hook_tip_rounding = 5; //0.2
 
 /* [Hidden] */
 $fa = 1;
@@ -77,6 +78,7 @@ available_truss_depth = hook_shape_type == "Circular" ? max(EPS, hook_length - f
 
 final_circular_thickness_scale = hook_shape_type == "Circular" ? circular_thickness_scale : 1;
 final_side_chamfer = max(0, min(hook_thickness / 2 * final_circular_thickness_scale - 0.84, hook_width / 2 - 0.84, hook_side_rounding));
+has_side_chamfer = final_side_chamfer > EPS;
 function hook_scale_at(ratio) = 1 - (1 - final_circular_thickness_scale) * ratio;
 function hook_thickness_at(ratio) = hook_thickness * hook_scale_at(ratio);
 function hook_one_side_offset_at(ratio) = (hook_thickness - hook_thickness_at(ratio)) / 2;
@@ -97,17 +99,20 @@ truss_touch_path =
   : final_tip_radius <= 0 || circular_tip_angle <= 90 ? hook_path
   : hook_path_pre_tip;
 
-tip_rounding_radius = max(0, min(hook_thickness_at(1), hook_width - final_side_chamfer * 2) / 2 - EPS);
+tip_length = max(0, min(hook_thickness_at(1), hook_width - final_side_chamfer * 2) / 2 - EPS);
+tip_rounding_radius = max(0, min(hook_tip_rounding, tip_length- EPS));
 path_first_ratio = path_length(turtle(hook_path_base)) / path_length(turtle(hook_path));
 truss_touch_ratio = min(1, max(0, path_length(turtle(truss_touch_path)) / path_length(turtle(hook_path))));
 hook_path_taper_compensation = hook_one_side_offset_at(path_first_ratio);
 truss_height_offset = hook_one_side_offset_at(truss_touch_ratio) - hook_path_taper_compensation;
 
-final_sweep_profile = difference(
-  rect([hook_thickness, hook_width]),
-  right(hook_thickness / 2, fwd(hook_width / 2, yflip(zrot(-180, mask2d_teardrop(r=final_side_chamfer, $fn=64))))),
-  right(hook_thickness / 2, back(hook_width / 2, zrot(-180, mask2d_teardrop(r=final_side_chamfer, $fn=64))))
-);
+final_sweep_profile =
+  has_side_chamfer ? difference(
+      rect([hook_thickness, hook_width]),
+      right(hook_thickness / 2, fwd(hook_width / 2, yflip(zrot(-180, mask2d_teardrop(r=final_side_chamfer, $fn=64))))),
+      right(hook_thickness / 2, back(hook_width / 2, zrot(-180, mask2d_teardrop(r=final_side_chamfer, $fn=64))))
+    )
+  : rect([hook_thickness, hook_width]);
 offset_sweep_profile = scale([hook_scale_at(1), 1, 1], final_sweep_profile);
 
 //BEGIN generation
@@ -116,10 +121,12 @@ diff(remove="rm0")
     cuboid([hook_thickness, hook_stem_height, hook_width], anchor=BACK + BOTTOM, rounding=final_side_chamfer, edges=[BACK + RIGHT], $fn=64) {
       attach(LEFT, TOP, align=BACK, inside=true, spin=90)
         tag("rm0") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=horizontal_grids, vertical_grids=vertical_grids, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=EPS);
-      tag("rm1") edge_profile([TOP + RIGHT, BOTTOM + RIGHT, BACK + TOP, BACK + BOTTOM], excess=0)
-          mask2d_teardrop(r=final_side_chamfer, $fn=64);
-      tag("rm1") corner_profile([BACK + TOP + RIGHT, BACK + BOTTOM + RIGHT], r=final_side_chamfer)
-          mask2d_teardrop(r=final_side_chamfer, $fn=64);
+      if (has_side_chamfer) {
+        tag("rm1") edge_profile([TOP + RIGHT, BOTTOM + RIGHT, BACK + TOP, BACK + BOTTOM], excess=0)
+            mask2d_teardrop(r=final_side_chamfer, $fn=64);
+        tag("rm1") corner_profile([BACK + TOP + RIGHT, BACK + BOTTOM + RIGHT], r=final_side_chamfer)
+            mask2d_teardrop(r=final_side_chamfer, $fn=64);
+      }
       tag_diff(remove="rm2", tag="kp1") {
         attach(FRONT, FRONT, align=LEFT, inside=true, shiftout=0)
           tag("") cuboid([final_corner_radius + hook_thickness / 2, final_corner_radius + hook_thickness / 2, hook_width], chamfer=final_side_chamfer, edges=[LEFT + TOP, LEFT + BOTTOM])
@@ -130,7 +137,7 @@ diff(remove="rm0")
         tag_diff(remove="rm2", tag="kp1") {
           right(hook_length - final_tip_radius)
             attach(FRONT, FRONT, align=LEFT, inside=true, shiftout=0)
-              tag("") cuboid([hook_thickness + final_corner_radius, hook_thickness + final_corner_radius - tip_rounding_radius, hook_width])
+              tag("") cuboid([hook_thickness + final_corner_radius, hook_thickness + final_corner_radius - tip_length, hook_width])
                   back(final_tip_radius / 2) left(final_tip_radius / 2)
                       tag("rm2") zcyl(r=hook_thickness, h=hook_width + EPS * 2);
         }
@@ -158,13 +165,14 @@ diff(remove="rm0")
           path_sweep(final_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[hook_scale_at(1), 1]) {
             if (hook_shape_type == "Flat")
               attach("end", LEFT)
-                cuboid([tip_rounding_radius, hook_thickness, hook_width], rounding=final_side_chamfer / 2, edges=BACK + RIGHT, $fn=64) {
-                  tag("rm2") edge_profile([BACK + TOP, BACK + BOTTOM])
-                      mask2d_teardrop(r=final_side_chamfer, $fn=64);
+                cuboid([tip_length, hook_thickness, hook_width], rounding=final_side_chamfer / 2, edges=BACK + RIGHT, $fn=64) {
+                  if (has_side_chamfer)
+                    tag("rm2") edge_profile([BACK + TOP, BACK + BOTTOM])
+                        mask2d_teardrop(r=final_side_chamfer, $fn=64);
                 }
             else
               attach("end", "top")
-                offset_sweep(offset_sweep_profile, height=tip_rounding_radius + EPS, bottom=os_circle(r=tip_rounding_radius), spin=180, $fn=128);
+                offset_sweep(offset_sweep_profile, height=tip_length, bottom=os_circle(r=tip_rounding_radius), spin=180, $fn=128);
           }
         }
   }
