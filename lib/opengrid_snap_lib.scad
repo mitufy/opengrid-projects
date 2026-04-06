@@ -51,7 +51,7 @@ function snap_corner_cfg(
   );
 
 function snap_cut_cfg(
-  bottom_cut_length = 12.4,
+  cut_width_inset = 6.2,
   bottom_cut_thickness = 0.6,
   bottom_cut_offset_to_top = 0.6,
   bottom_cut_offset_to_edge = 0.7,
@@ -69,8 +69,8 @@ function snap_cut_cfg(
 ) =
   struct_set(
     [], [
-      "bottom_cut_length",
-      bottom_cut_length,
+      "cut_width_inset",
+      cut_width_inset,
       "bottom_cut_thickness",
       bottom_cut_thickness,
       "bottom_cut_offset_to_top",
@@ -103,17 +103,17 @@ function snap_cut_cfg(
   );
 
 function snap_nub_cfg(
-  basic_nub_width = 10.8,
+  basic_nub_width_inset = 7,
   basic_nub_depth = 0.4,
-  basic_nub_top_width = 6.8,
+  basic_nub_width_tip_taper = 4,
   basic_nub_top_angle = 35,
   basic_nub_bottom_angle = 35,
   basic_nub_fillet_radius = 15,
   basic_nub_height_standard = 2,
   basic_nub_height_lite = 1.8,
-  directional_nub_width = 14.8,
+  directional_nub_width_inset = 5,
   directional_nub_depth = 0.8,
-  directional_nub_top_width = 13.2,
+  directional_nub_width_tip_taper = 1.6,
   directional_nub_top_angle = 35,
   directional_nub_height_standard = 4,
   directional_nub_height_lite = 2.4,
@@ -126,12 +126,12 @@ function snap_nub_cfg(
 ) =
   struct_set(
     [], [
-      "basic_nub_width",
-      basic_nub_width,
+      "basic_nub_width_inset",
+      basic_nub_width_inset,
       "basic_nub_depth",
       basic_nub_depth,
-      "basic_nub_top_width",
-      basic_nub_top_width,
+      "basic_nub_width_tip_taper",
+      basic_nub_width_tip_taper,
       "basic_nub_top_angle",
       basic_nub_top_angle,
       "basic_nub_bottom_angle",
@@ -142,12 +142,12 @@ function snap_nub_cfg(
       basic_nub_height_standard,
       "basic_nub_height_lite",
       basic_nub_height_lite,
-      "directional_nub_width",
-      directional_nub_width,
+      "directional_nub_width_inset",
+      directional_nub_width_inset,
       "directional_nub_depth",
       directional_nub_depth,
-      "directional_nub_top_width",
-      directional_nub_top_width,
+      "directional_nub_width_tip_taper",
+      directional_nub_width_tip_taper,
       "directional_nub_top_angle",
       directional_nub_top_angle,
       "directional_nub_height_standard",
@@ -248,8 +248,9 @@ module snap_cut(snapbody_cfg = [], snapcut_cfg = []) {
   _snap_thickness = struct_val(_body_cfg, "snap_thickness");
   _snap_body_shape = struct_val(_body_cfg, "snap_body_shape");
   _snap_width = struct_val(_body_cfg, "snap_width");
+  _snap_height = struct_val(_body_cfg, "snap_height");
 
-  _bottom_cut_length = struct_val(_cut_cfg, "bottom_cut_length");
+  _cut_width_inset = struct_val(_cut_cfg, "cut_width_inset");
   _bottom_cut_thickness = struct_val(_cut_cfg, "bottom_cut_thickness");
   _bottom_cut_offset_to_top = struct_val(_cut_cfg, "bottom_cut_offset_to_top");
   _bottom_cut_offset_to_edge = struct_val(_cut_cfg, "bottom_cut_offset_to_edge");
@@ -266,29 +267,31 @@ module snap_cut(snapbody_cfg = [], snapcut_cfg = []) {
   _disable_directional_slant = struct_val(_cut_cfg, "disable_directional_slant");
 
   for (i = [FRONT, LEFT, RIGHT, BACK]) {
+    bottom_cut_length = ((i == LEFT || i == RIGHT) ? _snap_height : _snap_width) - _cut_width_inset * 2;
     bottom_cut_rounding = _snap_body_shape == "Directional" && i == FRONT ? 0 : _bottom_cut_thickness / 2;
     if (!_disable_all_bottom_cut && !(_snap_body_shape == "Directional" && i == BACK)) {
       down(_bottom_cut_offset_to_top)
         attach(i, FRONT, inside=true, shiftout=-_bottom_cut_offset_to_edge)
-          cuboid([_bottom_cut_length, _bottom_cut_thickness, _snap_thickness], rounding=bottom_cut_rounding, edges="Z", $fn=64);
+          cuboid([bottom_cut_length, _bottom_cut_thickness, _snap_thickness], rounding=bottom_cut_rounding, edges="Z", $fn=64);
     }
     if (!_disable_all_side_cut)
       if (i != FRONT || !_disable_front_side_cut)
         down(_side_cut_offset_to_top)
           attach(i, FRONT, align=TOP, inside=true)
-            cuboid([_bottom_cut_length, _side_cut_depth, _side_cut_thickness]);
+            cuboid([bottom_cut_length, _side_cut_depth, _side_cut_thickness]);
   }
   if (_snap_body_shape == "Directional" && !_disable_all_bottom_cut)
     down(_snap_thickness / 2 - _directional_slant_height / 2) {
+      bottom_cut_length = _snap_width - _cut_width_inset * 2;
       tag_diff("remove", "inner_remove") {
         attach(FRONT, BACK, inside=true, shiftout=-_bottom_cut_offset_to_edge - _bottom_cut_thickness)
-          tag("") prismoid(size1=[_bottom_cut_length, _directional_slant_depth], size2=[_bottom_cut_length, 0], shift=[0, _directional_slant_depth / 2], h=_directional_slant_height);
+          tag("") prismoid(size1=[bottom_cut_length, _directional_slant_depth], size2=[bottom_cut_length, 0], shift=[0, _directional_slant_depth / 2], h=_directional_slant_height);
         attach(FRONT, BACK, inside=true, shiftout=-_bottom_cut_offset_to_edge)
-          tag("inner_remove") prismoid(size1=[_bottom_cut_length, _directional_slant_depth], size2=[_bottom_cut_length, 0], shift=[0, _directional_slant_depth / 2], h=_directional_slant_height);
+          tag("inner_remove") prismoid(size1=[bottom_cut_length, _directional_slant_depth], size2=[bottom_cut_length, 0], shift=[0, _directional_slant_depth / 2], h=_directional_slant_height);
       }
       tag_diff("keep", "inner_remove") {
         attach(FRONT, BACK, inside=true, shiftout=-_bottom_cut_offset_to_edge)
-          tag("") prismoid(size1=[_bottom_cut_length, _directional_slant_depth], size2=[_bottom_cut_length, 0], shift=[0, _directional_slant_depth / 2], h=_directional_slant_height);
+          tag("") prismoid(size1=[bottom_cut_length, _directional_slant_depth], size2=[bottom_cut_length, 0], shift=[0, _directional_slant_depth / 2], h=_directional_slant_height);
         attach(FRONT, BACK, inside=true)
           tag("inner_remove") prismoid(size1=[_snap_width, _directional_slant_depth], size2=[_snap_width, 0], shift=[0, _directional_slant_depth / 2], h=_directional_slant_height);
       }
@@ -312,15 +315,15 @@ module snap_nub(snapbody_cfg = [], snapnub_cfg = []) {
   _snap_body_shape = struct_val(_body_cfg, "snap_body_shape");
   _snap_width = struct_val(_body_cfg, "snap_width");
   _snap_height = struct_val(_body_cfg, "snap_height");
-  _basic_nub_width = struct_val(_nub_cfg, "basic_nub_width");
+  _basic_nub_width_inset = struct_val(_nub_cfg, "basic_nub_width_inset");
   _basic_nub_depth = struct_val(_nub_cfg, "basic_nub_depth");
-  _basic_nub_top_width = struct_val(_nub_cfg, "basic_nub_top_width");
+  _basic_nub_width_tip_taper = struct_val(_nub_cfg, "basic_nub_width_tip_taper");
   _basic_nub_top_angle = struct_val(_nub_cfg, "basic_nub_top_angle");
   _basic_nub_bottom_angle = struct_val(_nub_cfg, "basic_nub_bottom_angle");
   _basic_nub_fillet_radius = struct_val(_nub_cfg, "basic_nub_fillet_radius");
-  _directional_nub_width = struct_val(_nub_cfg, "directional_nub_width");
+  _directional_nub_width_inset = struct_val(_nub_cfg, "directional_nub_width_inset");
   _directional_nub_depth = struct_val(_nub_cfg, "directional_nub_depth");
-  _directional_nub_top_width = struct_val(_nub_cfg, "directional_nub_top_width");
+  _directional_nub_width_tip_taper = struct_val(_nub_cfg, "directional_nub_width_tip_taper");
   _directional_nub_top_angle = struct_val(_nub_cfg, "directional_nub_top_angle");
   _directional_nub_fillet_radius = struct_val(_nub_cfg, "directional_nub_fillet_radius");
   _nub_offset_to_top = struct_val(_nub_cfg, "nub_offset_to_top");
@@ -330,21 +333,25 @@ module snap_nub(snapbody_cfg = [], snapnub_cfg = []) {
   _antidirect_nub_height = _snap_thickness >= OG_STANDARD_THICKNESS ? struct_val(_nub_cfg, "antidirect_nub_height_standard") : struct_val(_nub_cfg, "antidirect_nub_height_lite");
   _directional_nub_bottom_angle = _snap_thickness >= OG_STANDARD_THICKNESS ? struct_val(_nub_cfg, "directional_nub_bottom_angle_standard") : struct_val(_nub_cfg, "directional_nub_bottom_angle_lite");
 
-  basic_nub_size1 = [_basic_nub_width, _basic_nub_height];
-  basic_nub_size2 = [_basic_nub_top_width, undef];
-  directional_nub_size1 = [_directional_nub_width, _directional_nub_height];
-  directional_nub_size2 = [_directional_nub_top_width, undef];
-  antidirect_nub_size1 = [_basic_nub_width, _antidirect_nub_height];
   basic_nub_yang = [_basic_nub_top_angle, _basic_nub_bottom_angle];
   directional_nub_yang = [_directional_nub_top_angle, _directional_nub_bottom_angle];
 
   diff("nub_remove") {
     for (i = [FRONT, LEFT, RIGHT, BACK]) {
+      basic_nub_width = ((i == LEFT || i == RIGHT) ? _snap_height : _snap_width) - _basic_nub_width_inset * 2;
+      directional_nub_width = ((i == LEFT || i == RIGHT) ? _snap_height : _snap_width) - _directional_nub_width_inset * 2;
+      basic_nub_size1 = [basic_nub_width, _basic_nub_height];
+      basic_nub_size2 = [basic_nub_width - _basic_nub_width_tip_taper, undef];
+      directional_nub_size1 = [directional_nub_width, _directional_nub_height];
+      directional_nub_size2 = [directional_nub_width - _directional_nub_width_tip_taper, undef];
+      antidirect_nub_size1 = [basic_nub_width, _antidirect_nub_height];
       final_nub_size1 =
         (_snap_body_shape == "Directional" && i == BACK) ? directional_nub_size1
         : (_snap_body_shape == "Directional" && i == FRONT) ? antidirect_nub_size1
         : basic_nub_size1;
-      final_nub_size2 = (_snap_body_shape == "Directional" && i == BACK) ? directional_nub_size2 : basic_nub_size2;
+      final_nub_size2 =
+        (_snap_body_shape == "Directional" && i == BACK) ? directional_nub_size2
+        : basic_nub_size2;
       l_nub_yang = (_snap_body_shape == "Directional" && i == BACK) ? directional_nub_yang : basic_nub_yang;
       l_nub_depth = (_snap_body_shape == "Directional" && i == BACK) ? _directional_nub_depth : _basic_nub_depth;
       nub_fillet_radius = (_snap_body_shape == "Directional" && i == BACK) ? _directional_nub_fillet_radius : _basic_nub_fillet_radius;

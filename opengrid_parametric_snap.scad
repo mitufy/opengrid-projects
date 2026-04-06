@@ -12,7 +12,7 @@ The openGrid system is created by David D. https://www.printables.com/model/1214
 snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm, 3.4:Lite Basic - 3.4mm]
 //Directional for vertical wall-mounted boards. Symmetric for horizontal boards, often used with Underware.
 snap_body_shape = "Directional"; //["Directional","Symmetric"]
-generate_snap = "openConnect"; //["None", "Self-Expanding Threads","Basic Threads","openConnect","openConnect (Folded)","multiConnect"]
+generate_snap = "openConnect"; //["None", "Self-Expanding Threads", "Basic Threads", "openConnect", "openConnect (Folded)", "multiConnect", "Bare"]
 //Regular version is usually enough. Folded version is stronger but requires thinner layer height, thus taking longer to print.
 generate_screw = "None"; //["None", "openConnect", "openConnect (Folded)", "multiConnect"]
 //Blunt threads help prevent cross-threading and overtightening. Models with blunt threads have a decorative 'lock' symbol at the bottom.
@@ -34,20 +34,20 @@ directional_slant_depth_lite = 0.2;
 directional_corner_fillet_radius = 1.5;
 
 /* [Snap Nub Settings] */
-basic_nub_width = 10.8;
+basic_nub_width_inset = 7;
+basic_nub_width_tip_taper = 4; //0.1
 basic_nub_height_standard = 2; //0.1
 basic_nub_height_lite = 1.8;
 basic_nub_depth = 0.4;
-basic_nub_top_width = 6.8;
 basic_nub_top_angle = 35;
 basic_nub_bottom_angle = 35;
 basic_nub_fillet_radius = 15;
 
-directional_nub_width = 14.8; //0.1
+directional_nub_width_inset = 5; //0.1
+directional_nub_width_tip_taper = 1.6; //0.1
 directional_nub_height_standard = 4; //0.1
 directional_nub_height_lite = 2.4;
 directional_nub_depth = 0.8;
-directional_nub_top_width = 13.2; //0.1
 directional_nub_top_angle = 35;
 directional_nub_bottom_angle_standard = 35;
 directional_nub_bottom_angle_lite = 45;
@@ -59,7 +59,7 @@ antidirect_nub_height_lite = 1.4; //0.1
 nub_offset_to_top = 1.4; //0.1
 
 /* [Snap Cut Settings] */
-bottom_cut_length = 12.4;
+cut_width_inset = 6.2;
 bottom_cut_thickness = 0.6;
 bottom_cut_offset_to_top = 0.6;
 bottom_cut_offset_to_edge = 0.7;
@@ -164,7 +164,6 @@ disable_snap_corners = false;
 disable_snap_cuts = false;
 disable_snap_nubs = false;
 disable_snap_directional_slants = false;
-disable_snap_expanding_springs = false;
 
 /* [Hidden] */
 $fa = 1;
@@ -193,17 +192,17 @@ _snapcorner_cfg = snap_corner_cfg(
   snap_body_bottom_corner_extrude=snap_body_bottom_corner_extrude
 );
 _snapnub_cfg = snap_nub_cfg(
-  basic_nub_width=basic_nub_width,
+  basic_nub_width_inset=basic_nub_width_inset,
   basic_nub_depth=basic_nub_depth,
-  basic_nub_top_width=basic_nub_top_width,
+  basic_nub_width_tip_taper=basic_nub_width_tip_taper,
   basic_nub_top_angle=basic_nub_top_angle,
   basic_nub_bottom_angle=basic_nub_bottom_angle,
   basic_nub_fillet_radius=basic_nub_fillet_radius,
   basic_nub_height_standard=basic_nub_height_standard,
   basic_nub_height_lite=basic_nub_height_lite,
-  directional_nub_width=directional_nub_width,
+  directional_nub_width_inset=directional_nub_width_inset,
   directional_nub_depth=directional_nub_depth,
-  directional_nub_top_width=directional_nub_top_width,
+  directional_nub_width_tip_taper=directional_nub_width_tip_taper,
   directional_nub_top_angle=directional_nub_top_angle,
   directional_nub_height_standard=directional_nub_height_standard,
   directional_nub_height_lite=directional_nub_height_lite,
@@ -215,7 +214,7 @@ _snapnub_cfg = snap_nub_cfg(
   nub_offset_to_top=nub_offset_to_top
 );
 _snapcut_cfg = snap_cut_cfg(
-  bottom_cut_length=bottom_cut_length,
+  cut_width_inset=cut_width_inset,
   bottom_cut_thickness=bottom_cut_thickness,
   bottom_cut_offset_to_top=bottom_cut_offset_to_top,
   bottom_cut_offset_to_edge=bottom_cut_offset_to_edge,
@@ -378,7 +377,7 @@ module opengrid_snap(
           add_expand_distance_text=add_snap_expansion_distance_text,
           center_position_offset=snap_center_position_offset
         );
-      else {
+      else if (generate_snap == "Bare" || generate_snap == "Basic Threads" || generate_snap == "openConnect" || generate_snap == "openConnect (Folded)" || generate_snap == "multiConnect") {
         disable_features = concat(
           disable_snap_corners ? ["snap_corner"] : [],
           disable_snap_nubs ? ["snap_nub"] : [],
