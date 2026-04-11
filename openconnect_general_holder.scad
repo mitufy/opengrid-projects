@@ -10,9 +10,10 @@ openGrid is created by David D: https://www.printables.com/model/1214361-opengri
 /* [Item Size] */
 item_horizontal_count = 2;
 item_vertical_count = 1;
-//Dimensions of the item to be held. You can use slightly larger values for more wiggle room.
+//Dimensions of the item to be held. Use slightly larger values for more wiggle room.
 item_width = 40;
 item_depth = 25;
+item_shape = "Rectangular"; //[Rectangular,Circular,Elliptic]
 //By increasing corner_rounding, you can generate circular and elliptic shapes.
 item_corner_rounding = 10;
 //Make holder narrower as it goes down. 
@@ -73,59 +74,74 @@ _slot_cfg = ocslot_cfg(
 
 slot_wall_min_height = 18;
 slot_wall_thickness = 1.2 + struct_val(_slot_cfg, "total_height");
-holder_width = max(OG_TILE_SIZE, item_width * item_horizontal_count + holder_width_divider_wall_thickness * max(0, item_horizontal_count - 1) + holder_outer_wall_thickness * 2);
-holder_depth = item_depth * item_vertical_count + holder_depth_divider_wall_thickness * max(0, item_vertical_count - 1) + holder_outer_wall_thickness + slot_wall_thickness;
-holder_added_depth = holder_depth + holder_back_offset;
-final_holder_height = max(ang_adj_to_hyp(holder_tilt_angle, slot_wall_min_height), holder_height);
 
-final_item_rounding = min(item_corner_rounding, item_width / 2, item_depth / 2);
-holder_shape = rect([holder_width, holder_added_depth], rounding=[final_item_rounding, final_item_rounding, 0, 0]);
+final_item_depth = item_shape == "Circular" ? item_width : item_depth;
+holder_width = max(OG_TILE_SIZE, item_width * item_horizontal_count + holder_width_divider_wall_thickness * max(0, item_horizontal_count - 1) + holder_outer_wall_thickness * 2);
+holder_depth = final_item_depth * item_vertical_count + holder_depth_divider_wall_thickness * max(0, item_vertical_count - 1) + holder_outer_wall_thickness + slot_wall_thickness;
+final_holder_depth = holder_depth + holder_back_offset;
+provisional_holder_height = max(ang_adj_to_hyp(holder_tilt_angle, slot_wall_min_height), holder_height);
+final_holder_tilt_angle = min(adj_opp_to_ang(provisional_holder_height, final_holder_depth - 1), holder_tilt_angle);
+final_holder_height = max(ang_adj_to_hyp(final_holder_tilt_angle, slot_wall_min_height), holder_height);
+
+final_item_rounding = min(item_corner_rounding, item_width / 2, final_item_depth / 2);
+holder_shape = rect([holder_width, final_holder_depth], rounding=[final_item_rounding, final_item_rounding, 0, 0]);
 
 item_height = final_holder_height - max(0, holder_bottom_thickness);
 final_front_cutoff_height = min(holder_front_cutoff_height, item_height);
 front_cutoff_outer_fillet = max(0, min(holder_front_cutoff_rounding, (item_width - holder_front_cutoff_width) / 2));
 front_cutoff_inner_fillet = max(0, min(holder_front_cutoff_rounding, holder_front_cutoff_width / 2));
 
-// item_tilt_depth = item_depth - ang_adj_to_opp(holder_tilt_angle, item_height);
-final_depth_taper = min(item_depth_taper_angle, adj_opp_to_ang(item_height, item_depth / 2 - 0.5));
+item_fn = 64;
+// item_tilt_depth = final_item_depth - ang_adj_to_opp(final_holder_tilt_angle, item_height);
+final_depth_taper = min(item_depth_taper_angle, adj_opp_to_ang(item_height, final_item_depth / 2 - 0.5));
 final_width_taper = min(item_width_taper_angle, adj_opp_to_ang(item_height, item_width / 2 - 0.5));
-item_taper_depth = item_depth - ang_adj_to_opp(final_depth_taper, item_height) * 2;
+item_taper_depth = final_item_depth - ang_adj_to_opp(final_depth_taper, item_height) * 2;
 item_taper_width = item_width - ang_adj_to_opp(final_width_taper, item_height) * 2;
-item_shape = rect([item_width, item_depth], rounding=final_item_rounding);
+item_sweep_profile =
+  item_shape == "Rectangular" ? rect([item_width, final_item_depth], rounding=final_item_rounding, $fn=item_fn)
+  : item_shape == "Circular" ? circle(d=item_width, $fn=item_fn) : ellipse(d=[item_width, final_item_depth], $fn=item_fn);
 item_width_scale = item_taper_width / item_width;
-item_depth_scale = item_taper_depth / item_depth;
+item_depth_scale = item_taper_depth / final_item_depth;
 
 final_slot_h_grids = max(1, floor(holder_width / OG_TILE_SIZE));
-final_slot_v_grids = max(1, floor(ang_hyp_to_adj(holder_tilt_angle, final_holder_height) / OG_TILE_SIZE));
+final_slot_v_grids = max(1, floor(ang_hyp_to_adj(final_holder_tilt_angle, final_holder_height) / OG_TILE_SIZE));
 
-// xrot(-holder_tilt_angle)
-// hide_this()
-prismoid(size1=[holder_width, holder_added_depth], h=final_holder_height, xang=[90, 90], yang=[90 + holder_tilt_angle, 90], rounding=[5, 5, 0, 0]) diff() {
-    //back holder part, a triangle holder_tilt_angle
-    if (holder_tilt_angle > 0)
-      attach(FRONT, TOP, align=BOTTOM, inside=true)
-        #tag("") prismoid(size1=[holder_width, 0], h=ang_hyp_to_opp(holder_tilt_angle, final_holder_height), xang=[90, 90], yang=[180 - holder_tilt_angle, 90]) {
-            #attach(TOP, TOP, align=BACK, inside=true)
-              tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS);
-          }
-    else
-      #attach(FRONT, TOP, align=TOP, inside=true)
-        tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS);
+// xrot(-final_holder_tilt_angle)
+diff() {
+  back(holder_back_offset / 2) grid_copies(spacing=[item_width + holder_width_divider_wall_thickness, final_item_depth + holder_depth_divider_wall_thickness], n=[item_horizontal_count, item_vertical_count])
+      // line_copies(spacing=item_width + holder_width_divider_wall_thickness, n=item_horizontal_count)
+      up(holder_bottom_thickness) xrot(180)
+          tag("remove") linear_sweep(region=item_sweep_profile, height=item_height, scale=[item_width_scale, item_depth_scale], shift=[0, 0], anchor="original_top");
+  prismoid(size1=[holder_width, final_holder_depth], h=final_holder_height, xang=[90, 90], yang=[90 + final_holder_tilt_angle, 90], rounding=[5, 5, 0, 0]) {
+    attach(FRONT, TOP, align=TOP, inside=true)
+      tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS);
+    // *attach(BOTTOM,BOTTOM,inside=true)
+    // tag("remove")cuboid([item_width,final_item_depth,item_height], edges="Z",rounding=final_item_rounding);
+    // #attach(BOTTOM, "original_top")
+    //back holder part, a triangle final_holder_tilt_angle
+    // if (final_holder_tilt_angle > 0)
+    //   attach(FRONT, TOP, align=BOTTOM, inside=true)
+    //     #tag("") prismoid(size1=[holder_width, 0], h=ang_hyp_to_opp(final_holder_tilt_angle, final_holder_height), xang=[90, 90], yang=[180 - final_holder_tilt_angle, 90]) {
+    //         #attach(TOP, TOP, align=BACK, inside=true)
+    //           tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS);
+    //       }
+    // else
+    //   attach(FRONT, TOP, align=TOP, inside=true)
+    //     tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS);
     //main holder part
-    // attach(BOTTOM, TOP, inside=true)
-    *diff() {
-      tag("") linear_sweep(region=holder_shape, height=final_holder_height, scale=[1, 1], shift=[0, 0]) {
-          // fwd(holder_outer_wall_thickness - slot_wall_thickness - holder_back_offset / 2)
-        }
-      // grid_copies(spacing=[item_width + holder_width_divider_wall_thickness, item_depth + holder_depth_divider_wall_thickness], n=[item_horizontal_count, item_vertical_count])
-      // fwd(holder_outer_wall_thickness - slot_wall_thickness - holder_back_offset / 2)
-      // up((final_holder_height - item_height) / 2) up(10)
-      // tag("remove") 
-      back(20) #linear_sweep(region=item_shape, height=item_height, scale=[item_width_scale, item_depth_scale], shift=[0, 0]);
-    }
-    front_cutoff_depth = item_width - final_item_rounding * 2 - holder_front_cutoff_width > 0 ? holder_outer_wall_thickness : holder_outer_wall_thickness + final_item_rounding;
+    // diff() {
+    // tag("") linear_sweep(region=holder_shape, height=final_holder_height, scale=[1, 1], shift=[0, 0]) {
+    // fwd(holder_outer_wall_thickness - slot_wall_thickness - holder_back_offset / 2)
+    // }
+    // grid_copies(spacing=[item_width + holder_width_divider_wall_thickness, final_item_depth + holder_depth_divider_wall_thickness], n=[item_horizontal_count, item_vertical_count])
+    // fwd(holder_outer_wall_thickness - slot_wall_thickness - holder_back_offset / 2)
+    // up((final_holder_height - item_height) / 2) up(10)
+
+    // }
+    front_cutoff_depth = holder_outer_wall_thickness + final_item_depth / 2 - ang_adj_to_opp(final_depth_taper, item_height);
+    // front_cutoff_depth = item_width - final_item_rounding * 2 - holder_front_cutoff_width > 0 ? holder_outer_wall_thickness : holder_outer_wall_thickness + final_item_rounding;
     if (holder_front_cutoff_width > 0 && holder_front_cutoff_height > 0)
-      *tag_diff(tag="remove", remove="rm1")
+      tag_diff(tag="remove", remove="rm1")
         line_copies(spacing=item_width + holder_width_divider_wall_thickness, n=item_horizontal_count)
           attach(TOP, TOP, align=BACK, inset=-EPS, inside=true)
             tag("") prismoid(size2=[holder_front_cutoff_width, front_cutoff_depth], h=final_front_cutoff_height, xang=[90, 90], yang=[90 - final_depth_taper, 90]) {
@@ -138,3 +154,4 @@ prismoid(size1=[holder_width, holder_added_depth], h=final_holder_height, xang=[
                       rounding_edge_mask(r=front_cutoff_inner_fillet);
               }
   }
+}
