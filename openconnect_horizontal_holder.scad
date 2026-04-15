@@ -87,8 +87,12 @@ holder_depth = item_depth + holder_thickness + holder_top_thickness;
 
 final_corner_rounding = max(0, min(item_width / 2, item_height / 2, item_corner_rounding));
 //The calculation of horizontal slots for Front version is just an approximation.
-final_slot_h_grids = holder_slot_position == "Top" ? floor(holder_width / OG_TILE_SIZE) : floor(max(holder_width, holder_width - final_corner_rounding * 2 + 10) / OG_TILE_SIZE);
-final_slot_v_grids = holder_slot_position == "Top" ? floor(holder_height / OG_TILE_SIZE) : floor(holder_depth / OG_TILE_SIZE);
+final_slot_h_grids =
+  holder_slot_position == "Top" ? max(1, floor(holder_width / OG_TILE_SIZE))
+  : max(1, floor(max(holder_width, holder_width - final_corner_rounding * 2 + 10) / OG_TILE_SIZE));
+final_slot_v_grids =
+  holder_slot_position == "Top" ? max(1, floor(holder_height / OG_TILE_SIZE))
+  : max(1, floor(holder_depth / OG_TILE_SIZE));
 final_slot_position_offset = holder_slot_position == "Top" ? 0 : slot_slide_direction == "Right" ? -slot_position_offset : slot_position_offset;
 //cut off the bridge part of the upper most slot
 middle_cutoff_size_base = max(0.8, slot_edge_wall_min_width) * 2 + EPS;

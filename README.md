@@ -18,23 +18,23 @@ This file contains most code for openConnect. Its customizer options are used to
 
 #### openconnect_vasemode_container [(online)](https://makerworld.com/en/models/2257502-openconnect-vase-mode-container-generator)
 A container generator utilizing the openConnect system. Designed to be printed in **Vase Mode**, it offers fast print times, low filament usage, and a striking appearance when used with transparent filament. 
-**Customizable:** size, line width, tilt angle, surface texture.
+Customizable: size, line width, tilt angle, surface texture.
 
 #### openconnect_drawer [(online)](https://makerworld.com/en/models/2257496-openconnect-drawer-generator)
 A drawer generator that creates drawer shells, containers, stopper clips. Depending on the slot positions chosen, the drawer can be wall-mounted or underdesk mounted.
-**Customizable:** size, slot positions, wall patterns (solid/honeycomb), and drawer compartments.
+Customizable: size, slot positions, wall patterns (solid/honeycomb), and drawer compartments.
 
 #### openconnect_drawer_label [(online)](https://makerworld.com/en/models/2257496-openconnect-drawer-generator)
 A label generator for the openConnect drawer. 
-**Customizable:** style (Emboss/Flush/Deboss), text, and fonts (including emojis).
+Customizable: style (Emboss/Flush/Deboss), text, and fonts (including emojis).
 
 #### openconnect_sturdy_shelf [(online)](https://makerworld.com/en/models/2257523-openconnect-sturdy-shelf-generator)
 A wall-mounted shelf generator. It is "sturdy" because it is designed to be printed on its side, which eliminates the most common failure point in 3D prints: layer line separation. 
-**Customizable:** type (standard/slim), size, thickness, truss length, edge styles, surface textures.
+Customizable: type (standard/slim), size, thickness, truss length, edge styles, surface textures.
 
 #### openconnect_sturdy_hook [(online)](https://makerworld.com/en/models/2257476-openconnect-sturdy-hook-generator)
 A hook generator for openGrid. Like the sturdy shelf, it is printed on its side for maximum strength. Note its minimum width is 20mm. For thinner hooks, see `opengrid_framefit_hook_new` below.
-**Customizable:** size, radius, thickness, truss, tip angle, thickness scaling. 
+Customizable: shape, size, radius, thickness, truss, thickness scaling. 
 
 ---
 ## openGrid Snaps and Framefit
@@ -55,15 +55,15 @@ A series of gadgets that attach to the openGrid board via snaps. These models ar
 
 #### opengrid_snap_gadget_clip [(online)](https://makerworld.com/en/models/1817059-opengrid-gadget-generic-holder-clip-generator)
 A generator for gadget clips that function as generic holders. Includes a tapered front tip for easier insertion and an optional knurling pattern for extra grip.
-**Customizable:** size, shape (circular/rectangular/elliptic), entry size, orientation, and knurling pattern.
+Customizable: size, shape (circular/rectangular/elliptic), entry size, orientation, and knurling pattern.
 
 #### opengrid_snap_gadget_hook [(online)](https://makerworld.com/en/models/1771774-opengrid-snap-gadget-hook-generator)
 A generator for gadget hooks, ideal for hanging items under a desk (useful for Underware users).
-**Customizable:** size, shape (straight/centered/loop), angle.
+Customizable: size, shape (straight/centered/loop), angle.
 
 #### opengrid_snap_gadget_plier_holder [(online)](https://makerworld.com/en/models/1817025-opengrid-gadget-plier-holder-generator)
 A simple generator for plier holders.
-**Customizable:** size, plier count, spring hole.
+Customizable: size, plier count, spring hole.
 
 ---
 ### Other
