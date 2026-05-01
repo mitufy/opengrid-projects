@@ -124,6 +124,7 @@ include <lib/opengrid_base.scad>
 use <lib/openconnect_lib.scad>
 $fa = 1;
 $fs = 0.4;
+emit_annotation_metadata = false;
 function calc_inner_chamfer(outer_chamfer, wall_thickness) = (outer_chamfer / sqrt(2) + wall_thickness - wall_thickness * sqrt(2)) * sqrt(2);
 side_magnet_shell_edge_distance = 2.6;
 shell_inner_chamfer = max(0, calc_inner_chamfer(shell_outer_chamfer, shell_thickness));
@@ -258,6 +259,188 @@ half_of_anchor =
   : view_cross_section == "Back" ? BACK
   : view_cross_section == "Diagonal" ? RIGHT + BACK
   : 0;
+
+shell_annotation_offset = [
+  shell_slot_position == "Left" ? -(shell_ocslot_part_thickness - shell_thickness) / 2
+  : shell_slot_position == "Right" ? (shell_ocslot_part_thickness - shell_thickness) / 2
+  : 0,
+  shell_slot_position == "Top" ? (shell_ocslot_part_thickness - shell_thickness) / 2
+  : shell_slot_position == "Bottom" ? -(shell_ocslot_part_thickness - shell_thickness) / 2
+  : 0,
+  view_drawer_overlapped ? -shell_ocslot_part_thickness : 0
+];
+shell_annotation_x_min = shell_annotation_offset[0] - shell_width / 2;
+shell_annotation_x_max = shell_annotation_offset[0] + shell_width / 2;
+shell_annotation_y_min = shell_annotation_offset[1] - shell_height / 2;
+shell_annotation_y_max = shell_annotation_offset[1] + shell_height / 2;
+shell_annotation_z_min = shell_annotation_offset[2];
+shell_annotation_z_max = shell_annotation_offset[2] + shell_depth;
+
+module emit_dimension_annotation(id, label, axis, value, start, end, basis) {
+  if (emit_annotation_metadata)
+    echo(str(
+      "OPENGRID_ANNOTATION_V1|",
+      "id=", id,
+      "|kind=dimension",
+      "|label=", label,
+      "|axis=", axis,
+      "|value=", value,
+      "|start=", start[0], ",", start[1], ",", start[2],
+      "|end=", end[0], ",", end[1], ",", end[2],
+      "|basis=", basis
+    ));
+}
+
+function _fmt_context_values(names, values, index=0) =
+  index >= len(names) ? "" :
+  str(index == 0 ? "" : ";", names[index], "=", values[index], _fmt_context_values(names, values, index + 1));
+
+module emit_context_values(id, names, values) {
+  if (emit_annotation_metadata)
+    echo(str(
+      "OPENGRID_ANNOTATION_V1|",
+      "id=", id,
+      "|kind=context",
+      "|values=", _fmt_context_values(names, values)
+    ));
+}
+
+module emit_drawer_annotation_context() {
+  emit_context_values(
+    "drawer_context",
+    [
+      "OG_TILE_SIZE",
+      "OG_STANDARD_THICKNESS",
+      "horizontal_grids",
+      "vertical_grids",
+      "depth_grids",
+      "shell_slot_position",
+      "shell_thickness",
+      "shell_ocslot_part_thickness",
+      "shell_width",
+      "shell_height",
+      "shell_depth",
+      "shell_inner_width",
+      "shell_inner_height",
+      "shell_inner_depth",
+      "container_width",
+      "container_height",
+      "container_depth",
+      "container_width_clearance",
+      "container_depth_clearance",
+      "container_height_clearance",
+      "container_front_back_height_offset",
+      "handle_depth",
+      "label_width",
+      "label_height",
+      "stopper_clips_length",
+      "stopper_to_front_offset",
+      "back_magnet_diameter",
+      "side_magnet_diameter"
+    ],
+    [
+      OG_TILE_SIZE,
+      OG_STANDARD_THICKNESS,
+      horizontal_grids,
+      vertical_grids,
+      depth_grids,
+      shell_slot_position,
+      shell_thickness,
+      shell_ocslot_part_thickness,
+      shell_width,
+      shell_height,
+      shell_depth,
+      shell_inner_width,
+      shell_inner_height,
+      shell_inner_depth,
+      container_width,
+      container_height,
+      container_depth,
+      container_width_clearance,
+      container_depth_clearance,
+      container_height_clearance,
+      container_front_back_height_offset,
+      handle_depth,
+      label_width,
+      label_height,
+      stopper_clips_length,
+      stopper_to_front_offset,
+      back_magnet_diameter,
+      side_magnet_diameter
+    ]
+  );
+}
+
+module emit_drawer_shell_annotations() {
+  if (generate_drawer_shell) {
+    emit_dimension_annotation(
+      id="horizontal_grids",
+      label=str("horizontal_grids x ", OG_TILE_SIZE, "mm"),
+      axis="x",
+      value=shell_width,
+      start=[shell_annotation_x_min, shell_annotation_y_min, shell_annotation_z_max],
+      end=[shell_annotation_x_max, shell_annotation_y_min, shell_annotation_z_max],
+      basis="drawer_shell_width_from_horizontal_grids"
+    );
+    emit_dimension_annotation(
+      id="vertical_grids",
+      label=str("vertical_grids x ", OG_TILE_SIZE, "mm"),
+      axis="y",
+      value=shell_height,
+      start=[shell_annotation_x_max, shell_annotation_y_min, shell_annotation_z_max],
+      end=[shell_annotation_x_max, shell_annotation_y_max, shell_annotation_z_max],
+      basis="drawer_shell_height_from_vertical_grids"
+    );
+    emit_dimension_annotation(
+      id="depth_grids",
+      label=str("depth_grids x ", OG_TILE_SIZE, "mm"),
+      axis="z",
+      value=shell_depth,
+      start=[shell_annotation_x_min, shell_annotation_y_max, shell_annotation_z_min],
+      end=[shell_annotation_x_min, shell_annotation_y_max, shell_annotation_z_max],
+      basis="drawer_shell_depth_from_depth_grids_opposite_width_edge"
+    );
+    emit_dimension_annotation(
+      id="shell_thickness",
+      label="shell_thickness",
+      axis="x",
+      value=shell_thickness,
+      start=[shell_annotation_x_min, shell_annotation_y_min, shell_annotation_z_max],
+      end=[shell_annotation_x_min + shell_thickness, shell_annotation_y_min, shell_annotation_z_max],
+      basis="drawer_shell_side_wall_thickness"
+    );
+    emit_dimension_annotation(
+      id="container_width_clearance",
+      label="container_width_clearance",
+      axis="x",
+      value=container_width_clearance,
+      start=[shell_annotation_x_min + shell_thickness, shell_annotation_y_min, shell_annotation_z_max],
+      end=[shell_annotation_x_min + shell_thickness + container_width_clearance, shell_annotation_y_min, shell_annotation_z_max],
+      basis="one_side_container_width_clearance_inside_shell"
+    );
+    emit_dimension_annotation(
+      id="container_height_clearance",
+      label="container_height_clearance",
+      axis="y",
+      value=container_height_clearance,
+      start=[shell_annotation_x_max, shell_annotation_y_min + shell_thickness, shell_annotation_z_max],
+      end=[shell_annotation_x_max, shell_annotation_y_min + shell_thickness + container_height_clearance, shell_annotation_z_max],
+      basis="one_side_container_height_clearance_inside_shell"
+    );
+    emit_dimension_annotation(
+      id="container_depth_clearance",
+      label="container_depth_clearance",
+      axis="z",
+      value=container_depth_clearance,
+      start=[shell_annotation_x_min, shell_annotation_y_max, shell_annotation_z_max - shell_ocslot_part_thickness],
+      end=[shell_annotation_x_min, shell_annotation_y_max, shell_annotation_z_max - shell_ocslot_part_thickness - container_depth_clearance],
+      basis="front_depth_clearance_between_shell_and_container"
+    );
+  }
+}
+
+emit_drawer_annotation_context();
+emit_drawer_shell_annotations();
 
 conditional_half(v=half_of_anchor, condition=half_of_anchor != 0) {
   if (generate_drawer_shell)

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opengrid.local/schemas/annotation-render-gallery.schema.json",
+  "title": "OpenGrid annotation gallery config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "columns": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "thumbnail_width": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}

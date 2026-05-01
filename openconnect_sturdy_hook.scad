@@ -54,6 +54,7 @@ hook_tip_rounding = 5; //0.2
 /* [Hidden] */
 $fa = 1;
 $fs = 0.4;
+emit_annotation_metadata = false;
 include <lib/opengrid_base.scad>
 use <lib/openconnect_lib.scad>
 //Double Lock is intended for small models that only use one or two slots.
@@ -115,6 +116,320 @@ final_sweep_profile =
   : rect([hook_thickness, hook_width]);
 offset_sweep_profile = scale([hook_scale_at(1), 1, 1], final_sweep_profile);
 
+hook_length_annotation_y = -hook_stem_height;
+hook_length_annotation_z = hook_width;
+function _path_last(path) = path[len(path) - 1];
+function _hook_path_point_to_model_top(point) = [
+  hook_thickness / 2 + point[0],
+  point[1] - stem_first_height + hook_thickness_at(path_first_ratio) / 2,
+  hook_width
+];
+function _sq(value) = value * value;
+function _circumcenter_xy(a, b, c) =
+  let(
+    d = 2 * (a[0] * (b[1] - c[1]) + b[0] * (c[1] - a[1]) + c[0] * (a[1] - b[1])),
+    a2 = _sq(a[0]) + _sq(a[1]),
+    b2 = _sq(b[0]) + _sq(b[1]),
+    c2 = _sq(c[0]) + _sq(c[1])
+  )
+  abs(d) <= EPS ? [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2, a[2]] : [
+    (a2 * (b[1] - c[1]) + b2 * (c[1] - a[1]) + c2 * (a[1] - b[1])) / d,
+    (a2 * (c[0] - b[0]) + b2 * (a[0] - c[0]) + c2 * (b[0] - a[0])) / d,
+    a[2]
+  ];
+function _fmt_annotation_vec(point) = str(point[0], ",", point[1], ",", point[2]);
+function _fmt_annotation_vec_list(points, index=0) =
+  index >= len(points) ? "" :
+  str(index == 0 ? "" : ";", _fmt_annotation_vec(points[index]), _fmt_annotation_vec_list(points, index + 1));
+hook_tip_radius_arc_angle = max(1, circular_tip_angle - 90);
+hook_tip_radius_arc_segments = 16;
+function _hook_tip_radius_path_at(angle) = [
+  "setdir", -90,
+  "arcleft", final_corner_radius,
+  "move", max(EPS, hook_length - final_corner_radius - final_tip_radius),
+  "arcleft", final_tip_radius, angle
+];
+hook_tip_radius_arc_points = [
+  for (i = [0:hook_tip_radius_arc_segments])
+    _hook_path_point_to_model_top(_path_last(turtle(_hook_tip_radius_path_at(hook_tip_radius_arc_angle * i / hook_tip_radius_arc_segments))))
+];
+hook_tip_radius_start_anchor = _hook_path_point_to_model_top(_path_last(turtle(hook_path_pre_tip)));
+hook_tip_radius_mid_anchor = _hook_path_point_to_model_top(_path_last(turtle(_hook_tip_radius_path_at(hook_tip_radius_arc_angle / 2))));
+hook_tip_radius_end_anchor = _hook_path_point_to_model_top(_path_last(turtle(hook_path_circ)));
+hook_tip_radius_center_anchor = _circumcenter_xy(hook_tip_radius_start_anchor, hook_tip_radius_mid_anchor, hook_tip_radius_end_anchor);
+hook_corner_radius_arc_segments = 12;
+function _hook_corner_radius_path_at(angle) = [
+  "setdir", -90,
+  "arcleft", final_corner_radius, angle
+];
+hook_corner_radius_arc_points = [
+  for (i = [0:hook_corner_radius_arc_segments])
+    _hook_path_point_to_model_top(_path_last(turtle(_hook_corner_radius_path_at(90 * i / hook_corner_radius_arc_segments))))
+];
+hook_corner_radius_start_anchor = _hook_path_point_to_model_top(_path_last(turtle(["setdir", -90])));
+hook_corner_radius_mid_anchor = _hook_path_point_to_model_top(_path_last(turtle(_hook_corner_radius_path_at(45))));
+hook_corner_radius_end_anchor = _hook_path_point_to_model_top(_path_last(turtle(hook_path_base)));
+hook_corner_radius_center_anchor = _circumcenter_xy(hook_corner_radius_start_anchor, hook_corner_radius_mid_anchor, hook_corner_radius_end_anchor);
+rectangular_tip_start_anchor = _hook_path_point_to_model_top(_path_last(turtle([
+  "setdir", -90,
+  "arcleft", final_corner_radius,
+  "move", max(EPS, hook_length - final_corner_radius - final_tip_radius),
+  "arcleft", final_tip_radius, 90
+])));
+rectangular_tip_end_anchor = _hook_path_point_to_model_top(_path_last(turtle(hook_path_rect)));
+
+module emit_dimension_annotation(id, label, axis, value, start, end, basis) {
+  if (emit_annotation_metadata)
+    echo(str(
+      "OPENGRID_ANNOTATION_V1|",
+      "id=", id,
+      "|kind=dimension",
+      "|label=", label,
+      "|axis=", axis,
+      "|value=", value,
+      "|start=", start[0], ",", start[1], ",", start[2],
+      "|end=", end[0], ",", end[1], ",", end[2],
+      "|basis=", basis
+    ));
+}
+
+function _fmt_context_values(names, values, index=0) =
+  index >= len(names) ? "" :
+  str(index == 0 ? "" : ";", names[index], "=", values[index], _fmt_context_values(names, values, index + 1));
+
+module emit_context_values(id, names, values) {
+  if (emit_annotation_metadata)
+    echo(str(
+      "OPENGRID_ANNOTATION_V1|",
+      "id=", id,
+      "|kind=context",
+      "|values=", _fmt_context_values(names, values)
+    ));
+}
+
+module emit_feature_annotation(id, label, value, anchor, basis) {
+  if (emit_annotation_metadata)
+    echo(str(
+      "OPENGRID_ANNOTATION_V1|",
+      "id=", id,
+      "|kind=feature",
+      "|label=", label,
+      "|value=", value,
+      "|anchor=", anchor[0], ",", anchor[1], ",", anchor[2],
+      "|basis=", basis
+    ));
+}
+
+module emit_radius_annotation(id, label, value, center, edge, basis) {
+  if (emit_annotation_metadata)
+    echo(str(
+      "OPENGRID_ANNOTATION_V1|",
+      "id=", id,
+      "|kind=radius",
+      "|label=", label,
+      "|value=", value,
+      "|center=", center[0], ",", center[1], ",", center[2],
+      "|edge=", edge[0], ",", edge[1], ",", edge[2],
+      "|basis=", basis
+    ));
+}
+
+module emit_arc_annotation(id, label, value, points, basis) {
+  if (emit_annotation_metadata)
+    echo(str(
+      "OPENGRID_ANNOTATION_V1|",
+      "id=", id,
+      "|kind=arc",
+      "|label=", label,
+      "|value=", value,
+      "|start=", points[0][0], ",", points[0][1], ",", points[0][2],
+      "|end=", points[len(points) - 1][0], ",", points[len(points) - 1][1], ",", points[len(points) - 1][2],
+      "|points=", _fmt_annotation_vec_list(points),
+      "|basis=", basis
+    ));
+}
+
+module emit_sturdy_hook_annotations() {
+  emit_context_values(
+    "sturdy_hook_context",
+    [
+      "OG_TILE_SIZE",
+      "horizontal_grids",
+      "vertical_grids",
+      "hook_vertical_grids",
+      "truss_vertical_grids",
+      "truss_thickness",
+      "truss_rounding",
+      "truss_max_angle",
+      "hook_length",
+      "hook_thickness",
+      "hook_width",
+      "hook_shape_type",
+      "circular_corner_radius",
+      "circular_tip_radius",
+      "circular_tip_angle",
+      "circular_thickness_scale",
+      "rectangular_tip_extra_length",
+      "final_corner_radius",
+      "final_tip_radius",
+      "final_circular_thickness_scale"
+    ],
+    [
+      OG_TILE_SIZE,
+      horizontal_grids,
+      vertical_grids,
+      hook_vertical_grids,
+      truss_vertical_grids,
+      truss_thickness,
+      truss_rounding,
+      truss_max_angle,
+      hook_length,
+      hook_thickness,
+      hook_width,
+      hook_shape_type,
+      circular_corner_radius,
+      circular_tip_radius,
+      circular_tip_angle,
+      circular_thickness_scale,
+      rectangular_tip_extra_length,
+      final_corner_radius,
+      final_tip_radius,
+      final_circular_thickness_scale
+    ]
+  );
+  emit_dimension_annotation(
+    id="hook_vertical_grids",
+    label=str("hook_vertical_grids x ", OG_TILE_SIZE, "mm"),
+    axis="y",
+    value=hook_stem_height,
+    start=[0, 0, hook_length_annotation_z],
+    end=[0, -hook_stem_height, hook_length_annotation_z],
+    basis="stem_height_from_hook_vertical_grids"
+  );
+  emit_dimension_annotation(
+    id="hook_thickness",
+    label="hook_thickness",
+    axis="x",
+    value=hook_thickness,
+    start=[0, hook_length_annotation_y, hook_length_annotation_z],
+    end=[hook_thickness, hook_length_annotation_y, hook_length_annotation_z],
+    basis="stem_thickness_same_plane_as_hook_length"
+  );
+  emit_dimension_annotation(
+    id="hook_length",
+    label="hook_length",
+    axis="x",
+    value=hook_length,
+    start=[hook_thickness, hook_length_annotation_y, hook_length_annotation_z],
+    end=[hook_thickness + hook_length, hook_length_annotation_y, hook_length_annotation_z],
+    basis="outer_reach_after_stem"
+  );
+  emit_dimension_annotation(
+    id="hook_width",
+    label="hook_width",
+    axis="z",
+    value=hook_width,
+    start=[0, -final_side_chamfer * (2 - sqrt(2)), 0],
+    end=[0, -final_side_chamfer * (2 - sqrt(2)), hook_width],
+    basis="extrusion_width_back_rounded_corner_full_width"
+  );
+  if (truss_vertical_grids > 0) {
+    emit_dimension_annotation(
+      id="truss_vertical_grids",
+      label=str("truss_vertical_grids x ", OG_TILE_SIZE, "mm"),
+      axis="y",
+      value=truss_vertical_grids * OG_TILE_SIZE,
+      start=[0, -hook_stem_height, hook_length_annotation_z],
+      end=[0, -(hook_stem_height + truss_vertical_grids * OG_TILE_SIZE), hook_length_annotation_z],
+      basis="truss_height_from_truss_vertical_grids"
+    );
+    emit_dimension_annotation(
+      id="truss_thickness",
+      label="truss_thickness",
+      axis="x",
+      value=truss_thickness,
+      start=[hook_thickness, -hook_stem_height, hook_length_annotation_z],
+      end=[hook_thickness + truss_thickness, -hook_stem_height, hook_length_annotation_z],
+      basis="nominal_truss_member_thickness"
+    );
+  }
+  if (hook_shape_type == "Rectangular" && rectangular_tip_extra_length > EPS) {
+    emit_dimension_annotation(
+      id="rectangular_tip_extra_length",
+      label="rectangular_tip_extra_length",
+      axis="y",
+      value=rectangular_tip_extra_length,
+      start=rectangular_tip_start_anchor,
+      end=rectangular_tip_end_anchor,
+      basis="extra_straight_tip_from_turtle_path"
+    );
+  }
+  if (hook_shape_type == "Circular" && final_corner_radius > EPS) {
+    emit_radius_annotation(
+      id="circular_corner_radius",
+      label="circular_corner_radius",
+      value=final_corner_radius,
+      center=hook_corner_radius_center_anchor,
+      edge=hook_corner_radius_mid_anchor,
+      basis="corner_radius_center_to_midpoint_from_turtle_path"
+    );
+    emit_arc_annotation(
+      id="circular_corner_radius_extent",
+      label="circular_corner_radius_extent",
+      value=final_corner_radius,
+      points=hook_corner_radius_arc_points,
+      basis="corner_radius_arc_from_turtle_path"
+    );
+    emit_feature_annotation(
+      id="circular_corner_radius_start",
+      label="circular_corner_radius_start",
+      value=final_corner_radius,
+      anchor=hook_corner_radius_start_anchor,
+      basis="start_of_corner_radius_arc_from_turtle_path"
+    );
+    emit_feature_annotation(
+      id="circular_corner_radius_end",
+      label="circular_corner_radius_end",
+      value=final_corner_radius,
+      anchor=hook_corner_radius_end_anchor,
+      basis="end_of_corner_radius_arc_from_turtle_path"
+    );
+  }
+  if (hook_shape_type == "Circular" && final_tip_radius > EPS) {
+    emit_radius_annotation(
+      id="circular_tip_radius",
+      label="circular_tip_radius",
+      value=final_tip_radius,
+      center=hook_tip_radius_center_anchor,
+      edge=hook_tip_radius_mid_anchor,
+      basis="tip_radius_center_to_midpoint_from_turtle_path"
+    );
+    emit_arc_annotation(
+      id="circular_tip_radius_extent",
+      label="circular_tip_radius_extent",
+      value=final_tip_radius,
+      points=hook_tip_radius_arc_points,
+      basis="tip_radius_arc_from_turtle_path"
+    );
+    emit_feature_annotation(
+      id="circular_tip_radius_start",
+      label="circular_tip_radius_start",
+      value=final_tip_radius,
+      anchor=hook_tip_radius_start_anchor,
+      basis="start_of_tip_radius_arc_from_turtle_path"
+    );
+    emit_feature_annotation(
+      id="circular_tip_radius_end",
+      label="circular_tip_radius_end",
+      value=final_tip_radius,
+      anchor=hook_tip_radius_end_anchor,
+      basis="end_of_tip_radius_arc_from_turtle_path"
+    );
+  }
+}
+
+emit_sturdy_hook_annotations();
+
 //BEGIN generation
 diff(remove="rm0")
   diff(remove="rm1", keep="kp1 rm0") {
@@ -158,8 +473,8 @@ diff(remove="rm0")
                     truss_height_offset=truss_height_offset
                   );
           }
+          }
       }
-    }
     tag_diff(remove="rm2", tag="kp1")
       up(hook_width / 2) fwd(stem_first_height - hook_thickness_at(path_first_ratio) / 2) right(hook_thickness / 2) {
             path_sweep(final_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[hook_scale_at(1), 1]) {

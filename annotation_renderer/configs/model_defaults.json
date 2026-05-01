@@ -1,0 +1,363 @@
+{
+  "$schema": "../schemas/annotation-render-config.schema.json",
+  "job_name": "opengrid_annotation_models",
+  "constants": {
+    "drawer_shell_rotation_x_deg": 90,
+    "drawer_container_rotation_x_deg": 0,
+    "blender_scene_scale": 0.001,
+    "blender_scene_scale_vector": [
+      "blender_scene_scale",
+      "blender_scene_scale",
+      "blender_scene_scale"
+    ],
+    "placeholder_transform": {
+      "location_mm": [
+        0,
+        0,
+        0
+      ],
+      "rotation_deg": [
+        90,
+        0,
+        -90
+      ],
+      "scale": {
+        "$constant": "blender_scene_scale_vector"
+      }
+    },
+    "small_dimension_chain": {
+      "line_offset_px": 28,
+      "label_offset_px": 24,
+      "label_font_size_px": 20,
+      "tick_length_px": 12,
+      "line_width_px": 2.2,
+      "extension_width_px": 1.2
+    },
+    "bottom_image_label": {
+      "position": "bottom",
+      "offset_px": [
+        0,
+        -24
+      ],
+      "font_size_px": 24
+    },
+    "drawer_fit_render": {
+      "fit_margin": 0.11
+    },
+    "sturdy_hook_model": {
+      "scad_file": "openconnect_sturdy_hook.scad",
+      "defines": {
+        "hook_length": 45
+      }
+    },
+    "sturdy_hook_annotations": {
+      "aliases": {
+        "circular_tip_radius": "tip_radius",
+        "circular_tip_radius_extent": "tip_radius"
+      },
+      "chains": [
+        {
+          "ids": [
+            "hook_thickness",
+            "hook_length"
+          ]
+        },
+        {
+          "ids": [
+            "hook_vertical_grids"
+          ],
+          "display_offset_mm": [
+            -6,
+            0,
+            0
+          ],
+          "label_offset_px": 42
+        }
+      ],
+      "radius_callouts": [
+        {
+          "ids": [
+            "circular_tip_radius"
+          ],
+          "label_offset_px": -50
+        }
+      ],
+      "arc_callouts": [
+        {
+          "ids": [
+            "circular_tip_radius_extent"
+          ],
+          "show_label": false
+        }
+      ],
+      "image_labels": [
+        {
+          "$constant": "bottom_image_label",
+          "id": "hook_shape_type"
+        }
+      ]
+    },
+    "sturdy_shelf_model": {
+      "scad_file": "openconnect_sturdy_shelf.scad",
+      "defines": {
+        "shelf_type": "Standard",
+        "add_texture": false
+      }
+    },
+    "sturdy_shelf_annotations": {
+      "chains": [
+        {
+          "ids": [
+            "shelf_depth"
+          ],
+          "display_offset_mm": [
+            0,
+            "OG_TILE_SIZE",
+            0
+          ]
+        },
+        {
+          "ids": [
+            "shelf_width"
+          ],
+          "display_offset_mm": [
+            "shelf_back_thickness",
+            "OG_TILE_SIZE + shelf_back_thickness",
+            0
+          ]
+        },
+        {
+          "$constant": "small_dimension_chain",
+          "ids": [
+            "shelf_back_thickness"
+          ]
+        },
+        {
+          "$constant": "small_dimension_chain",
+          "ids": [
+            "shelf_bottom_thickness"
+          ]
+        }
+      ],
+      "image_labels": [
+        {
+          "$constant": "bottom_image_label",
+          "id": "shelf_type",
+          "show_value": true
+        }
+      ]
+    },
+    "drawer_common_defines": {
+      "generate_drawer_stopper_clips": false,
+      "view_drawer_overlapped": false,
+      "horizontal_grids": 5,
+      "vertical_grids": 2,
+      "depth_grids": 5,
+      "shell_slot_position": "Back"
+    },
+    "drawer_common_model": {
+      "scad_file": "openconnect_drawer.scad",
+      "defines": {
+        "$constant": "drawer_common_defines"
+      }
+    },
+    "drawer_shell_defines": {
+      "generate_drawer_shell": true,
+      "generate_drawer_container": false
+    },
+    "drawer_container_defines": {
+      "generate_drawer_shell": false,
+      "generate_drawer_container": true
+    },
+    "drawer_shell_material": {
+      "color": "#eee9df",
+      "roughness": 0.58
+    },
+    "drawer_container_material": {
+      "color": "#ffffff",
+      "roughness": 0.5
+    },
+    "drawer_shell_transform": {
+      "location_mm": [
+        "odd(horizontal_grids) * OG_TILE_SIZE / 2",
+        0,
+        "-OG_TILE_SIZE + odd(vertical_grids) * OG_TILE_SIZE / 2"
+      ],
+      "rotation_deg": [
+        "drawer_shell_rotation_x_deg",
+        0,
+        0
+      ]
+    },
+    "drawer_container_transform": {
+      "location_mm": [
+        "odd(horizontal_grids) * OG_TILE_SIZE / 2",
+        "-(shell_ocslot_part_thickness + container_depth_clearance)",
+        "-(vertical_grids * OG_TILE_SIZE - shell_thickness - container_height_clearance / 2)"
+      ],
+      "rotation_deg": [
+        "drawer_container_rotation_x_deg",
+        0,
+        0
+      ]
+    },
+    "drawer_object_defaults": {
+      "model": {
+        "$constant": "drawer_common_model"
+      },
+      "inherit_target_transform": false
+    },
+    "drawer_shell_object": {
+      "id": "drawer_shell",
+      "target_object": "drawer",
+      "model": {
+        "defines": {
+          "$constant": "drawer_shell_defines"
+        }
+      },
+      "material": {
+        "$constant": "drawer_shell_material"
+      },
+      "transform": {
+        "$constant": "drawer_shell_transform"
+      }
+    },
+    "drawer_container_object": {
+      "id": "drawer_container",
+      "target_object": "drawer_container",
+      "material_source_object": "drawer",
+      "model": {
+        "defines": {
+          "$constant": "drawer_container_defines"
+        }
+      },
+      "material": {
+        "$constant": "drawer_container_material"
+      },
+      "transform": {
+        "$constant": "drawer_container_transform"
+      }
+    },
+    "drawer_grid_annotations": {
+      "object": "drawer_shell",
+      "chains": [
+        {
+          "ids": [
+            "horizontal_grids"
+          ],
+          "label_offset_px": 42
+        },
+        {
+          "ids": [
+            "vertical_grids"
+          ],
+          "line_offset_px": 30,
+          "label_offset_px": 30,
+          "label_font_size_px": 22
+        },
+        {
+          "ids": [
+            "depth_grids"
+          ],
+          "line_offset_px": -38,
+          "label_offset_px": -42
+        }
+      ],
+      "image_labels": [
+        {
+          "id": "shell_slot_position",
+          "value": "Back",
+          "position": "top",
+          "offset_px": [
+            0,
+            32
+          ],
+          "show_value": true,
+          "font_size_px": 24
+        }
+      ]
+    }
+  },
+  "model": null,
+  "scene": {
+    "blend_file": "../assets/scenes/opengrid_wall_scene.blend",
+    "target_object": "placeholder",
+    "camera": "Camera",
+    "replace_target_object": true,
+    "inherit_target_transform": false,
+    "transform": {
+      "$constant": "placeholder_transform"
+    }
+  },
+  "render": {
+    "preset": "cycles_standard_scene"
+  },
+  "annotations": {},
+  "variants": [
+    {
+      "name": "sturdy_hook_default",
+      "job_name": "sturdy_hook_scene_45",
+      "model": {
+        "$constant": "sturdy_hook_model"
+      },
+      "annotations": {
+        "$constant": "sturdy_hook_annotations"
+      }
+    },
+    {
+      "name": "sturdy_shelf_default",
+      "job_name": "sturdy_shelf_scene_default",
+      "model": {
+        "$constant": "sturdy_shelf_model"
+      },
+      "annotations": {
+        "$constant": "sturdy_shelf_annotations"
+      }
+    },
+    {
+      "name": "drawer_shell_default",
+      "job_name": "openconnect_drawer_shell_scene_default",
+      "model": null,
+      "scene": {
+        "object_defaults": {
+          "$constant": "drawer_object_defaults"
+        },
+        "objects": [
+          {
+            "$constant": "drawer_shell_object"
+          }
+        ]
+      },
+      "render": {
+        "$constant": "drawer_fit_render"
+      },
+      "annotations": {
+        "$constant": "drawer_grid_annotations"
+      }
+    },
+    {
+      "name": "drawer_shell_container_default",
+      "job_name": "openconnect_drawer_shell_container_scene_default",
+      "model": null,
+      "scene": {
+        "object_defaults": {
+          "$constant": "drawer_object_defaults"
+        },
+        "objects": [
+          {
+            "$constant": "drawer_shell_object"
+          },
+          {
+            "$constant": "drawer_container_object"
+          }
+        ]
+      },
+      "render": {
+        "$constant": "drawer_fit_render"
+      },
+      "annotations": {
+        "$constant": "drawer_grid_annotations"
+      }
+    }
+  ]
+}
