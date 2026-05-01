@@ -8,6 +8,10 @@ To generate the models locally, download the repository and install **OpenSCAD**
 
 After installing OpenSCAD, go to **Edit -> Preferences -> Advanced** and ensure the 3D Rendering Backend is set to **"Manifold."** This significantly shortens rendering times.
 
+## Annotation Renderer Utility
+
+The Blender/OpenSCAD technical drawing image generator lives in [`annotation_renderer/`](annotation_renderer/README.md). It contains the reusable renderer package, CLI, config examples, JSON Schema, and utility-specific documentation.
+
 ---
 
 ## openConnect

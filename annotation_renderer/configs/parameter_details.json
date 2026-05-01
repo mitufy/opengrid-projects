@@ -1,0 +1,372 @@
+{
+  "$schema": "../schemas/annotation-render-config.schema.json",
+  "extends": "model_defaults.json",
+  "job_name": "opengrid_parameter_details",
+  "constants": {
+    "sturdy_hook_circular_detail_annotations": {
+      "aliases": {
+        "circular_corner_radius": "corner_radius",
+        "circular_corner_radius_extent": "corner_radius",
+        "circular_tip_radius": "tip_radius",
+        "circular_tip_radius_extent": "tip_radius",
+        "circular_tip_angle": "tip_angle"
+      },
+      "chains": [
+        {
+          "ids": [
+            "hook_width"
+          ],
+          "line_offset_px": -42,
+          "label_offset_px": -32
+        }
+      ],
+      "radius_callouts": [],
+      "arc_callouts": [],
+      "angle_radius_callouts": [
+        {
+          "id": "circular_corner_radius_detail",
+          "arc_id": "circular_corner_radius_extent",
+          "radius_id": "circular_corner_radius",
+          "show_angle_label": false,
+          "radius_label_offset_px": 46
+        },
+        {
+          "id": "circular_tip_angle_radius",
+          "arc_id": "circular_tip_radius_extent",
+          "radius_id": "circular_tip_radius",
+          "angle_id": "circular_tip_angle",
+          "angle_label_offset_px": 34,
+          "radius_label_offset_px": 32,
+          "angle_fill_alpha": 28
+        }
+      ]
+    },
+    "sturdy_hook_rectangular_detail_annotations": {
+      "chains": [
+        {
+          "ids": [
+            "hook_width"
+          ],
+          "line_offset_px": -34,
+          "label_offset_px": -38
+        },
+        {
+          "ids": [
+            "rectangular_tip_extra_length"
+          ],
+          "line_offset_px": 34,
+          "label_offset_px": 38
+        }
+      ],
+      "image_labels": [
+        {
+          "$constant": "bottom_image_label",
+          "id": "hook_shape_type",
+          "value": "Rectangular",
+          "show_value": true
+        }
+      ]
+    },
+    "sturdy_hook_truss_detail_annotations": {
+      "chains": [
+        {
+          "ids": [
+            "truss_vertical_grids"
+          ],
+          "line_offset_px": 36,
+          "label_offset_px": 42
+        },
+        {
+          "$constant": "small_dimension_chain",
+          "ids": [
+            "truss_thickness"
+          ]
+        }
+      ],
+      "image_labels": [
+        {
+          "$constant": "bottom_image_label",
+          "id": "truss_max_angle",
+          "show_value": true
+        }
+      ]
+    },
+    "sturdy_shelf_truss_detail_annotations": {
+      "aliases": {
+        "shelf_corner_fillet": "corner_fillet"
+      },
+      "chains": [
+        {
+          "ids": [
+            "truss_beam_reach"
+          ],
+          "line_offset_px": 34,
+          "label_offset_px": 38
+        },
+        {
+          "$constant": "small_dimension_chain",
+          "ids": [
+            "truss_thickness"
+          ]
+        },
+        {
+          "$constant": "small_dimension_chain",
+          "ids": [
+            "truss_strut_interval"
+          ],
+          "line_offset_px": -30,
+          "label_offset_px": -32
+        }
+      ],
+      "radius_callouts": [
+        {
+          "ids": [
+            "shelf_corner_fillet"
+          ],
+          "label_offset_px": 50
+        }
+      ]
+    },
+    "sturdy_shelf_edge_texture_detail_annotations": {
+      "chains": [
+        {
+          "$constant": "small_dimension_chain",
+          "ids": [
+            "shelf_side_edge_depth"
+          ]
+        },
+        {
+          "$constant": "small_dimension_chain",
+          "ids": [
+            "shelf_front_edge_depth"
+          ],
+          "line_offset_px": 34,
+          "label_offset_px": 34
+        }
+      ],
+      "image_labels": [
+        {
+          "$constant": "bottom_image_label",
+          "id": "shelf_texture_depth",
+          "show_value": true
+        }
+      ]
+    },
+    "drawer_shell_detail_annotations": {
+      "object": "drawer_shell",
+      "chains": [
+        {
+          "$constant": "small_dimension_chain",
+          "ids": [
+            "shell_thickness"
+          ]
+        },
+        {
+          "$constant": "small_dimension_chain",
+          "ids": [
+            "container_width_clearance"
+          ],
+          "line_offset_px": 36,
+          "label_offset_px": 36
+        },
+        {
+          "$constant": "small_dimension_chain",
+          "ids": [
+            "container_height_clearance"
+          ],
+          "line_offset_px": -34,
+          "label_offset_px": -34
+        },
+        {
+          "$constant": "small_dimension_chain",
+          "ids": [
+            "container_depth_clearance"
+          ],
+          "line_offset_px": 36,
+          "label_offset_px": 36
+        }
+      ],
+      "image_labels": [
+        {
+          "$constant": "bottom_image_label",
+          "id": "container_front_back_height_offset",
+          "show_value": true
+        }
+      ]
+    },
+    "drawer_container_detail_annotations": {
+      "object": "drawer_container",
+      "image_labels": [
+        {
+          "$constant": "bottom_image_label",
+          "id": "handle_depth",
+          "show_value": true
+        },
+        {
+          "$constant": "bottom_image_label",
+          "id": "label_width",
+          "show_value": true,
+          "offset_px": [
+            -180,
+            -24
+          ]
+        },
+        {
+          "$constant": "bottom_image_label",
+          "id": "label_height",
+          "show_value": true,
+          "offset_px": [
+            180,
+            -24
+          ]
+        },
+        {
+          "id": "stopper_clips_length",
+          "position": "top_left",
+          "offset_px": [
+            32,
+            32
+          ],
+          "show_value": true,
+          "font_size_px": 22
+        },
+        {
+          "id": "stopper_to_front_offset",
+          "position": "top_left",
+          "offset_px": [
+            32,
+            70
+          ],
+          "show_value": true,
+          "font_size_px": 22
+        },
+        {
+          "id": "back_magnet_diameter",
+          "position": "top_right",
+          "offset_px": [
+            -32,
+            32
+          ],
+          "show_value": true,
+          "font_size_px": 22
+        },
+        {
+          "id": "side_magnet_diameter",
+          "position": "top_right",
+          "offset_px": [
+            -32,
+            70
+          ],
+          "show_value": true,
+          "font_size_px": 22
+        }
+      ]
+    }
+  },
+  "variants": [
+    {
+      "name": "sturdy_hook_circular_details",
+      "job_name": "sturdy_hook_circular_details_45",
+      "model": {
+        "$constant": "sturdy_hook_model"
+      },
+      "annotations": {
+        "$constant": "sturdy_hook_circular_detail_annotations"
+      }
+    },
+    {
+      "name": "sturdy_hook_rectangular_details",
+      "job_name": "sturdy_hook_rectangular_details",
+      "model": {
+        "$constant": "sturdy_hook_model",
+        "defines": {
+          "hook_shape_type": "Rectangular"
+        }
+      },
+      "annotations": {
+        "$constant": "sturdy_hook_rectangular_detail_annotations"
+      }
+    },
+    {
+      "name": "sturdy_hook_truss_details",
+      "job_name": "sturdy_hook_truss_details",
+      "model": {
+        "$constant": "sturdy_hook_model",
+        "defines": {
+          "truss_vertical_grids": 1
+        }
+      },
+      "annotations": {
+        "$constant": "sturdy_hook_truss_detail_annotations"
+      }
+    },
+    {
+      "name": "sturdy_shelf_truss_details",
+      "job_name": "sturdy_shelf_truss_details",
+      "model": {
+        "$constant": "sturdy_shelf_model"
+      },
+      "annotations": {
+        "$constant": "sturdy_shelf_truss_detail_annotations"
+      }
+    },
+    {
+      "name": "sturdy_shelf_edge_texture_details",
+      "job_name": "sturdy_shelf_edge_texture_details",
+      "model": {
+        "$constant": "sturdy_shelf_model",
+        "defines": {
+          "add_texture": true
+        }
+      },
+      "annotations": {
+        "$constant": "sturdy_shelf_edge_texture_detail_annotations"
+      }
+    },
+    {
+      "name": "drawer_shell_clearance_details",
+      "job_name": "drawer_shell_clearance_details",
+      "model": null,
+      "scene": {
+        "object_defaults": {
+          "$constant": "drawer_object_defaults"
+        },
+        "objects": [
+          {
+            "$constant": "drawer_shell_object"
+          }
+        ]
+      },
+      "render": {
+        "$constant": "drawer_fit_render"
+      },
+      "annotations": {
+        "$constant": "drawer_shell_detail_annotations"
+      }
+    },
+    {
+      "name": "drawer_container_label_handle_details",
+      "job_name": "drawer_container_label_handle_details",
+      "model": null,
+      "scene": {
+        "object_defaults": {
+          "$constant": "drawer_object_defaults"
+        },
+        "objects": [
+          {
+            "$constant": "drawer_shell_object"
+          },
+          {
+            "$constant": "drawer_container_object"
+          }
+        ]
+      },
+      "render": {
+        "$constant": "drawer_fit_render"
+      },
+      "annotations": {
+        "$constant": "drawer_container_detail_annotations"
+      }
+    }
+  ]
+}

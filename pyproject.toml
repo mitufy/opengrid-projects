@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "opengrid-annotation-renderer"
+version = "0.1.0"
+description = "OpenSCAD-to-Blender annotation renderer for OpenGrid technical images"
+readme = "annotation_renderer/README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "Pillow>=10"
+]
+
+[project.scripts]
+opengrid-annotate = "annotation_renderer.scene_cli:main"
+
+[tool.setuptools]
+packages = ["annotation_renderer"]
+
+[tool.setuptools.package-data]
+annotation_renderer = [
+  "assets/scenes/*.blend",
+  "configs/*.json",
+  "schemas/*.json"
+]
