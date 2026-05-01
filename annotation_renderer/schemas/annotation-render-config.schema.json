@@ -1,0 +1,1013 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opengrid.local/schemas/annotation-render-config.schema.json",
+  "title": "OpenGrid annotation render config",
+  "type": "object",
+  "required": [
+    "scene",
+    "annotations"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "extends": {
+      "type": "string",
+      "description": "Optional base config path resolved relative to this config file."
+    },
+    "job_name": {
+      "type": "string"
+    },
+    "output_dir": {
+      "type": "string"
+    },
+    "gallery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "thumbnail_width": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "constants": {
+      "type": "object",
+      "description": "Reusable scalar values or JSON snippets. Numeric constants are also available to expression strings."
+    },
+    "model": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/modelConfig"
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "scene": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/sceneConfig"
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "render": {
+      "$ref": "#/$defs/renderConfig"
+    },
+    "annotations": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/annotationsConfig"
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "variants": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "set": {
+            "type": "object",
+            "description": "Dotted config paths to override for this variant."
+          },
+          "job_name": {
+            "type": "string"
+          },
+          "output_dir": {
+            "type": "string"
+          },
+          "constants": {
+            "type": "object"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/modelConfig"
+              },
+              {
+                "$ref": "#/$defs/constantRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scene": {
+            "type": "object"
+          },
+          "render": {
+            "$ref": "#/$defs/renderConfig"
+          },
+          "annotations": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/annotationsConfig"
+              },
+              {
+                "$ref": "#/$defs/constantRef"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "constantRef": {
+      "type": "object",
+      "required": [
+        "$constant"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "$constant": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "numberOrExpression": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "vector2": {
+      "anyOf": [
+        {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/numberOrExpression"
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "x",
+            "y"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "x": {
+              "$ref": "#/$defs/numberOrExpression"
+            },
+            "y": {
+              "$ref": "#/$defs/numberOrExpression"
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "vector3": {
+      "anyOf": [
+        {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/numberOrExpression"
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "x",
+            "y",
+            "z"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "x": {
+              "$ref": "#/$defs/numberOrExpression"
+            },
+            "y": {
+              "$ref": "#/$defs/numberOrExpression"
+            },
+            "z": {
+              "$ref": "#/$defs/numberOrExpression"
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "defineValue": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "defines": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/defineValue"
+          }
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "modelConfig": {
+      "type": "object",
+      "required": [
+        "scad_file"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "scad_file": {
+          "type": "string",
+          "minLength": 1
+        },
+        "defines": {
+          "$ref": "#/$defs/defines"
+        }
+      }
+    },
+    "partialModelConfig": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "scad_file": {
+              "type": "string",
+              "minLength": 1
+            },
+            "defines": {
+              "$ref": "#/$defs/defines"
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "sceneTransform": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "location_mm",
+            "rotation_deg",
+            "scale"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "location_mm": {
+              "$ref": "#/$defs/vector3"
+            },
+            "rotation_deg": {
+              "$ref": "#/$defs/vector3"
+            },
+            "scale": {
+              "$ref": "#/$defs/vector3"
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "partialSceneTransform": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "location_mm": {
+              "$ref": "#/$defs/vector3"
+            },
+            "rotation_deg": {
+              "$ref": "#/$defs/vector3"
+            },
+            "scale": {
+              "$ref": "#/$defs/vector3"
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "material": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "color": {
+              "type": "string"
+            },
+            "alpha": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "roughness": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "metallic": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "meshShading": {
+      "type": "string",
+      "enum": [
+        "flat",
+        "smooth",
+        "weighted_normals",
+        "auto_smooth"
+      ]
+    },
+    "sceneObjectDefaults": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "target_object": {
+              "type": "string"
+            },
+            "model": {
+              "$ref": "#/$defs/partialModelConfig"
+            },
+            "replace_target_object": {
+              "type": "boolean"
+            },
+            "inherit_target_transform": {
+              "type": "boolean"
+            },
+            "transform": {
+              "$ref": "#/$defs/partialSceneTransform"
+            },
+            "material_source_object": {
+              "type": "string"
+            },
+            "material": {
+              "$ref": "#/$defs/material"
+            },
+            "mesh_shading": {
+              "$ref": "#/$defs/meshShading"
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "sceneObject": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "target_object": {
+              "type": "string"
+            },
+            "model": {
+              "$ref": "#/$defs/partialModelConfig"
+            },
+            "replace_target_object": {
+              "type": "boolean"
+            },
+            "inherit_target_transform": {
+              "type": "boolean"
+            },
+            "transform": {
+              "$ref": "#/$defs/partialSceneTransform"
+            },
+            "material_source_object": {
+              "type": "string"
+            },
+            "material": {
+              "$ref": "#/$defs/material"
+            },
+            "mesh_shading": {
+              "$ref": "#/$defs/meshShading"
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "sceneConfig": {
+      "type": "object",
+      "anyOf": [
+        {
+          "required": [
+            "blend_file",
+            "target_object"
+          ]
+        },
+        {
+          "required": [
+            "blend_file",
+            "objects"
+          ]
+        }
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "blend_file": {
+          "type": "string"
+        },
+        "target_object": {
+          "type": "string"
+        },
+        "camera": {
+          "type": "string"
+        },
+        "replace_target_object": {
+          "type": "boolean"
+        },
+        "inherit_target_transform": {
+          "type": "boolean"
+        },
+        "transform": {
+          "$ref": "#/$defs/sceneTransform"
+        },
+        "object_defaults": {
+          "$ref": "#/$defs/sceneObjectDefaults"
+        },
+        "objects": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/sceneObject"
+          }
+        }
+      }
+    },
+    "renderConfig": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "cycles_standard_scene",
+            "cycles_draft_scene"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$constant": {
+              "type": "string",
+              "minLength": 1
+            },
+            "preset": {
+              "type": "string",
+              "enum": [
+                "cycles_standard_scene",
+                "cycles_draft_scene"
+              ]
+            },
+            "engine": {
+              "type": "string",
+              "enum": [
+                "cycles",
+                "eevee"
+              ]
+            },
+            "quality": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "standard",
+                "high"
+              ]
+            },
+            "width": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "fit_camera": {
+              "type": "boolean"
+            },
+            "fit_margin": {
+              "type": "number"
+            },
+            "mesh_shading": {
+              "$ref": "#/$defs/meshShading"
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "labelsMap": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "annotationGroup": {
+      "anyOf": [
+        {
+          "type": "object",
+          "anyOf": [
+            {
+              "required": [
+                "ids"
+              ]
+            },
+            {
+              "required": [
+                "$constant"
+              ]
+            }
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "$constant": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ids": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            },
+            "display_offset_mm": {
+              "$ref": "#/$defs/vector3"
+            },
+            "labels": {
+              "$ref": "#/$defs/labelsMap"
+            },
+            "line_offset_px": {
+              "type": "number"
+            },
+            "label_offset_px": {
+              "type": "number"
+            },
+            "line_alpha": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "line_width_px": {
+              "type": "number"
+            },
+            "extension_width_px": {
+              "type": "number"
+            },
+            "extension_visible": {
+              "type": "boolean"
+            },
+            "extension_dash_px": {
+              "type": "number"
+            },
+            "extension_gap_px": {
+              "type": "number"
+            },
+            "tick_length_px": {
+              "type": "number"
+            },
+            "label_font_size_px": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "label_color": {
+              "type": "string"
+            },
+            "label_outline_color": {
+              "type": "string"
+            },
+            "label_outline_width_px": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "radial_line_width_px": {
+              "type": "number"
+            },
+            "radial_dash_px": {
+              "type": "number"
+            },
+            "radial_gap_px": {
+              "type": "number"
+            },
+            "angle_fill_color": {
+              "type": "string"
+            },
+            "angle_fill_alpha": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "show_label": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "angleRadiusCallout": {
+      "anyOf": [
+        {
+          "type": "object",
+          "anyOf": [
+            {
+              "required": [
+                "arc_id",
+                "radius_id"
+              ]
+            },
+            {
+              "required": [
+                "$constant"
+              ]
+            }
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "$constant": {
+              "type": "string",
+              "minLength": 1
+            },
+            "id": {
+              "type": "string"
+            },
+            "arc_id": {
+              "type": "string"
+            },
+            "radius_id": {
+              "type": "string"
+            },
+            "angle_id": {
+              "type": "string"
+            },
+            "display_offset_mm": {
+              "$ref": "#/$defs/vector3"
+            },
+            "labels": {
+              "$ref": "#/$defs/labelsMap"
+            },
+            "angle_label_offset_px": {
+              "type": "number"
+            },
+            "radius_label_offset_px": {
+              "type": "number"
+            },
+            "line_alpha": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "line_width_px": {
+              "type": "number"
+            },
+            "radial_line_width_px": {
+              "type": "number"
+            },
+            "radial_dash_px": {
+              "type": "number"
+            },
+            "radial_gap_px": {
+              "type": "number"
+            },
+            "label_font_size_px": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "label_color": {
+              "type": "string"
+            },
+            "label_outline_color": {
+              "type": "string"
+            },
+            "label_outline_width_px": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "angle_fill_color": {
+              "type": "string"
+            },
+            "angle_fill_alpha": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "show_angle_label": {
+              "type": "boolean"
+            },
+            "show_radius_label": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "imageLabel": {
+      "anyOf": [
+        {
+          "type": "object",
+          "anyOf": [
+            {
+              "required": [
+                "id"
+              ]
+            },
+            {
+              "required": [
+                "text"
+              ]
+            },
+            {
+              "required": [
+                "$constant"
+              ]
+            }
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "$constant": {
+              "type": "string",
+              "minLength": 1
+            },
+            "id": {
+              "type": "string"
+            },
+            "text": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "value": {
+              "type": "string"
+            },
+            "position": {
+              "type": "string",
+              "enum": [
+                "top",
+                "bottom",
+                "left",
+                "right",
+                "center",
+                "top_left",
+                "top_right",
+                "bottom_left",
+                "bottom_right"
+              ]
+            },
+            "offset_px": {
+              "$ref": "#/$defs/vector2"
+            },
+            "angle_deg": {
+              "type": "number"
+            },
+            "show_value": {
+              "type": "boolean"
+            },
+            "color": {
+              "type": "string"
+            },
+            "font_size_px": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "annotationStyle": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "makerworld_technical_light"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "preset": {
+              "type": "string",
+              "enum": [
+                "makerworld_technical_light"
+              ]
+            },
+            "line_alpha": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "line_width_px": {
+              "type": "number"
+            },
+            "extension_width_px": {
+              "type": "number"
+            },
+            "extension_visible": {
+              "type": "boolean"
+            },
+            "extension_dash_px": {
+              "type": "number"
+            },
+            "extension_gap_px": {
+              "type": "number"
+            },
+            "tick_length_px": {
+              "type": "number"
+            },
+            "label_font_size_px": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "label_color": {
+              "type": "string"
+            },
+            "label_outline_color": {
+              "type": "string"
+            },
+            "label_outline_width_px": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "radial_line_width_px": {
+              "type": "number"
+            },
+            "radial_dash_px": {
+              "type": "number"
+            },
+            "radial_gap_px": {
+              "type": "number"
+            },
+            "angle_fill_color": {
+              "type": "string"
+            },
+            "angle_fill_alpha": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "show_values": {
+              "type": "boolean"
+            },
+            "colors": {
+              "$ref": "#/$defs/labelsMap"
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "annotationsConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "object": {
+          "type": "string"
+        },
+        "aliases": {
+          "$ref": "#/$defs/labelsMap"
+        },
+        "chains": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/annotationGroup"
+          }
+        },
+        "radius_callouts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/annotationGroup"
+          }
+        },
+        "arc_callouts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/annotationGroup"
+          }
+        },
+        "angle_radius_callouts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/angleRadiusCallout"
+          }
+        },
+        "image_labels": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/imageLabel"
+          }
+        },
+        "style": {
+          "$ref": "#/$defs/annotationStyle"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "$schema": "../schemas/annotation-render-gallery.schema.json",
+  "columns": 2,
+  "thumbnail_width": 520
+}
