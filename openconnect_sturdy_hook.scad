@@ -118,6 +118,30 @@ offset_sweep_profile = scale([hook_scale_at(1), 1, 1], final_sweep_profile);
 
 hook_length_annotation_y = -hook_stem_height;
 hook_length_annotation_z = hook_width;
+hook_width_annotation_x = hook_thickness - final_side_chamfer;
+hook_width_annotation_y = 0;
+final_truss_height = truss_vertical_grids * OG_TILE_SIZE;
+final_truss_angle =
+  truss_vertical_grids > 0
+  ? min(truss_max_angle, adj_opp_to_ang(final_truss_height + truss_height_offset, available_truss_depth + truss_height_offset))
+  : 0;
+final_truss_depth =
+  truss_vertical_grids > 0
+  ? min(available_truss_depth, ang_adj_to_opp(final_truss_angle, final_truss_height + truss_height_offset) - truss_height_offset)
+  : 0;
+truss_angle_arc_radius = truss_vertical_grids > 0 ? max(3, min(final_truss_depth, final_truss_height) * 0.32) : 0;
+truss_angle_arc_segments = 12;
+truss_angle_center_anchor = [hook_thickness, -(hook_stem_height + final_truss_height), hook_length_annotation_z];
+function _truss_angle_arc_anchor(angle) = [
+  truss_angle_center_anchor[0] + truss_angle_arc_radius * sin(angle),
+  truss_angle_center_anchor[1] + truss_angle_arc_radius * cos(angle),
+  truss_angle_center_anchor[2]
+];
+truss_angle_mid_anchor = _truss_angle_arc_anchor(final_truss_angle / 2);
+truss_angle_arc_points = [
+  for (i = [0:truss_angle_arc_segments])
+    _truss_angle_arc_anchor(final_truss_angle * i / truss_angle_arc_segments)
+];
 function _path_last(path) = path[len(path) - 1];
 function _hook_path_point_to_model_top(point) = [
   hook_thickness / 2 + point[0],
@@ -329,9 +353,9 @@ module emit_sturdy_hook_annotations() {
     label="hook_width",
     axis="z",
     value=hook_width,
-    start=[0, -final_side_chamfer * (2 - sqrt(2)), 0],
-    end=[0, -final_side_chamfer * (2 - sqrt(2)), hook_width],
-    basis="extrusion_width_back_rounded_corner_full_width"
+    start=[hook_width_annotation_x, hook_width_annotation_y, 0],
+    end=[hook_width_annotation_x, hook_width_annotation_y, hook_width],
+    basis="extrusion_width_flat_stem_body"
   );
   if (truss_vertical_grids > 0) {
     emit_dimension_annotation(
@@ -343,14 +367,20 @@ module emit_sturdy_hook_annotations() {
       end=[0, -(hook_stem_height + truss_vertical_grids * OG_TILE_SIZE), hook_length_annotation_z],
       basis="truss_height_from_truss_vertical_grids"
     );
-    emit_dimension_annotation(
-      id="truss_thickness",
-      label="truss_thickness",
-      axis="x",
-      value=truss_thickness,
-      start=[hook_thickness, -hook_stem_height, hook_length_annotation_z],
-      end=[hook_thickness + truss_thickness, -hook_stem_height, hook_length_annotation_z],
-      basis="nominal_truss_member_thickness"
+    emit_radius_annotation(
+      id="truss_angle_radius",
+      label="truss_angle_radius",
+      value=truss_angle_arc_radius,
+      center=truss_angle_center_anchor,
+      edge=truss_angle_mid_anchor,
+      basis="truss_angle_center_to_arc_midpoint"
+    );
+    emit_arc_annotation(
+      id="truss_angle_extent",
+      label="truss_angle_extent",
+      value=final_truss_angle,
+      points=truss_angle_arc_points,
+      basis="actual_truss_angle_from_vertical_to_outer_diagonal"
     );
   }
   if (hook_shape_type == "Rectangular" && rectangular_tip_extra_length > EPS) {
@@ -457,19 +487,16 @@ diff(remove="rm0")
                       tag("rm2") zcyl(r=hook_thickness, h=hook_width + EPS * 2);
         }
       if (truss_vertical_grids > 0) {
-        truss_height = truss_vertical_grids * OG_TILE_SIZE;
-        truss_angle = min(truss_max_angle, adj_opp_to_ang(truss_height + truss_height_offset, available_truss_depth + truss_height_offset));
-        truss_depth = min(available_truss_depth, ang_adj_to_opp(truss_angle, truss_height + truss_height_offset) - truss_height_offset);
         attach(FRONT, BACK)
-          cuboid([hook_thickness, truss_height, hook_width]) {
+          cuboid([hook_thickness, final_truss_height, hook_width]) {
             back(truss_height_offset) down(hook_width / 2) position(RIGHT + BACK)
                   sturdy_truss_sweep(
-                    truss_height=truss_height,
-                    truss_depth=truss_depth,
+                    truss_height=final_truss_height,
+                    truss_depth=final_truss_depth,
                     truss_thickness=truss_thickness,
                     truss_width=hook_width,
                     truss_rounding=truss_rounding,
-                    truss_angle=truss_angle,
+                    truss_angle=final_truss_angle,
                     truss_height_offset=truss_height_offset
                   );
           }

@@ -119,6 +119,9 @@ truss_inner_height = truss_beam_reach <= 0 ? 0 : truss_height - ang_adj_to_hyp(t
 
 shelf_annotation_y = -bottom_shelf_back_height + final_shelf_bottom_thickness;
 shelf_annotation_z = shelf_width;
+shelf_depth_annotation_y = shelf_annotation_y + OG_TILE_SIZE;
+shelf_width_annotation_x = shelf_back_thickness;
+shelf_width_annotation_y = shelf_annotation_y + OG_TILE_SIZE + shelf_back_thickness;
 
 module emit_dimension_annotation(id, label, axis, value, start, end, basis) {
   if (emit_annotation_metadata)
@@ -214,8 +217,8 @@ module emit_sturdy_shelf_annotations() {
     label=str("depth_grids x ", OG_TILE_SIZE, "mm"),
     axis="x",
     value=shelf_depth,
-    start=[0, shelf_annotation_y, shelf_annotation_z],
-    end=[shelf_depth, shelf_annotation_y, shelf_annotation_z],
+    start=[0, shelf_depth_annotation_y, shelf_annotation_z],
+    end=[shelf_depth, shelf_depth_annotation_y, shelf_annotation_z],
     basis="front_to_back_depth"
   );
   emit_dimension_annotation(
@@ -223,8 +226,8 @@ module emit_sturdy_shelf_annotations() {
     label=str("horizontal_grids x ", OG_TILE_SIZE, "mm"),
     axis="z",
     value=shelf_width,
-    start=[0, shelf_annotation_y, 0],
-    end=[0, shelf_annotation_y, shelf_width],
+    start=[shelf_width_annotation_x, shelf_width_annotation_y, 0],
+    end=[shelf_width_annotation_x, shelf_width_annotation_y, shelf_width],
     basis="left_to_right_width"
   );
   emit_dimension_annotation(

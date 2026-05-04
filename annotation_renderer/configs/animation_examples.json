@@ -1,0 +1,247 @@
+{
+  "$schema": "../schemas/annotation-render-config.schema.json",
+  "extends": "model_defaults.json",
+  "job_name": "opengrid_animation_examples",
+  "constants": {
+    "general_holder_model": {
+      "scad_file": "openconnect_general_holder.scad",
+      "defines": {
+        "compartment_shape": "Rectangular",
+        "compartment_column_count": 2,
+        "compartment_row_count": 1
+      }
+    },
+    "openconnect_install_keyframes_mm": [
+      {
+        "frame": 0,
+        "value": [
+          -3.4,
+          -22.6,
+          10.6
+        ]
+      },
+      {
+        "frame": 12,
+        "value": [
+          -3.4,
+          -2.6,
+          10.6
+        ]
+      },
+      {
+        "frame": 24,
+        "value": [
+          -0.8,
+          0,
+          10.6
+        ]
+      },
+      {
+        "frame": 36,
+        "value": [
+          0,
+          0,
+          10.6
+        ]
+      },
+      {
+        "frame": 48,
+        "value": [
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "openconnect_install_track": {
+      "location_offset_keyframes_mm": {
+        "$constant": "openconnect_install_keyframes_mm"
+      }
+    },
+    "drawer_slide_y_50mm_track": {
+      "from_location_offset_mm": [
+        0,
+        -50,
+        0
+      ],
+      "to_location_offset_mm": [
+        0,
+        0,
+        0
+      ]
+    },
+    "fade_in_8f_keyframes": [
+      {
+        "frame": 0,
+        "value": 0
+      },
+      {
+        "frame": 8,
+        "value": 1
+      }
+    ],
+    "fade_in_8f_track": {
+      "visible_from_frame": 0,
+      "opacity_interpolation": "linear",
+      "opacity_keyframes": {
+        "$constant": "fade_in_8f_keyframes"
+      }
+    },
+    "openconnect_insert_animation_render": {
+      "engine": "eevee",
+      "quality": "draft",
+      "fit_margin": 0.14,
+      "animation": {
+        "enabled": true,
+        "frame_start": 0,
+        "frame_end": 48,
+        "fps": 24,
+        "output_format": "gif",
+        "gif_width_px": 900,
+        "interpolation": "bezier",
+        "object_animations": [
+          {
+            "$constant": "openconnect_install_track",
+            "object": "model"
+          }
+        ]
+      }
+    },
+    "drawer_slide_animation_render": {
+      "$constant": "drawer_fit_render",
+      "engine": "eevee",
+      "quality": "draft",
+      "animation": {
+        "enabled": true,
+        "frame_start": 0,
+        "frame_end": 48,
+        "fps": 24,
+        "output_format": "gif",
+        "gif_width_px": 900,
+        "interpolation": "ease_out",
+        "object_animations": [
+          {
+            "$constant": "drawer_slide_y_50mm_track",
+            "object": "drawer_container"
+          }
+        ]
+      }
+    },
+    "drawer_install_then_slide_animation_render": {
+      "$constant": "drawer_fit_render",
+      "engine": "eevee",
+      "quality": "draft",
+      "fit_margin": 0.14,
+      "animation": {
+        "enabled": true,
+        "frame_start": 0,
+        "duration_frames": 48,
+        "fps": 24,
+        "output_format": "gif",
+        "gif_width_px": 900,
+        "interpolation": "bezier",
+        "clips": [
+          {
+            "name": "shell_openconnect_install",
+            "start_frame": 0,
+            "object_animations": [
+              {
+                "$constant": "openconnect_install_track",
+                "object": "drawer_shell"
+              }
+            ]
+          },
+          {
+            "name": "container_slide",
+            "start_frame": 48,
+            "interpolation": "ease_out",
+            "object_animations": [
+              {
+                "$constant": "fade_in_8f_track",
+                "object": "drawer_container",
+                "from_location_offset_mm": [
+                  0,
+                  -50,
+                  0
+                ],
+                "to_location_offset_mm": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "variants": [
+    {
+      "name": "sturdy_shelf_insert_animation",
+      "job_name": "sturdy_shelf_insert_animation",
+      "model": {
+        "$constant": "sturdy_shelf_model"
+      },
+      "render": {
+        "$constant": "openconnect_insert_animation_render"
+      },
+      "annotations": {}
+    },
+    {
+      "name": "general_holder_insert_animation",
+      "job_name": "general_holder_insert_animation",
+      "model": {
+        "$constant": "general_holder_model"
+      },
+      "render": {
+        "$constant": "openconnect_insert_animation_render"
+      },
+      "annotations": {}
+    },
+    {
+      "name": "drawer_shell_container_slide_animation",
+      "job_name": "openconnect_drawer_shell_container_slide_animation",
+      "model": null,
+      "scene": {
+        "object_defaults": {
+          "$constant": "drawer_object_defaults"
+        },
+        "objects": [
+          {
+            "$constant": "drawer_shell_object"
+          },
+          {
+            "$constant": "drawer_container_object"
+          }
+        ]
+      },
+      "render": {
+        "$constant": "drawer_slide_animation_render"
+      },
+      "annotations": {}
+    },
+    {
+      "name": "drawer_install_then_container_slide_animation",
+      "job_name": "drawer_install_then_container_slide_animation",
+      "model": null,
+      "scene": {
+        "object_defaults": {
+          "$constant": "drawer_object_defaults"
+        },
+        "objects": [
+          {
+            "$constant": "drawer_shell_object"
+          },
+          {
+            "$constant": "drawer_container_object"
+          }
+        ]
+      },
+      "render": {
+        "$constant": "drawer_install_then_slide_animation_render"
+      },
+      "annotations": {}
+    }
+  ]
+}

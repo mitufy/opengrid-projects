@@ -17,7 +17,7 @@
             "hook_width"
           ],
           "line_offset_px": -42,
-          "label_offset_px": -32
+          "label_offset_px": 34
         }
       ],
       "radius_callouts": [],
@@ -28,7 +28,7 @@
           "arc_id": "circular_corner_radius_extent",
           "radius_id": "circular_corner_radius",
           "show_angle_label": false,
-          "radius_label_offset_px": 46
+          "radius_label_offset_px": 26
         },
         {
           "id": "circular_tip_angle_radius",
@@ -36,7 +36,7 @@
           "radius_id": "circular_tip_radius",
           "angle_id": "circular_tip_angle",
           "angle_label_offset_px": 34,
-          "radius_label_offset_px": 32,
+          "radius_label_offset_px": 20,
           "angle_fill_alpha": 28
         }
       ]
@@ -75,19 +75,23 @@
           ],
           "line_offset_px": 36,
           "label_offset_px": 42
-        },
-        {
-          "$constant": "small_dimension_chain",
-          "ids": [
-            "truss_thickness"
-          ]
         }
       ],
-      "image_labels": [
+      "angle_radius_callouts": [
         {
-          "$constant": "bottom_image_label",
-          "id": "truss_max_angle",
-          "show_value": true
+          "id": "truss_angle_detail",
+          "arc_id": "truss_angle_extent",
+          "radius_id": "truss_angle_radius",
+          "angle_id": "truss_max_angle",
+          "labels": {
+            "truss_max_angle": "<= truss max angle"
+          },
+          "show_radius_label": false,
+          "angle_label_offset_px": 34,
+          "angle_fill_alpha": 28,
+          "label_font_size_px": {
+            "$constant": "annotation_label_font_size_px"
+          }
         }
       ]
     },
@@ -228,7 +232,9 @@
             32
           ],
           "show_value": true,
-          "font_size_px": 22
+          "font_size_px": {
+            "$constant": "annotation_aux_label_font_size_px"
+          }
         },
         {
           "id": "stopper_to_front_offset",
@@ -238,7 +244,9 @@
             70
           ],
           "show_value": true,
-          "font_size_px": 22
+          "font_size_px": {
+            "$constant": "annotation_aux_label_font_size_px"
+          }
         },
         {
           "id": "back_magnet_diameter",
@@ -248,7 +256,9 @@
             32
           ],
           "show_value": true,
-          "font_size_px": 22
+          "font_size_px": {
+            "$constant": "annotation_aux_label_font_size_px"
+          }
         },
         {
           "id": "side_magnet_diameter",
@@ -258,7 +268,9 @@
             70
           ],
           "show_value": true,
-          "font_size_px": 22
+          "font_size_px": {
+            "$constant": "annotation_aux_label_font_size_px"
+          }
         }
       ]
     }

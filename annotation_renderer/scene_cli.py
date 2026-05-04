@@ -14,6 +14,7 @@ from typing import Mapping, Sequence
 
 from PIL import Image, ImageDraw
 
+from annotation_renderer.animation import encode_animation_gif, resolve_animation_config
 from annotation_renderer.blender_scene import write_blender_scene_script
 from annotation_renderer.config import (
     DEFAULT_OUTPUT_DIR,
@@ -244,6 +245,7 @@ def style_for_group(style_config: Mapping[str, object], group_config: Mapping[st
         "tick_length_px",
         "label_font_size_px",
         "label_color",
+        "label_color_by_segment",
         "label_outline_color",
         "label_outline_width_px",
         "radial_line_width_px",
@@ -251,6 +253,7 @@ def style_for_group(style_config: Mapping[str, object], group_config: Mapping[st
         "radial_gap_px",
         "angle_fill_color",
         "angle_fill_alpha",
+        "type_styles",
     }
     merged = dict(style_config)
     for key in group_style_keys:
@@ -719,6 +722,8 @@ def render_config(
         )
         object_records.append(object_record)
 
+    animation_config = resolve_animation_config(render_config.get("animation"), object_records=object_records)
+
     annotation_object_id = str(annotation_config.get("object") or object_records[0]["id"])
     annotation_record = next((record for record in object_records if str(record["id"]) == annotation_object_id), None)
     if annotation_record is None:
@@ -770,6 +775,16 @@ def render_config(
         )
         for callout in angle_radius_items
     ]
+    chain_pairs = [(item, group) for item, group in zip(chain_items, chains, strict=True) if group]
+    radius_pairs = [(item, group) for item, group in zip(radius_items, radius_groups, strict=True) if group]
+    arc_pairs = [(item, group) for item, group in zip(arc_items, arc_groups, strict=True) if group]
+    angle_radius_pairs = [
+        (item, group) for item, group in zip(angle_radius_items, angle_radius_groups, strict=True) if group
+    ]
+    active_chains = [group for _, group in chain_pairs]
+    active_radius_groups = [group for _, group in radius_pairs]
+    active_arc_groups = [group for _, group in arc_pairs]
+    active_angle_radius_groups = [group for _, group in angle_radius_pairs]
     image_labels = collect_image_labels(
         config=config,
         labels_config=image_label_items,
@@ -779,13 +794,13 @@ def render_config(
     )
 
     projection_points: dict[str, dict[str, object]] = {}
-    for chain_segments in chains:
+    for chain_segments in active_chains:
         projection_points.update(projection_points_for_object(projection_points_for_segments(chain_segments), object_id=annotation_object_id))
-    for radius_callouts in radius_groups:
+    for radius_callouts in active_radius_groups:
         projection_points.update(projection_points_for_object(projection_points_for_radius_callouts(radius_callouts), object_id=annotation_object_id))
-    for arc_callouts in arc_groups:
+    for arc_callouts in active_arc_groups:
         projection_points.update(projection_points_for_object(projection_points_for_arc_callouts(arc_callouts), object_id=annotation_object_id))
-    for angle_radius_callouts in angle_radius_groups:
+    for angle_radius_callouts in active_angle_radius_groups:
         projection_points.update(
             projection_points_for_object(
                 projection_points_for_angle_radius_callouts(angle_radius_callouts),
@@ -795,6 +810,12 @@ def render_config(
 
     render_path = run_dir / "render.png"
     annotated_path = run_dir / "annotated.png"
+    animation_frame_dir = run_dir / "animation_frames" if animation_config else None
+    animation_path = (
+        run_dir / "animation.gif"
+        if animation_config and str(animation_config.get("output_format")) == "gif"
+        else None
+    )
     projection_path = run_dir / "projection.json"
     blender_config_path = run_dir / "blender_scene_config.json"
     blender_script_path = run_dir / "blender_scene_render.py"
@@ -827,6 +848,11 @@ def render_config(
         "fit_margin": float(render_config.get("fit_margin", 0.08)),
         "mesh_shading": str(render_config.get("mesh_shading", "flat")),
     }
+    if animation_config:
+        assert animation_frame_dir is not None
+        animation_frame_dir.mkdir(parents=True, exist_ok=True)
+        blender_config["animation"] = animation_config
+        blender_config["animation_frame_path"] = str(animation_frame_dir / "frame_")
     blender_config_path.write_text(json.dumps(blender_config, indent=2) + "\n", encoding="utf-8")
     write_blender_scene_script(blender_script_path)
 
@@ -841,6 +867,18 @@ def render_config(
         )
     if blender_result.returncode != 0 or not render_path.exists() or not projection_path.exists():
         raise SystemExit(f"Blender scene render failed. See log: {project_relative_or_absolute(blender_log)}")
+    animation_frames: list[Path] = []
+    if animation_config and animation_frame_dir is not None:
+        animation_frames = sorted(animation_frame_dir.glob("*.png"))
+        if not animation_frames:
+            raise SystemExit(f"Blender animation render failed. See log: {project_relative_or_absolute(blender_log)}")
+        if animation_path is not None:
+            encode_animation_gif(
+                frame_paths=animation_frames,
+                output_path=animation_path,
+                fps=int(animation_config.get("fps", 24)),
+                width_px=int(animation_config.get("gif_width_px", 0)),
+            )
 
     projection = json.loads(projection_path.read_text(encoding="utf-8"))
     current_input = render_path
@@ -850,14 +888,14 @@ def render_config(
     angle_radius_overlays = []
     image_label_overlay = None
     total_overlay_steps = (
-        (1 if chains else 0)
-        + len(radius_groups)
-        + len(arc_groups)
-        + len(angle_radius_groups)
+        (1 if active_chains else 0)
+        + len(active_radius_groups)
+        + len(active_arc_groups)
+        + len(active_angle_radius_groups)
         + (1 if image_labels else 0)
     )
     overlay_index = 0
-    if chains:
+    if active_chains:
         overlay_index += 1
         output_path = annotated_path if overlay_index == total_overlay_steps else run_dir / f"annotated_step_{overlay_index}.png"
         chain_overlays = draw_dimension_chains_overlay(
@@ -871,11 +909,11 @@ def render_config(
                     label_offset_px=float(chain_config.get("label_offset_px", 40.0)),
                     style_config=style_for_group(style_config, chain_config),
                 )
-                for chain_config, chain_segments in zip(chain_items, chains, strict=True)
+                for chain_config, chain_segments in chain_pairs
             ],
         )
         current_input = output_path
-    for arc_config, arc_callouts in zip(arc_items, arc_groups, strict=True):
+    for arc_config, arc_callouts in arc_pairs:
         overlay_index += 1
         output_path = annotated_path if overlay_index == total_overlay_steps else run_dir / f"annotated_step_{overlay_index}.png"
         overlay = draw_arc_callout_overlay(
@@ -889,7 +927,7 @@ def render_config(
         )
         arc_overlays.append(overlay)
         current_input = output_path
-    for radius_config, radius_callouts in zip(radius_items, radius_groups, strict=True):
+    for radius_config, radius_callouts in radius_pairs:
         overlay_index += 1
         output_path = annotated_path if overlay_index == total_overlay_steps else run_dir / f"annotated_step_{overlay_index}.png"
         overlay = draw_radius_callout_overlay(
@@ -902,7 +940,7 @@ def render_config(
         )
         radius_overlays.append(overlay)
         current_input = output_path
-    for callout_config, angle_radius_callouts in zip(angle_radius_items, angle_radius_groups, strict=True):
+    for callout_config, angle_radius_callouts in angle_radius_pairs:
         overlay_index += 1
         output_path = annotated_path if overlay_index == total_overlay_steps else run_dir / f"annotated_step_{overlay_index}.png"
         overlay = draw_angle_radius_callout_overlay(
@@ -912,6 +950,8 @@ def render_config(
             callouts=angle_radius_callouts,
             angle_label_offset_px=float(callout_config.get("angle_label_offset_px", 36.0)),
             radius_label_offset_px=float(callout_config.get("radius_label_offset_px", 34.0)),
+            angle_label_tangent_offset_px=float(callout_config.get("angle_label_tangent_offset_px", 0.0)),
+            radius_label_tangent_offset_px=float(callout_config.get("radius_label_tangent_offset_px", 0.0)),
             show_angle_label=bool(callout_config.get("show_angle_label", True)),
             show_radius_label=bool(callout_config.get("show_radius_label", True)),
             style_config=style_for_group(style_config, callout_config),
@@ -969,10 +1009,11 @@ def render_config(
                     "start_mm": list(segment.start_mm),
                     "end_mm": list(segment.end_mm),
                     "color": segment.color,
+                    "parameter_type": segment.parameter_type,
                 }
                 for segment in chain_segments
             ]
-            for chain_segments in chains
+            for chain_segments in active_chains
         ],
         "radius_callouts": [
             [
@@ -985,7 +1026,7 @@ def render_config(
                 }
                 for callout in radius_callouts
             ]
-            for radius_callouts in radius_groups
+            for radius_callouts in active_radius_groups
         ],
         "arc_callouts": [
             [
@@ -997,7 +1038,7 @@ def render_config(
                 }
                 for callout in arc_callouts
             ]
-            for arc_callouts in arc_groups
+            for arc_callouts in active_arc_groups
         ],
         "angle_radius_callouts": [
             [
@@ -1013,7 +1054,7 @@ def render_config(
                 }
                 for callout in angle_radius_callouts
             ]
-            for angle_radius_callouts in angle_radius_groups
+            for angle_radius_callouts in active_angle_radius_groups
         ],
         "image_labels": [
             {
@@ -1046,6 +1087,8 @@ def render_config(
             "blender_log": project_relative_or_absolute(blender_log),
             "render": project_relative_or_absolute(render_path),
             "annotated": project_relative_or_absolute(annotated_path),
+            "animation": project_relative_or_absolute(animation_path) if animation_path is not None else None,
+            "animation_frames": project_relative_or_absolute(animation_frame_dir) if animation_frame_dir is not None else None,
             "projection": project_relative_or_absolute(projection_path),
         },
         "commands": {
@@ -1059,14 +1102,23 @@ def render_config(
     print(f"Run directory: {project_relative_or_absolute(run_dir)}")
     print(f"Render:       {project_relative_or_absolute(render_path)}")
     print(f"Annotated:    {project_relative_or_absolute(annotated_path)}")
+    if animation_path is not None:
+        print(f"Animation:    {project_relative_or_absolute(animation_path)}")
+    elif animation_frame_dir is not None:
+        print(f"Frames:       {project_relative_or_absolute(animation_frame_dir)}")
     print(f"Metadata:     {project_relative_or_absolute(metadata_path)}")
-    return {
+    result = {
         "job_name": job_name,
         "run_dir": run_dir,
         "render": render_path,
         "annotated": annotated_path,
         "metadata": metadata_path,
     }
+    if animation_path is not None:
+        result["animation"] = animation_path
+    elif animation_frame_dir is not None:
+        result["animation_frames"] = animation_frame_dir
+    return result
 
 
 def compact_gallery_config(raw_gallery: object, *, name: str) -> dict[str, object]:

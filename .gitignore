@@ -11,6 +11,9 @@ scripts/
 AGENT.md
 tools/
 tests/
+!tests/
+tests/*
+!tests/test_animation_config.py
 review_manifests/
 requirements-tools.txt
 
