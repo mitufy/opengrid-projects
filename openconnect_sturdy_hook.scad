@@ -130,6 +130,30 @@ sliceoff_angle = hook_tip_sliceoff_side == "None" || hook_tip_sliceoff_target_wi
 final_slot_entryramp_flip = hook_tip_sliceoff_side == "None" ? slot_entryramp_flip : hook_tip_sliceoff_side == "Right";
 hook_length_annotation_y = -hook_stem_height;
 hook_length_annotation_z = hook_width;
+hook_width_annotation_x = hook_thickness - final_side_chamfer;
+hook_width_annotation_y = 0;
+final_truss_height = truss_vertical_grids * OG_TILE_SIZE;
+final_truss_angle =
+  truss_vertical_grids > 0
+  ? min(truss_max_angle, adj_opp_to_ang(final_truss_height + truss_height_offset, available_truss_depth + truss_height_offset))
+  : 0;
+final_truss_depth =
+  truss_vertical_grids > 0
+  ? min(available_truss_depth, ang_adj_to_opp(final_truss_angle, final_truss_height + truss_height_offset) - truss_height_offset)
+  : 0;
+truss_angle_arc_radius = truss_vertical_grids > 0 ? max(3, min(final_truss_depth, final_truss_height) * 0.32) : 0;
+truss_angle_arc_segments = 12;
+truss_angle_center_anchor = [hook_thickness, -(hook_stem_height + final_truss_height), hook_length_annotation_z];
+function _truss_angle_arc_anchor(angle) = [
+  truss_angle_center_anchor[0] + truss_angle_arc_radius * sin(angle),
+  truss_angle_center_anchor[1] + truss_angle_arc_radius * cos(angle),
+  truss_angle_center_anchor[2]
+];
+truss_angle_mid_anchor = _truss_angle_arc_anchor(final_truss_angle / 2);
+truss_angle_arc_points = [
+  for (i = [0:truss_angle_arc_segments])
+    _truss_angle_arc_anchor(final_truss_angle * i / truss_angle_arc_segments)
+];
 function _path_last(path) = path[len(path) - 1];
 function _hook_path_point_to_model_top(point) = [
   hook_thickness / 2 + point[0],
@@ -345,9 +369,9 @@ module emit_sturdy_hook_annotations() {
     label="hook_width",
     axis="z",
     value=hook_width,
-    start=[0, -final_side_chamfer * (2 - sqrt(2)), 0],
-    end=[0, -final_side_chamfer * (2 - sqrt(2)), hook_width],
-    basis="extrusion_width_back_rounded_corner_full_width"
+    start=[hook_width_annotation_x, hook_width_annotation_y, 0],
+    end=[hook_width_annotation_x, hook_width_annotation_y, hook_width],
+    basis="extrusion_width_flat_stem_body"
   );
   if (truss_vertical_grids > 0) {
     emit_dimension_annotation(
@@ -359,14 +383,20 @@ module emit_sturdy_hook_annotations() {
       end=[0, -(hook_stem_height + truss_vertical_grids * OG_TILE_SIZE), hook_length_annotation_z],
       basis="truss_height_from_truss_vertical_grids"
     );
-    emit_dimension_annotation(
-      id="truss_thickness",
-      label="truss_thickness",
-      axis="x",
-      value=truss_thickness,
-      start=[hook_thickness, -hook_stem_height, hook_length_annotation_z],
-      end=[hook_thickness + truss_thickness, -hook_stem_height, hook_length_annotation_z],
-      basis="nominal_truss_member_thickness"
+    emit_radius_annotation(
+      id="truss_angle_radius",
+      label="truss_angle_radius",
+      value=truss_angle_arc_radius,
+      center=truss_angle_center_anchor,
+      edge=truss_angle_mid_anchor,
+      basis="truss_angle_center_to_arc_midpoint"
+    );
+    emit_arc_annotation(
+      id="truss_angle_extent",
+      label="truss_angle_extent",
+      value=final_truss_angle,
+      points=truss_angle_arc_points,
+      basis="actual_truss_angle_from_vertical_to_outer_diagonal"
     );
   }
   if (hook_shape_type == "Rectangular" && rectangular_tip_extra_length > EPS) {
@@ -448,69 +478,66 @@ emit_sturdy_hook_annotations();
 
 //BEGIN generation
 up(hook_tip_sliceoff_side == "Right" ? hook_width : 0) yrot(hook_tip_sliceoff_side == "Right" ? 180 : 0)
-    diff(remove="rm0")
-      diff(remove="rm1", keep="kp1 rm0") {
-        cuboid([hook_thickness, hook_stem_height, hook_width], anchor=BACK + BOTTOM + LEFT, rounding=final_side_chamfer, edges=[BACK + RIGHT], $fn=64) {
-          if (hook_tip_sliceoff_side != "None" && sliceoff_angle != 0)
-            attach(RIGHT + (hook_tip_sliceoff_side == "Left" ? TOP : BOTTOM), LEFT + (hook_tip_sliceoff_side == "Left" ? BOTTOM : TOP), align=BACK) yrot(sliceoff_angle)
-                tag("rm0") cuboid([hook_length * 2, (hook_stem_height + truss_vertical_grids * OG_TILE_SIZE) * 2, hook_width * 2]);
-          attach(LEFT, TOP, align=BACK, inside=true, spin=90)
-            tag("rm0") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=horizontal_grids, vertical_grids=vertical_grids, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=final_slot_entryramp_flip, excess_thickness=EPS);
-          if (has_side_chamfer) {
-            tag("rm1") edge_profile([TOP + RIGHT, BOTTOM + RIGHT, BACK + TOP, BACK + BOTTOM], excess=0)
-                mask2d_teardrop(r=final_side_chamfer, $fn=64);
-            tag("rm1") corner_profile([BACK + TOP + RIGHT, BACK + BOTTOM + RIGHT], r=final_side_chamfer)
-                mask2d_teardrop(r=final_side_chamfer, $fn=64);
-          }
+  diff(remove="rm0")
+    diff(remove="rm1", keep="kp1 rm0") {
+      cuboid([hook_thickness, hook_stem_height, hook_width], anchor=BACK + BOTTOM + LEFT, rounding=final_side_chamfer, edges=[BACK + RIGHT], $fn=64) {
+        if (hook_tip_sliceoff_side != "None" && sliceoff_angle != 0)
+          attach(RIGHT + (hook_tip_sliceoff_side == "Left" ? TOP : BOTTOM), LEFT + (hook_tip_sliceoff_side == "Left" ? BOTTOM : TOP), align=BACK) yrot(sliceoff_angle)
+            tag("rm0") cuboid([hook_length * 2, (hook_stem_height + truss_vertical_grids * OG_TILE_SIZE) * 2, hook_width * 2]);
+        attach(LEFT, TOP, align=BACK, inside=true, spin=90)
+          tag("rm0") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=horizontal_grids, vertical_grids=vertical_grids, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=final_slot_entryramp_flip, excess_thickness=EPS);
+        if (has_side_chamfer) {
+          tag("rm1") edge_profile([TOP + RIGHT, BOTTOM + RIGHT, BACK + TOP, BACK + BOTTOM], excess=0)
+            mask2d_teardrop(r=final_side_chamfer, $fn=64);
+          tag("rm1") corner_profile([BACK + TOP + RIGHT, BACK + BOTTOM + RIGHT], r=final_side_chamfer)
+            mask2d_teardrop(r=final_side_chamfer, $fn=64);
+        }
+        tag_diff(remove="rm2", tag="kp1") {
+          attach(FRONT, FRONT, align=LEFT, inside=true, shiftout=0)
+            tag("") cuboid([final_corner_radius + hook_thickness / 2, final_corner_radius + hook_thickness / 2, hook_width], chamfer=final_side_chamfer, edges=[LEFT + TOP, LEFT + BOTTOM])
+              back(final_corner_radius / 2) right(final_corner_radius / 2)
+                tag("rm2") zcyl(r=final_corner_radius, h=hook_width + EPS * 2);
+        }
+        if (hook_shape_type == "Rectangular")
           tag_diff(remove="rm2", tag="kp1") {
-            attach(FRONT, FRONT, align=LEFT, inside=true, shiftout=0)
-              tag("") cuboid([final_corner_radius + hook_thickness / 2, final_corner_radius + hook_thickness / 2, hook_width], chamfer=final_side_chamfer, edges=[LEFT + TOP, LEFT + BOTTOM])
-                  back(final_corner_radius / 2) right(final_corner_radius / 2)
-                      tag("rm2") zcyl(r=final_corner_radius, h=hook_width + EPS * 2);
+            right(hook_length - final_tip_radius / 2)
+              attach(FRONT + LEFT, FRONT + LEFT, inside=true)
+                tag("") cuboid([hook_thickness + final_tip_radius / 2, hook_thickness + final_tip_radius / 2, hook_width])
+                  back(final_tip_radius / 2) left(final_tip_radius / 2)
+                    tag("rm2") zcyl(r=hook_thickness, h=hook_width + EPS * 2);
           }
-          if (hook_shape_type == "Rectangular")
-            tag_diff(remove="rm2", tag="kp1") {
-              right(hook_length - final_tip_radius / 2)
-                attach(FRONT + LEFT, FRONT + LEFT, inside=true)
-                  tag("") cuboid([hook_thickness + final_tip_radius / 2, hook_thickness + final_tip_radius / 2, hook_width])
-                      back(final_tip_radius / 2) left(final_tip_radius / 2)
-                          tag("rm2") zcyl(r=hook_thickness, h=hook_width + EPS * 2);
+        if (truss_vertical_grids > 0) {
+          attach(FRONT, BACK)
+            cuboid([hook_thickness, final_truss_height, hook_width]) {
+              back(truss_height_offset) down(hook_width / 2) position(RIGHT + BACK)
+                sturdy_truss_sweep(
+                  truss_height=final_truss_height,
+                  truss_depth=final_truss_depth,
+                  truss_thickness=truss_thickness,
+                  truss_width=hook_width,
+                  truss_rounding=truss_rounding,
+                  truss_angle=final_truss_angle,
+                  truss_height_offset=truss_height_offset
+                );
             }
-          if (truss_vertical_grids > 0) {
-            truss_height = truss_vertical_grids * OG_TILE_SIZE;
-            truss_angle = min(truss_max_angle, adj_opp_to_ang(truss_height + truss_height_offset, available_truss_depth + truss_height_offset));
-            truss_depth = min(available_truss_depth, ang_adj_to_opp(truss_angle, truss_height + truss_height_offset) - truss_height_offset);
-            attach(FRONT, BACK)
-              cuboid([hook_thickness, truss_height, hook_width]) {
-                back(truss_height_offset) down(hook_width / 2) position(RIGHT + BACK)
-                      sturdy_truss_sweep(
-                        truss_height=truss_height,
-                        truss_depth=truss_depth,
-                        truss_thickness=truss_thickness,
-                        truss_width=hook_width,
-                        truss_rounding=truss_rounding,
-                        truss_angle=truss_angle,
-                        truss_height_offset=truss_height_offset
-                      );
-              }
+        }
+      }
+      tag_diff(remove="rm2", tag="kp1")
+        up(hook_width / 2) fwd(stem_first_height - hook_thickness_at(path_first_ratio) / 2) right(hook_thickness / 2) {
+          path_sweep(final_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[hook_scale_at(1), 1]) {
+            if (hook_shape_type == "Flat")
+              attach("end", LEFT)
+                cuboid([tip_length, hook_thickness, hook_width], rounding=final_side_chamfer / 2, edges=BACK + RIGHT, $fn=64) {
+                  if (has_side_chamfer)
+                    tag("rm2") edge_profile([BACK + TOP, BACK + BOTTOM])
+                      mask2d_teardrop(r=final_side_chamfer, $fn=64);
+                }
+            else
+              attach("end", "top")
+                offset_sweep(offset_sweep_profile, height=tip_length, bottom=os_circle(r=tip_rounding_radius), spin=180, $fn=128);
           }
         }
-        tag_diff(remove="rm2", tag="kp1")
-          up(hook_width / 2) fwd(stem_first_height - hook_thickness_at(path_first_ratio) / 2) right(hook_thickness / 2) {
-                path_sweep(final_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[hook_scale_at(1), 1]) {
-                  if (hook_shape_type == "Flat")
-                    attach("end", LEFT)
-                      cuboid([tip_length, hook_thickness, hook_width], rounding=final_side_chamfer / 2, edges=BACK + RIGHT, $fn=64) {
-                        if (has_side_chamfer)
-                          tag("rm2") edge_profile([BACK + TOP, BACK + BOTTOM])
-                              mask2d_teardrop(r=final_side_chamfer, $fn=64);
-                      }
-                  else
-                    attach("end", "top")
-                      offset_sweep(offset_sweep_profile, height=tip_length, bottom=os_circle(r=tip_rounding_radius), spin=180, $fn=128);
-                }
-              }
-      }
+    }
 //END generation
 module sturdy_truss_sweep(truss_height, truss_depth, truss_thickness, truss_width, truss_rounding = EPS, truss_angle = 45, truss_height_offset = 0) {
   truss_outer_depth = truss_depth + truss_height_offset;

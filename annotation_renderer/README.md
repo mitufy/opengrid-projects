@@ -2,7 +2,7 @@
 
 This folder contains the reusable OpenSCAD-to-Blender annotation renderer used for MakerWorld-style technical images.
 
-It exports a configured OpenSCAD model with semantic annotation metadata enabled, replaces a named object in a Blender scene, projects SCAD-authored annotation anchors through the real Blender camera, and writes an annotated PNG.
+It exports a configured OpenSCAD model with semantic annotation metadata enabled, replaces a named object in a Blender scene, projects SCAD-authored annotation anchors through the real Blender camera, and writes annotated PNGs or unannotated animation GIFs.
 
 ## Folder Layout
 
@@ -20,6 +20,7 @@ annotation_renderer/
     scenes/
       opengrid_wall_scene.blend
   configs/
+    animation_examples.json
     gallery_defaults.json
     model_defaults.json
     parameter_details.json
@@ -44,6 +45,12 @@ For a local editable install with the console entry point:
 ```powershell
 build\.venv-tools\Scripts\python -m pip install -e .
 opengrid-annotate --config annotation_renderer\configs\model_defaults.json --validate-only
+```
+
+Install the optional mesh tooling dependencies when running the full test suite or mesh comparison/review scripts:
+
+```powershell
+build\.venv-tools\Scripts\python -m pip install -e ".[mesh]"
 ```
 
 ## Render Examples
@@ -138,6 +145,75 @@ build\.venv-tools\Scripts\python -m annotation_renderer `
 `python -m annotation_renderer` and the optional `opengrid-annotate` console script are the supported entry points.
 
 Single outputs are written under `build/scene_annotations/<job-name>__<timestamp>/`. Gallery outputs are written under `build/scene_annotations/<job-name>__gallery__<timestamp>/`, with each variant in its own subfolder plus `gallery.png`. Generated artifacts stay under `build/` and are ignored by git.
+
+## Animation Workflow
+
+Animations are defined in the selected variant under `render.animation`. The renderer still exports the configured OpenSCAD objects and replaces them in the Blender scene, then applies object keyframes before rendering a PNG frame sequence and encoding `animation.gif`. Animation output is unannotated; the same run can still write `render.png` and `annotated.png` for the final still.
+
+The tracked animation examples live in `configs/animation_examples.json`, which extends `model_defaults.json`. Keep stable still-image defaults in `model_defaults.json`; put demo animations and animation-only presets in the extending config.
+
+Use this loop when adding an animation:
+
+1. Add or copy a variant in `configs/animation_examples.json`.
+2. Set `scene.objects` to the generated objects that should exist in the scene.
+3. Add `render.animation.enabled: true`, `frame_start: 0`, `fps`, and `output_format: "gif"`.
+4. Use `clips` when multiple object animations should run in sequence.
+5. Validate with `--validate-only`, then render the named variant.
+
+Example render command:
+
+```powershell
+build\.venv-tools\Scripts\python -m annotation_renderer `
+  --config annotation_renderer\configs\animation_examples.json `
+  --variant drawer_install_then_container_slide_animation
+```
+
+Animation examples use constants as presets, so variants can stay small:
+
+```json
+{
+  "name": "general_holder_insert_animation",
+  "model": {"$constant": "general_holder_model"},
+  "render": {"$constant": "openconnect_insert_animation_render"},
+  "annotations": {}
+}
+```
+
+The current animation presets are:
+
+* `openconnect_install_keyframes_mm`: authored openconnect installation motion.
+* `openconnect_install_track`: object track using those keyframes.
+* `drawer_slide_y_50mm_track`: drawer container slide from `Y:-50mm` to final position.
+* `fade_in_8f_track`: show at the clip boundary and fade alpha from `0` to `1` over 8 frames.
+* `openconnect_insert_animation_render`, `drawer_slide_animation_render`, and `drawer_install_then_slide_animation_render`: full render presets for common GIF jobs.
+
+Animation clips use local frame numbers for their object tracks. The clip `start_frame` shifts those local frames onto the global timeline. This is the compact drawer shell install plus drawer container slide variant:
+
+```json
+{
+  "name": "drawer_install_then_container_slide_animation",
+  "scene": {
+    "object_defaults": {"$constant": "drawer_object_defaults"},
+    "objects": [
+      {"$constant": "drawer_shell_object"},
+      {"$constant": "drawer_container_object"}
+    ]
+  },
+  "render": {"$constant": "drawer_install_then_slide_animation_render"},
+  "annotations": {}
+}
+```
+
+Supported object animation fields:
+
+* `location_offset_keyframes_mm`: explicit authored motion keyframes in millimeters. Use this for reusable motions like openconnect installation.
+* `from_location_offset_mm` and `to_location_offset_mm`: simple two-keyframe object motion.
+* `visible_from_frame`: keep an object hidden until a local or global frame, depending on whether it is inside a clip.
+* `visibility_keyframes`: explicit show/hide keyframes.
+* `opacity_keyframes`: fade an object's material alpha between `0` and `1`.
+* `interpolation` and `opacity_interpolation`: one of `linear`, `constant`, `ease`, `ease_in`, `ease_out`, `ease_in_out`, or `bezier`.
+
+`end_pause_frames` defaults to `12`, so GIFs hold briefly after the last keyframe. Set it in `render.animation` when a different pause length is needed. If `frame_end` is omitted, the renderer derives it from the latest location, visibility, or opacity keyframe, then adds the pause.
 
 Gallery layout is intentionally separate from model defaults:
 

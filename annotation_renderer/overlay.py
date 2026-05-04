@@ -11,6 +11,7 @@ from PIL import Image, ImageColor, ImageDraw, ImageFont
 
 from annotation_renderer.config import (
     DEFAULT_LINE_ALPHA,
+    DEFAULT_TYPE_STYLES,
     AngleRadiusCallout,
     ArcCallout,
     DimensionSegment,
@@ -22,24 +23,77 @@ from annotation_renderer.config import (
 LABEL_TEXT_COLOR = "#18212b"
 LABEL_OUTLINE_COLOR = "#f8fafc"
 LABEL_OUTLINE_WIDTH = 2
+MIN_LABEL_COLLISION_OVERLAP_AXIS_PX = 0.5
 
 
 def clamp_alpha(value: int) -> int:
     return max(0, min(255, int(value)))
 
 
-def load_font(size: int):
-    candidates = [
+FONT_CANDIDATES = {
+    "sans": [
         Path(r"C:\Windows\Fonts\bahnschrift.ttf"),
         Path(r"C:\Windows\Fonts\segoeuisb.ttf"),
         Path(r"C:\Windows\Fonts\arialbd.ttf"),
         Path(r"C:\Windows\Fonts\segoeuib.ttf"),
         Path(r"C:\Windows\Fonts\calibrib.ttf"),
-    ]
+    ],
+    "mono": [
+        Path(r"C:\Windows\Fonts\CascadiaCode.ttf"),
+        Path(r"C:\Windows\Fonts\consolab.ttf"),
+        Path(r"C:\Windows\Fonts\consola.ttf"),
+    ],
+    "serif": [
+        Path(r"C:\Windows\Fonts\georgiab.ttf"),
+        Path(r"C:\Windows\Fonts\georgia.ttf"),
+    ],
+    "angle": [
+        Path(r"C:\Windows\Fonts\trebucbd.ttf"),
+        Path(r"C:\Windows\Fonts\segoeuib.ttf"),
+        Path(r"C:\Windows\Fonts\arialbd.ttf"),
+    ],
+}
+
+
+def load_font(size: int, font_key: str | None = None):
+    candidates = [*FONT_CANDIDATES.get(str(font_key or "sans"), []), *FONT_CANDIDATES["sans"]]
     for candidate in candidates:
         if candidate.exists():
             return ImageFont.truetype(str(candidate), size=size)
     return ImageFont.load_default()
+
+
+def parameter_type_style(style_config: Mapping[str, object], parameter_type: str) -> Mapping[str, object]:
+    type_styles = style_config.get("type_styles", {})
+    if isinstance(type_styles, Mapping):
+        style = type_styles.get(parameter_type)
+        if isinstance(style, Mapping):
+            return style
+    return DEFAULT_TYPE_STYLES.get(parameter_type, {})
+
+
+def font_key_for_type(style_config: Mapping[str, object], parameter_type: str) -> str:
+    font = parameter_type_style(style_config, parameter_type).get("font")
+    return str(font) if isinstance(font, str) and font else "sans"
+
+
+def shade_hex_color(color: str, factor: float) -> str:
+    rgb = ImageColor.getrgb(color)[:3]
+    shaded = tuple(clamp_alpha(round(channel * factor)) for channel in rgb)
+    return "#{:02x}{:02x}{:02x}".format(*shaded)
+
+
+def label_color_for_line(style_config: Mapping[str, object], line_color: str, parameter_type: str) -> str:
+    type_style = parameter_type_style(style_config, parameter_type)
+    configured = type_style.get("text_color")
+    if isinstance(configured, str) and configured:
+        return configured
+    shade = type_style.get("text_shade", 1.0)
+    try:
+        factor = float(shade)
+    except (TypeError, ValueError):
+        factor = 1.0
+    return shade_hex_color(line_color, max(0.0, min(1.0, factor)))
 
 
 def rotated_label_image(
@@ -50,24 +104,51 @@ def rotated_label_image(
     font_size_px: int,
     outline_color: str,
     outline_width_px: int,
+    font_key: str | None = None,
 ) -> Image.Image:
-    font = load_font(font_size_px)
+    return rotated_label_segments_image(
+        segments=[(text, text_color)],
+        angle_deg=angle_deg,
+        font_size_px=font_size_px,
+        outline_color=outline_color,
+        outline_width_px=outline_width_px,
+        font_key=font_key,
+    )
+
+
+def rotated_label_segments_image(
+    *,
+    segments: Sequence[tuple[str, str]],
+    angle_deg: float,
+    font_size_px: int,
+    outline_color: str,
+    outline_width_px: int,
+    font_key: str | None = None,
+) -> Image.Image:
+    font = load_font(font_size_px, font_key=font_key)
     scratch = Image.new("RGBA", (1, 1), (0, 0, 0, 0))
     scratch_draw = ImageDraw.Draw(scratch)
+    text = "".join(part for part, _ in segments)
     bbox = scratch_draw.textbbox((0, 0), text, font=font, stroke_width=outline_width_px)
     width = bbox[2] - bbox[0]
     height = bbox[3] - bbox[1]
     padding = max(2, round(font_size_px * 0.2))
     label = Image.new("RGBA", (width + padding * 2, height + padding * 2), (0, 0, 0, 0))
     label_draw = ImageDraw.Draw(label)
-    label_draw.text(
-        (padding, padding - bbox[1]),
-        text,
-        fill=ImageColor.getrgb(text_color),
-        font=font,
-        stroke_width=outline_width_px,
-        stroke_fill=ImageColor.getrgb(outline_color),
-    )
+    cursor_x = padding - bbox[0]
+    baseline_y = padding - bbox[1]
+    for part, color in segments:
+        if not part:
+            continue
+        label_draw.text(
+            (cursor_x, baseline_y),
+            part,
+            fill=ImageColor.getrgb(color),
+            font=font,
+            stroke_width=outline_width_px,
+            stroke_fill=ImageColor.getrgb(outline_color),
+        )
+        cursor_x += scratch_draw.textlength(part, font=font)
     return label.rotate(-angle_deg, resample=Image.Resampling.BICUBIC, expand=True)
 
 
@@ -82,6 +163,19 @@ def label_bbox(center: tuple[float, float], size: tuple[int, int]) -> tuple[floa
 
 def expanded_bbox(bbox: tuple[float, float, float, float], padding: float) -> tuple[float, float, float, float]:
     return (bbox[0] - padding, bbox[1] - padding, bbox[2] + padding, bbox[3] + padding)
+
+
+def union_bboxes(bboxes: Sequence[tuple[float, float, float, float]]) -> tuple[float, float, float, float]:
+    return (
+        min(bbox[0] for bbox in bboxes),
+        min(bbox[1] for bbox in bboxes),
+        max(bbox[2] for bbox in bboxes),
+        max(bbox[3] for bbox in bboxes),
+    )
+
+
+def color_with_alpha(color: str, alpha: int) -> tuple[int, int, int, int]:
+    return (*ImageColor.getrgb(color)[:3], clamp_alpha(alpha))
 
 
 def segment_bbox(
@@ -109,9 +203,30 @@ def polyline_bboxes(
     ]
 
 
-def overlap_area(left: tuple[float, float, float, float], right: tuple[float, float, float, float]) -> float:
+def overlap_size(
+    left: tuple[float, float, float, float],
+    right: tuple[float, float, float, float],
+) -> tuple[float, float]:
     overlap_width = max(0.0, min(left[2], right[2]) - max(left[0], right[0]))
     overlap_height = max(0.0, min(left[3], right[3]) - max(left[1], right[1]))
+    return overlap_width, overlap_height
+
+
+def overlap_area(left: tuple[float, float, float, float], right: tuple[float, float, float, float]) -> float:
+    overlap_width, overlap_height = overlap_size(left, right)
+    return overlap_width * overlap_height
+
+
+def label_collision_overlap_area(
+    left: tuple[float, float, float, float],
+    right: tuple[float, float, float, float],
+) -> float:
+    overlap_width, overlap_height = overlap_size(left, right)
+    if (
+        overlap_width < MIN_LABEL_COLLISION_OVERLAP_AXIS_PX
+        or overlap_height < MIN_LABEL_COLLISION_OVERLAP_AXIS_PX
+    ):
+        return 0.0
     return overlap_width * overlap_height
 
 
@@ -147,9 +262,9 @@ def place_label(
     occupied: list[tuple[float, float, float, float]],
     shift_axes: Sequence[tuple[float, float]],
     margin_px: float = 8.0,
+    secondary_axes_last_resort: bool = False,
 ) -> tuple[tuple[float, float], tuple[float, float, float, float]]:
     offsets = (0.0, 14.0, -14.0, 28.0, -28.0, 46.0, -46.0, 70.0, -70.0, 96.0, -96.0, 128.0, -128.0)
-    raw_candidates = [preferred_center]
     units: list[tuple[float, float]] = []
     for axis in shift_axes:
         axis_length = (axis[0] ** 2 + axis[1] ** 2) ** 0.5
@@ -157,13 +272,19 @@ def place_label(
             continue
         unit = (axis[0] / axis_length, axis[1] / axis_length)
         units.append(unit)
-        raw_candidates.extend(
+
+    def axis_candidates(axis: tuple[float, float]) -> list[tuple[float, float]]:
+        return [
             (
-                preferred_center[0] + unit[0] * offset,
-                preferred_center[1] + unit[1] * offset,
+                preferred_center[0] + axis[0] * offset,
+                preferred_center[1] + axis[1] * offset,
             )
             for offset in offsets[1:]
-        )
+        ]
+
+    raw_candidates = [preferred_center]
+    for unit in units:
+        raw_candidates.extend(axis_candidates(unit))
     if len(units) >= 2:
         combo_offsets = (28.0, -28.0, 46.0, -46.0, 70.0, -70.0, 96.0, -96.0)
         first, second = units[0], units[1]
@@ -176,23 +297,55 @@ def place_label(
             for second_offset in combo_offsets
         )
 
-    best_center = preferred_center
-    best_bbox = label_bbox(preferred_center, label_size)
-    best_score = float("inf")
-    for candidate in raw_candidates:
-        center = clamp_label_center(candidate, label_size, image_size, margin_px=margin_px)
-        bbox = label_bbox(center, label_size)
-        padded_bbox = expanded_bbox(bbox, 3.0)
-        overlap = sum(overlap_area(padded_bbox, other) for other in occupied)
-        displacement = ((center[0] - preferred_center[0]) ** 2 + (center[1] - preferred_center[1]) ** 2) ** 0.5
-        clamp_displacement = ((center[0] - candidate[0]) ** 2 + (center[1] - candidate[1]) ** 2) ** 0.5
-        score = overlap * 20.0 + displacement + clamp_displacement * 3.0
-        if score < best_score:
-            best_score = score
-            best_center = center
-            best_bbox = bbox
-            if overlap <= 0.0 and clamp_displacement <= 0.0:
-                break
+    def best_candidate(
+        candidates: Sequence[tuple[float, float]],
+        *,
+        prefer_clear: bool = False,
+    ) -> tuple[tuple[float, float], tuple[float, float, float, float], float, float]:
+        best_center = preferred_center
+        best_bbox = label_bbox(preferred_center, label_size)
+        best_score = float("inf")
+        best_overlap = float("inf")
+        best_clamp_displacement = float("inf")
+        best_clear_center = preferred_center
+        best_clear_bbox = label_bbox(preferred_center, label_size)
+        best_clear_score = float("inf")
+        found_clear = False
+        for candidate in candidates:
+            center = clamp_label_center(candidate, label_size, image_size, margin_px=margin_px)
+            bbox = label_bbox(center, label_size)
+            padded_bbox = expanded_bbox(bbox, 3.0)
+            overlap = sum(label_collision_overlap_area(padded_bbox, other) for other in occupied)
+            displacement = ((center[0] - preferred_center[0]) ** 2 + (center[1] - preferred_center[1]) ** 2) ** 0.5
+            clamp_displacement = ((center[0] - candidate[0]) ** 2 + (center[1] - candidate[1]) ** 2) ** 0.5
+            score = overlap * 20.0 + displacement + clamp_displacement * 3.0
+            if prefer_clear and overlap <= 0.0 and clamp_displacement <= 0.0 and displacement < best_clear_score:
+                best_clear_score = displacement
+                best_clear_center = center
+                best_clear_bbox = bbox
+                found_clear = True
+            if score < best_score:
+                best_score = score
+                best_center = center
+                best_bbox = bbox
+                best_overlap = overlap
+                best_clamp_displacement = clamp_displacement
+                if overlap <= 0.0 and clamp_displacement <= 0.0:
+                    break
+        if prefer_clear and found_clear:
+            return best_clear_center, best_clear_bbox, 0.0, 0.0
+        return best_center, best_bbox, best_overlap, best_clamp_displacement
+
+    if secondary_axes_last_resort and units:
+        primary_candidates = [preferred_center, *axis_candidates(units[0])]
+        best_center, best_bbox, best_overlap, best_clamp_displacement = best_candidate(
+            primary_candidates,
+            prefer_clear=True,
+        )
+        if best_overlap > 0.0 or best_clamp_displacement > 0.0:
+            best_center, best_bbox, _, _ = best_candidate(raw_candidates)
+    else:
+        best_center, best_bbox, _, _ = best_candidate(raw_candidates)
 
     occupied.append(expanded_bbox(best_bbox, 3.0))
     return best_center, best_bbox
@@ -216,6 +369,7 @@ def draw_rotated_label(
     font_size_px: int,
     outline_color: str,
     outline_width_px: int,
+    font_key: str | None = None,
 ) -> None:
     rotated = rotated_label_image(
         text=text,
@@ -224,8 +378,21 @@ def draw_rotated_label(
         font_size_px=font_size_px,
         outline_color=outline_color,
         outline_width_px=outline_width_px,
+        font_key=font_key,
     )
     image.alpha_composite(rotated, (int(center[0] - rotated.width / 2), int(center[1] - rotated.height / 2)))
+
+
+def draw_rotated_label_image(image: Image.Image, *, label_image: Image.Image, center: tuple[float, float]) -> None:
+    image.alpha_composite(label_image, (int(center[0] - label_image.width / 2), int(center[1] - label_image.height / 2)))
+
+
+def image_label_segments(label: ImageLabel, default_color: str) -> list[tuple[str, str]]:
+    name_color = label.color or default_color
+    if label.value_text and label.value_color and label.label.endswith(label.value_text):
+        name_text = label.label[: -len(label.value_text)]
+        return [(name_text, name_color), (label.value_text, label.value_color)]
+    return [(label.label, name_color)]
 
 
 def draw_dimension_chain_overlay(
@@ -303,6 +470,20 @@ def draw_dimension_chains_overlay(
             draw_segment(start, end, width=width, fill=fill)
             cursor = dash_end + gap
 
+    def one_sided_tick(
+        point: Sequence[float],
+        source_point: Sequence[float],
+        tick: Sequence[float],
+    ) -> tuple[tuple[float, float], tuple[float, float]]:
+        tick_vector = (float(tick[0]), float(tick[1]))
+        away_vector = (float(point[0]) - float(source_point[0]), float(point[1]) - float(source_point[1]))
+        if tick_vector[0] * away_vector[0] + tick_vector[1] * away_vector[1] < 0:
+            tick_vector = (-tick_vector[0], -tick_vector[1])
+        return (
+            (float(point[0]), float(point[1])),
+            (float(point[0]) + tick_vector[0], float(point[1]) + tick_vector[1]),
+        )
+
     prepared_chains: list[dict[str, object]] = []
     for spec in chains:
         segments = spec.segments
@@ -313,6 +494,13 @@ def draw_dimension_chains_overlay(
         points.append(tuple(float(value) for value in projected[f"{segments[0].id}.start"]["px"]))
         for segment in segments:
             points.append(tuple(float(value) for value in projected[f"{segment.id}.end"]["px"]))
+
+        source_points: list[tuple[float, float]] = []
+        first_source = projected.get(f"{segments[0].id}.source_start", projected[f"{segments[0].id}.start"])
+        source_points.append(tuple(float(value) for value in first_source["px"]))
+        for segment in segments:
+            source = projected.get(f"{segment.id}.source_end", projected[f"{segment.id}.end"])
+            source_points.append(tuple(float(value) for value in source["px"]))
 
         full_vector = (points[-1][0] - points[0][0], points[-1][1] - points[0][1])
         full_length = (full_vector[0] ** 2 + full_vector[1] ** 2) ** 0.5
@@ -334,6 +522,7 @@ def draw_dimension_chains_overlay(
             {
                 "segments": segments,
                 "points": points,
+                "source_points": source_points,
                 "baseline_points": baseline_points,
                 "normal": normal,
                 "line_alpha": line_alpha,
@@ -345,6 +534,7 @@ def draw_dimension_chains_overlay(
                 "tick": (normal[0] * tick_length_px, normal[1] * tick_length_px),
                 "label_font_size_px": int(style_config.get("label_font_size_px", 28)),
                 "label_color": str(style_config.get("label_color", LABEL_TEXT_COLOR)),
+                "label_color_by_segment": bool(style_config.get("label_color_by_segment", True)),
                 "label_outline_color": str(style_config.get("label_outline_color", LABEL_OUTLINE_COLOR)),
                 "label_outline_width_px": int(style_config.get("label_outline_width_px", LABEL_OUTLINE_WIDTH)),
                 "label_offset_px": spec.label_offset_px,
@@ -355,7 +545,7 @@ def draw_dimension_chains_overlay(
     for chain in prepared_chains:
         if not chain["extension_visible"]:
             continue
-        for point, baseline_point in zip(chain["points"], chain["baseline_points"]):
+        for point, baseline_point in zip(chain["source_points"], chain["baseline_points"]):
             draw_dashed_segment(
                 point,
                 baseline_point,
@@ -369,9 +559,9 @@ def draw_dimension_chains_overlay(
         if not chain["extension_visible"]:
             continue
         segments = chain["segments"]
-        for index, (point, baseline_point) in enumerate(zip(chain["points"], chain["baseline_points"])):
+        for index, (point, baseline_point) in enumerate(zip(chain["source_points"], chain["baseline_points"])):
             segment = segments[min(index, len(segments) - 1)]
-            extension = (*ImageColor.getrgb(segment.color)[:3], clamp_alpha(max(95, int(chain["line_alpha"]) - 42)))
+            extension = (*ImageColor.getrgb(segment.color)[:3], int(chain["line_alpha"]))
             draw_dashed_segment(
                 point,
                 baseline_point,
@@ -384,24 +574,28 @@ def draw_dimension_chains_overlay(
     for chain in prepared_chains:
         halo = (255, 255, 255, clamp_alpha(min(190, max(130, int(chain["line_alpha"]) + 26))))
         baseline_points = chain["baseline_points"]
+        source_points = chain["source_points"]
         tick = chain["tick"]
         for start, end in zip(baseline_points, baseline_points[1:]):
             draw_segment(start, end, width=6.5, fill=halo)
-        for point in baseline_points:
-            draw_segment((point[0] - tick[0], point[1] - tick[1]), (point[0] + tick[0], point[1] + tick[1]), width=6.5, fill=halo)
+        for point, source_point in zip(baseline_points, source_points):
+            tick_start, tick_end = one_sided_tick(point, source_point, tick)
+            draw_segment(tick_start, tick_end, width=6.5, fill=halo)
 
     for chain in prepared_chains:
         segments = chain["segments"]
         baseline_points = chain["baseline_points"]
+        source_points = chain["source_points"]
         tick = chain["tick"]
         line_alpha = int(chain["line_alpha"])
         for index, segment in enumerate(segments):
             color = (*ImageColor.getrgb(segment.color)[:3], line_alpha)
             draw_segment(baseline_points[index], baseline_points[index + 1], width=float(chain["line_width_px"]), fill=color)
-        for index, point in enumerate(baseline_points):
+        for index, (point, source_point) in enumerate(zip(baseline_points, source_points)):
             segment = segments[min(index, len(segments) - 1)]
-            color = (*ImageColor.getrgb(segment.color)[:3], clamp_alpha(min(210, line_alpha + 22)))
-            draw_segment((point[0] - tick[0], point[1] - tick[1]), (point[0] + tick[0], point[1] + tick[1]), width=float(chain["line_width_px"]), fill=color)
+            color = (*ImageColor.getrgb(segment.color)[:3], line_alpha)
+            tick_start, tick_end = one_sided_tick(point, source_point, tick)
+            draw_segment(tick_start, tick_end, width=float(chain["line_width_px"]), fill=color)
 
     overlay = overlay.resize(image.size, resample=Image.Resampling.LANCZOS)
     image.alpha_composite(overlay)
@@ -422,35 +616,46 @@ def draw_dimension_chains_overlay(
                 (baseline_points[index][0] + baseline_points[index + 1][0]) / 2.0,
                 (baseline_points[index][1] + baseline_points[index + 1][1]) / 2.0,
             )
+            label_color = (
+                label_color_for_line(style_config, segment.color, segment.parameter_type)
+                if chain["label_color_by_segment"]
+                else str(chain["label_color"])
+            )
+            label_font_key = font_key_for_type(style_config, segment.parameter_type)
             preferred_center = (midpoint[0] + text_offset[0], midpoint[1] + text_offset[1])
             label_image = rotated_label_image(
                 text=segment.label,
                 angle_deg=float(chain["angle"]),
-                text_color=str(chain["label_color"]),
+                text_color=label_color,
                 font_size_px=int(chain["label_font_size_px"]),
                 outline_color=str(chain["label_outline_color"]),
                 outline_width_px=int(chain["label_outline_width_px"]),
+                font_key=label_font_key,
             )
             center, bbox = place_label(
                 preferred_center=preferred_center,
                 label_size=label_image.size,
                 image_size=image.size,
                 occupied=occupied_labels,
-                shift_axes=[normal, direction],
+                shift_axes=[direction],
             )
             draw_rotated_label(
                 image,
                 text=segment.label,
                 center=center,
                 angle_deg=float(chain["angle"]),
-                text_color=str(chain["label_color"]),
+                text_color=label_color,
                 font_size_px=int(chain["label_font_size_px"]),
                 outline_color=str(chain["label_outline_color"]),
                 outline_width_px=int(chain["label_outline_width_px"]),
+                font_key=label_font_key,
             )
             text_metadata[segment.id] = {
                 "center_px": {"x": round(center[0], 2), "y": round(center[1], 2)},
                 "angle_deg": round(float(chain["angle"]), 2),
+                "color": label_color,
+                "font": label_font_key,
+                "parameter_type": segment.parameter_type,
                 "bbox_px": {
                     "left": round(bbox[0], 2),
                     "top": round(bbox[1], 2),
@@ -464,6 +669,10 @@ def draw_dimension_chains_overlay(
                 "baseline_points_px": [
                     {"x": round(point[0], 2), "y": round(point[1], 2)}
                     for point in baseline_points
+                ],
+                "source_points_px": [
+                    {"x": round(point[0], 2), "y": round(point[1], 2)}
+                    for point in chain["source_points"]
                 ],
                 "extension_visible": bool(chain["extension_visible"]),
                 "text": text_metadata,
@@ -530,7 +739,6 @@ def draw_radius_callout_overlay(
     line_width_px = float(style_config.get("line_width_px", 3.0))
     tick_length_px = float(style_config.get("tick_length_px", 18.0))
     label_font_size_px = int(style_config.get("label_font_size_px", 28))
-    label_color = str(style_config.get("label_color", LABEL_TEXT_COLOR))
     label_outline_color = str(style_config.get("label_outline_color", LABEL_OUTLINE_COLOR))
     label_outline_width_px = int(style_config.get("label_outline_width_px", LABEL_OUTLINE_WIDTH))
 
@@ -583,6 +791,8 @@ def draw_radius_callout_overlay(
             label_anchor[0] + normal[0] * label_offset_px,
             label_anchor[1] + normal[1] * label_offset_px,
         )
+        label_color = label_color_for_line(style_config, callout.color, callout.parameter_type)
+        label_font_key = font_key_for_type(style_config, callout.parameter_type)
         label_image = rotated_label_image(
             text=callout.label,
             angle_deg=angle,
@@ -590,13 +800,14 @@ def draw_radius_callout_overlay(
             font_size_px=label_font_size_px,
             outline_color=label_outline_color,
             outline_width_px=label_outline_width_px,
+            font_key=label_font_key,
         )
         label_center, label_bbox_px = place_label(
             preferred_center=preferred_label_center,
             label_size=label_image.size,
             image_size=image.size,
             occupied=occupied_labels,
-            shift_axes=[normal, direction],
+            shift_axes=[direction, normal],
         )
         overlay = overlay.resize(image.size, resample=Image.Resampling.LANCZOS)
         image.alpha_composite(overlay)
@@ -612,10 +823,14 @@ def draw_radius_callout_overlay(
             font_size_px=label_font_size_px,
             outline_color=label_outline_color,
             outline_width_px=label_outline_width_px,
+            font_key=label_font_key,
         )
         text_metadata[callout.id] = {
             "center_px": {"x": round(label_center[0], 2), "y": round(label_center[1], 2)},
             "angle_deg": round(angle, 2),
+            "color": label_color,
+            "font": label_font_key,
+            "parameter_type": callout.parameter_type,
             "bbox_px": {
                 "left": round(label_bbox_px[0], 2),
                 "top": round(label_bbox_px[1], 2),
@@ -678,7 +893,6 @@ def draw_arc_callout_overlay(
     line_width_px = float(style_config.get("line_width_px", 3.0))
     tick_length_px = float(style_config.get("tick_length_px", 18.0))
     label_font_size_px = int(style_config.get("label_font_size_px", 28))
-    label_color = str(style_config.get("label_color", LABEL_TEXT_COLOR))
     label_outline_color = str(style_config.get("label_outline_color", LABEL_OUTLINE_COLOR))
     label_outline_width_px = int(style_config.get("label_outline_width_px", LABEL_OUTLINE_WIDTH))
 
@@ -715,7 +929,7 @@ def draw_arc_callout_overlay(
                 (endpoint[0] - tick[0], endpoint[1] - tick[1]),
                 (endpoint[0] + tick[0], endpoint[1] + tick[1]),
                 width=line_width_px,
-                fill=(*ImageColor.getrgb(callout.color)[:3], clamp_alpha(min(210, line_alpha + 22))),
+                fill=(*ImageColor.getrgb(callout.color)[:3], line_alpha),
             )
 
         mid_index = len(points) // 2
@@ -736,6 +950,8 @@ def draw_arc_callout_overlay(
         if angle > 90.0 or angle < -90.0:
             angle += 180.0
         if show_label:
+            label_color = label_color_for_line(style_config, callout.color, callout.parameter_type)
+            label_font_key = font_key_for_type(style_config, callout.parameter_type)
             label_image = rotated_label_image(
                 text=callout.label,
                 angle_deg=angle,
@@ -743,6 +959,7 @@ def draw_arc_callout_overlay(
                 font_size_px=label_font_size_px,
                 outline_color=label_outline_color,
                 outline_width_px=label_outline_width_px,
+                font_key=label_font_key,
             )
             label_center, label_bbox_px = place_label(
                 preferred_center=preferred_label_center,
@@ -754,6 +971,9 @@ def draw_arc_callout_overlay(
             text_metadata[callout.id] = {
                 "center_px": {"x": round(label_center[0], 2), "y": round(label_center[1], 2)},
                 "angle_deg": round(angle, 2),
+                "color": label_color,
+                "font": label_font_key,
+                "parameter_type": callout.parameter_type,
                 "bbox_px": {
                     "left": round(label_bbox_px[0], 2),
                     "top": round(label_bbox_px[1], 2),
@@ -774,10 +994,11 @@ def draw_arc_callout_overlay(
             text=callout.label,
             center=(float(text["center_px"]["x"]), float(text["center_px"]["y"])),
             angle_deg=float(text["angle_deg"]),
-            text_color=label_color,
+            text_color=str(text["color"]),
             font_size_px=label_font_size_px,
             outline_color=label_outline_color,
             outline_width_px=label_outline_width_px,
+            font_key=str(text["font"]),
         )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -799,6 +1020,8 @@ def draw_angle_radius_callout_overlay(
     show_angle_label: bool,
     show_radius_label: bool,
     style_config: Mapping[str, object],
+    angle_label_tangent_offset_px: float = 0.0,
+    radius_label_tangent_offset_px: float = 0.0,
 ) -> dict[str, object]:
     if not callouts:
         raise ValueError("At least one angle/radius callout is required")
@@ -853,13 +1076,11 @@ def draw_angle_radius_callout_overlay(
     radial_dash_px = float(style_config.get("radial_dash_px", max(line_width_px * 5.0, 14.0)))
     radial_gap_px = float(style_config.get("radial_gap_px", max(line_width_px * 3.2, 9.0)))
     label_font_size_px = int(style_config.get("label_font_size_px", 28))
-    label_color = str(style_config.get("label_color", LABEL_TEXT_COLOR))
     label_outline_color = str(style_config.get("label_outline_color", LABEL_OUTLINE_COLOR))
     label_outline_width_px = int(style_config.get("label_outline_width_px", LABEL_OUTLINE_WIDTH))
     angle_fill_alpha = clamp_alpha(int(style_config.get("angle_fill_alpha", 30)))
     angle_fill_color = str(style_config.get("angle_fill_color", "#d9ead3"))
-    label_avoidance_padding_px = float(style_config.get("label_avoidance_padding_px", max(8.0, line_width_px * 3.0)))
-
+    label_avoidance_padding_px = float(style_config.get("label_avoidance_padding_px", 3.0))
     text_metadata = {}
     callout_metadata = {}
     occupied_labels: list[tuple[float, float, float, float]] = []
@@ -877,9 +1098,8 @@ def draw_angle_radius_callout_overlay(
         start = points[0]
         end = points[-1]
         arc_color = (*ImageColor.getrgb(callout.arc_color)[:3], line_alpha)
-        radial_color = (*ImageColor.getrgb(callout.radius_color)[:3], clamp_alpha(max(110, line_alpha - 24)))
+        radial_color = (*ImageColor.getrgb(callout.radius_color)[:3], line_alpha)
         halo = (255, 255, 255, clamp_alpha(min(180, max(120, line_alpha + 18))))
-        arc_occupied = polyline_bboxes(points, padding=label_avoidance_padding_px)
         radius_vector = (radius_edge[0] - center[0], radius_edge[1] - center[1])
         radius_length = (radius_vector[0] ** 2 + radius_vector[1] ** 2) ** 0.5
         if radius_length <= 1e-6:
@@ -955,17 +1175,20 @@ def draw_angle_radius_callout_overlay(
         if angle_text_angle > 90.0 or angle_text_angle < -90.0:
             angle_text_angle += 180.0
         if show_angle_label:
+            angle_label_color = label_color_for_line(style_config, callout.arc_color, callout.angle_type)
+            angle_font_key = font_key_for_type(style_config, callout.angle_type)
             angle_label_image = rotated_label_image(
                 text=callout.angle_label,
                 angle_deg=angle_text_angle,
-                text_color=label_color,
+                text_color=angle_label_color,
                 font_size_px=label_font_size_px,
                 outline_color=label_outline_color,
                 outline_width_px=label_outline_width_px,
+                font_key=angle_font_key,
             )
             preferred_angle_center = (
-                midpoint[0] + arc_normal[0] * angle_label_offset_px,
-                midpoint[1] + arc_normal[1] * angle_label_offset_px,
+                midpoint[0] + arc_normal[0] * angle_label_offset_px + arc_direction[0] * angle_label_tangent_offset_px,
+                midpoint[1] + arc_normal[1] * angle_label_offset_px + arc_direction[1] * angle_label_tangent_offset_px,
             )
             angle_center, angle_bbox = place_label(
                 preferred_center=preferred_angle_center,
@@ -977,6 +1200,9 @@ def draw_angle_radius_callout_overlay(
             text_metadata[f"{callout.id}.angle"] = {
                 "center_px": {"x": round(angle_center[0], 2), "y": round(angle_center[1], 2)},
                 "angle_deg": round(angle_text_angle, 2),
+                "color": angle_label_color,
+                "font": angle_font_key,
+                "parameter_type": callout.angle_type,
                 "bbox_px": {
                     "left": round(angle_bbox[0], 2),
                     "top": round(angle_bbox[1], 2),
@@ -995,34 +1221,44 @@ def draw_angle_radius_callout_overlay(
         if radius_text_angle > 90.0 or radius_text_angle < -90.0:
             radius_text_angle += 180.0
         if show_radius_label:
+            radius_label_color = label_color_for_line(style_config, callout.radius_color, callout.radius_type)
+            radius_font_key = font_key_for_type(style_config, callout.radius_type)
             radius_label_image = rotated_label_image(
                 text=callout.radius_label,
                 angle_deg=radius_text_angle,
-                text_color=label_color,
+                text_color=radius_label_color,
                 font_size_px=label_font_size_px,
                 outline_color=label_outline_color,
                 outline_width_px=label_outline_width_px,
+                font_key=radius_font_key,
             )
             radius_anchor = (
                 center[0] + radius_vector[0] * 0.58,
                 center[1] + radius_vector[1] * 0.58,
             )
             preferred_radius_center = (
-                radius_anchor[0] + radius_normal[0] * radius_label_offset_px,
-                radius_anchor[1] + radius_normal[1] * radius_label_offset_px,
+                radius_anchor[0] + radius_normal[0] * radius_label_offset_px + radius_direction[0] * radius_label_tangent_offset_px,
+                radius_anchor[1] + radius_normal[1] * radius_label_offset_px + radius_direction[1] * radius_label_tangent_offset_px,
             )
-            radius_occupied = [*occupied_labels, *arc_occupied]
+            radius_occupied = [
+                *occupied_labels,
+                *polyline_bboxes(points, padding=label_avoidance_padding_px),
+            ]
             radius_center, radius_bbox = place_label(
                 preferred_center=preferred_radius_center,
                 label_size=radius_label_image.size,
                 image_size=image.size,
                 occupied=radius_occupied,
-                shift_axes=[radius_normal, radius_direction],
+                shift_axes=[radius_direction, radius_normal],
+                secondary_axes_last_resort=True,
             )
             occupied_labels.append(expanded_bbox(radius_bbox, 3.0))
             text_metadata[f"{callout.id}.radius"] = {
                 "center_px": {"x": round(radius_center[0], 2), "y": round(radius_center[1], 2)},
                 "angle_deg": round(radius_text_angle, 2),
+                "color": radius_label_color,
+                "font": radius_font_key,
+                "parameter_type": callout.radius_type,
                 "bbox_px": {
                     "left": round(radius_bbox[0], 2),
                     "top": round(radius_bbox[1], 2),
@@ -1051,10 +1287,11 @@ def draw_angle_radius_callout_overlay(
                 text=callout.angle_label,
                 center=(float(angle_text["center_px"]["x"]), float(angle_text["center_px"]["y"])),
                 angle_deg=float(angle_text["angle_deg"]),
-                text_color=label_color,
+                text_color=str(angle_text["color"]),
                 font_size_px=label_font_size_px,
                 outline_color=label_outline_color,
                 outline_width_px=label_outline_width_px,
+                font_key=str(angle_text["font"]),
             )
         radius_text = text_metadata.get(f"{callout.id}.radius")
         if radius_text is not None:
@@ -1063,10 +1300,11 @@ def draw_angle_radius_callout_overlay(
                 text=callout.radius_label,
                 center=(float(radius_text["center_px"]["x"]), float(radius_text["center_px"]["y"])),
                 angle_deg=float(radius_text["angle_deg"]),
-                text_color=label_color,
+                text_color=str(radius_text["color"]),
                 font_size_px=label_font_size_px,
                 outline_color=label_outline_color,
                 outline_width_px=label_outline_width_px,
+                font_key=str(radius_text["font"]),
             )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1108,16 +1346,27 @@ def draw_image_label_overlay(
     label_outline_width_px = int(style_config.get("label_outline_width_px", LABEL_OUTLINE_WIDTH))
     label_font_size_px = int(style_config.get("label_font_size_px", 28))
     margin_px = float(style_config.get("image_label_margin_px", 42))
+    title_area_enabled = bool(style_config.get("image_label_title_area", True))
+    title_padding_x_px = float(style_config.get("image_label_title_padding_x_px", 34))
+    title_padding_y_px = float(style_config.get("image_label_title_padding_y_px", 12))
+    title_radius_px = int(style_config.get("image_label_title_radius_px", 18))
+    title_fill_color = str(style_config.get("image_label_title_fill_color", "#ffffff"))
+    title_fill_alpha = int(style_config.get("image_label_title_fill_alpha", 224))
+    title_outline_color = str(style_config.get("image_label_title_outline_color", "#000000"))
+    title_outline_alpha = int(style_config.get("image_label_title_outline_alpha", 255))
+    title_outline_width_px = int(style_config.get("image_label_title_outline_width_px", 4))
+    title_min_width_px = float(style_config.get("image_label_title_min_width_px", 620))
+    title_bottom_margin_px = float(style_config.get("image_label_title_bottom_margin_px", 18))
 
     metadata = {}
     occupied_labels: list[tuple[float, float, float, float]] = []
+    prepared_labels = []
     for label in labels:
         preferred_center = image_label_center(image, position=label.position, offset_px=label.offset_px, margin_px=margin_px)
         font_size = label.font_size_px or label_font_size_px
-        label_image = rotated_label_image(
-            text=label.label,
+        label_image = rotated_label_segments_image(
+            segments=image_label_segments(label, label_color),
             angle_deg=label.angle_deg,
-            text_color=label.color or label_color,
             font_size_px=font_size,
             outline_color=label_outline_color,
             outline_width_px=label_outline_width_px,
@@ -1139,16 +1388,7 @@ def draw_image_label_overlay(
             occupied=occupied_labels,
             shift_axes=shift_axes,
         )
-        draw_rotated_label(
-            image,
-            text=label.label,
-            center=center,
-            angle_deg=label.angle_deg,
-            text_color=label.color or label_color,
-            font_size_px=font_size,
-            outline_color=label_outline_color,
-            outline_width_px=label_outline_width_px,
-        )
+        prepared_labels.append((label, label_image, center, bbox))
         metadata[label.id] = {
             "center_px": {"x": round(center[0], 2), "y": round(center[1], 2)},
             "angle_deg": round(label.angle_deg, 2),
@@ -1162,6 +1402,94 @@ def draw_image_label_overlay(
             },
         }
 
+    title_area_metadata = None
+    if title_area_enabled:
+        title_bboxes = [bbox for label, _label_image, _center, bbox in prepared_labels if label.position.startswith("bottom")]
+        if title_bboxes:
+            label_union = union_bboxes(title_bboxes)
+            title_left = label_union[0] - title_padding_x_px
+            title_top = label_union[1] - title_padding_y_px
+            title_right = label_union[2] + title_padding_x_px
+            title_bottom = label_union[3] + title_padding_y_px
+            if title_right - title_left < title_min_width_px:
+                center_x = (title_left + title_right) / 2.0
+                title_left = center_x - title_min_width_px / 2.0
+                title_right = center_x + title_min_width_px / 2.0
+            side_margin = max(18.0, title_radius_px)
+            if title_left < side_margin:
+                shift = side_margin - title_left
+                title_left += shift
+                title_right += shift
+            if title_right > image.width - side_margin:
+                shift = image.width - side_margin - title_right
+                title_left += shift
+                title_right += shift
+            max_bottom = image.height - title_bottom_margin_px
+            if title_bottom > max_bottom:
+                shift = max_bottom - title_bottom
+                title_top += shift
+                title_bottom += shift
+            min_top = title_bottom_margin_px
+            if title_top < min_top:
+                shift = min_top - title_top
+                title_top += shift
+                title_bottom += shift
+
+            title_center = ((title_left + title_right) / 2.0, (title_top + title_bottom) / 2.0)
+            label_center = ((label_union[0] + label_union[2]) / 2.0, (label_union[1] + label_union[3]) / 2.0)
+            label_shift = (title_center[0] - label_center[0], title_center[1] - label_center[1])
+            if abs(label_shift[0]) > 0.01 or abs(label_shift[1]) > 0.01:
+                shifted_labels = []
+                for label, label_image, center, bbox in prepared_labels:
+                    if label.position.startswith("bottom"):
+                        center = (center[0] + label_shift[0], center[1] + label_shift[1])
+                        bbox = (
+                            bbox[0] + label_shift[0],
+                            bbox[1] + label_shift[1],
+                            bbox[2] + label_shift[0],
+                            bbox[3] + label_shift[1],
+                        )
+                        metadata[label.id]["center_px"] = {"x": round(center[0], 2), "y": round(center[1], 2)}
+                        metadata[label.id]["bbox_px"] = {
+                            "left": round(bbox[0], 2),
+                            "top": round(bbox[1], 2),
+                            "right": round(bbox[2], 2),
+                            "bottom": round(bbox[3], 2),
+                        }
+                    shifted_labels.append((label, label_image, center, bbox))
+                prepared_labels = shifted_labels
+
+            background = Image.new("RGBA", image.size, (0, 0, 0, 0))
+            background_draw = ImageDraw.Draw(background)
+            title_bbox = (title_left, title_top, title_right, title_bottom)
+            background_draw.rounded_rectangle(
+                title_bbox,
+                radius=title_radius_px,
+                fill=color_with_alpha(title_fill_color, title_fill_alpha),
+                outline=color_with_alpha(title_outline_color, title_outline_alpha),
+                width=title_outline_width_px,
+            )
+            image.alpha_composite(background)
+            title_area_metadata = {
+                "bbox_px": {
+                    "left": round(title_left, 2),
+                    "top": round(title_top, 2),
+                    "right": round(title_right, 2),
+                    "bottom": round(title_bottom, 2),
+                },
+                "radius_px": title_radius_px,
+            }
+
+    for _label, label_image, center, _bbox in prepared_labels:
+        draw_rotated_label_image(
+            image,
+            label_image=label_image,
+            center=center,
+        )
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
     image.convert("RGB").save(output_path)
-    return {"image_labels": metadata}
+    result: dict[str, object] = {"image_labels": metadata}
+    if title_area_metadata is not None:
+        result["title_area"] = title_area_metadata
+    return result
