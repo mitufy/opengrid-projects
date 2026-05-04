@@ -418,6 +418,9 @@
             },
             "mesh_shading": {
               "$ref": "#/$defs/meshShading"
+            },
+            "animation": {
+              "$ref": "#/$defs/animationConfig"
             }
           }
         },
@@ -581,6 +584,356 @@
         }
       ]
     },
+    "animationConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "frame_start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "frame_end": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "duration_frames": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_pause_frames": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fps": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "output_format": {
+          "type": "string",
+          "enum": [
+            "gif",
+            "png_sequence"
+          ]
+        },
+        "gif_width_px": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "interpolation": {
+          "type": "string",
+          "enum": [
+            "linear",
+            "constant",
+            "ease",
+            "ease_in",
+            "ease_out",
+            "ease_in_out",
+            "bezier"
+          ]
+        },
+        "object_animations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/objectAnimationConfig"
+          }
+        },
+        "objects": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/objectAnimationConfig"
+          }
+        },
+        "clips": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/animationClipConfig"
+          }
+        }
+      }
+    },
+    "animationClipConfig": {
+      "type": "object",
+      "anyOf": [
+        {
+          "required": [
+            "object_animations"
+          ]
+        },
+        {
+          "required": [
+            "objects"
+          ]
+        }
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "start_frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "duration_frames": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "interpolation": {
+          "type": "string",
+          "enum": [
+            "linear",
+            "constant",
+            "ease",
+            "ease_in",
+            "ease_out",
+            "ease_in_out",
+            "bezier"
+          ]
+        },
+        "object_animations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/objectAnimationConfig"
+          }
+        },
+        "objects": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/objectAnimationConfig"
+          }
+        }
+      }
+    },
+    "objectAnimationConfig": {
+      "type": "object",
+      "anyOf": [
+        {
+          "required": [
+            "object"
+          ]
+        },
+        {
+          "required": [
+            "id"
+          ]
+        }
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "object": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "property": {
+          "type": "string",
+          "enum": [
+            "location"
+          ]
+        },
+        "start_frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "from_location_offset_mm": {
+          "$ref": "#/$defs/vector3"
+        },
+        "to_location_offset_mm": {
+          "$ref": "#/$defs/vector3"
+        },
+        "from_offset_mm": {
+          "$ref": "#/$defs/vector3"
+        },
+        "to_offset_mm": {
+          "$ref": "#/$defs/vector3"
+        },
+        "visible_from_frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "visibility_keyframes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/visibilityKeyframe"
+          }
+        },
+        "opacity_keyframes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/opacityKeyframe"
+          }
+        },
+        "opacity_interpolation": {
+          "type": "string",
+          "enum": [
+            "linear",
+            "constant",
+            "ease",
+            "ease_in",
+            "ease_out",
+            "ease_in_out",
+            "bezier"
+          ]
+        },
+        "location_offset_keyframes_mm": {
+          "anyOf": [
+            {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "$ref": "#/$defs/locationOffsetKeyframe"
+              }
+            },
+            {
+              "$ref": "#/$defs/constantRef"
+            }
+          ]
+        },
+        "keyframes": {
+          "anyOf": [
+            {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "$ref": "#/$defs/locationOffsetKeyframe"
+              }
+            },
+            {
+              "$ref": "#/$defs/constantRef"
+            }
+          ]
+        },
+        "interpolation": {
+          "type": "string",
+          "enum": [
+            "linear",
+            "constant",
+            "ease",
+            "ease_in",
+            "ease_out",
+            "ease_in_out",
+            "bezier"
+          ]
+        }
+      }
+    },
+    "visibilityKeyframe": {
+      "type": "object",
+      "required": [
+        "frame",
+        "visible"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "visible": {
+          "type": "boolean"
+        }
+      }
+    },
+    "opacityKeyframe": {
+      "type": "object",
+      "required": [
+        "frame"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "value"
+          ]
+        },
+        {
+          "required": [
+            "opacity"
+          ]
+        },
+        {
+          "required": [
+            "alpha"
+          ]
+        }
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "value": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "alpha": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "locationOffsetKeyframe": {
+      "type": "object",
+      "required": [
+        "frame"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "value"
+          ]
+        },
+        {
+          "required": [
+            "value_mm"
+          ]
+        },
+        {
+          "required": [
+            "location_offset_mm"
+          ]
+        }
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "value": {
+          "$ref": "#/$defs/vector3"
+        },
+        "value_mm": {
+          "$ref": "#/$defs/vector3"
+        },
+        "location_offset_mm": {
+          "$ref": "#/$defs/vector3"
+        }
+      }
+    },
     "labelsMap": {
       "anyOf": [
         {
@@ -623,6 +976,9 @@
                 "type": "string"
               }
             },
+            "optional": {
+              "type": "boolean"
+            },
             "display_offset_mm": {
               "$ref": "#/$defs/vector3"
             },
@@ -664,6 +1020,9 @@
             },
             "label_color": {
               "type": "string"
+            },
+            "label_color_by_segment": {
+              "type": "boolean"
             },
             "label_outline_color": {
               "type": "string"
@@ -734,6 +1093,9 @@
             "angle_id": {
               "type": "string"
             },
+            "optional": {
+              "type": "boolean"
+            },
             "display_offset_mm": {
               "$ref": "#/$defs/vector3"
             },
@@ -744,6 +1106,12 @@
               "type": "number"
             },
             "radius_label_offset_px": {
+              "type": "number"
+            },
+            "angle_label_tangent_offset_px": {
+              "type": "number"
+            },
+            "radius_label_tangent_offset_px": {
               "type": "number"
             },
             "line_alpha": {
@@ -769,6 +1137,9 @@
             },
             "label_color": {
               "type": "string"
+            },
+            "label_color_by_segment": {
+              "type": "boolean"
             },
             "label_outline_color": {
               "type": "string"
@@ -863,6 +1234,9 @@
             "color": {
               "type": "string"
             },
+            "value_color": {
+              "type": "string"
+            },
             "font_size_px": {
               "type": "integer",
               "minimum": 1
@@ -922,6 +1296,9 @@
             "label_color": {
               "type": "string"
             },
+            "label_color_by_segment": {
+              "type": "boolean"
+            },
             "label_outline_color": {
               "type": "string"
             },
@@ -946,11 +1323,93 @@
               "minimum": 0,
               "maximum": 255
             },
+            "image_label_margin_px": {
+              "type": "number",
+              "minimum": 0
+            },
+            "image_label_title_area": {
+              "type": "boolean"
+            },
+            "image_label_title_padding_x_px": {
+              "type": "number",
+              "minimum": 0
+            },
+            "image_label_title_padding_y_px": {
+              "type": "number",
+              "minimum": 0
+            },
+            "image_label_title_radius_px": {
+              "type": "number",
+              "minimum": 0
+            },
+            "image_label_title_fill_color": {
+              "type": "string"
+            },
+            "image_label_title_fill_alpha": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "image_label_title_outline_color": {
+              "type": "string"
+            },
+            "image_label_title_outline_alpha": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "image_label_title_outline_width_px": {
+              "type": "number",
+              "minimum": 0
+            },
+            "image_label_title_min_width_px": {
+              "type": "number",
+              "minimum": 0
+            },
+            "image_label_title_bottom_margin_px": {
+              "type": "number",
+              "minimum": 0
+            },
             "show_values": {
               "type": "boolean"
             },
             "colors": {
               "$ref": "#/$defs/labelsMap"
+            },
+            "type_styles": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "line_color": {
+                    "type": "string"
+                  },
+                  "line_colors": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "text_color": {
+                    "type": "string"
+                  },
+                  "text_shade": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "font": {
+                    "type": "string",
+                    "enum": [
+                      "sans",
+                      "mono",
+                      "serif",
+                      "angle"
+                    ]
+                  }
+                }
+              }
             }
           }
         },
