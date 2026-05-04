@@ -19,7 +19,7 @@ from annotation_renderer.scad_annotations import (
 
 AXES = ("x", "y", "z")
 DEFAULT_OUTPUT_DIR = "build/scene_annotations"
-DEFAULT_LINE_ALPHA = 178
+DEFAULT_LINE_ALPHA = 255
 DEFAULT_LINE_COLORS = {
     "hook_length": "#2f7f8f",
     "hook_thickness": "#6f7f2f",
@@ -50,6 +50,24 @@ DEFAULT_LINE_COLORS = {
     "container_height_clearance": "#7f4f8f",
     "container_depth_clearance": "#2f7f8f",
 }
+DEFAULT_TYPE_STYLES: dict[str, dict[str, object]] = {
+    "grids": {
+        "line_colors": ["#000000"],
+        "font": "sans",
+    },
+    "mm": {
+        "line_colors": ["#2563eb"],
+        "font": "sans",
+    },
+    "radius": {
+        "line_colors": ["#dc2626"],
+        "font": "sans",
+    },
+    "angle": {
+        "line_colors": ["#dc2626"],
+        "font": "sans",
+    },
+}
 CONSTANT_REF_KEY = "$constant"
 SCENE_OBJECT_CONFIG_KEYS = {
     "id",
@@ -65,7 +83,7 @@ SCENE_OBJECT_CONFIG_KEYS = {
 SCENE_OBJECT_DEFAULT_KEYS = SCENE_OBJECT_CONFIG_KEYS - {"id"}
 STYLE_PRESETS: dict[str, dict[str, object]] = {
     "makerworld_technical_light": {
-        "line_alpha": 178,
+        "line_alpha": 255,
         "line_width_px": 3,
         "extension_width_px": 1.7,
         "extension_visible": True,
@@ -78,6 +96,7 @@ STYLE_PRESETS: dict[str, dict[str, object]] = {
         "label_outline_width_px": 2,
         "show_values": False,
         "colors": {},
+        "type_styles": DEFAULT_TYPE_STYLES,
     }
 }
 RENDER_PRESETS: dict[str, dict[str, object]] = {
@@ -110,6 +129,9 @@ class DimensionSegment:
     start_mm: tuple[float, float, float]
     end_mm: tuple[float, float, float]
     color: str
+    parameter_type: str = "mm"
+    source_start_mm: tuple[float, float, float] | None = None
+    source_end_mm: tuple[float, float, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -120,6 +142,7 @@ class RadiusCallout:
     center_mm: tuple[float, float, float]
     edge_mm: tuple[float, float, float]
     color: str
+    parameter_type: str
 
 
 @dataclass(frozen=True)
@@ -129,6 +152,7 @@ class ArcCallout:
     value: str
     points_mm: tuple[tuple[float, float, float], ...]
     color: str
+    parameter_type: str
 
 
 @dataclass(frozen=True)
@@ -143,16 +167,20 @@ class AngleRadiusCallout:
     points_mm: tuple[tuple[float, float, float], ...]
     arc_color: str
     radius_color: str
+    angle_type: str
+    radius_type: str
 
 
 @dataclass(frozen=True)
 class ImageLabel:
     id: str
     label: str
+    value_text: str | None
     position: str
     offset_px: tuple[float, float]
     angle_deg: float
     color: str | None
+    value_color: str | None
     font_size_px: int | None
 
 
@@ -249,6 +277,36 @@ def resolve_style(style_config: object) -> dict[str, object]:
     if preset_name not in STYLE_PRESETS:
         raise ConfigError(f"Unknown annotation style preset {preset_name!r}")
     return deep_merge(STYLE_PRESETS[preset_name], style_config)
+
+
+def annotation_parameter_type(annotation_id: str, *, kind: str = "dimension") -> str:
+    name = annotation_id.lower()
+    if "grid" in name or "vgrid" in name:
+        return "grids"
+    if "angle" in name:
+        return "angle"
+    if kind == "radius" or any(token in name for token in ("radius", "fillet", "rounding")):
+        return "radius"
+    return "mm"
+
+
+def type_line_color(
+    style_config: Mapping[str, object],
+    parameter_type: str,
+    *,
+    index: int = 0,
+    fallback: str = "#2f7f8f",
+) -> str:
+    type_styles = style_config.get("type_styles", {})
+    type_style = type_styles.get(parameter_type, {}) if isinstance(type_styles, Mapping) else {}
+    if isinstance(type_style, Mapping):
+        line_colors = type_style.get("line_colors")
+        if isinstance(line_colors, Sequence) and not isinstance(line_colors, (str, bytes)) and line_colors:
+            return str(line_colors[index % len(line_colors)])
+        line_color = type_style.get("line_color")
+        if isinstance(line_color, str) and line_color:
+            return line_color
+    return fallback
 
 
 def resolve_preset_mapping(
@@ -574,6 +632,8 @@ def validate_config_shape(config: Mapping[str, object]) -> None:
 def validate_annotation_group(value: object, *, name: str) -> None:
     if not isinstance(value, Mapping):
         raise ConfigError(f"{name} must be an object")
+    if "optional" in value and not isinstance(value["optional"], bool):
+        raise ConfigError(f"{name}.optional must be a boolean")
     ids = value.get("ids")
     if not isinstance(ids, Sequence) or isinstance(ids, (str, bytes)) or not ids:
         raise ConfigError(f"{name}.ids must be a non-empty list")
@@ -591,6 +651,8 @@ def validate_annotation_group(value: object, *, name: str) -> None:
 def validate_angle_radius_group(value: object, *, name: str) -> None:
     if not isinstance(value, Mapping):
         raise ConfigError(f"{name} must be an object")
+    if "optional" in value and not isinstance(value["optional"], bool):
+        raise ConfigError(f"{name}.optional must be a boolean")
     for key in ("arc_id", "radius_id"):
         if not isinstance(value.get(key), str) or not str(value.get(key)).strip():
             raise ConfigError(f"{name}.{key} must be a non-empty string")
@@ -607,7 +669,7 @@ def validate_angle_radius_group(value: object, *, name: str) -> None:
     for key in ("show_angle_label", "show_radius_label"):
         if key in value and not isinstance(value[key], bool):
             raise ConfigError(f"{name}.{key} must be a boolean")
-    for key in ("angle_label_offset_px", "radius_label_offset_px"):
+    for key in ("angle_label_offset_px", "radius_label_offset_px", "angle_label_tangent_offset_px", "radius_label_tangent_offset_px"):
         if key in value and not isinstance(value[key], (int, float)):
             raise ConfigError(f"{name}.{key} must be numeric")
 
@@ -624,7 +686,7 @@ def validate_image_label(value: object, *, name: str) -> None:
     if not isinstance(position, str) or position not in allowed_positions:
         raise ConfigError(f"{name}.position must be one of {', '.join(sorted(allowed_positions))}")
     validate_vector2_shape(value.get("offset_px"), name=f"{name}.offset_px")
-    for key in ("label", "text", "value", "color"):
+    for key in ("label", "text", "value", "color", "value_color"):
         if key in value and value[key] is not None and not isinstance(value[key], str):
             raise ConfigError(f"{name}.{key} must be a string")
     for key in ("angle_deg",):
@@ -820,6 +882,10 @@ def label_overrides_from_config(config: Mapping[str, object], aliases: Mapping[s
     return merged
 
 
+def annotation_group_is_optional(config: Mapping[str, object]) -> bool:
+    return bool(config.get("optional", False))
+
+
 def collect_dimension_chain(
     *,
     annotations: Sequence[Mapping[str, object]],
@@ -842,22 +908,38 @@ def collect_dimension_chain(
         colors = {}
     show_values = bool(style_config.get("show_values", False))
     label_overrides = label_overrides_from_config(chain_config, aliases)
+    optional = annotation_group_is_optional(chain_config)
+    aligned = len(ids) > 1
 
     segments: list[DimensionSegment] = []
-    for annotation_id in ids:
-        annotation = find_scad_annotation(annotations, str(annotation_id))
+    for index, annotation_id in enumerate(ids):
+        annotation_key = str(annotation_id)
+        annotation = find_scad_annotation(annotations, annotation_key)
         segment = annotation_to_dimension_segment(annotation)
         if annotation is None or segment is None:
+            if optional:
+                continue
             raise ConfigError(f"No emitted dimension annotation named {annotation_id!r}")
-        color = str(colors.get(str(annotation_id), DEFAULT_LINE_COLORS.get(str(annotation_id), "#2f7f8f")))
+        parameter_type = annotation_parameter_type(annotation_key, kind="dimension")
+        fallback_color = str(colors.get(annotation_key, DEFAULT_LINE_COLORS.get(annotation_key, "#2f7f8f")))
+        color = (
+            type_line_color(style_config, parameter_type, index=index, fallback=fallback_color)
+            if aligned
+            else str(colors.get(annotation_key) or type_line_color(style_config, parameter_type, fallback=fallback_color))
+        )
+        source_start_mm = mapping_vector(segment["start_mm"])
+        source_end_mm = mapping_vector(segment["end_mm"])
         segments.append(
             DimensionSegment(
-                id=str(annotation_id),
-                label=annotation_label(annotation, override=label_overrides.get(str(annotation_id)), show_value=show_values),
+                id=annotation_key,
+                label=annotation_label(annotation, override=label_overrides.get(annotation_key), show_value=show_values),
                 value=str(annotation.get("value", "")),
-                start_mm=add_vectors(mapping_vector(segment["start_mm"]), offset),
-                end_mm=add_vectors(mapping_vector(segment["end_mm"]), offset),
+                start_mm=add_vectors(source_start_mm, offset),
+                end_mm=add_vectors(source_end_mm, offset),
                 color=color,
+                parameter_type=parameter_type,
+                source_start_mm=source_start_mm,
+                source_end_mm=source_end_mm,
             )
         )
     return segments
@@ -885,22 +967,29 @@ def collect_radius_callouts(
         colors = {}
     show_values = bool(style_config.get("show_values", False))
     label_overrides = label_overrides_from_config(callout_config, aliases)
+    optional = annotation_group_is_optional(callout_config)
 
     callouts: list[RadiusCallout] = []
     for annotation_id in ids:
         annotation = find_scad_annotation(annotations, str(annotation_id))
         callout = annotation_to_radius_callout(annotation)
         if annotation is None or callout is None:
+            if optional:
+                continue
             raise ConfigError(f"No emitted radius annotation named {annotation_id!r}")
-        color = str(colors.get(str(annotation_id), DEFAULT_LINE_COLORS.get(str(annotation_id), "#8b6f2f")))
+        annotation_key = str(annotation_id)
+        parameter_type = annotation_parameter_type(annotation_key, kind="radius")
+        fallback_color = DEFAULT_LINE_COLORS.get(annotation_key, "#8b6f2f")
+        color = str(colors.get(annotation_key) or type_line_color(style_config, parameter_type, fallback=fallback_color))
         callouts.append(
             RadiusCallout(
-                id=str(annotation_id),
-                label=annotation_label(annotation, override=label_overrides.get(str(annotation_id)), show_value=show_values),
+                id=annotation_key,
+                label=annotation_label(annotation, override=label_overrides.get(annotation_key), show_value=show_values),
                 value=str(annotation.get("value", "")),
                 center_mm=add_vectors(mapping_vector(callout["center_mm"]), offset),
                 edge_mm=add_vectors(mapping_vector(callout["edge_mm"]), offset),
                 color=color,
+                parameter_type=parameter_type,
             )
         )
     return callouts
@@ -928,22 +1017,29 @@ def collect_arc_callouts(
         colors = {}
     show_values = bool(style_config.get("show_values", False))
     label_overrides = label_overrides_from_config(callout_config, aliases)
+    optional = annotation_group_is_optional(callout_config)
 
     callouts: list[ArcCallout] = []
     for annotation_id in ids:
         annotation = find_scad_annotation(annotations, str(annotation_id))
         callout = annotation_to_arc_callout(annotation)
         if annotation is None or callout is None:
+            if optional:
+                continue
             raise ConfigError(f"No emitted arc annotation named {annotation_id!r}")
-        color = str(colors.get(str(annotation_id), DEFAULT_LINE_COLORS.get(str(annotation_id), "#8b6f2f")))
+        annotation_key = str(annotation_id)
+        parameter_type = annotation_parameter_type(annotation_key, kind="arc")
+        fallback_color = DEFAULT_LINE_COLORS.get(annotation_key, "#8b6f2f")
+        color = str(colors.get(annotation_key) or type_line_color(style_config, parameter_type, fallback=fallback_color))
         points = tuple(add_vectors(mapping_vector(point), offset) for point in callout["points_mm"])
         callouts.append(
             ArcCallout(
-                id=str(annotation_id),
-                label=annotation_label(annotation, override=label_overrides.get(str(annotation_id)), show_value=show_values),
+                id=annotation_key,
+                label=annotation_label(annotation, override=label_overrides.get(annotation_key), show_value=show_values),
                 value=str(annotation.get("value", "")),
                 points_mm=points,
                 color=color,
+                parameter_type=parameter_type,
             )
         )
     return callouts
@@ -974,14 +1070,19 @@ def collect_angle_radius_callouts(
         colors = {}
     show_values = bool(style_config.get("show_values", False))
     label_overrides = label_overrides_from_config(callout_config, aliases)
+    optional = annotation_group_is_optional(callout_config)
 
     radius_annotation = find_scad_annotation(annotations, radius_id)
     radius_callout = annotation_to_radius_callout(radius_annotation)
     if radius_annotation is None or radius_callout is None:
+        if optional:
+            return []
         raise ConfigError(f"No emitted radius annotation named {radius_id!r}")
     arc_annotation = find_scad_annotation(annotations, arc_id)
     arc_callout = annotation_to_arc_callout(arc_annotation)
     if arc_annotation is None or arc_callout is None:
+        if optional:
+            return []
         raise ConfigError(f"No emitted arc annotation named {arc_id!r}")
 
     angle_value = ""
@@ -998,14 +1099,12 @@ def collect_angle_radius_callouts(
         show_value=show_values,
     )
     callout_id = str(callout_config.get("id") or f"{angle_id}_{radius_id}").strip()
-    arc_color = str(
-        colors.get(angle_id)
-        or colors.get(arc_id)
-        or DEFAULT_LINE_COLORS.get(angle_id)
-        or DEFAULT_LINE_COLORS.get(arc_id)
-        or "#8b6f2f"
-    )
-    radius_color = str(colors.get(radius_id) or DEFAULT_LINE_COLORS.get(radius_id) or arc_color)
+    angle_type = annotation_parameter_type(angle_id, kind="arc")
+    radius_type = annotation_parameter_type(radius_id, kind="radius")
+    arc_fallback = str(colors.get(angle_id) or colors.get(arc_id) or DEFAULT_LINE_COLORS.get(angle_id) or DEFAULT_LINE_COLORS.get(arc_id) or "#8b6f2f")
+    radius_fallback = str(colors.get(radius_id) or DEFAULT_LINE_COLORS.get(radius_id) or arc_fallback)
+    arc_color = type_line_color(style_config, angle_type, fallback=arc_fallback)
+    radius_color = type_line_color(style_config, radius_type, fallback=radius_fallback)
 
     return [
         AngleRadiusCallout(
@@ -1019,6 +1118,8 @@ def collect_angle_radius_callouts(
             points_mm=tuple(add_vectors(mapping_vector(point), offset) for point in arc_callout["points_mm"]),
             arc_color=arc_color,
             radius_color=radius_color,
+            angle_type=angle_type,
+            radius_type=radius_type,
         )
     ]
 
@@ -1067,6 +1168,7 @@ def collect_image_labels(
         explicit_text = label_config.get("text")
         if isinstance(explicit_text, str) and explicit_text.strip():
             label_text = explicit_text
+            value_text = None
         else:
             label_text = str(label_config.get("label") or aliases.get(label_id) or label_id)
             value = str(
@@ -1074,6 +1176,7 @@ def collect_image_labels(
                 or model_define_value(config, label_id, expression_context=expression_context)
             ).strip()
             show_value = bool(label_config.get("show_value", show_values_default))
+            value_text = value if show_value and value else None
             if show_value and value:
                 label_text = f"{label_text} = {value}"
         font_size = label_config.get("font_size_px")
@@ -1081,6 +1184,7 @@ def collect_image_labels(
             ImageLabel(
                 id=label_id,
                 label=label_text,
+                value_text=value_text,
                 position=str(label_config.get("position", "bottom")),
                 offset_px=vector2(
                     label_config.get("offset_px"),
@@ -1090,6 +1194,9 @@ def collect_image_labels(
                 ),
                 angle_deg=float(label_config.get("angle_deg", 0.0)),
                 color=str(label_config["color"]) if "color" in label_config and label_config["color"] is not None else None,
+                value_color=str(label_config["value_color"])
+                if "value_color" in label_config and label_config["value_color"] is not None
+                else None,
                 font_size_px=int(font_size) if font_size is not None else None,
             )
         )
@@ -1101,6 +1208,8 @@ def projection_points_for_segments(segments: Sequence[DimensionSegment]) -> dict
     for segment in segments:
         points[f"{segment.id}.start"] = list(segment.start_mm)
         points[f"{segment.id}.end"] = list(segment.end_mm)
+        points[f"{segment.id}.source_start"] = list(segment.source_start_mm or segment.start_mm)
+        points[f"{segment.id}.source_end"] = list(segment.source_end_mm or segment.end_mm)
     return points
 
 

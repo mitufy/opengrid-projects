@@ -12,6 +12,14 @@ dependencies = [
   "Pillow>=10"
 ]
 
+[project.optional-dependencies]
+mesh = [
+  "numpy>=1.26.4",
+  "rtree>=1.4",
+  "scipy>=1.11",
+  "trimesh>=4.0"
+]
+
 [project.scripts]
 opengrid-annotate = "annotation_renderer.scene_cli:main"
 
