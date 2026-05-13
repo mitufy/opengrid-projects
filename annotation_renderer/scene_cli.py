@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 from copy import deepcopy
@@ -13,6 +14,11 @@ from pathlib import Path
 from typing import Mapping, Sequence
 
 from PIL import Image, ImageDraw
+
+try:
+    import yaml
+except ImportError:  # pragma: no cover - exercised only in incomplete local environments
+    yaml = None
 
 from annotation_renderer.animation import encode_animation_gif, resolve_animation_config
 from annotation_renderer.blender_scene import write_blender_scene_script
@@ -66,6 +72,8 @@ PROJECT_ROOT = UTILITY_ROOT.parent
 CONFIG_SCHEMA_PATH = UTILITY_ROOT / "schemas" / "annotation-render-config.schema.json"
 DEFAULT_MODEL_CONFIG_PATH = UTILITY_ROOT / "configs" / "model_defaults.json"
 DISCOVERY_ACTIONS = ("list_models", "describe", "list_annotations", "new_config")
+JSON_CONFIG_SUFFIXES = {"", ".json"}
+YAML_CONFIG_SUFFIXES = {".yaml", ".yml"}
 
 
 def default_windows_blender_candidates() -> list[Path]:
@@ -142,6 +150,94 @@ def apply_override(config: dict[str, object], override: str) -> None:
     set_dotted_value(config, path, parse_override_value(raw_value))
 
 
+class NoAliasSafeDumper(yaml.SafeDumper if yaml is not None else object):
+    def ignore_aliases(self, data: object) -> bool:
+        return True
+
+
+class ConfigSafeLoader(yaml.SafeLoader if yaml is not None else object):
+    pass
+
+
+def represent_compact_sequence(dumper: object, data: Sequence[object]) -> object:
+    flow_style = len(data) <= 4 and all(
+        not isinstance(item, Mapping)
+        and (not isinstance(item, Sequence) or isinstance(item, (str, bytes)))
+        for item in data
+    )
+    return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=flow_style)
+
+
+if yaml is not None:
+    ConfigSafeLoader.yaml_implicit_resolvers = {
+        key: list(resolvers)
+        for key, resolvers in yaml.SafeLoader.yaml_implicit_resolvers.items()
+    }
+    for key, resolvers in list(ConfigSafeLoader.yaml_implicit_resolvers.items()):
+        ConfigSafeLoader.yaml_implicit_resolvers[key] = [
+            (tag, regexp)
+            for tag, regexp in resolvers
+            if tag != "tag:yaml.org,2002:bool"
+        ]
+    ConfigSafeLoader.add_implicit_resolver(
+        "tag:yaml.org,2002:bool",
+        re.compile(r"^(?:true|false|True|False|TRUE|FALSE)$"),
+        list("tTfF"),
+    )
+    NoAliasSafeDumper.add_representer(list, represent_compact_sequence)
+    NoAliasSafeDumper.add_representer(tuple, represent_compact_sequence)
+
+
+def config_format(path: Path) -> str:
+    suffix = path.suffix.lower()
+    if suffix in JSON_CONFIG_SUFFIXES:
+        return "json"
+    if suffix in YAML_CONFIG_SUFFIXES:
+        return "yaml"
+    raise ConfigError(f"Unsupported config format for {path}. Use .json, .yaml, or .yml.")
+
+
+def load_mapping_file(path: Path, *, description: str) -> dict[str, object]:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError as exc:
+        raise ConfigError(f"{description} not found: {path}") from exc
+
+    file_format = config_format(path)
+    try:
+        if file_format == "json":
+            data = json.loads(text)
+        else:
+            if yaml is None:
+                raise ConfigError("YAML config support requires PyYAML. Install with `pip install PyYAML`.")
+            data = yaml.load(text, Loader=ConfigSafeLoader)
+    except ConfigError:
+        raise
+    except Exception as exc:
+        raise ConfigError(f"Could not parse {description.lower()} {path}: {exc}") from exc
+
+    if data is None:
+        data = {}
+    if not isinstance(data, Mapping):
+        raise ConfigError(f"{description} must be an object")
+    return dict(data)
+
+
+def dump_config_data(data: Mapping[str, object], *, path: Path) -> str:
+    file_format = config_format(path)
+    if file_format == "json":
+        return json.dumps(data, indent=2) + "\n"
+    if yaml is None:
+        raise ConfigError("YAML config support requires PyYAML. Install with `pip install PyYAML`.")
+    return yaml.dump(
+        dict(data),
+        Dumper=NoAliasSafeDumper,
+        sort_keys=False,
+        allow_unicode=False,
+        default_flow_style=False,
+    )
+
+
 def variant_from_config_file(config: Mapping[str, object], *, path: Path) -> dict[str, object]:
     variant_name = config.get("variant_name") or path.stem
     if not isinstance(variant_name, str) or not variant_name.strip():
@@ -195,12 +291,7 @@ def load_raw_config(path: Path, seen: tuple[Path, ...] = ()) -> dict[str, object
     if path in seen:
         chain = " -> ".join(project_relative_or_absolute(item) for item in (*seen, path))
         raise ConfigError(f"Config extends cycle detected: {chain}")
-    try:
-        config = json.loads(path.read_text(encoding="utf-8"))
-    except FileNotFoundError as exc:
-        raise ConfigError(f"Config not found: {path}") from exc
-    if not isinstance(config, dict):
-        raise ConfigError("Top-level config must be an object")
+    config = load_mapping_file(path, description="Config")
     extends_value = config.pop("extends", None)
     if extends_value is None:
         return expand_variant_configs(config, config_dir=path.parent, seen=(*seen, path))
@@ -435,13 +526,7 @@ def load_gallery_config(path_value: str | None, *, config_dir: Path) -> tuple[di
     if not path_value:
         return {}, None
     path = resolve_optional_config_path(path_value, config_dir=config_dir)
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except FileNotFoundError as exc:
-        raise ConfigError(f"Gallery config not found: {path}") from exc
-    if not isinstance(data, Mapping):
-        raise ConfigError("Gallery config must be an object")
-    return dict(data), path
+    return load_mapping_file(path, description="Gallery config"), path
 
 
 def compact_json(value: object) -> str:
@@ -716,7 +801,7 @@ def editable_model_template(config: Mapping[str, object]) -> dict[str, object]:
     return {}
 
 
-def json_config_reference(*, source_config: Path, output_path: Path) -> str:
+def config_reference(*, source_config: Path, output_path: Path) -> str:
     relative = os.path.relpath(source_config, start=output_path.parent)
     return Path(relative).as_posix()
 
@@ -734,7 +819,7 @@ def write_new_config_template(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     template: dict[str, object] = {
         "$schema": Path(os.path.relpath(CONFIG_SCHEMA_PATH, start=output_path.parent)).as_posix(),
-        "extends": json_config_reference(source_config=source_config, output_path=output_path),
+        "extends": config_reference(source_config=source_config, output_path=output_path),
         "job_name": f"{sanitize_name(name)}_custom",
     }
     scene = resolve_scene(config.get("scene", {}))
@@ -748,7 +833,7 @@ def write_new_config_template(
     editable_annotations = editable_annotations_template(config)
     if editable_annotations:
         template["annotations"] = editable_annotations
-    output_path.write_text(json.dumps(template, indent=2) + "\n", encoding="utf-8")
+    output_path.write_text(dump_config_data(template, path=output_path), encoding="utf-8")
 
 
 def run_discovery(*, config: Mapping[str, object], config_path: Path, args: argparse.Namespace) -> int:
@@ -798,8 +883,8 @@ def run_discovery(*, config: Mapping[str, object], config_path: Path, args: argp
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", help="Path to scene annotation render JSON config.")
-    parser.add_argument("--gallery-config", help="Path to contact-sheet settings JSON used with --gallery.")
+    parser.add_argument("--config", help="Path to scene annotation render JSON or YAML config.")
+    parser.add_argument("--gallery-config", help="Path to contact-sheet settings JSON or YAML config used with --gallery.")
     parser.add_argument("--output-dir", help="Override output directory root.")
     parser.add_argument("--openscad", default="openscad", help="OpenSCAD executable.")
     parser.add_argument("--blender", default="blender", help="Blender executable.")
@@ -812,7 +897,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     discovery.add_argument("--list-models", action="store_true", help="List renderable models or variants in a config.")
     discovery.add_argument("--describe", metavar="MODEL", help="Describe one model or variant without rendering.")
     discovery.add_argument("--list-annotations", metavar="MODEL", help="List annotation groups and offsets for one model or variant.")
-    discovery.add_argument("--new-config", metavar="MODEL", help="Write an editable config template for one model or variant.")
+    discovery.add_argument("--new-config", metavar="MODEL", help="Write an editable JSON or YAML config template for one model or variant.")
     parser.add_argument("--out", help="Output path used with --new-config.")
     parser.add_argument("--force", action="store_true", help="Allow --new-config to overwrite an existing output file.")
     parser.add_argument(
