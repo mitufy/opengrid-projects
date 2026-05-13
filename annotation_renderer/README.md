@@ -192,11 +192,11 @@ Generate a compact editable config that extends a default model:
   --out build\scene_annotations\my_holder.yaml
 ```
 
-The generated config includes editable model defines and annotation offset groups, plus a `scene.blend_file` path rewritten relative to the output file so it validates from any folder. Use a `.yaml` or `.yml` output path.
+The generated config includes editable model defines and annotation offset groups, plus a `scene.blend_file` path rewritten relative to the output file so it validates from any folder. Use a `.yaml` or `.yml` output path to write YAML, or `.json` to write JSON.
 
-## YAML Configs
+## YAML And JSON
 
-The renderer accepts `.yaml` and `.yml` files anywhere a config path is used, including `--config`, `--gallery-config`, `extends`, and `variant_configs`:
+The renderer accepts `.yaml`, `.yml`, and `.json` files anywhere a config path is used, including `--config`, `--gallery-config`, `extends`, and `variant_configs`. The checked-in defaults are YAML now, and new custom configs should also prefer YAML because it is easier to read and edit by hand. JSON remains supported for external configs, but the old checked-in JSON config paths are gone:
 
 ```yaml
 extends: ../../annotation_renderer/configs/general_holder_default.yaml
@@ -216,7 +216,7 @@ annotations:
       label_offset_px: 28
 ```
 
-Keep using the existing `extends` and `$constant` composition features instead of YAML anchors or merge keys. That keeps configs easy to generate and rewrite with the renderer's config tools.
+Keep using the existing `extends` and `$constant` composition features instead of YAML anchors or merge keys. That keeps configs portable between YAML and JSON.
 
 ## Animation Workflow
 
@@ -336,7 +336,7 @@ Expression names can come from top-level numeric `constants`, numeric `model.def
 
 Because SCAD context only exists after export, `--print-resolved-config` may show `transform: null` with the raw `transform_config` for scene objects whose expressions depend on emitted context. A real render resolves those expressions after parsing each object's OpenSCAD log.
 
-Constants can also hold reusable config snippets. Use `$constant: name` anywhere in the active config to replace that value with the matching constant. When `$constant` appears in an object with other keys, the constant is used as a base object and the other keys override it:
+Constants can also hold reusable config snippets. Use `{"$constant": "name"}` in JSON or `$constant: name` in YAML anywhere in the active config to replace that value with the matching constant. When `$constant` appears in an object with other keys, the constant is used as a base object and the other keys override it:
 
 ```yaml
 constants:

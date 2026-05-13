@@ -243,9 +243,9 @@ class AnimationConfigTests(unittest.TestCase):
 
     def test_new_config_writes_valid_editable_template(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            output_path = Path(temp_dir) / "holder_custom.yaml"
+            output_path = Path(temp_dir) / "holder_custom.json"
             output = self.run_cli("--new-config", "general_holder_default", "--out", str(output_path))
-            template = yaml.safe_load(output_path.read_text(encoding="utf-8"))
+            template = json.loads(output_path.read_text(encoding="utf-8"))
             config = load_config(output_path, [])
 
         self.assertIn("Wrote:", output)
@@ -283,33 +283,46 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(config["model"]["defines"]["compartment_column_count"], 3)
         self.assertEqual(config["model"]["defines"]["custom_label"], "on")
 
-    def test_json_config_path_is_rejected(self) -> None:
+    def test_json_config_can_extend_yaml_config(self) -> None:
         default_config = Path("annotation_renderer/configs/general_holder_default.yaml").resolve().as_posix()
+        scene_file = Path("annotation_renderer/assets/scenes/opengrid_wall_scene.blend").resolve().as_posix()
         with tempfile.TemporaryDirectory() as temp_dir:
+            base_yaml_path = Path(temp_dir) / "holder_base.yaml"
             json_path = Path(temp_dir) / "holder_custom.json"
+            base_yaml_path.write_text(
+                "\n".join(
+                    [
+                        f"extends: {json.dumps(default_config)}",
+                        "job_name: holder_yaml_base",
+                        "scene:",
+                        f"  blend_file: {json.dumps(scene_file)}",
+                        "model:",
+                        "  defines:",
+                        "    compartment_column_count: 2",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
             json_path.write_text(
                 json.dumps(
                     {
-                        "extends": default_config,
-                        "job_name": "holder_json_rejected",
+                        "extends": base_yaml_path.as_posix(),
+                        "job_name": "holder_json_extends_yaml",
                         "model": {"defines": {"compartment_row_count": 2}},
                     }
                 ),
                 encoding="utf-8",
             )
-            with self.assertRaisesRegex(ConfigError, r"Use \.yaml or \.yml"):
-                load_config(json_path, [])
+            config = load_config(json_path, [])
 
-    def test_new_config_rejects_json_output_path(self) -> None:
+        self.assertEqual(config["job_name"], "holder_json_extends_yaml")
+        self.assertEqual(config["model"]["defines"]["compartment_column_count"], 2)
+        self.assertEqual(config["model"]["defines"]["compartment_row_count"], 2)
+
+    def test_new_config_writes_yaml_template_from_yaml_extension(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            output_path = Path(temp_dir) / "holder_custom.json"
-
-            with self.assertRaisesRegex(SystemExit, r"Use \.yaml or \.yml"):
-                self.run_cli("--new-config", "general_holder_default", "--out", str(output_path))
-
-    def test_new_config_writes_yaml_template_from_yml_extension(self) -> None:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            output_path = Path(temp_dir) / "holder_custom.yml"
+            output_path = Path(temp_dir) / "holder_custom.yaml"
             output = self.run_cli("--new-config", "general_holder_default", "--out", str(output_path))
             template = yaml.safe_load(output_path.read_text(encoding="utf-8"))
             config = load_config(output_path, [])
