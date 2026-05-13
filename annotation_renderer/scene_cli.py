@@ -72,7 +72,6 @@ PROJECT_ROOT = UTILITY_ROOT.parent
 CONFIG_SCHEMA_PATH = UTILITY_ROOT / "schemas" / "annotation-render-config.schema.json"
 DEFAULT_MODEL_CONFIG_PATH = UTILITY_ROOT / "configs" / "model_defaults.yaml"
 DISCOVERY_ACTIONS = ("list_models", "describe", "list_annotations", "new_config")
-JSON_CONFIG_SUFFIXES = {"", ".json"}
 YAML_CONFIG_SUFFIXES = {".yaml", ".yml"}
 
 
@@ -188,29 +187,23 @@ if yaml is not None:
     NoAliasSafeDumper.add_representer(tuple, represent_compact_sequence)
 
 
-def config_format(path: Path) -> str:
+def validate_yaml_config_path(path: Path) -> None:
     suffix = path.suffix.lower()
-    if suffix in JSON_CONFIG_SUFFIXES:
-        return "json"
-    if suffix in YAML_CONFIG_SUFFIXES:
-        return "yaml"
-    raise ConfigError(f"Unsupported config format for {path}. Use .json, .yaml, or .yml.")
+    if suffix not in YAML_CONFIG_SUFFIXES:
+        raise ConfigError(f"Unsupported config format for {path}. Use .yaml or .yml.")
 
 
 def load_mapping_file(path: Path, *, description: str) -> dict[str, object]:
+    validate_yaml_config_path(path)
     try:
         text = path.read_text(encoding="utf-8")
     except FileNotFoundError as exc:
         raise ConfigError(f"{description} not found: {path}") from exc
 
-    file_format = config_format(path)
     try:
-        if file_format == "json":
-            data = json.loads(text)
-        else:
-            if yaml is None:
-                raise ConfigError("YAML config support requires PyYAML. Install with `pip install PyYAML`.")
-            data = yaml.load(text, Loader=ConfigSafeLoader)
+        if yaml is None:
+            raise ConfigError("YAML config support requires PyYAML. Install with `pip install PyYAML`.")
+        data = yaml.load(text, Loader=ConfigSafeLoader)
     except ConfigError:
         raise
     except Exception as exc:
@@ -224,9 +217,7 @@ def load_mapping_file(path: Path, *, description: str) -> dict[str, object]:
 
 
 def dump_config_data(data: Mapping[str, object], *, path: Path) -> str:
-    file_format = config_format(path)
-    if file_format == "json":
-        return json.dumps(data, indent=2) + "\n"
+    validate_yaml_config_path(path)
     if yaml is None:
         raise ConfigError("YAML config support requires PyYAML. Install with `pip install PyYAML`.")
     return yaml.dump(
@@ -883,8 +874,8 @@ def run_discovery(*, config: Mapping[str, object], config_path: Path, args: argp
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", help="Path to scene annotation render JSON or YAML config.")
-    parser.add_argument("--gallery-config", help="Path to contact-sheet settings JSON or YAML config used with --gallery.")
+    parser.add_argument("--config", help="Path to scene annotation render YAML config.")
+    parser.add_argument("--gallery-config", help="Path to contact-sheet settings YAML config used with --gallery.")
     parser.add_argument("--output-dir", help="Override output directory root.")
     parser.add_argument("--openscad", default="openscad", help="OpenSCAD executable.")
     parser.add_argument("--blender", default="blender", help="Blender executable.")
@@ -897,7 +888,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     discovery.add_argument("--list-models", action="store_true", help="List renderable models or variants in a config.")
     discovery.add_argument("--describe", metavar="MODEL", help="Describe one model or variant without rendering.")
     discovery.add_argument("--list-annotations", metavar="MODEL", help="List annotation groups and offsets for one model or variant.")
-    discovery.add_argument("--new-config", metavar="MODEL", help="Write an editable JSON or YAML config template for one model or variant.")
+    discovery.add_argument("--new-config", metavar="MODEL", help="Write an editable YAML config template for one model or variant.")
     parser.add_argument("--out", help="Output path used with --new-config.")
     parser.add_argument("--force", action="store_true", help="Allow --new-config to overwrite an existing output file.")
     parser.add_argument(
