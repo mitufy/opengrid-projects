@@ -20,17 +20,17 @@ annotation_renderer/
     scenes/
       opengrid_wall_scene.blend
   configs/
-    animation_examples.json
-    base_scene.json
-    drawer_base.json
-    drawer_shell_container_default.json
-    drawer_shell_default.json
-    gallery_defaults.json
-    general_holder_default.json
-    model_defaults.json
-    parameter_details.json
-    sturdy_hook_default.json
-    sturdy_shelf_default.json
+    animation_examples.yaml
+    base_scene.yaml
+    drawer_base.yaml
+    drawer_shell_container_default.yaml
+    drawer_shell_default.yaml
+    gallery_defaults.yaml
+    general_holder_default.yaml
+    model_defaults.yaml
+    parameter_details.yaml
+    sturdy_hook_default.yaml
+    sturdy_shelf_default.yaml
   schemas/
     annotation-render-config.schema.json
     annotation-render-gallery.schema.json
@@ -53,7 +53,7 @@ For a local editable install with the console entry point:
 
 ```powershell
 .\build\.venv-tools\Scripts\python.exe -m pip install -e .
-.\build\.venv-tools\Scripts\opengrid-annotate.exe --config annotation_renderer\configs\model_defaults.json --validate-only
+.\build\.venv-tools\Scripts\opengrid-annotate.exe --config annotation_renderer\configs\model_defaults.yaml --validate-only
 ```
 
 Install the optional mesh tooling dependencies and test runner when running the full test suite or mesh comparison/review scripts:
@@ -68,7 +68,7 @@ Validate a config without rendering:
 
 ```powershell
 .\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
-  --config annotation_renderer\configs\model_defaults.json `
+  --config annotation_renderer\configs\model_defaults.yaml `
   --validate-only
 ```
 
@@ -76,14 +76,14 @@ Render the first configured variant. In the tracked defaults this is `sturdy_hoo
 
 ```powershell
 .\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
-  --config annotation_renderer\configs\model_defaults.json
+  --config annotation_renderer\configs\model_defaults.yaml
 ```
 
 Render the hook example explicitly:
 
 ```powershell
 .\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
-  --config annotation_renderer\configs\model_defaults.json `
+  --config annotation_renderer\configs\model_defaults.yaml `
   --variant sturdy_hook_default
 ```
 
@@ -91,14 +91,14 @@ Render a per-model default config directly:
 
 ```powershell
 .\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
-  --config annotation_renderer\configs\general_holder_default.json
+  --config annotation_renderer\configs\general_holder_default.yaml
 ```
 
 Render the shelf example:
 
 ```powershell
 .\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
-  --config annotation_renderer\configs\model_defaults.json `
+  --config annotation_renderer\configs\model_defaults.yaml `
   --variant sturdy_shelf_default
 ```
 
@@ -106,7 +106,7 @@ Render the drawer shell example:
 
 ```powershell
 .\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
-  --config annotation_renderer\configs\model_defaults.json `
+  --config annotation_renderer\configs\model_defaults.yaml `
   --variant drawer_shell_default
 ```
 
@@ -114,15 +114,15 @@ Render the drawer shell and drawer container as separate OpenSCAD exports import
 
 ```powershell
 .\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
-  --config annotation_renderer\configs\model_defaults.json `
+  --config annotation_renderer\configs\model_defaults.yaml `
   --variant drawer_shell_container_default
 ```
 
-Override config values from the command line without editing JSON:
+Override config values from the command line without editing the config file:
 
 ```powershell
 .\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
-  --config annotation_renderer\configs\model_defaults.json `
+  --config annotation_renderer\configs\model_defaults.yaml `
   --set model.defines.hook_length=50
 ```
 
@@ -130,16 +130,16 @@ Render every named variant in a config and build a contact sheet:
 
 ```powershell
 .\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
-  --config annotation_renderer\configs\model_defaults.json `
+  --config annotation_renderer\configs\model_defaults.yaml `
   --gallery `
-  --gallery-config annotation_renderer\configs\gallery_defaults.json
+  --gallery-config annotation_renderer\configs\gallery_defaults.yaml
 ```
 
 Render only one named variant:
 
 ```powershell
 .\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
-  --config annotation_renderer\configs\model_defaults.json `
+  --config annotation_renderer\configs\model_defaults.yaml `
   --variant sturdy_shelf_default
 ```
 
@@ -153,7 +153,7 @@ Print the fully resolved config without invoking OpenSCAD or Blender:
 
 ```powershell
 .\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
-  --config annotation_renderer\configs\model_defaults.json `
+  --config annotation_renderer\configs\model_defaults.yaml `
   --variant drawer_shell_container_default `
   --print-resolved-config
 ```
@@ -164,7 +164,7 @@ Single outputs are written under `build/scene_annotations/<job-name>__<timestamp
 
 ## Discovery And Templates
 
-Discovery commands default to `configs/model_defaults.json`, so they can be used without passing `--config`.
+Discovery commands default to `configs/model_defaults.yaml`, so they can be used without passing `--config`.
 
 List the renderable default models:
 
@@ -196,10 +196,10 @@ The generated config includes editable model defines and annotation offset group
 
 ## YAML And JSON
 
-The renderer accepts `.json`, `.yaml`, and `.yml` files anywhere a config path is used, including `--config`, `--gallery-config`, `extends`, and `variant_configs`. The checked-in defaults are still JSON during the transition, but new custom configs should prefer YAML because it is easier to read and edit by hand:
+The renderer accepts `.yaml`, `.yml`, and `.json` files anywhere a config path is used, including `--config`, `--gallery-config`, `extends`, and `variant_configs`. The checked-in defaults are YAML now, and new custom configs should also prefer YAML because it is easier to read and edit by hand. JSON remains supported for external configs, but the old checked-in JSON config paths are gone:
 
 ```yaml
-extends: ../../annotation_renderer/configs/general_holder_default.json
+extends: ../../annotation_renderer/configs/general_holder_default.yaml
 job_name: general_holder_custom
 
 model:
@@ -216,17 +216,17 @@ annotations:
       label_offset_px: 28
 ```
 
-Keep using the existing `extends` and `$constant` composition features instead of YAML anchors or merge keys. That keeps configs portable between JSON and YAML while the defaults are being migrated.
+Keep using the existing `extends` and `$constant` composition features instead of YAML anchors or merge keys. That keeps configs portable between YAML and JSON.
 
 ## Animation Workflow
 
 Animations are defined in the selected variant under `render.animation`. The renderer still exports the configured OpenSCAD objects and replaces them in the Blender scene, then applies object keyframes before rendering a PNG frame sequence and encoding `animation.gif`. Animation output is unannotated; the same run can still write `render.png` and `annotated.png` for the final still.
 
-The tracked animation examples live in `configs/animation_examples.json`, which extends `model_defaults.json`. Stable still-image defaults live in per-model files such as `sturdy_hook_default.json` and `general_holder_default.json`; `model_defaults.json` imports those files for gallery and backward-compatible variant commands. Put demo animations and animation-only presets in the extending config.
+The tracked animation examples live in `configs/animation_examples.yaml`, which extends `model_defaults.yaml`. Stable still-image defaults live in per-model files such as `sturdy_hook_default.yaml` and `general_holder_default.yaml`; `model_defaults.yaml` imports those files for gallery and backward-compatible variant commands. Put demo animations and animation-only presets in the extending config.
 
 Use this loop when adding an animation:
 
-1. Add or copy a variant in `configs/animation_examples.json`.
+1. Add or copy a variant in `configs/animation_examples.yaml`.
 2. Set `scene.objects` to the generated objects that should exist in the scene.
 3. Add `render.animation.enabled: true`, `frame_start: 0`, `fps`, and `output_format: "gif"`.
 4. Use `clips` when multiple object animations should run in sequence.
@@ -236,19 +236,19 @@ Example render command:
 
 ```powershell
 .\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
-  --config annotation_renderer\configs\animation_examples.json `
+  --config annotation_renderer\configs\animation_examples.yaml `
   --variant drawer_install_then_container_slide_animation
 ```
 
 Animation examples use constants as presets, so variants can stay small:
 
-```json
-{
-  "name": "general_holder_insert_animation",
-  "model": {"$constant": "general_holder_model"},
-  "render": {"$constant": "openconnect_insert_animation_render"},
-  "annotations": {}
-}
+```yaml
+name: general_holder_insert_animation
+model:
+  $constant: general_holder_model
+render:
+  $constant: openconnect_insert_animation_render
+annotations: {}
 ```
 
 The current animation presets are:
@@ -261,19 +261,17 @@ The current animation presets are:
 
 Animation clips use local frame numbers for their object tracks. The clip `start_frame` shifts those local frames onto the global timeline. This is the compact drawer shell install plus drawer container slide variant:
 
-```json
-{
-  "name": "drawer_install_then_container_slide_animation",
-  "scene": {
-    "object_defaults": {"$constant": "drawer_object_defaults"},
-    "objects": [
-      {"$constant": "drawer_shell_object"},
-      {"$constant": "drawer_container_object"}
-    ]
-  },
-  "render": {"$constant": "drawer_install_then_slide_animation_render"},
-  "annotations": {}
-}
+```yaml
+name: drawer_install_then_container_slide_animation
+scene:
+  object_defaults:
+    $constant: drawer_object_defaults
+  objects:
+    - $constant: drawer_shell_object
+    - $constant: drawer_container_object
+render:
+  $constant: drawer_install_then_slide_animation_render
+annotations: {}
 ```
 
 Supported object animation fields:
@@ -289,12 +287,10 @@ Supported object animation fields:
 
 Gallery layout is intentionally separate from model defaults:
 
-```json
-{
-  "$schema": "../schemas/annotation-render-gallery.schema.json",
-  "columns": 2,
-  "thumbnail_width": 520
-}
+```yaml
+$schema: ../schemas/annotation-render-gallery.schema.json
+columns: 2
+thumbnail_width: 520
 ```
 
 Pass it with `--gallery-config`. A model config can still include top-level `gallery` values, and those override the separate gallery config. This keeps reusable model parameter variants separate from one-off contact-sheet layout choices.
@@ -303,7 +299,7 @@ Pass it with `--gallery-config`. A model config can still include top-level `gal
 
 Configs contain the model parameters, Blender scene binding, render settings, and annotation layout in one file.
 
-The tracked defaults are split by model. `base_scene.json` holds shared scene, render, and annotation constants. Each model default extends it and is directly renderable. `model_defaults.json` imports the per-model files with `variant_configs`, so running it without `--variant` renders the first imported variant and `--gallery` renders all imported variants.
+The tracked defaults are split by model. `base_scene.yaml` holds shared scene, render, and annotation constants. Each model default extends it and is directly renderable. `model_defaults.yaml` imports the per-model files with `variant_configs`, so running it without `--variant` renders the first imported variant and `--gallery` renders all imported variants.
 
 The tracked default config keeps the Blender scene binding explicit:
 
@@ -315,27 +311,23 @@ The tracked default config keeps the Blender scene binding explicit:
 
 Scene transforms can come from config instead of the Blender placeholder object. Set `inherit_target_transform` to `false` and provide `transform`. `location_mm` uses millimeters and is converted to Blender meters internally, while `rotation_deg` and `scale` map directly to the imported STL object transform:
 
-```json
-"constants": {
-  "drawer_shell_rotation_x_deg": 90,
-  "blender_scene_scale": 0.001
-},
-"scene": {
-  "blend_file": "../assets/scenes/opengrid_wall_scene.blend",
-  "target_object": "drawer",
-  "camera": "Camera",
-  "replace_target_object": true,
-  "inherit_target_transform": false,
-  "transform": {
-    "location_mm": [
-      "odd(horizontal_grids) * OG_TILE_SIZE / 2",
-      0,
-      "-OG_TILE_SIZE + odd(vertical_grids) * OG_TILE_SIZE / 2"
-    ],
-    "rotation_deg": ["drawer_shell_rotation_x_deg", 0, 0],
-    "scale": ["blender_scene_scale", "blender_scene_scale", "blender_scene_scale"]
-  }
-}
+```yaml
+constants:
+  drawer_shell_rotation_x_deg: 90
+  blender_scene_scale: 0.001
+scene:
+  blend_file: ../assets/scenes/opengrid_wall_scene.blend
+  target_object: drawer
+  camera: Camera
+  replace_target_object: true
+  inherit_target_transform: false
+  transform:
+    location_mm:
+      - odd(horizontal_grids) * OG_TILE_SIZE / 2
+      - 0
+      - -OG_TILE_SIZE + odd(vertical_grids) * OG_TILE_SIZE / 2
+    rotation_deg: [drawer_shell_rotation_x_deg, 0, 0]
+    scale: [blender_scene_scale, blender_scene_scale, blender_scene_scale]
 ```
 
 The expression helper `odd(value)` returns `1` for odd numeric values and `0` for even values, which is useful for half-tile placement corrections.
@@ -346,117 +338,92 @@ Because SCAD context only exists after export, `--print-resolved-config` may sho
 
 Constants can also hold reusable config snippets. Use `{"$constant": "name"}` in JSON or `$constant: name` in YAML anywhere in the active config to replace that value with the matching constant. When `$constant` appears in an object with other keys, the constant is used as a base object and the other keys override it:
 
-```json
-"constants": {
-  "blender_scene_scale": 0.001,
-  "blender_scene_scale_vector": [
-    "blender_scene_scale",
-    "blender_scene_scale",
-    "blender_scene_scale"
-  ],
-  "placeholder_transform": {
-    "location_mm": [0, 0, 0],
-    "rotation_deg": [90, 0, -90],
-    "scale": {"$constant": "blender_scene_scale_vector"}
-  },
-  "small_dimension_chain": {
-    "label_font_size_px": 20,
-    "tick_length_px": 12
-  }
-},
-"scene": {
-  "transform": {"$constant": "placeholder_transform"}
-},
-"annotations": {
-  "chains": [
-    {"$constant": "small_dimension_chain", "ids": ["shelf_back_thickness"]}
-  ]
-}
+```yaml
+constants:
+  blender_scene_scale: 0.001
+  blender_scene_scale_vector: [blender_scene_scale, blender_scene_scale, blender_scene_scale]
+  placeholder_transform:
+    location_mm: [0, 0, 0]
+    rotation_deg: [90, 0, -90]
+    scale:
+      $constant: blender_scene_scale_vector
+  small_dimension_chain:
+    label_font_size_px: 20
+    tick_length_px: 12
+scene:
+  transform:
+    $constant: placeholder_transform
+annotations:
+  chains:
+    - $constant: small_dimension_chain
+      ids: [shelf_back_thickness]
 ```
 
 Constant references are resolved after the selected variant and `--set` overrides are applied. Numeric constants still feed expression strings; object, array, string, and boolean constants are only used as reusable config values.
 
 For scenes that need more than one generated object, use `scene.objects`. Put repeated object settings in `scene.object_defaults`; each object is merged over those defaults. This is useful when several objects come from the same SCAD file and mostly share OpenSCAD defines. When `scene.objects` is present, the top-level `model` section is optional:
 
-```json
-"constants": {
-  "drawer_shell_rotation_x_deg": 90,
-  "drawer_container_rotation_x_deg": 0,
-  "placeholder_transform": {
-    "location_mm": [0, 0, 0],
-    "rotation_deg": [90, 0, -90],
-    "scale": [0.001, 0.001, 0.001]
-  },
-  "drawer_common_model": {
-    "scad_file": "openconnect_drawer.scad",
-    "defines": {
-      "generate_drawer_stopper_clips": false,
-      "view_drawer_overlapped": false,
-      "horizontal_grids": 5,
-      "vertical_grids": 2,
-      "depth_grids": 5,
-      "shell_slot_position": "Back"
-    }
-  },
-  "drawer_object_defaults": {
-    "model": {"$constant": "drawer_common_model"},
-    "inherit_target_transform": false
-  },
-  "drawer_shell_object": {
-    "id": "drawer_shell",
-    "target_object": "drawer",
-    "model": {
-      "defines": {
-        "generate_drawer_shell": true,
-        "generate_drawer_container": false
-      }
-    },
-    "transform": {
-      "location_mm": [
-        "odd(horizontal_grids) * OG_TILE_SIZE / 2",
-        0,
-        "-OG_TILE_SIZE + odd(vertical_grids) * OG_TILE_SIZE / 2"
-      ],
-      "rotation_deg": ["drawer_shell_rotation_x_deg", 0, 0]
-    }
-  },
-  "drawer_container_object": {
-    "id": "drawer_container",
-    "target_object": "drawer_container",
-    "material_source_object": "drawer",
-    "material": {"color": "#ffffff", "roughness": 0.5},
-    "model": {
-      "defines": {
-        "generate_drawer_shell": false,
-        "generate_drawer_container": true
-      }
-    },
-    "transform": {
-      "location_mm": [
-        "odd(horizontal_grids) * OG_TILE_SIZE / 2",
-        "-(shell_ocslot_part_thickness + container_depth_clearance)",
-        "-(vertical_grids * OG_TILE_SIZE - shell_thickness - container_height_clearance / 2)"
-      ],
-      "rotation_deg": ["drawer_container_rotation_x_deg", 0, 0]
-    }
-  }
-},
-"scene": {
-  "blend_file": "../assets/scenes/opengrid_wall_scene.blend",
-  "camera": "Camera",
-  "transform": {"$constant": "placeholder_transform"},
-  "object_defaults": {
-    "$constant": "drawer_object_defaults"
-  },
-  "objects": [
-    {
-      "$constant": "drawer_shell_object"
-    },
-    {
-      "$constant": "drawer_container_object"
-    }
-  ]
-}
+```yaml
+constants:
+  drawer_shell_rotation_x_deg: 90
+  drawer_container_rotation_x_deg: 0
+  placeholder_transform:
+    location_mm: [0, 0, 0]
+    rotation_deg: [90, 0, -90]
+    scale: [0.001, 0.001, 0.001]
+  drawer_common_model:
+    scad_file: openconnect_drawer.scad
+    defines:
+      generate_drawer_stopper_clips: false
+      view_drawer_overlapped: false
+      horizontal_grids: 5
+      vertical_grids: 2
+      depth_grids: 5
+      shell_slot_position: Back
+  drawer_object_defaults:
+    model:
+      $constant: drawer_common_model
+    inherit_target_transform: false
+  drawer_shell_object:
+    id: drawer_shell
+    target_object: drawer
+    model:
+      defines:
+        generate_drawer_shell: true
+        generate_drawer_container: false
+    transform:
+      location_mm:
+        - odd(horizontal_grids) * OG_TILE_SIZE / 2
+        - 0
+        - -OG_TILE_SIZE + odd(vertical_grids) * OG_TILE_SIZE / 2
+      rotation_deg: [drawer_shell_rotation_x_deg, 0, 0]
+  drawer_container_object:
+    id: drawer_container
+    target_object: drawer_container
+    material_source_object: drawer
+    material:
+      color: '#ffffff'
+      roughness: 0.5
+    model:
+      defines:
+        generate_drawer_shell: false
+        generate_drawer_container: true
+    transform:
+      location_mm:
+        - odd(horizontal_grids) * OG_TILE_SIZE / 2
+        - -(shell_ocslot_part_thickness + container_depth_clearance)
+        - -(vertical_grids * OG_TILE_SIZE - shell_thickness - container_height_clearance / 2)
+      rotation_deg: [drawer_container_rotation_x_deg, 0, 0]
+scene:
+  blend_file: ../assets/scenes/opengrid_wall_scene.blend
+  camera: Camera
+  transform:
+    $constant: placeholder_transform
+  object_defaults:
+    $constant: drawer_object_defaults
+  objects:
+    - $constant: drawer_shell_object
+    - $constant: drawer_container_object
 ```
 
 Object defaults and object entries are deep-merged. Nested `model.defines` maps are merged, so object-specific flags can override shared flags without repeating the SCAD file or grid parameters. Object `transform` entries are also merged over the scene transform; in the example above, each object supplies only `location_mm` and `rotation_deg`, while the shared `scale` comes from the scene transform.
@@ -465,32 +432,28 @@ If `target_object` exists in the Blender file, the renderer replaces it and copi
 
 Set object-level `material` to override the copied material color. The short form is a hex color string, and the object form also supports `alpha`, `roughness`, and `metallic` values from `0` to `1`:
 
-```json
-"material": {
-  "color": "#f4f1ea",
-  "roughness": 0.55
-}
+```yaml
+material:
+  color: '#f4f1ea'
+  roughness: 0.55
 ```
 
 For multi-object scenes, set `annotations.object` to choose which generated object supplies the OpenSCAD annotation metadata and receives projected model-space anchors:
 
-```json
-"annotations": {
-  "object": "drawer_shell",
-  "chains": [
-    {"ids": ["horizontal_grids"]}
-  ]
-}
+```yaml
+annotations:
+  object: drawer_shell
+  chains:
+    - ids: [horizontal_grids]
 ```
 
 `display_offset_mm` accepts numbers or simple expressions. The shelf width example keeps the current offset readable:
 
-```json
-"display_offset_mm": [
-  "shelf_back_thickness",
-  "OG_TILE_SIZE + shelf_back_thickness",
-  0
-]
+```yaml
+display_offset_mm:
+  - shelf_back_thickness
+  - OG_TILE_SIZE + shelf_back_thickness
+  - 0
 ```
 
 Here `OG_TILE_SIZE` and `shelf_back_thickness` are intended to come from SCAD context metadata, so the offset follows the actual shelf model settings.
@@ -499,132 +462,107 @@ By default, annotation text uses only the emitted label and does not append the 
 
 Use `annotations.aliases` to shorten parameter names once for every annotation group. Per-group `labels` still work and override aliases when both are present:
 
-```json
-"aliases": {
-  "circular_tip_radius": "tip_radius"
-}
+```yaml
+aliases:
+  circular_tip_radius: tip_radius
 ```
 
-Dimension `chains` draw straight measured spans from emitted `kind=dimension` metadata. The helper lines between the measured feature and the dimension line are dashed by default and inherit the measured segment color. Hide them for a specific chain with `"extension_visible": false`, or tune their pattern with `extension_dash_px` and `extension_gap_px`.
+Dimension `chains` draw straight measured spans from emitted `kind=dimension` metadata. The helper lines between the measured feature and the dimension line are dashed by default and inherit the measured segment color. Hide them for a specific chain with `extension_visible: false`, or tune their pattern with `extension_dash_px` and `extension_gap_px`.
 
 Labels are auto-placed after projection. The renderer preserves the label angle, clamps labels inside the image, and nudges labels along the annotation direction/normal to reduce overlap with other labels drawn in the same overlay step.
 
 `radius_callouts` draw dashed radial leaders from emitted `kind=radius` metadata:
 
-```json
-"radius_callouts": [
-  {
-    "ids": ["circular_corner_radius"],
-    "display_offset_mm": [0, 0, 0],
-    "labels": {
-      "circular_corner_radius": "hook_radius"
-    },
-    "label_offset_px": 54
-  }
-]
+```yaml
+radius_callouts:
+  - ids: [circular_corner_radius]
+    display_offset_mm: [0, 0, 0]
+    labels:
+      circular_corner_radius: hook_radius
+    label_offset_px: 54
 ```
 
 Use the optional `labels` mapping on a chain, radius callout, arc callout, or angle/radius callout to keep the SCAD metadata ID stable while shortening the text for a documentation image.
 
 For radius parameters, prefer `radius_callouts` so the label is attached to a center-to-edge radius leader. Set `label_offset_px` to `0` to align the text directly with the radius line; non-zero values move the label perpendicular to that leader. Use `arc_callouts` when the curve extent itself is the annotated feature or when you want to highlight the affected arc alongside a radius leader. `arc_callouts` draw a projected curve from emitted `kind=arc` metadata:
 
-```json
-"arc_callouts": [
-  {
-    "ids": ["circular_tip_radius_extent"],
-    "labels": {
-      "circular_tip_radius_extent": "tip radius extent"
-    },
-    "show_label": false,
-    "label_offset_px": 42
-  }
-]
+```yaml
+arc_callouts:
+  - ids: [circular_tip_radius_extent]
+    labels:
+      circular_tip_radius_extent: tip radius extent
+    show_label: false
+    label_offset_px: 42
 ```
 
 `angle_radius_callouts` pair one emitted `kind=arc` annotation with one emitted `kind=radius` annotation. This is useful for circular tip parameters where the same projected shape should show the affected arc angle and the arc radius without drawing the rest of the circle:
 
-```json
-"angle_radius_callouts": [
-  {
-    "id": "circular_tip_angle_radius",
-    "arc_id": "circular_tip_radius_extent",
-    "radius_id": "circular_tip_radius",
-    "angle_id": "circular_tip_angle",
-    "labels": {
-      "circular_tip_angle": "tip_angle",
-      "circular_tip_radius": "tip_radius"
-    },
-    "angle_label_offset_px": 34,
-    "radius_label_offset_px": 32
-  }
-]
+```yaml
+angle_radius_callouts:
+  - id: circular_tip_angle_radius
+    arc_id: circular_tip_radius_extent
+    radius_id: circular_tip_radius
+    angle_id: circular_tip_angle
+    labels:
+      circular_tip_angle: tip_angle
+      circular_tip_radius: tip_radius
+    angle_label_offset_px: 34
+    radius_label_offset_px: 32
 ```
 
 The renderer draws only the sampled arc plus one dashed radius leader from the radius center toward the emitted radius edge. The dashed radius uses the same default dash, gap, halo, and line width behavior as `radius_callouts`. `angle_id` can point at a numeric SCAD context value, so `annotations.style.show_values` can append the actual angle when a value-bearing render is needed.
 
 `image_labels` draw screen-space labels without a model anchor. Use them for parameters that describe a variant or mode rather than a specific geometric span:
 
-```json
-"image_labels": [
-  {
-    "id": "hook_shape_type",
-    "position": "bottom",
-    "offset_px": [0, -24],
-    "show_value": true
-  }
-]
+```yaml
+image_labels:
+  - id: hook_shape_type
+    position: bottom
+    offset_px: [0, -24]
+    show_value: true
 ```
 
-When `show_value` is true, image labels first use an explicit `value`, then `model.defines`, then numeric SCAD context metadata from the annotated object. That lets labels such as `shell_thickness`, `handle_depth`, or `shelf_texture_depth` show the actual value used by OpenSCAD without repeating it in JSON.
+When `show_value` is true, image labels first use an explicit `value`, then `model.defines`, then numeric SCAD context metadata from the annotated object. That lets labels such as `shell_thickness`, `handle_depth`, or `shelf_texture_depth` show the actual value used by OpenSCAD without repeating it in config.
 
 Annotation groups can override label and line sizing when a parameter span is physically small:
 
-```json
-{
-  "ids": ["shelf_back_thickness"],
-  "label_font_size_px": 20,
-  "tick_length_px": 12,
-  "line_width_px": 2.2,
-  "extension_visible": false
-}
+```yaml
+ids: [shelf_back_thickness]
+label_font_size_px: 20
+tick_length_px: 12
+line_width_px: 2.2
+extension_visible: false
 ```
 
 ## Variants
 
 Use top-level `variants` when several images share most of the same scene and render settings. Each variant has a `name` and can either set complete sections or use a `set` object whose keys are dotted config paths:
 
-```json
-"variants": [
-  {
-    "name": "deep_drawer_shell",
-    "set": {
-      "model.defines.depth_grids": 6
-    }
-  }
-]
+```yaml
+variants:
+  - name: deep_drawer_shell
+    set:
+      model.defines.depth_grids: 6
 ```
 
 Variant objects can also override full config sections when a dotted path is not enough. `model` and `annotations` are replaced as complete sections so model-specific labels do not leak between variants. `constants`, `scene`, and `render` are merged with the base config so shared Blender scene settings can stay in one place.
 
 Use `variant_configs` when a gallery config should import complete per-model config files as variants:
 
-```json
-{
-  "extends": "base_scene.json",
-  "job_name": "opengrid_annotation_models",
-  "variant_configs": [
-    "sturdy_hook_default.json",
-    "sturdy_shelf_default.json",
-    "general_holder_default.json"
-  ]
-}
+```yaml
+extends: base_scene.yaml
+job_name: opengrid_annotation_models
+variant_configs:
+  - sturdy_hook_default.yaml
+  - sturdy_shelf_default.yaml
+  - general_holder_default.yaml
 ```
 
-Imported config paths are resolved relative to the importing config. The imported variant name comes from top-level `variant_name`, or from the filename stem when `variant_name` is omitted. Extra parameter groups live in `configs/parameter_details.json`, which extends the defaults and replaces the variant list with secondary detail renders:
+Imported config paths are resolved relative to the importing config. The imported variant name comes from top-level `variant_name`, or from the filename stem when `variant_name` is omitted. Extra parameter groups live in `configs/parameter_details.yaml`, which extends the defaults and replaces the variant list with secondary detail renders:
 
 ```powershell
 .\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
-  --config annotation_renderer\configs\parameter_details.json `
+  --config annotation_renderer\configs\parameter_details.yaml `
   --variant sturdy_hook_circular_details
 ```
 
@@ -638,14 +576,12 @@ Current parameter-detail variants:
 * `drawer_shell_clearance_details`: `shell_thickness`, container width/height/depth clearances, `container_front_back_height_offset`
 * `drawer_container_label_handle_details`: `handle_depth`, `label_width`, `label_height`, stopper settings, and magnet diameters
 
-Use `extends` in a config when a secondary parameter set should reuse `model_defaults.json` constants, scene binding, and render presets without copying them:
+Use `extends` in a config when a secondary parameter set should reuse `model_defaults.yaml` constants, scene binding, and render presets without copying them:
 
-```json
-{
-  "extends": "model_defaults.json",
-  "job_name": "my_parameter_details",
-  "variants": []
-}
+```yaml
+extends: model_defaults.yaml
+job_name: my_parameter_details
+variants: []
 ```
 
 ## SCAD Annotation Contract
@@ -686,7 +622,7 @@ Models can also emit numeric context values for renderer expressions. Prefer the
 OPENGRID_ANNOTATION_V1|id=drawer_context|kind=context|values=OG_TILE_SIZE=28;shell_thickness=2.4;shell_ocslot_part_thickness=3.6
 ```
 
-Use `kind=context` for any numeric SCAD value that JSON transforms or annotation offsets should reference. These entries are not drawn directly. The older single-value form, `id=shell_thickness|kind=context|value=2.4`, is still supported.
+Use `kind=context` for any numeric SCAD value that config transforms or annotation offsets should reference. These entries are not drawn directly. The older single-value form, `id=shell_thickness|kind=context|value=2.4`, is still supported.
 
 The renderer applies config offsets in model-local coordinates before Blender object transform and camera projection.
 

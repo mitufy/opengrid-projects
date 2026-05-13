@@ -157,7 +157,7 @@ class AnimationConfigTests(unittest.TestCase):
             )
 
     def test_animation_examples_extend_model_defaults(self) -> None:
-        config = load_config(Path("annotation_renderer/configs/animation_examples.json"), [])
+        config = load_config(Path("annotation_renderer/configs/animation_examples.yaml"), [])
         names = [variant["name"] for variant in selected_variants(config, None)]
 
         self.assertEqual(
@@ -182,7 +182,7 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(holder_config["render"]["animation"]["object_animations"][0]["object"], "model")
 
     def test_model_defaults_import_per_model_variant_configs(self) -> None:
-        config = load_config(Path("annotation_renderer/configs/model_defaults.json"), [])
+        config = load_config(Path("annotation_renderer/configs/model_defaults.yaml"), [])
         names = [variant["name"] for variant in selected_variants(config, None)]
 
         self.assertEqual(
@@ -204,31 +204,38 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(holder_config["annotations"]["chains"][0]["ids"], ["holder_width"])
 
     def test_per_model_default_config_is_directly_renderable(self) -> None:
-        config = load_config(Path("annotation_renderer/configs/general_holder_default.json"), [])
+        config = load_config(Path("annotation_renderer/configs/general_holder_default.yaml"), [])
 
         self.assertEqual(config["model"]["scad_file"], "openconnect_general_holder.scad")
         self.assertEqual(config["job_name"], "general_holder_scene_default")
         self.assertEqual(config["annotations"]["chains"][0]["ids"], ["holder_width"])
 
+    def test_checked_in_defaults_are_yaml_only(self) -> None:
+        config_dir = Path("annotation_renderer/configs")
+
+        self.assertTrue((config_dir / "model_defaults.yaml").exists())
+        self.assertFalse((config_dir / "model_defaults.json").exists())
+        self.assertFalse(any(config_dir.glob("*.json")))
+
     def test_list_models_uses_default_model_config(self) -> None:
         output = self.run_cli("--list-models")
 
         self.assertIn("general_holder_default", output)
-        self.assertIn("annotation_renderer/configs/general_holder_default.json", output)
+        self.assertIn("annotation_renderer/configs/general_holder_default.yaml", output)
         self.assertIn("model: openconnect_general_holder.scad", output)
 
     def test_describe_and_list_annotations_report_editable_settings(self) -> None:
         description = self.run_cli("--describe", "general_holder_default")
         direct_description = self.run_cli(
             "--config",
-            "annotation_renderer/configs/general_holder_default.json",
+            "annotation_renderer/configs/general_holder_default.yaml",
             "--describe",
             "general_holder_default",
         )
         annotations = self.run_cli("--list-annotations", "general_holder_default")
 
         self.assertIn("compartment_shape: \"Rectangular\"", description)
-        self.assertIn("Source: annotation_renderer/configs/general_holder_default.json", direct_description)
+        self.assertIn("Source: annotation_renderer/configs/general_holder_default.yaml", direct_description)
         self.assertIn("camera_location_offset_mm: [0,0,10]", description)
         self.assertIn("dimension: holder_width", annotations)
         self.assertIn("line_offset_px=20", annotations)
@@ -242,14 +249,14 @@ class AnimationConfigTests(unittest.TestCase):
             config = load_config(output_path, [])
 
         self.assertIn("Wrote:", output)
-        self.assertTrue(template["extends"].endswith("general_holder_default.json"))
+        self.assertTrue(template["extends"].endswith("general_holder_default.yaml"))
         self.assertIn("scene", template)
         self.assertEqual(template["model"]["defines"]["compartment_shape"], "Rectangular")
         self.assertEqual(template["annotations"]["chains"][0]["ids"], ["holder_width"])
         self.assertEqual(config["model"]["scad_file"], "openconnect_general_holder.scad")
 
-    def test_yaml_config_extends_json_default(self) -> None:
-        default_config = Path("annotation_renderer/configs/general_holder_default.json").resolve().as_posix()
+    def test_yaml_config_extends_yaml_default(self) -> None:
+        default_config = Path("annotation_renderer/configs/general_holder_default.yaml").resolve().as_posix()
         scene_file = Path("annotation_renderer/assets/scenes/opengrid_wall_scene.blend").resolve().as_posix()
         with tempfile.TemporaryDirectory() as temp_dir:
             output_path = Path(temp_dir) / "holder_custom.yaml"
@@ -277,7 +284,7 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(config["model"]["defines"]["custom_label"], "on")
 
     def test_json_config_can_extend_yaml_config(self) -> None:
-        default_config = Path("annotation_renderer/configs/general_holder_default.json").resolve().as_posix()
+        default_config = Path("annotation_renderer/configs/general_holder_default.yaml").resolve().as_posix()
         scene_file = Path("annotation_renderer/assets/scenes/opengrid_wall_scene.blend").resolve().as_posix()
         with tempfile.TemporaryDirectory() as temp_dir:
             base_yaml_path = Path(temp_dir) / "holder_base.yaml"
@@ -321,7 +328,7 @@ class AnimationConfigTests(unittest.TestCase):
             config = load_config(output_path, [])
 
         self.assertIn("Wrote:", output)
-        self.assertTrue(template["extends"].endswith("general_holder_default.json"))
+        self.assertTrue(template["extends"].endswith("general_holder_default.yaml"))
         self.assertIn("scene", template)
         self.assertEqual(template["model"]["defines"]["compartment_shape"], "Rectangular")
         self.assertEqual(template["annotations"]["chains"][0]["ids"], ["holder_width"])
@@ -387,6 +394,7 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn('"PyYAML>=6.0"', pyproject)
         self.assertIn('"configs/*.yaml"', pyproject)
         self.assertIn('"configs/*.yml"', pyproject)
+        self.assertNotIn('"configs/*.json"', pyproject)
 
 
 if __name__ == "__main__":
