@@ -189,10 +189,34 @@ Generate a compact editable config that extends a default model:
 ```powershell
 .\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
   --new-config general_holder_default `
-  --out build\scene_annotations\my_holder.json
+  --out build\scene_annotations\my_holder.yaml
 ```
 
-The generated config includes editable model defines and annotation offset groups, plus a `scene.blend_file` path rewritten relative to the output file so it validates from any folder.
+The generated config includes editable model defines and annotation offset groups, plus a `scene.blend_file` path rewritten relative to the output file so it validates from any folder. Use a `.yaml` or `.yml` output path to write YAML, or `.json` to write JSON.
+
+## YAML And JSON
+
+The renderer accepts `.json`, `.yaml`, and `.yml` files anywhere a config path is used, including `--config`, `--gallery-config`, `extends`, and `variant_configs`. The checked-in defaults are still JSON during the transition, but new custom configs should prefer YAML because it is easier to read and edit by hand:
+
+```yaml
+extends: ../../annotation_renderer/configs/general_holder_default.json
+job_name: general_holder_custom
+
+model:
+  defines:
+    compartment_shape: Rectangular
+    compartment_column_count: 2
+    compartment_row_count: 1
+
+annotations:
+  chains:
+    - ids: [holder_width]
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 20
+      label_offset_px: 28
+```
+
+Keep using the existing `extends` and `$constant` composition features instead of YAML anchors or merge keys. That keeps configs portable between JSON and YAML while the defaults are being migrated.
 
 ## Animation Workflow
 
@@ -289,7 +313,7 @@ The tracked default config keeps the Blender scene binding explicit:
 * `render.preset: "cycles_standard_scene"` for Cycles standard quality, camera fitting, and flat STL shading
 * `annotations.style.preset: "makerworld_technical_light"` for muted translucent dimension lines and outlined labels
 
-Scene transforms can come from JSON instead of the Blender placeholder object. Set `inherit_target_transform` to `false` and provide `transform`. `location_mm` uses millimeters and is converted to Blender meters internally, while `rotation_deg` and `scale` map directly to the imported STL object transform:
+Scene transforms can come from config instead of the Blender placeholder object. Set `inherit_target_transform` to `false` and provide `transform`. `location_mm` uses millimeters and is converted to Blender meters internally, while `rotation_deg` and `scale` map directly to the imported STL object transform:
 
 ```json
 "constants": {
@@ -316,11 +340,11 @@ Scene transforms can come from JSON instead of the Blender placeholder object. S
 
 The expression helper `odd(value)` returns `1` for odd numeric values and `0` for even values, which is useful for half-tile placement corrections.
 
-Expression names can come from top-level numeric `constants`, numeric `model.defines`, and SCAD-emitted numeric context metadata. Prefer SCAD context for values calculated by the model, such as `OG_TILE_SIZE`, `shell_thickness`, `shell_ocslot_part_thickness`, `shelf_back_thickness`, and final derived thicknesses. That keeps JSON transforms and annotation offsets tied to the same OpenSCAD run that generated the STL.
+Expression names can come from top-level numeric `constants`, numeric `model.defines`, and SCAD-emitted numeric context metadata. Prefer SCAD context for values calculated by the model, such as `OG_TILE_SIZE`, `shell_thickness`, `shell_ocslot_part_thickness`, `shelf_back_thickness`, and final derived thicknesses. That keeps config transforms and annotation offsets tied to the same OpenSCAD run that generated the STL.
 
 Because SCAD context only exists after export, `--print-resolved-config` may show `transform: null` with the raw `transform_config` for scene objects whose expressions depend on emitted context. A real render resolves those expressions after parsing each object's OpenSCAD log.
 
-Constants can also hold reusable JSON snippets. Use `{"$constant": "name"}` anywhere in the active config to replace that value with the matching constant. When `$constant` appears in an object with other keys, the constant is used as a base object and the other keys override it:
+Constants can also hold reusable config snippets. Use `{"$constant": "name"}` in JSON or `$constant: name` in YAML anywhere in the active config to replace that value with the matching constant. When `$constant` appears in an object with other keys, the constant is used as a base object and the other keys override it:
 
 ```json
 "constants": {

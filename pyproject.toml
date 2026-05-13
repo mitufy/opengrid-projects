@@ -9,7 +9,8 @@ description = "OpenSCAD-to-Blender annotation renderer for OpenGrid technical im
 readme = "annotation_renderer/README.md"
 requires-python = ">=3.10"
 dependencies = [
-  "Pillow>=10"
+  "Pillow>=10",
+  "PyYAML>=6.0"
 ]
 
 [project.optional-dependencies]
@@ -33,5 +34,7 @@ packages = ["annotation_renderer"]
 annotation_renderer = [
   "assets/scenes/*.blend",
   "configs/*.json",
+  "configs/*.yaml",
+  "configs/*.yml",
   "schemas/*.json"
 ]
