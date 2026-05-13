@@ -261,6 +261,18 @@ def fit_camera_to_objects(scene, camera, objects, fit_points=None):
     return {"target": [float(v) for v in target], "distance": float(distance)}
 
 
+def apply_camera_location_offset(camera):
+    offset = config.get("camera_location_offset", (0.0, 0.0, 0.0))
+    if not offset:
+        return None
+    offset_vector = Vector((float(offset[0]), float(offset[1]), float(offset[2])))
+    if offset_vector.length <= 1e-9:
+        return None
+    camera.location += offset_vector
+    bpy.context.view_layer.update()
+    return [float(value) for value in offset_vector]
+
+
 def configure_render(scene):
     engine = config.get("render_engine", "cycles")
     if engine == "cycles":
@@ -500,6 +512,7 @@ configure_render(scene)
 bpy.context.view_layer.update()
 fit_points = animation_fit_points(rendered_objects, objects_by_id, config.get("animation"))
 camera_fit = fit_camera_to_objects(scene, camera, rendered_objects, fit_points=fit_points)
+camera_location_offset = apply_camera_location_offset(camera)
 has_animation = apply_animation(scene, objects_by_id)
 scene.render.filepath = config["render_path"]
 scene.render.image_settings.file_format = "PNG"
@@ -547,6 +560,7 @@ Path(config["projection_path"]).write_text(
                 "location": [float(value) for value in camera.location],
                 "matrix_world": [[float(value) for value in row] for row in camera.matrix_world],
                 "fit": camera_fit,
+                "location_offset": camera_location_offset,
             },
             "objects": {
                 object_id: {

@@ -42,6 +42,7 @@ from annotation_renderer.config import (
     resolve_style,
     scene_inherits_target_transform,
     validate_config_shape,
+    vector3,
 )
 from annotation_renderer.openscad import build_openscad_command, project_relative_or_absolute, run_command_logged, sanitize_name
 from annotation_renderer.overlay import (
@@ -63,6 +64,8 @@ from annotation_renderer.scad_annotations import (
 UTILITY_ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = UTILITY_ROOT.parent
 CONFIG_SCHEMA_PATH = UTILITY_ROOT / "schemas" / "annotation-render-config.schema.json"
+DEFAULT_MODEL_CONFIG_PATH = UTILITY_ROOT / "configs" / "model_defaults.json"
+DISCOVERY_ACTIONS = ("list_models", "describe", "list_annotations", "new_config")
 
 
 def default_windows_blender_candidates() -> list[Path]:
@@ -139,6 +142,55 @@ def apply_override(config: dict[str, object], override: str) -> None:
     set_dotted_value(config, path, parse_override_value(raw_value))
 
 
+def variant_from_config_file(config: Mapping[str, object], *, path: Path) -> dict[str, object]:
+    variant_name = config.get("variant_name") or path.stem
+    if not isinstance(variant_name, str) or not variant_name.strip():
+        raise ConfigError(f"variant_name must be a non-empty string in {project_relative_or_absolute(path)}")
+    variant: dict[str, object] = {"name": variant_name.strip(), "_source_config": str(path)}
+    for key in ("job_name", "output_dir", "constants", "model", "scene", "render", "annotations"):
+        if key in config:
+            variant[key] = deepcopy(config[key])
+    return variant
+
+
+def expand_variant_configs(config: dict[str, object], *, config_dir: Path, seen: tuple[Path, ...]) -> dict[str, object]:
+    variant_paths = config.pop("variant_configs", None)
+    if variant_paths is None:
+        return config
+    if not isinstance(variant_paths, Sequence) or isinstance(variant_paths, (str, bytes)):
+        raise ConfigError("variant_configs must be an array of config paths")
+
+    constants = config.get("constants", {})
+    if constants is None:
+        constants = {}
+    if not isinstance(constants, Mapping):
+        raise ConfigError("constants must be an object when variant_configs is used")
+    merged_constants: Mapping[str, object] = constants
+
+    variants = config.get("variants", [])
+    if variants is None:
+        variants = []
+    if not isinstance(variants, Sequence) or isinstance(variants, (str, bytes)):
+        raise ConfigError("variants must be an array when variant_configs is used")
+    merged_variants: list[object] = [deepcopy(item) for item in variants]
+
+    for index, raw_path in enumerate(variant_paths):
+        if not isinstance(raw_path, str) or not raw_path.strip():
+            raise ConfigError(f"variant_configs[{index}] must be a non-empty string")
+        variant_path = resolve_optional_config_path(raw_path, config_dir=config_dir)
+        included_config = load_raw_config(variant_path, seen)
+        included_constants = included_config.get("constants", {})
+        if included_constants is not None:
+            if not isinstance(included_constants, Mapping):
+                raise ConfigError(f"constants must be an object in {project_relative_or_absolute(variant_path)}")
+            merged_constants = deep_merge(merged_constants, included_constants)
+        merged_variants.append(variant_from_config_file(included_config, path=variant_path))
+
+    config["constants"] = deepcopy(dict(merged_constants))
+    config["variants"] = merged_variants
+    return config
+
+
 def load_raw_config(path: Path, seen: tuple[Path, ...] = ()) -> dict[str, object]:
     if path in seen:
         chain = " -> ".join(project_relative_or_absolute(item) for item in (*seen, path))
@@ -151,12 +203,12 @@ def load_raw_config(path: Path, seen: tuple[Path, ...] = ()) -> dict[str, object
         raise ConfigError("Top-level config must be an object")
     extends_value = config.pop("extends", None)
     if extends_value is None:
-        return config
+        return expand_variant_configs(config, config_dir=path.parent, seen=(*seen, path))
     if not isinstance(extends_value, str) or not extends_value.strip():
         raise ConfigError("extends must be a non-empty string")
     base_path = resolve_optional_config_path(extends_value, config_dir=path.parent)
     base_config = load_raw_config(base_path, (*seen, path))
-    return deep_merge(base_config, config)
+    return expand_variant_configs(deep_merge(base_config, config), config_dir=path.parent, seen=(*seen, path))
 
 
 def load_config(path: Path, overrides: Sequence[str]) -> dict[str, object]:
@@ -340,6 +392,21 @@ def selected_variants(config: Mapping[str, object], selected_name: str | None) -
     return matching
 
 
+def discovery_requested(args: argparse.Namespace) -> bool:
+    return any(bool(getattr(args, name, None)) for name in DISCOVERY_ACTIONS)
+
+
+def config_path_from_args(args: argparse.Namespace, *, allow_default: bool = False) -> Path:
+    if args.config:
+        path = Path(args.config).expanduser()
+        if not path.is_absolute():
+            path = (PROJECT_ROOT / path).resolve()
+        return path
+    if allow_default:
+        return DEFAULT_MODEL_CONFIG_PATH.resolve()
+    raise ConfigError("--config is required unless --print-schema or a discovery command is used")
+
+
 def is_directly_renderable_config(config: Mapping[str, object]) -> bool:
     scene = resolve_scene(config.get("scene", {}))
     if scene.get("objects") is not None:
@@ -377,7 +444,359 @@ def load_gallery_config(path_value: str | None, *, config_dir: Path) -> tuple[di
     return dict(data), path
 
 
-def parse_args() -> argparse.Namespace:
+def compact_json(value: object) -> str:
+    return json.dumps(value, ensure_ascii=True, separators=(",", ":"))
+
+
+def source_config_for_variant(config_path: Path, variant: Mapping[str, object] | None) -> Path:
+    if variant is None:
+        return config_path
+    raw_source = variant.get("_source_config")
+    if isinstance(raw_source, str) and raw_source.strip():
+        return Path(raw_source).expanduser().resolve()
+    return config_path
+
+
+def resolved_named_config(
+    config: Mapping[str, object],
+    *,
+    config_path: Path,
+    name: str | None,
+) -> tuple[str, dict[str, object], Path, Mapping[str, object] | None]:
+    if name:
+        variants = variant_items_from_config(config)
+        matching = [variant for variant in variants if str(variant["name"]) == name]
+        if matching:
+            variant = matching[0]
+            return name, variant_config(config, variant), source_config_for_variant(config_path, variant), variant
+        direct_names = {
+            config_path.stem,
+            str(config.get("variant_name", "")).strip(),
+            str(config.get("job_name", "")).strip(),
+        }
+        if is_directly_renderable_config(config) and name in direct_names:
+            return name, deepcopy(dict(config)), config_path, None
+        available = ", ".join(str(variant["name"]) for variant in variants if "name" in variant)
+        if is_directly_renderable_config(config):
+            available = ", ".join(item for item in (*direct_names, available) if item)
+        raise ConfigError(f"Unknown model {name!r}. Available models: {available or 'none'}")
+    if is_directly_renderable_config(config):
+        return config_path.stem, deepcopy(dict(config)), config_path, None
+    variants = selected_variants(config, None)
+    if not variants:
+        raise ConfigError("Config has no directly renderable model and no variants")
+    variant = variants[0]
+    variant_name = str(variant["name"]).strip()
+    return variant_name, variant_config(config, variant), source_config_for_variant(config_path, variant), variant
+
+
+def model_records_from_config(config: Mapping[str, object]) -> list[dict[str, object]]:
+    scene = resolve_scene(config.get("scene", {}))
+    records: list[dict[str, object]] = []
+    scene_objects = scene.get("objects")
+    if scene_objects is not None:
+        object_defaults = scene.get("object_defaults")
+        for raw_object in scene_objects:
+            if not isinstance(raw_object, Mapping):
+                continue
+            scene_object = merge_scene_object_config(object_defaults, raw_object)
+            model = scene_object.get("model")
+            if not isinstance(model, Mapping):
+                continue
+            records.append(
+                {
+                    "id": str(scene_object.get("id", "model")),
+                    "target_object": scene_object.get("target_object"),
+                    "scad_file": model.get("scad_file"),
+                    "defines": model.get("defines", {}),
+                }
+            )
+        return records
+
+    model = config.get("model")
+    if isinstance(model, Mapping):
+        records.append(
+            {
+                "id": "model",
+                "target_object": scene.get("target_object"),
+                "scad_file": model.get("scad_file"),
+                "defines": model.get("defines", {}),
+            }
+        )
+    return records
+
+
+def model_summary(records: Sequence[Mapping[str, object]]) -> str:
+    if not records:
+        return "no model"
+    parts = []
+    for record in records:
+        object_id = str(record.get("id") or "model")
+        scad_file = str(record.get("scad_file") or "unknown")
+        parts.append(f"{object_id}: {scad_file}")
+    return "; ".join(parts)
+
+
+def iter_annotation_groups(annotations: Mapping[str, object]) -> list[tuple[str, Mapping[str, object]]]:
+    groups: list[tuple[str, Mapping[str, object]]] = []
+    for key, kind in (
+        ("chains", "dimension"),
+        ("radius_callouts", "radius"),
+        ("arc_callouts", "arc"),
+        ("angle_radius_callouts", "angle_radius"),
+        ("image_labels", "image_label"),
+    ):
+        raw_groups = annotations.get(key, [])
+        if not isinstance(raw_groups, Sequence) or isinstance(raw_groups, (str, bytes)):
+            continue
+        for group in raw_groups:
+            if isinstance(group, Mapping):
+                groups.append((kind, group))
+    return groups
+
+
+def annotation_group_name(kind: str, group: Mapping[str, object]) -> str:
+    if kind in {"dimension", "radius", "arc"}:
+        ids = group.get("ids", [])
+        if isinstance(ids, Sequence) and not isinstance(ids, (str, bytes)):
+            return ",".join(str(item) for item in ids)
+    if kind == "angle_radius":
+        return str(group.get("id") or group.get("angle_id") or group.get("arc_id") or "angle_radius")
+    return str(group.get("id") or group.get("text") or "image_label")
+
+
+def annotation_offset_summary(kind: str, group: Mapping[str, object]) -> str:
+    if kind == "dimension":
+        items: list[tuple[str, object]] = [
+            ("display_offset_mm", group.get("display_offset_mm", [0, 0, 0])),
+            ("line_offset_px", group.get("line_offset_px", 0)),
+            ("label_offset_px", group.get("label_offset_px", 0)),
+        ]
+    elif kind == "image_label":
+        items = [("offset_px", group.get("offset_px", [0, 0]))]
+    else:
+        items = [("display_offset_mm", group.get("display_offset_mm", [0, 0, 0]))]
+        for key in (
+            "label_offset_px",
+            "angle_label_offset_px",
+            "radius_label_offset_px",
+            "angle_label_tangent_offset_px",
+            "radius_label_tangent_offset_px",
+        ):
+            if key in group:
+                items.append((key, group[key]))
+    if group.get("optional"):
+        items.append(("optional", True))
+    return ", ".join(f"{key}={compact_json(value)}" for key, value in items)
+
+
+def print_annotation_groups(config: Mapping[str, object]) -> None:
+    annotations = config.get("annotations", {})
+    if not isinstance(annotations, Mapping):
+        print("No annotation config.")
+        return
+    groups = iter_annotation_groups(annotations)
+    if not groups:
+        print("No annotation groups.")
+        return
+    for kind, group in groups:
+        print(f"- {kind}: {annotation_group_name(kind, group)}")
+        print(f"  {annotation_offset_summary(kind, group)}")
+
+
+def print_model_list(*, config: Mapping[str, object], config_path: Path) -> None:
+    variants = selected_variants(config, None)
+    if variants:
+        print(f"Config: {project_relative_or_absolute(config_path)}")
+        for variant in variants:
+            name = str(variant["name"]).strip()
+            resolved_config = variant_config(config, variant)
+            source_config = source_config_for_variant(config_path, variant)
+            records = model_records_from_config(resolved_config)
+            print(f"- {name}")
+            print(f"  source: {project_relative_or_absolute(source_config)}")
+            print(f"  job: {resolved_config.get('job_name', name)}")
+            print(f"  models: {model_summary(records)}")
+        return
+
+    name = config.get("variant_name") or config_path.stem
+    print(f"Config: {project_relative_or_absolute(config_path)}")
+    print(f"- {name}")
+    print(f"  source: {project_relative_or_absolute(config_path)}")
+    print(f"  job: {config.get('job_name', name)}")
+    print(f"  models: {model_summary(model_records_from_config(config))}")
+
+
+def print_model_description(*, name: str, config: Mapping[str, object], source_config: Path) -> None:
+    scene = resolve_scene(config.get("scene", {}))
+    render = resolve_render(config.get("render", {}))
+    print(f"Name:   {name}")
+    print(f"Source: {project_relative_or_absolute(source_config)}")
+    print(f"Job:    {config.get('job_name', name)}")
+    print(f"Scene:  {scene.get('blend_file')}")
+    print(f"Camera: {scene.get('camera', 'Camera')}")
+    print("Models:")
+    for record in model_records_from_config(config):
+        print(f"- {record.get('id')}: {record.get('scad_file')} -> {record.get('target_object')}")
+        defines = record.get("defines", {})
+        if isinstance(defines, Mapping) and defines:
+            for define_name, value in defines.items():
+                print(f"  {define_name}: {compact_json(value)}")
+        elif isinstance(defines, Sequence) and not isinstance(defines, (str, bytes)) and defines:
+            for define in defines:
+                print(f"  {define}")
+    print("Render:")
+    for key in ("engine", "quality", "width", "height", "fit_camera", "fit_margin", "camera_location_offset_mm"):
+        if key in render:
+            print(f"- {key}: {compact_json(render[key])}")
+    annotations = config.get("annotations", {})
+    group_count = len(iter_annotation_groups(annotations)) if isinstance(annotations, Mapping) else 0
+    print(f"Annotations: {group_count} groups")
+
+
+def editable_annotations_template(config: Mapping[str, object]) -> dict[str, object]:
+    annotations = config.get("annotations", {})
+    if not isinstance(annotations, Mapping):
+        return {}
+    editable: dict[str, object] = {}
+    for key in ("chains", "radius_callouts", "arc_callouts", "angle_radius_callouts", "image_labels"):
+        raw_groups = annotations.get(key)
+        if not isinstance(raw_groups, Sequence) or isinstance(raw_groups, (str, bytes)):
+            continue
+        copied_groups = []
+        for group in raw_groups:
+            if not isinstance(group, Mapping):
+                continue
+            copied_group: dict[str, object] = {}
+            for group_key in (
+                "id",
+                "ids",
+                "arc_id",
+                "radius_id",
+                "angle_id",
+                "optional",
+                "display_offset_mm",
+                "line_offset_px",
+                "label_offset_px",
+                "angle_label_offset_px",
+                "radius_label_offset_px",
+                "angle_label_tangent_offset_px",
+                "radius_label_tangent_offset_px",
+                "offset_px",
+                "position",
+                "show_value",
+                "value",
+                "text",
+                "value_color",
+            ):
+                if group_key in group:
+                    copied_group[group_key] = deepcopy(group[group_key])
+            if copied_group:
+                copied_groups.append(copied_group)
+        if copied_groups:
+            editable[key] = copied_groups
+    return editable
+
+
+def editable_model_template(config: Mapping[str, object]) -> dict[str, object]:
+    model = config.get("model")
+    if isinstance(model, Mapping):
+        defines = model.get("defines", {})
+        if isinstance(defines, Mapping) and defines:
+            return {"model": {"defines": deepcopy(dict(defines))}}
+    constants = config.get("constants", {})
+    if isinstance(constants, Mapping):
+        editable_constants: dict[str, object] = {}
+        for key in ("drawer_common_defines",):
+            value = constants.get(key)
+            if isinstance(value, Mapping):
+                editable_constants[key] = deepcopy(dict(value))
+        if editable_constants:
+            return {"constants": editable_constants}
+    return {}
+
+
+def json_config_reference(*, source_config: Path, output_path: Path) -> str:
+    relative = os.path.relpath(source_config, start=output_path.parent)
+    return Path(relative).as_posix()
+
+
+def write_new_config_template(
+    *,
+    name: str,
+    config: Mapping[str, object],
+    source_config: Path,
+    output_path: Path,
+    force: bool,
+) -> None:
+    if output_path.exists() and not force:
+        raise ConfigError(f"Output config already exists: {output_path}. Use --force to overwrite it.")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    template: dict[str, object] = {
+        "$schema": Path(os.path.relpath(CONFIG_SCHEMA_PATH, start=output_path.parent)).as_posix(),
+        "extends": json_config_reference(source_config=source_config, output_path=output_path),
+        "job_name": f"{sanitize_name(name)}_custom",
+    }
+    scene = resolve_scene(config.get("scene", {}))
+    blend_file = scene.get("blend_file")
+    if isinstance(blend_file, str) and blend_file.strip():
+        scene_path = resolve_config_path(blend_file, config_dir=source_config.parent, project_root=PROJECT_ROOT)
+        template["scene"] = {
+            "blend_file": Path(os.path.relpath(scene_path, start=output_path.parent)).as_posix()
+        }
+    template.update(editable_model_template(config))
+    editable_annotations = editable_annotations_template(config)
+    if editable_annotations:
+        template["annotations"] = editable_annotations
+    output_path.write_text(json.dumps(template, indent=2) + "\n", encoding="utf-8")
+
+
+def run_discovery(*, config: Mapping[str, object], config_path: Path, args: argparse.Namespace) -> int:
+    if args.list_models:
+        print_model_list(config=config, config_path=config_path)
+        return 0
+    if args.describe:
+        name, resolved_config, source_config, _variant = resolved_named_config(
+            config,
+            config_path=config_path,
+            name=str(args.describe),
+        )
+        print_model_description(name=name, config=resolved_config, source_config=source_config)
+        return 0
+    if args.list_annotations:
+        name, resolved_config, _source_config, _variant = resolved_named_config(
+            config,
+            config_path=config_path,
+            name=str(args.list_annotations),
+        )
+        print(f"Annotations for {name}:")
+        print_annotation_groups(resolved_config)
+        return 0
+    if args.new_config:
+        if not args.out:
+            raise ConfigError("--new-config requires --out")
+        output_path = Path(args.out).expanduser()
+        if not output_path.is_absolute():
+            output_path = (PROJECT_ROOT / output_path).resolve()
+        name, resolved_config, source_config, _variant = resolved_named_config(
+            config,
+            config_path=config_path,
+            name=str(args.new_config),
+        )
+        write_new_config_template(
+            name=name,
+            config=resolved_config,
+            source_config=source_config,
+            output_path=output_path,
+            force=bool(args.force),
+        )
+        print(f"Wrote: {project_relative_or_absolute(output_path)}")
+        print(f"Extends: {project_relative_or_absolute(source_config)}")
+        return 0
+    raise ConfigError("No discovery action was requested")
+
+
+def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", help="Path to scene annotation render JSON config.")
     parser.add_argument("--gallery-config", help="Path to contact-sheet settings JSON used with --gallery.")
@@ -389,6 +808,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--validate-only", action="store_true", help="Validate and resolve the config without rendering.")
     parser.add_argument("--gallery", action="store_true", help="Render every configured variant and build a contact sheet.")
     parser.add_argument("--variant", help="Render only one named variant from the config.")
+    discovery = parser.add_mutually_exclusive_group()
+    discovery.add_argument("--list-models", action="store_true", help="List renderable models or variants in a config.")
+    discovery.add_argument("--describe", metavar="MODEL", help="Describe one model or variant without rendering.")
+    discovery.add_argument("--list-annotations", metavar="MODEL", help="List annotation groups and offsets for one model or variant.")
+    discovery.add_argument("--new-config", metavar="MODEL", help="Write an editable config template for one model or variant.")
+    parser.add_argument("--out", help="Output path used with --new-config.")
+    parser.add_argument("--force", action="store_true", help="Allow --new-config to overwrite an existing output file.")
     parser.add_argument(
         "--set",
         action="append",
@@ -396,6 +822,11 @@ def parse_args() -> argparse.Namespace:
         dest="overrides",
         help="Override a config value with dotted path syntax, for example model.defines.hook_length=50.",
     )
+    return parser
+
+
+def parse_args() -> argparse.Namespace:
+    parser = build_arg_parser()
     return parser.parse_args()
 
 
@@ -408,18 +839,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def parse_args_from(argv: Sequence[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config")
-    parser.add_argument("--gallery-config")
-    parser.add_argument("--output-dir")
-    parser.add_argument("--openscad", default="openscad")
-    parser.add_argument("--blender", default="blender")
-    parser.add_argument("--print-schema", action="store_true")
-    parser.add_argument("--print-resolved-config", action="store_true")
-    parser.add_argument("--validate-only", action="store_true")
-    parser.add_argument("--gallery", action="store_true")
-    parser.add_argument("--variant")
-    parser.add_argument("--set", action="append", default=[], dest="overrides")
+    parser = build_arg_parser()
     return parser.parse_args(list(argv))
 
 
@@ -846,6 +1266,15 @@ def render_config(
         "quality": str(render_config.get("quality", "standard")),
         "fit_camera": bool(render_config.get("fit_camera", False)),
         "fit_margin": float(render_config.get("fit_margin", 0.08)),
+        "camera_location_offset": [
+            value / 1000.0
+            for value in vector3(
+                render_config.get("camera_location_offset_mm"),
+                default=(0.0, 0.0, 0.0),
+                name="render.camera_location_offset_mm",
+                context=expression_context,
+            )
+        ],
         "mesh_shading": str(render_config.get("mesh_shading", "flat")),
     }
     if animation_config:
@@ -1284,13 +1713,13 @@ def run(args: argparse.Namespace) -> int:
     if args.print_schema:
         print(CONFIG_SCHEMA_PATH.read_text(encoding="utf-8"), end="")
         return 0
-    if not args.config:
-        raise ConfigError("--config is required unless --print-schema is used")
-    config_path = Path(args.config).expanduser()
-    if not config_path.is_absolute():
-        config_path = (PROJECT_ROOT / config_path).resolve()
+    config_path = config_path_from_args(args, allow_default=discovery_requested(args))
     config = load_config(config_path, args.overrides)
     config_dir = config_path.parent
+
+    if discovery_requested(args):
+        return run_discovery(config=config, config_path=config_path, args=args)
+
     gallery_config, gallery_config_path = load_gallery_config(args.gallery_config, config_dir=config_dir)
 
     if args.gallery:

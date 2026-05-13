@@ -21,9 +21,16 @@ annotation_renderer/
       opengrid_wall_scene.blend
   configs/
     animation_examples.json
+    base_scene.json
+    drawer_base.json
+    drawer_shell_container_default.json
+    drawer_shell_default.json
     gallery_defaults.json
+    general_holder_default.json
     model_defaults.json
     parameter_details.json
+    sturdy_hook_default.json
+    sturdy_shelf_default.json
   schemas/
     annotation-render-config.schema.json
     annotation-render-gallery.schema.json
@@ -35,7 +42,7 @@ Create the shared tooling environment from the repository root:
 
 ```powershell
 py -3 -m venv build\.venv-tools
-build\.venv-tools\Scripts\python -m pip install --upgrade pip
+.\build\.venv-tools\Scripts\python.exe -m pip install --upgrade pip
 ```
 
 The renderer also needs OpenSCAD Nightly and Blender. You can pass explicit executable paths with `--openscad` and `--blender`.
@@ -43,14 +50,14 @@ The renderer also needs OpenSCAD Nightly and Blender. You can pass explicit exec
 For a local editable install with the console entry point:
 
 ```powershell
-build\.venv-tools\Scripts\python -m pip install -e .
-opengrid-annotate --config annotation_renderer\configs\model_defaults.json --validate-only
+.\build\.venv-tools\Scripts\python.exe -m pip install -e .
+.\build\.venv-tools\Scripts\opengrid-annotate.exe --config annotation_renderer\configs\model_defaults.json --validate-only
 ```
 
-Install the optional mesh tooling dependencies when running the full test suite or mesh comparison/review scripts:
+Install the optional mesh tooling dependencies and test runner when running the full test suite or mesh comparison/review scripts:
 
 ```powershell
-build\.venv-tools\Scripts\python -m pip install -e ".[mesh]"
+.\build\.venv-tools\Scripts\python.exe -m pip install -e ".[mesh,test]"
 ```
 
 ## Render Examples
@@ -58,7 +65,7 @@ build\.venv-tools\Scripts\python -m pip install -e ".[mesh]"
 Validate a config without rendering:
 
 ```powershell
-build\.venv-tools\Scripts\python -m annotation_renderer `
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
   --config annotation_renderer\configs\model_defaults.json `
   --validate-only
 ```
@@ -66,22 +73,29 @@ build\.venv-tools\Scripts\python -m annotation_renderer `
 Render the first configured variant. In the tracked defaults this is `sturdy_hook_default` with `hook_length=45`:
 
 ```powershell
-build\.venv-tools\Scripts\python -m annotation_renderer `
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
   --config annotation_renderer\configs\model_defaults.json
 ```
 
 Render the hook example explicitly:
 
 ```powershell
-build\.venv-tools\Scripts\python -m annotation_renderer `
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
   --config annotation_renderer\configs\model_defaults.json `
   --variant sturdy_hook_default
+```
+
+Render a per-model default config directly:
+
+```powershell
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
+  --config annotation_renderer\configs\general_holder_default.json
 ```
 
 Render the shelf example:
 
 ```powershell
-build\.venv-tools\Scripts\python -m annotation_renderer `
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
   --config annotation_renderer\configs\model_defaults.json `
   --variant sturdy_shelf_default
 ```
@@ -89,7 +103,7 @@ build\.venv-tools\Scripts\python -m annotation_renderer `
 Render the drawer shell example:
 
 ```powershell
-build\.venv-tools\Scripts\python -m annotation_renderer `
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
   --config annotation_renderer\configs\model_defaults.json `
   --variant drawer_shell_default
 ```
@@ -97,7 +111,7 @@ build\.venv-tools\Scripts\python -m annotation_renderer `
 Render the drawer shell and drawer container as separate OpenSCAD exports imported into one Blender scene:
 
 ```powershell
-build\.venv-tools\Scripts\python -m annotation_renderer `
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
   --config annotation_renderer\configs\model_defaults.json `
   --variant drawer_shell_container_default
 ```
@@ -105,7 +119,7 @@ build\.venv-tools\Scripts\python -m annotation_renderer `
 Override config values from the command line without editing JSON:
 
 ```powershell
-build\.venv-tools\Scripts\python -m annotation_renderer `
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
   --config annotation_renderer\configs\model_defaults.json `
   --set model.defines.hook_length=50
 ```
@@ -113,7 +127,7 @@ build\.venv-tools\Scripts\python -m annotation_renderer `
 Render every named variant in a config and build a contact sheet:
 
 ```powershell
-build\.venv-tools\Scripts\python -m annotation_renderer `
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
   --config annotation_renderer\configs\model_defaults.json `
   --gallery `
   --gallery-config annotation_renderer\configs\gallery_defaults.json
@@ -122,7 +136,7 @@ build\.venv-tools\Scripts\python -m annotation_renderer `
 Render only one named variant:
 
 ```powershell
-build\.venv-tools\Scripts\python -m annotation_renderer `
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
   --config annotation_renderer\configs\model_defaults.json `
   --variant sturdy_shelf_default
 ```
@@ -130,13 +144,13 @@ build\.venv-tools\Scripts\python -m annotation_renderer `
 Print the JSON Schema for editor integration:
 
 ```powershell
-build\.venv-tools\Scripts\python -m annotation_renderer --print-schema
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer --print-schema
 ```
 
 Print the fully resolved config without invoking OpenSCAD or Blender:
 
 ```powershell
-build\.venv-tools\Scripts\python -m annotation_renderer `
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
   --config annotation_renderer\configs\model_defaults.json `
   --variant drawer_shell_container_default `
   --print-resolved-config
@@ -146,11 +160,43 @@ build\.venv-tools\Scripts\python -m annotation_renderer `
 
 Single outputs are written under `build/scene_annotations/<job-name>__<timestamp>/`. Gallery outputs are written under `build/scene_annotations/<job-name>__gallery__<timestamp>/`, with each variant in its own subfolder plus `gallery.png`. Generated artifacts stay under `build/` and are ignored by git.
 
+## Discovery And Templates
+
+Discovery commands default to `configs/model_defaults.json`, so they can be used without passing `--config`.
+
+List the renderable default models:
+
+```powershell
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer --list-models
+```
+
+Describe one model preset:
+
+```powershell
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer --describe general_holder_default
+```
+
+List annotation groups and their current offsets:
+
+```powershell
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer --list-annotations general_holder_default
+```
+
+Generate a compact editable config that extends a default model:
+
+```powershell
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
+  --new-config general_holder_default `
+  --out build\scene_annotations\my_holder.json
+```
+
+The generated config includes editable model defines and annotation offset groups, plus a `scene.blend_file` path rewritten relative to the output file so it validates from any folder.
+
 ## Animation Workflow
 
 Animations are defined in the selected variant under `render.animation`. The renderer still exports the configured OpenSCAD objects and replaces them in the Blender scene, then applies object keyframes before rendering a PNG frame sequence and encoding `animation.gif`. Animation output is unannotated; the same run can still write `render.png` and `annotated.png` for the final still.
 
-The tracked animation examples live in `configs/animation_examples.json`, which extends `model_defaults.json`. Keep stable still-image defaults in `model_defaults.json`; put demo animations and animation-only presets in the extending config.
+The tracked animation examples live in `configs/animation_examples.json`, which extends `model_defaults.json`. Stable still-image defaults live in per-model files such as `sturdy_hook_default.json` and `general_holder_default.json`; `model_defaults.json` imports those files for gallery and backward-compatible variant commands. Put demo animations and animation-only presets in the extending config.
 
 Use this loop when adding an animation:
 
@@ -163,7 +209,7 @@ Use this loop when adding an animation:
 Example render command:
 
 ```powershell
-build\.venv-tools\Scripts\python -m annotation_renderer `
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
   --config annotation_renderer\configs\animation_examples.json `
   --variant drawer_install_then_container_slide_animation
 ```
@@ -231,7 +277,7 @@ Pass it with `--gallery-config`. A model config can still include top-level `gal
 
 Configs contain the model parameters, Blender scene binding, render settings, and annotation layout in one file.
 
-The tracked default config is variant-first: hook, shelf, and drawer jobs are all peers under `variants`, while the top level only holds shared scene, render, and constants. Running without `--variant` renders the first variant; `--gallery` renders all variants.
+The tracked defaults are split by model. `base_scene.json` holds shared scene, render, and annotation constants. Each model default extends it and is directly renderable. `model_defaults.json` imports the per-model files with `variant_configs`, so running it without `--variant` renders the first imported variant and `--gallery` renders all imported variants.
 
 The tracked default config keeps the Blender scene binding explicit:
 
@@ -519,7 +565,7 @@ Annotation groups can override label and line sizing when a parameter span is ph
 
 ## Variants
 
-Use top-level `variants` when several images share most of the same scene and render settings. The tracked defaults use variants for every model-specific job so hook, shelf, and drawer configs stay structurally equal. Each variant has a `name` and can either set complete sections or use a `set` object whose keys are dotted config paths:
+Use top-level `variants` when several images share most of the same scene and render settings. Each variant has a `name` and can either set complete sections or use a `set` object whose keys are dotted config paths:
 
 ```json
 "variants": [
@@ -534,10 +580,24 @@ Use top-level `variants` when several images share most of the same scene and re
 
 Variant objects can also override full config sections when a dotted path is not enough. `model` and `annotations` are replaced as complete sections so model-specific labels do not leak between variants. `constants`, `scene`, and `render` are merged with the base config so shared Blender scene settings can stay in one place.
 
-`model_defaults.json` keeps the default variants intentionally sparse. Extra parameter groups live in `configs/parameter_details.json`, which extends the defaults and replaces the variant list with secondary detail renders:
+Use `variant_configs` when a gallery config should import complete per-model config files as variants:
+
+```json
+{
+  "extends": "base_scene.json",
+  "job_name": "opengrid_annotation_models",
+  "variant_configs": [
+    "sturdy_hook_default.json",
+    "sturdy_shelf_default.json",
+    "general_holder_default.json"
+  ]
+}
+```
+
+Imported config paths are resolved relative to the importing config. The imported variant name comes from top-level `variant_name`, or from the filename stem when `variant_name` is omitted. Extra parameter groups live in `configs/parameter_details.json`, which extends the defaults and replaces the variant list with secondary detail renders:
 
 ```powershell
-build\.venv-tools\Scripts\python -m annotation_renderer `
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
   --config annotation_renderer\configs\parameter_details.json `
   --variant sturdy_hook_circular_details
 ```
