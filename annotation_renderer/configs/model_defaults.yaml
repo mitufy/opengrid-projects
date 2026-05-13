@@ -1,0 +1,9 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: base_scene.yaml
+job_name: opengrid_annotation_models
+variant_configs:
+- sturdy_hook_default.yaml
+- sturdy_shelf_default.yaml
+- general_holder_default.yaml
+- drawer_shell_default.yaml
+- drawer_shell_container_default.yaml

@@ -70,7 +70,7 @@ from annotation_renderer.scad_annotations import (
 UTILITY_ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = UTILITY_ROOT.parent
 CONFIG_SCHEMA_PATH = UTILITY_ROOT / "schemas" / "annotation-render-config.schema.json"
-DEFAULT_MODEL_CONFIG_PATH = UTILITY_ROOT / "configs" / "model_defaults.json"
+DEFAULT_MODEL_CONFIG_PATH = UTILITY_ROOT / "configs" / "model_defaults.yaml"
 DISCOVERY_ACTIONS = ("list_models", "describe", "list_annotations", "new_config")
 JSON_CONFIG_SUFFIXES = {"", ".json"}
 YAML_CONFIG_SUFFIXES = {".yaml", ".yml"}

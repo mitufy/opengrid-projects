@@ -33,7 +33,6 @@ packages = ["annotation_renderer"]
 [tool.setuptools.package-data]
 annotation_renderer = [
   "assets/scenes/*.blend",
-  "configs/*.json",
   "configs/*.yaml",
   "configs/*.yml",
   "schemas/*.json"
