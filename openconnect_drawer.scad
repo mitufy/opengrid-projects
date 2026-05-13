@@ -9,7 +9,6 @@ openGrid is created by David D: https://www.printables.com/model/1214361-opengri
 
 generate_drawer_shell = true;
 generate_drawer_container = true;
-generate_drawer_stopper_clips = false;
 
 /*[Drawer Size]*/
 vertical_grids = 2;
@@ -23,19 +22,19 @@ shell_top_wall_type = "Solid"; //["Solid","Honeycomb"]
 shell_bottom_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
 shell_side_wall_type = "Solid"; //["Solid","Honeycomb"]
 //Note that changing shell dimensions would also change container size.
-shell_thickness = 2.4;
-shell_outer_chamfer = 2; //0.2
+shell_thickness = 2.4; //0.1
+shell_outer_chamfer = 2; //0.1
 
 /*[Container Main Settings]*/
 container_front_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
 container_back_wall_type = "Solid"; //["Solid","Honeycomb"]
-//Honeycomb patterns on the side of shell and container do not align. To avoid the inconsistent see-through look, use honeycomb on only one of the two parts.
+//Honeycomb patterns on the side of shell and container do not align. To avoid an inconsistent see-through look, use honeycomb on only one of the two parts.
 container_side_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
 container_solidwall_thickness = 1.6;
-container_honeycombwall_thickness = 2;
+container_honeycombwall_thickness = 2; //0.1
 //How much lower the back and side walls are compared to the front. "stopper_clips_length" needs to be larger than this value to work.
-container_front_back_height_offset = 3;
-container_inner_fillet = 2;
+container_front_back_height_offset = 3; //0.1
+container_inner_fillet = 2; //0.1
 
 /*[Shell Divider]*/
 //Divide the drawer shell into several compartments. "Height" stacks drawers vertically. "Width" places them side-by-side.
@@ -66,36 +65,54 @@ add_label_holder = true;
 //Default label size is recommended for honeycomb front wall. Solid front wall can have larger labels.
 label_width = 48;
 label_height = 10;
-label_depth = 1;
-handle_thickness = 2.4;
+label_depth = 1; //0.1
+handle_thickness = 2.4; //0.1
 //How much the handle protrudes from the front of the drawer container.
 handle_depth = 10;
 
-/*[Stopper and Magnet Settings]*/
+/*[Stopper Settings]*/
 //Simple drawer stoppers, preventing the container from sliding all the way out.
+generate_drawer_stopper_clips = false;
 add_stopper_holes = true;
 stopper_clips_length = 6;
+//Distance the container pulls out before the stoppers engage.
+stopper_to_front_offset = 3; //0.1
 
+/*[Magnet Settings]*/
 //Back magnets hold the container securely when it's pushed in.
 add_back_magnet_holes = true;
-shell_back_magnet_thickness = 2;
-container_back_magnet_thickness = 1;
-back_magnet_diameter = 6;
-
+shell_back_magnet_thickness = 2; //0.1
+container_back_magnet_thickness = 1; //0.1
+back_magnet_diameter = 6; //0.1
 //Side magnets act as stoppers by holding the container when it's pulled out.
 add_side_magnet_holes = true;
 //If wall thickness is not enough for magnets, small "bulges" will be added. 
-shell_side_magnet_thickness = 1;
-container_side_magnet_thickness = 1;
-side_magnet_diameter = 6;
+shell_side_magnet_thickness = 1; //0.1
+container_side_magnet_thickness = 1; //0.1
+side_magnet_diameter = 6; //0.1
+//Below value determine how much the container pulls out before the side magnets engage.
+side_magnet_shell_edge_distance = 6; //0.1
 
-/* [Slot Settings] */
-//A slot is generated for every tile by default. Fewer slots mean more surface area, which improves bed adhesion.
-slot_position = "All"; //["All", "Staggered", "Edge Rows", "Edge Columns", "Corners"]
+/* [openConnect Settings] */
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
 slot_lock_distribution = "Top Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
 //Entry ramp direction can matter in tight spaces.
 slot_entryramp_flip = false;
+//A slot is generated for every tile by default. Fewer slots mean more surface area, which improves bed adhesion.
+slot_position = "All"; //["All", "Staggered", "Edge Rows", "Edge Columns", "Corners"]
+
+/*[Advanced Drawer Settings]*/
+container_height_clearance = 0.4; //0.05
+container_width_clearance = 0.3; //0.05
+container_depth_clearance = 0.4; //0.05
+stopper_width_clearance = 0.2; //0.1
+stopper_height_clearance = 0.2; //0.1
+side_magnet_container_edge_distance = 4; //0.1
+shell_to_slot_wall_thickness = 0.9; //0.1
+//The thickness of the strut of honeycomb pattern.
+honeycomb_strut_hyp = 5; //0.1
+
+/*[Advanced openConnect Settings]*/
 //Increase clearances if the slots feel too tight. Reduce it if they are too loose.
 slot_side_clearance = 0.1; //0.01
 slot_depth_clearance = 0.1; //0.01
@@ -104,20 +121,6 @@ slot_edge_bridge_min_width = 0.8; //0.01
 //Minimum width for walls. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
 slot_edge_wall_min_width = 0.6; //0.01
 
-/*[Misc. Settings]*/
-container_height_clearance = 0.4; //0.05
-container_width_clearance = 0.3; //0.05
-container_depth_clearance = 0.4; //0.05
-//Distance the container pulls out before the stoppers engage.
-stopper_to_front_offset = 3;
-stopper_width_clearance = 0.2;
-stopper_height_clearance = 0.2;
-//Distance the container pulls out before the side magnets engage.
-side_magnet_container_edge_distance = 2.6;
-shell_to_slot_wall_thickness = 0.9;
-//The thickness of the strut of honeycomb pattern.
-honeycomb_strut_hyp = 5;
-
 /*[Hidden]*/
 include <BOSL2/walls.scad>
 include <lib/opengrid_base.scad>
@@ -125,7 +128,7 @@ use <lib/openconnect_lib.scad>
 $fa = 1;
 $fs = 0.4;
 function calc_inner_chamfer(outer_chamfer, wall_thickness) = (outer_chamfer / sqrt(2) + wall_thickness - wall_thickness * sqrt(2)) * sqrt(2);
-side_magnet_shell_edge_distance = 2.6;
+
 shell_inner_chamfer = max(0, calc_inner_chamfer(shell_outer_chamfer, shell_thickness));
 container_outer_chamfer = shell_inner_chamfer;
 container_divider_wall_fillet = container_inner_fillet;
@@ -136,8 +139,6 @@ container_back_magnet_hole_position = "Bottom Corners"; //["All","Corners","Bott
 
 view_cross_section = "None"; //["None","Right","Back","Diagonal"]
 view_drawer_overlapped = false;
-//Slot bottom acts as a wall when printed on its side. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
-slot_bottom_min_thickness = 0.8; //0.01
 //Ensures minimum feature width for printing. "Both" is default for compatibility, though only one (or none) may be needed depending on orientation.
 slot_edge_feature_widen = shell_slot_position == "Back" ? "None" : "Side";
 
@@ -210,7 +211,6 @@ hex_ir = (honeycomb_unit_space_hyp - honeycomb_strut_adj) / 2;
 hex_or = hex_ir * 2 / sqrt(3);
 fronthex_width_struts = floor(container_width / honeycomb_unit_space_adj);
 fronthex_width = fronthex_width_struts * honeycomb_unit_space_adj;
-fronthex_width_offset = (container_width - fronthex_width) / 2;
 //height struts is round to nearest 0.5
 fronthex_height_struts = floor(container_height / honeycomb_unit_space_hyp * 2) / 2;
 fronthex_height = fronthex_height_struts * honeycomb_unit_space_hyp;
@@ -218,7 +218,7 @@ fronthex_height_offset = (container_height - fronthex_height) / 2;
 fronthex_bottom_strut_height = honeycomb_unit_space_hyp / 2 + honeycomb_strut_adj / 2 + fronthex_height_offset - honeycomb_strut_adj;
 height_adj_to_width_opp = ang_adj_to_opp(30, abs(fronthex_height_offset));
 //this is a magic number because I don't want to calculate hexagon anymore
-shell_front_hex_offset = 4.4;
+hex_hole_fill_edge = 3;
 shell_hex_frame_thickness = honeycomb_strut_adj;
 container_top_frame_thickness = honeycomb_strut_adj;
 
@@ -246,11 +246,9 @@ back_magnet_grid_count =
   : container_back_magnet_hole_position == "Bottom Corners" ? [min(horizontal_grids - 1, 2), 1]
   : [horizontal_grids - 1, vertical_grids];
 
-side_magnet_fill_width = 10.8;
 shell_side_magnet_hole_thickness = shell_side_magnet_thickness + magnet_hole_depth_clearance;
 container_side_magnet_hole_thickness = container_side_magnet_thickness + magnet_hole_depth_clearance;
 side_magnet_hole_diameter = side_magnet_diameter + magnet_hole_side_clearance * 2;
-
 
 //BEGIN generation
 half_of_anchor =
@@ -313,8 +311,8 @@ module drawer_shell() {
               attach(TOP, RIGHT, align=BACK, inside=true)
                 tag("keep") hex_panel([shell_hexwall_depth, shell_hexwall_width, shell_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=shell_hex_frame_thickness);
             if (add_stopper_holes)
-              attach(BACK, BACK, align=TOP, inset=shell_thickness, inside=true)
-                tag("keep") cuboid([shell_inner_width, shell_thickness, shell_front_hex_offset]);
+             attach(BACK, BACK, align=TOP, inside=true)
+                tag("keep") cuboid([shell_inner_width, shell_thickness, stopper_to_front_offset + stopper_height + hex_hole_fill_edge]);
             attach(TOP, TOP, align=BACK, inside=true)
               tag(top_hc ? "remove" : "keep") cuboid([shell_inner_width - shell_inner_chamfer * 2, shell_thickness + (top_hc ? EPS : 0), shell_inner_depth]);
             //bottom wall
@@ -341,13 +339,13 @@ module drawer_shell() {
             if (add_side_magnet_holes) {
               if (left_hc)
                 attach(LEFT + FRONT, LEFT + FRONT, align=TOP, inside=true)
-                  tag("keep") cuboid([shell_thickness, shell_height, side_magnet_fill_width]);
+                  tag("keep") cuboid([shell_thickness, shell_height, side_magnet_shell_edge_distance + side_magnet_hole_diameter + hex_hole_fill_edge]);
               ycopies(OG_TILE_SIZE, vertical_grids)
                 right(shell_slot_position == "Left" ? shell_ocslot_part_thickness : shell_thickness) left(shell_side_magnet_hole_thickness - EPS * 2) attach(LEFT, FRONT, align=TOP, inset=side_magnet_shell_edge_distance, inside=true)
                       tag("rm_outer") teardrop(h=shell_side_magnet_hole_thickness, d=side_magnet_hole_diameter, cap_h=side_magnet_hole_diameter / 2 + 0.2);
               if (right_hc)
                 attach(RIGHT + FRONT, RIGHT + FRONT, align=TOP, inside=true)
-                  tag("keep") cuboid([shell_thickness, shell_height, side_magnet_fill_width]);
+                  tag("keep") cuboid([shell_thickness, shell_height, side_magnet_shell_edge_distance + side_magnet_hole_diameter + hex_hole_fill_edge]);
               ycopies(OG_TILE_SIZE, vertical_grids)
                 left(shell_slot_position == "Right" ? shell_ocslot_part_thickness : shell_thickness) right(shell_side_magnet_hole_thickness - EPS * 2) attach(RIGHT, FRONT, align=TOP, inset=side_magnet_shell_edge_distance, inside=true)
                       tag("rm_outer") teardrop(h=shell_side_magnet_hole_thickness, d=side_magnet_hole_diameter, cap_h=side_magnet_hole_diameter / 2 + 0.2);
@@ -455,7 +453,7 @@ module drawer_container() {
               hole_extrude_thickness = container_side_magnet_hole_thickness - container_side_wall_thickness + 0.45 + EPS;
               if (container_side_wall_type == "Honeycomb")
                 attach(LEFT + FRONT, LEFT + FRONT, align=BOTTOM, inside=true)
-                  tag("keep") cuboid([container_side_wall_thickness, container_height - container_front_back_height_offset - container_outer_chamfer, shell_front_hex_offset + honeycomb_unit_space_hyp / 2]);
+                  tag("keep") cuboid([container_side_wall_thickness, container_height - container_front_back_height_offset - container_outer_chamfer, side_magnet_container_edge_distance + side_magnet_hole_diameter + hex_hole_fill_edge]);
               ycopies(OG_TILE_SIZE, vertical_grids) {
                 attach(LEFT, FRONT, align=BOTTOM, inset=side_magnet_container_edge_distance, inside=true, spin=90)
                   tag("rm_outer") teardrop(h=container_side_magnet_hole_thickness, d=side_magnet_hole_diameter, cap_h=side_magnet_hole_diameter / 2 + 0.2);
@@ -522,7 +520,6 @@ module drawer_divider(is_shell, by_width) {
     : !by_width && !is_shell ? divider_wall_thickness
     : shell_depth;
 
-  hexwall_anchor = TOP;
   hexwall_spin = by_width ? 90 : 0;
   hexwall_length = !by_width ? shell_width : shell_height;
   hexwall_depth = shell_hexwall_depth;
@@ -573,10 +570,10 @@ module drawer_divider(is_shell, by_width) {
                 if (is_shell) {
                   if (!by_width && add_stopper_holes)
                     attach(RIGHT, TOP, inside=true)
-                      tag("") cuboid([shell_width, divider_wall_thickness, side_magnet_fill_width]);
+                      tag("") cuboid([shell_width, divider_wall_thickness, side_magnet_hole_diameter + hex_hole_fill_edge]);
                   if (by_width && add_side_magnet_holes)
                     attach(RIGHT, TOP, inside=true)
-                      tag("") cuboid([shell_height, divider_wall_thickness, side_magnet_fill_width]);
+                      tag("") cuboid([shell_height, divider_wall_thickness, side_magnet_hole_diameter + hex_hole_fill_edge]);
                 }
               }
       }
@@ -592,10 +589,6 @@ module container_handle() {
   leftcol2_rightcol1 = honeycomb_unit_space_adj * ( -handle_strut_number + fronthex_width_struts - 2) + hexwall_edge_to_strut_offset;
   left_strut_offset = handle_strut_number % 2 == 0 ? leftcol1_rightcol2 : leftcol2_rightcol1;
   right_strut_offset = handle_strut_number % 2 == 0 ? leftcol2_rightcol1 : leftcol1_rightcol2;
-
-  handle_strut_slant_width = ang_adj_to_opp(30, fronthex_bottom_strut_height - handle_chamfer);
-
-  fill_handle_width_inset = handle_strut_number * honeycomb_unit_space_adj;
   turtle_start_offset = 0.2;
   pull_handle_transition_depth = handle_depth - handle_thickness - handle_thickness / 2 - turtle_start_offset;
 

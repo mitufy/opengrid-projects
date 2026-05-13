@@ -45,20 +45,13 @@ shelf_side_edge_depth = 2;
 add_front_edge = true;
 shelf_front_edge_depth = 2;
 
-/* [Slot Settings] */
+/* [openConnect Settings] */
 //A slot is generated for every tile by default.
 slot_position = "All"; //["All", "Staggered", "Edge Rows", "Edge Columns", "Corners"]
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
 slot_lock_distribution = "Top Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
 //Entry ramp direction can matter in tight spaces. When printing on the side, place the locking mechanism side closer to the print bed.
 slot_entryramp_flip = false;
-//Increase clearances if the slots feel too tight. Reduce it if they are too loose.
-slot_side_clearance = 0.1; //0.01
-slot_depth_clearance = 0.1; //0.01
-//Minimum width for bridges. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
-slot_edge_bridge_min_width = 0.8; //0.01
-//Minimum width for walls. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
-slot_edge_wall_min_width = 0.6; //0.01
 
 /* [Advanced Settings] */
 use_custom_depth = false;
@@ -66,6 +59,13 @@ custom_depth = 80;
 truss_rounding = 3; //0.2
 shelf_side_edge_thickness = 1;
 shelf_front_edge_thickness = 1;
+//Increase clearances if the slots feel too tight. Reduce it if they are too loose.
+slot_side_clearance = 0.1; //0.01
+slot_depth_clearance = 0.1; //0.01
+//Minimum width for bridges. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
+slot_edge_bridge_min_width = 0.8; //0.01
+//Minimum width for walls. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
+slot_edge_wall_min_width = 0.6; //0.01
 
 /* [Hidden] */
 $fa = 1;

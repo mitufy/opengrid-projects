@@ -113,12 +113,12 @@ function ocslot_cfg(
       large_rect_width / 2 + head_back_pos_offset,
       rect([large_rect_width, large_rect_height], chamfer=[large_rect_chamfer, large_rect_chamfer, 0, 0], anchor=BACK)
     ),
-    footprint = fwd(
-      middle_to_bottom,
+    footprint = back(
+      large_rect_width / 2 + head_back_pos_offset + footprint_wall,
       rect(
         [
           large_rect_width + footprint_wall * 2,
-          large_rect_width / 2 + middle_to_bottom + footprint_wall,
+          large_rect_height + footprint_wall * 2,
         ],
         chamfer=[
           large_rect_chamfer + footprint_wall - ang_adj_to_opp(45 / 2, footprint_wall),
@@ -418,22 +418,62 @@ module openconnect_slot(slot_type = "slot", slot_cfg = [], add_nubs = "Left", sl
   }
 }
 
+function _openconnect_slot_footprint_rotate(slot_slide_direction) =
+  slot_slide_direction == "Left" ? 90
+  : slot_slide_direction == "Right" ? -90
+  : slot_slide_direction == "Down" ? 180
+  : 0;
+
+module openconnect_slot_grid_limit_debug(slot_cfg = [], horizontal_grids = 1, vertical_grids = 1, slot_slide_direction = "Up", excess_thickness = EPS, limit_region = [], anchor = BOTTOM, spin = 0, orient = UP) {
+  cfg = struct_merge(ocslot_cfg(), slot_cfg);
+  ocslot_total_height = struct_val(cfg, "total_height");
+  ocslot_footprint = struct_val(cfg, "footprint");
+  has_limit_region = is_region(limit_region);
+  footprint_rotate = _openconnect_slot_footprint_rotate(slot_slide_direction);
+  debug_z = ocslot_total_height / 2 + excess_thickness + EPS;
+  debug_h = 0.04;
+  attachable(anchor, spin, orient, size=[horizontal_grids * OG_TILE_SIZE, vertical_grids * OG_TILE_SIZE, ocslot_total_height]) {
+    tag_scope() {
+      if (has_limit_region)
+        %color("blue", 0.18)
+          up(debug_z)
+            linear_extrude(height=debug_h)
+              region(limit_region);
+      for (i = [0:horizontal_grids - 1])
+        for (j = [0:vertical_grids - 1]) {
+          x_offset = -(horizontal_grids - i * 2 - 1) * OG_TILE_SIZE / 2;
+          y_offset = (vertical_grids - j * 2 - 1) * OG_TILE_SIZE / 2;
+          checked_footprint = zrot(footprint_rotate, ocslot_footprint);
+          footprint_in_region = !has_limit_region || is_pos_shape_in_region(cp=[x_offset, y_offset], footprint=checked_footprint, limit_region=limit_region);
+          footprint_path = [for (pt = checked_footprint) [x_offset, y_offset] + pt];
+          %color(has_limit_region ? (footprint_in_region ? "green" : "red") : "orange", 0.28)
+            up(debug_z + debug_h)
+              linear_extrude(height=debug_h)
+                polygon(footprint_path);
+        }
+    }
+    children();
+  }
+}
+
 module openconnect_slot_grid(slot_cfg = [], slot_type = "slot", horizontal_grids = 1, vertical_grids = 1, slot_slide_direction = "Up", slot_position = "All", slot_lock_distribution = "None", slot_lock_side = "Left", slot_entryramp_flip = false, excess_thickness = EPS, vase_overhang_angle = 45, except_slot_pos = [], chamfer = 0, rounding = 0, limit_region = [], anchor = BOTTOM, spin = 0, orient = UP) {
   cfg = struct_merge(ocslot_cfg(), slot_cfg);
   // Slot dimensions needed for grid sizing/placement
   ocslot_total_height = struct_val(cfg, "total_height");
   ocslot_footprint = struct_val(cfg, "footprint");
+  has_limit_region = is_region(limit_region);
   attachable(anchor, spin, orient, size=[horizontal_grids * OG_TILE_SIZE, vertical_grids * OG_TILE_SIZE, ocslot_total_height]) {
     grid_slot_spin = slot_slide_direction == "Left" ? -90 : slot_slide_direction == "Right" ? 90 : slot_slide_direction == "Down" ? 180 : 0;
     grid_slot_flip = slot_slide_direction == "Right" || slot_slide_direction == "Down" ? !slot_entryramp_flip : slot_entryramp_flip;
+    footprint_rotate = _openconnect_slot_footprint_rotate(slot_slide_direction);
     tag_scope() down(ocslot_total_height / 2) intersect() {
           cuboid([horizontal_grids * OG_TILE_SIZE, vertical_grids * OG_TILE_SIZE, ocslot_total_height + excess_thickness], edges="Z", chamfer=chamfer, rounding=rounding, anchor=BOTTOM) {
             for (i = [0:horizontal_grids - 1])
               for (j = [0:vertical_grids - 1]) {
                 x_offset = -(horizontal_grids - i * 2 - 1) * OG_TILE_SIZE / 2;
                 y_offset = (vertical_grids - j * 2 - 1) * OG_TILE_SIZE / 2;
-                footprint_rotate = slot_slide_direction == "Left" ? 90 : slot_slide_direction == "Right" ? -90 : slot_slide_direction == "Down" ? 180 : 0;
-                if (!is_region(limit_region) || is_pos_shape_in_region(cp=[x_offset, y_offset], footprint=zrot(footprint_rotate, ocslot_footprint), limit_region=limit_region))
+                checked_footprint = zrot(footprint_rotate, ocslot_footprint);
+                if (!has_limit_region || is_pos_shape_in_region(cp=[x_offset, y_offset], footprint=checked_footprint, limit_region=limit_region))
                   if (is_grid_pos_described(i, j, horizontal_grids, vertical_grids, slot_position, except_slot_pos))
                     right(x_offset) back(y_offset)
                         attach(BOTTOM, BOTTOM, inside=true, spin=grid_slot_spin)

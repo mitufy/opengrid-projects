@@ -8,7 +8,6 @@ openConnect is a connector system designed for openGrid. https://www.printables.
 openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 */
 
-
 /* [Item Settings] */
 //Dimensions of the item to be held. You can set values slightly higher for more wriggle room.
 item_width = 190;
@@ -20,7 +19,7 @@ item_corner_rounding = 5;
 /* [Holder Settings] */
 //Generate one part at a time makes it possible to customize each side differently. "Both" requires splitting and orientation adjustment in the slicer.
 generate_holder_part = "Both"; //[Both, Left, Right]
-//Maximum number of slot columns on each holder half.
+//Maximum number of slot columns on each holder half. Set to 1 for a minimal length holder.
 holder_slot_column_limit = 2;
 //"Top" for item facing down, "Front" for item facing its side. When using a large corner_rounding, "Front" may leave too little space for slots.
 holder_slot_position = "Top"; //[Top, Front]
@@ -35,18 +34,22 @@ holder_height_edge = 6;
 holder_side_cutoff = "Right"; //[None, Left, Right, Both]
 //Using the four offset values below, the size and the position of the cutoff can be freely adjusted.
 side_cutoff_front_offset = 15;
+//Offsets are from the cutoff to the edge of the wall. All 0 means the wall would be completely removed.
 side_cutoff_back_offset = 15;
 side_cutoff_top_offset = 0;
 side_cutoff_bottom_offset = 0;
 
-/* [openConnect Slot Settings] */
-//Offsets the slot position. Increasing this helps if a large corner_rounding is cutting into the slot area.
-slot_position_offset = 0;
+/* [openConnect Settings] */
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
 slot_lock_distribution = "Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
-//Slide and entry ramp direction can matter in tight spaces.
-slot_slide_direction = "Left"; //[Left,Right]
+//Entry ramp direction can matter when installing in tight spaces.
 slot_entryramp_flip = false;
+//Offsets the slot position. Adjusting this may help if a large corner_rounding is cutting into the slot area.
+slot_position_offset = 0;
+
+/* [Advanced Settings] */
+//Slide direction can matter when installing in tight spaces.
+slot_slide_direction = "Left"; //[Left,Right]
 //Increase clearances if the slots feel too tight. Reduce it if they are too loose.
 slot_side_clearance = 0.1; //0.01
 slot_depth_clearance = 0.1; //0.01
@@ -102,7 +105,6 @@ middle_cutoff_offset = final_slot_h_grids % 2 != holder_middle_cutoff_tiles % 2 
 //END holder geometry calculations
 
 //BEGIN holder generation
-// recolor("Silver")
 up(generate_holder_part == "Both" ? holder_depth / 2 : holder_width / 2) yrot(generate_holder_part == "Left" ? -90 : generate_holder_part == "Right" ? 90 : 0)
     conditional_half(v=generate_holder_part == "Left" ? LEFT : RIGHT, pos_offset=middle_cutoff_offset + final_slot_position_offset, condition=generate_holder_part != "Both", mask_size=max(holder_width, holder_height) + 10)
       diff() cuboid([holder_width, holder_height, holder_depth], edges=BOTTOM, rounding=0.8) {
@@ -148,10 +150,11 @@ up(generate_holder_part == "Both" ? holder_depth / 2 : holder_width / 2) yrot(ge
           }
           attach_anchor = holder_slot_position == "Top" ? TOP : FRONT;
           flat_region = holder_slot_position == "Top" ? left(final_slot_position_offset, rect([holder_width, holder_height], rounding=final_corner_rounding)) : left(final_slot_position_offset, rect([holder_width - final_corner_rounding * 2, holder_depth]));
-          // recolor("Gainsboro")
           right(final_slot_position_offset)
-            attach(attach_anchor, TOP, inside=true)
+            attach(attach_anchor, TOP, inside=true) {
               openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[flat_region]);
+              // openconnect_slot_grid_limit_debug(slot_cfg=_slot_cfg, horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[flat_region]);
+            }
           if (final_corner_rounding > 0)
             edge_mask([LEFT + FRONT, LEFT + BACK, RIGHT + FRONT, RIGHT + BACK])
               yflip() teardrop_edge_mask(l=$edge_length, r=final_corner_rounding, spin=-90);

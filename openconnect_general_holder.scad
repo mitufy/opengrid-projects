@@ -14,22 +14,23 @@ compartment_shape = "Rectangular"; //[Rectangular,Circular,Elliptic]
 compartment_width = 40;
 //This value is ignored for circular compartments, as their depth would always follow the width.
 compartment_depth = 25;
+//By setting column and row count, you can generate holders that can hold (column x row) objects.
 compartment_column_count = 2;
 compartment_row_count = 1;
-
 
 /* [Holder Body] */
 //"Tile Multiple" occupy more space, but makes the sides of the holder align with openGrid tiles.
 body_width_mode = "Default"; //["Default", "Tile Multiple"]
-//Minimum height is affected by tilt angle. A vertical holder cannot be shorter than 18mm, a 45-degree tilted holder cannot be shorter than 26mm.
+//A vertical holder cannot be shorter than 18mm, a 45-degree tilted holder cannot be shorter than 26mm.
 body_height = 28;
 body_bottom_thickness = 2;
+//Affects the thickness of the divider walls between columns.
 body_vertical_wall_thickness = 2.4;
+//Affects the thickness of the divider walls between rows.
 body_horizontal_wall_thickness = 2.4;
 body_rear_extra_depth = 0;
 //Tilt the container forward for easier access of content. Set to 0 for a standard vertical holder.
 body_tilt_angle = 0; //[0:5:45]
-
 
 /* [Taper Settings] */
 enable_bottom_taper = false;
@@ -44,13 +45,15 @@ front_opening_width = 12;
 front_opening_height = 20;
 front_opening_rounding = 3;
 
-/* [openConnect Slots] */
+/* [openConnect Settings] */
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
 slot_lock_distribution = "Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
 slot_entryramp_flip = false;
 
 /* [Advanced Settings] */
 rect_compartment_corner_rounding = 3;
+//A larger value makes a circular compartment smoother and takes longer to generate. $fn in openscad.
+compartment_max_facets = 128;
 //Increase clearances if the slots feel too tight. Reduce it if they are too loose.
 slot_side_clearance = 0.1;
 slot_depth_clearance = 0.1;
@@ -96,6 +99,7 @@ final_body_tilt_angle = min(adj_opp_to_ang(provisional_body_height, final_body_d
 final_body_height = max(ang_adj_to_hyp(final_body_tilt_angle, slot_wall_min_height), body_height);
 
 final_compartment_rounding = min(rect_compartment_corner_rounding, compartment_width / 2, final_compartment_depth / 2);
+final_body_rounding = compartment_shape == "Rectangular" ? max(5, final_compartment_rounding) : min(final_compartment_depth / 2, compartment_width / 2);
 body_shape = rect([body_width, final_body_depth], rounding=[final_compartment_rounding, final_compartment_rounding, 0, 0]);
 
 compartment_height = final_body_height - max(0, body_bottom_thickness);
@@ -103,7 +107,6 @@ final_front_opening_height = min(front_opening_height, compartment_height);
 front_opening_outer_fillet = max(0, min(front_opening_rounding, (compartment_width - front_opening_width) / 2));
 front_opening_inner_fillet = max(0, min(front_opening_rounding, front_opening_width / 2));
 
-compartment_fn = 64;
 // compartment_tilt_depth = final_compartment_depth - ang_adj_to_opp(final_body_tilt_angle, compartment_height);
 final_compartment_taper_width = enable_bottom_taper ? min(compartment_width, max(1, compartment_bottom_width)) : compartment_width;
 final_compartment_taper_depth =
@@ -113,36 +116,42 @@ final_compartment_taper_depth =
 final_depth_taper = adj_opp_to_ang(compartment_height, (final_compartment_depth - final_compartment_taper_depth) / 2);
 final_width_taper = adj_opp_to_ang(compartment_height, (compartment_width - final_compartment_taper_width) / 2);
 compartment_sweep_profile =
-  compartment_shape == "Rectangular" ? rect([compartment_width, final_compartment_depth], rounding=final_compartment_rounding, $fn=compartment_fn)
-  : compartment_shape == "Circular" ? circle(d=compartment_width, $fn=compartment_fn) : ellipse(d=[compartment_width, final_compartment_depth], $fn=compartment_fn);
+  compartment_shape == "Rectangular" ? rect([compartment_width, final_compartment_depth], rounding=final_compartment_rounding, $fn=compartment_max_facets)
+  : compartment_shape == "Circular" ? circle(d=compartment_width, $fn=compartment_max_facets) : ellipse(d=[compartment_width, final_compartment_depth], $fn=compartment_max_facets);
 compartment_width_scale = final_compartment_taper_width / compartment_width;
 compartment_depth_scale = final_compartment_taper_depth / final_compartment_depth;
 
+slot_face_height = ang_hyp_to_adj(final_body_tilt_angle, final_body_height);
 final_slot_h_grids = max(1, floor(body_width / OG_TILE_SIZE));
-final_slot_v_grids = max(1, floor(ang_hyp_to_adj(final_body_tilt_angle, final_body_height) / OG_TILE_SIZE));
+final_slot_v_grids = max(1, round(slot_face_height / OG_TILE_SIZE));
+slot_flat_region = fwd((slot_face_height-round(slot_face_height / OG_TILE_SIZE)*OG_TILE_SIZE)/2,rect([body_width, slot_face_height]));
 
 // xrot(-final_body_tilt_angle)
-diff() {
-  back(body_rear_extra_depth / 2) grid_copies(spacing=[compartment_width + body_vertical_wall_thickness, final_compartment_depth + body_horizontal_wall_thickness], n=[compartment_column_count, compartment_row_count])
-      up(body_bottom_thickness) xrot(180)
-          tag("remove") linear_sweep(region=compartment_sweep_profile, height=compartment_height, scale=[compartment_width_scale, compartment_depth_scale], shift=[0, 0], anchor="original_top");
-  prismoid(size1=[body_width, final_body_depth], h=final_body_height, xang=[90, 90], yang=[90 + final_body_tilt_angle, 90], rounding=[5, 5, 0, 0]) {
-    attach(FRONT, TOP, align=TOP, inside=true)
-      tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS);
-
-    front_opening_depth = body_horizontal_wall_thickness + final_compartment_depth / 2 - ang_adj_to_opp(final_depth_taper, compartment_height);
-    if (front_opening_width > 0 && front_opening_height > 0)
-      tag_diff(tag="remove", remove="rm1")
-        line_copies(spacing=compartment_width + body_vertical_wall_thickness, n=compartment_column_count)
-          attach(TOP, TOP, align=BACK, inset=-EPS, inside=true)
-            tag("") prismoid(size2=[front_opening_width, front_opening_depth], h=final_front_opening_height, xang=[90, 90], yang=[90 - final_depth_taper, 90]) {
-                if (front_opening_outer_fillet > 0)
-                  fwd(ang_adj_to_opp(final_depth_taper, front_opening_outer_fillet) / 2)
-                    tag("") edge_mask(body_bottom_thickness > 0 || final_front_opening_height < compartment_height ? [TOP + LEFT, TOP + RIGHT] : [TOP + LEFT, TOP + RIGHT, BOTTOM + LEFT, BOTTOM + RIGHT])
-                        rounding_edge_mask(r=front_opening_outer_fillet, spin=90, l=$edge_length + ang_adj_to_opp(final_depth_taper, front_opening_outer_fillet));
-                if (front_opening_inner_fillet > 0 && (body_bottom_thickness > 0 || final_front_opening_height < compartment_height))
-                  tag("rm1") edge_mask([BOTTOM + LEFT, BOTTOM + RIGHT])
-                      rounding_edge_mask(r=front_opening_inner_fillet);
-              }
-  }
-}
+fwd(final_body_depth / 2)
+  right(body_width / 2)
+  zrot(180)
+    diff() {
+      back(body_rear_extra_depth / 2) grid_copies(spacing=[compartment_width + body_vertical_wall_thickness, final_compartment_depth + body_horizontal_wall_thickness], n=[compartment_column_count, compartment_row_count])
+          up(body_bottom_thickness) xrot(180)
+              tag("remove") linear_sweep(region=compartment_sweep_profile, height=compartment_height, scale=[compartment_width_scale, compartment_depth_scale], shift=[0, 0], anchor="original_top");
+      prismoid(size1=[body_width, final_body_depth], h=final_body_height, xang=[90, 90], yang=[90 + final_body_tilt_angle, 90], rounding=[final_body_rounding, final_body_rounding, 0, 0]) {
+        attach(FRONT, TOP,align=TOP, inside=true) {
+          tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[slot_flat_region]);
+          // openconnect_slot_grid_limit_debug(slot_cfg=_slot_cfg, horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[slot_flat_region]);
+        }
+        front_opening_depth = body_horizontal_wall_thickness + final_compartment_depth / 2 - ang_adj_to_opp(final_depth_taper, compartment_height);
+        if (front_opening_width > 0 && front_opening_height > 0)
+          tag_diff(tag="remove", remove="rm1")
+            line_copies(spacing=compartment_width + body_vertical_wall_thickness, n=compartment_column_count)
+              attach(TOP, TOP, align=BACK, inset=-EPS, inside=true)
+                tag("") prismoid(size2=[front_opening_width, front_opening_depth], h=final_front_opening_height, xang=[90, 90], yang=[90 - final_depth_taper, 90]) {
+                    if (front_opening_outer_fillet > 0)
+                      fwd(ang_adj_to_opp(final_depth_taper, front_opening_outer_fillet) / 2)
+                        tag("") edge_mask(body_bottom_thickness > 0 || final_front_opening_height < compartment_height ? [TOP + LEFT, TOP + RIGHT] : [TOP + LEFT, TOP + RIGHT, BOTTOM + LEFT, BOTTOM + RIGHT])
+                            rounding_edge_mask(r=front_opening_outer_fillet, spin=90, l=$edge_length + ang_adj_to_opp(final_depth_taper, front_opening_outer_fillet));
+                    if (front_opening_inner_fillet > 0 && (body_bottom_thickness > 0 || final_front_opening_height < compartment_height))
+                      tag("rm1") edge_mask([BOTTOM + LEFT, BOTTOM + RIGHT])
+                          rounding_edge_mask(r=front_opening_inner_fillet);
+                  }
+      }
+    }

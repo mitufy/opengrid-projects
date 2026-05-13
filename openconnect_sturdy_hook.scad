@@ -32,11 +32,17 @@ truss_thickness = 5;
 truss_rounding = 2;
 truss_max_angle = 60; //[30:5:90]
 
-/* [Slot Settings] */
+/* [openConnect Settings] */
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
 slot_lock_distribution = "Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
 //Entry ramp direction can matter in tight spaces. When printing on the side, place the locking mechanism side closer to the print bed.
 slot_entryramp_flip = false;
+
+/* [Advanced Settings] */
+use_custom_height = false;
+custom_hook_height = 70;
+hook_side_rounding = 2.4; //0.2
+hook_tip_rounding = 5; //0.2
 //Increase clearances if the slots feel too tight. Reduce it if they are too loose.
 slot_side_clearance = 0.1; //0.01
 slot_depth_clearance = 0.1; //0.01
@@ -44,12 +50,6 @@ slot_depth_clearance = 0.1; //0.01
 slot_edge_bridge_min_width = 0.8; //0.01
 //Minimum width for walls. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
 slot_edge_wall_min_width = 0.6; //0.01
-
-/* [Advanced Settings] */
-use_custom_height = false;
-custom_hook_height = 70;
-hook_side_rounding = 2.4; //0.2
-hook_tip_rounding = 5; //0.2
 
 /* [Hidden] */
 $fa = 1;

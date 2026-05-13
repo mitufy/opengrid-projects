@@ -42,7 +42,7 @@ label_width = 48;
 label_height = 10;
 label_thickness = 1; //0.1
 
-/*[Advanced]*/
+/*[Advanced Settings]*/
 //Fill all gaps in text, usually used on Emoji.
 right_text_filled = false;
 left_text_filled = false;
