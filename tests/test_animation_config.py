@@ -7,9 +7,11 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
+import yaml
+
 from annotation_renderer.animation import resolve_animation_config
 from annotation_renderer.config import ConfigError, validate_config_shape
-from annotation_renderer.scene_cli import load_config, main, selected_variants, variant_config
+from annotation_renderer.scene_cli import load_config, load_gallery_config, main, selected_variants, variant_config
 
 
 class AnimationConfigTests(unittest.TestCase):
@@ -246,6 +248,94 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(template["annotations"]["chains"][0]["ids"], ["holder_width"])
         self.assertEqual(config["model"]["scad_file"], "openconnect_general_holder.scad")
 
+    def test_yaml_config_extends_json_default(self) -> None:
+        default_config = Path("annotation_renderer/configs/general_holder_default.json").resolve().as_posix()
+        scene_file = Path("annotation_renderer/assets/scenes/opengrid_wall_scene.blend").resolve().as_posix()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "holder_custom.yaml"
+            output_path.write_text(
+                "\n".join(
+                    [
+                        f"extends: {json.dumps(default_config)}",
+                        "job_name: holder_yaml_custom",
+                        "scene:",
+                        f"  blend_file: {json.dumps(scene_file)}",
+                        "model:",
+                        "  defines:",
+                        "    compartment_column_count: 3",
+                        "    custom_label: on",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            config = load_config(output_path, [])
+
+        self.assertEqual(config["job_name"], "holder_yaml_custom")
+        self.assertEqual(config["model"]["scad_file"], "openconnect_general_holder.scad")
+        self.assertEqual(config["model"]["defines"]["compartment_column_count"], 3)
+        self.assertEqual(config["model"]["defines"]["custom_label"], "on")
+
+    def test_json_config_can_extend_yaml_config(self) -> None:
+        default_config = Path("annotation_renderer/configs/general_holder_default.json").resolve().as_posix()
+        scene_file = Path("annotation_renderer/assets/scenes/opengrid_wall_scene.blend").resolve().as_posix()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base_yaml_path = Path(temp_dir) / "holder_base.yaml"
+            json_path = Path(temp_dir) / "holder_custom.json"
+            base_yaml_path.write_text(
+                "\n".join(
+                    [
+                        f"extends: {json.dumps(default_config)}",
+                        "job_name: holder_yaml_base",
+                        "scene:",
+                        f"  blend_file: {json.dumps(scene_file)}",
+                        "model:",
+                        "  defines:",
+                        "    compartment_column_count: 2",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            json_path.write_text(
+                json.dumps(
+                    {
+                        "extends": base_yaml_path.as_posix(),
+                        "job_name": "holder_json_extends_yaml",
+                        "model": {"defines": {"compartment_row_count": 2}},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            config = load_config(json_path, [])
+
+        self.assertEqual(config["job_name"], "holder_json_extends_yaml")
+        self.assertEqual(config["model"]["defines"]["compartment_column_count"], 2)
+        self.assertEqual(config["model"]["defines"]["compartment_row_count"], 2)
+
+    def test_new_config_writes_yaml_template_from_yaml_extension(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "holder_custom.yaml"
+            output = self.run_cli("--new-config", "general_holder_default", "--out", str(output_path))
+            template = yaml.safe_load(output_path.read_text(encoding="utf-8"))
+            config = load_config(output_path, [])
+
+        self.assertIn("Wrote:", output)
+        self.assertTrue(template["extends"].endswith("general_holder_default.json"))
+        self.assertIn("scene", template)
+        self.assertEqual(template["model"]["defines"]["compartment_shape"], "Rectangular")
+        self.assertEqual(template["annotations"]["chains"][0]["ids"], ["holder_width"])
+        self.assertEqual(config["model"]["scad_file"], "openconnect_general_holder.scad")
+
+    def test_gallery_config_can_be_yaml(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            gallery_path = Path(temp_dir) / "gallery.yaml"
+            gallery_path.write_text("columns: 3\nthumbnail_width: 480\n", encoding="utf-8")
+            gallery_config, resolved_path = load_gallery_config(str(gallery_path), config_dir=Path.cwd())
+
+        self.assertEqual(resolved_path, gallery_path.resolve())
+        self.assertEqual(gallery_config, {"columns": 3, "thumbnail_width": 480})
+
     def test_render_animation_is_validated_during_config_shape_validation(self) -> None:
         config = {
             "model": {"scad_file": "demo.scad"},
@@ -294,6 +384,9 @@ class AnimationConfigTests(unittest.TestCase):
 
         self.assertIn("test = [", pyproject)
         self.assertIn('"pytest>=9"', pyproject)
+        self.assertIn('"PyYAML>=6.0"', pyproject)
+        self.assertIn('"configs/*.yaml"', pyproject)
+        self.assertIn('"configs/*.yml"', pyproject)
 
 
 if __name__ == "__main__":
