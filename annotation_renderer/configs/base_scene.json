@@ -1,0 +1,66 @@
+{
+  "$schema": "../schemas/annotation-render-config.schema.json",
+  "job_name": "opengrid_annotation_base",
+  "constants": {
+    "annotation_label_font_size_px": 22,
+    "annotation_title_font_size_px": 34,
+    "annotation_aux_label_font_size_px": 24,
+    "annotation_font": "sans",
+    "blender_scene_scale": 0.001,
+    "blender_scene_scale_vector": [
+      "blender_scene_scale",
+      "blender_scene_scale",
+      "blender_scene_scale"
+    ],
+    "placeholder_transform": {
+      "location_mm": [
+        0,
+        0,
+        0
+      ],
+      "rotation_deg": [
+        90,
+        0,
+        -90
+      ],
+      "scale": {
+        "$constant": "blender_scene_scale_vector"
+      }
+    },
+    "small_dimension_chain": {
+      "line_offset_px": 28,
+      "label_offset_px": 24,
+      "label_font_size_px": {
+        "$constant": "annotation_label_font_size_px"
+      },
+      "tick_length_px": 12,
+      "line_width_px": 2.2,
+      "extension_width_px": 1.2
+    },
+    "bottom_image_label": {
+      "position": "bottom",
+      "offset_px": [
+        0,
+        -24
+      ],
+      "font_size_px": {
+        "$constant": "annotation_title_font_size_px"
+      }
+    }
+  },
+  "model": null,
+  "scene": {
+    "blend_file": "../assets/scenes/opengrid_wall_scene.blend",
+    "target_object": "placeholder",
+    "camera": "Camera",
+    "replace_target_object": true,
+    "inherit_target_transform": false,
+    "transform": {
+      "$constant": "placeholder_transform"
+    }
+  },
+  "render": {
+    "preset": "cycles_standard_scene"
+  },
+  "annotations": {}
+}

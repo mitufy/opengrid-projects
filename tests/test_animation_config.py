@@ -1,14 +1,24 @@
 from __future__ import annotations
 
+import io
+import json
+import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 
 from annotation_renderer.animation import resolve_animation_config
-from annotation_renderer.config import ConfigError
-from annotation_renderer.scene_cli import load_config, selected_variants, variant_config
+from annotation_renderer.config import ConfigError, validate_config_shape
+from annotation_renderer.scene_cli import load_config, main, selected_variants, variant_config
 
 
 class AnimationConfigTests(unittest.TestCase):
+    def run_cli(self, *args: str) -> str:
+        stream = io.StringIO()
+        with redirect_stdout(stream):
+            self.assertEqual(main(args), 0)
+        return stream.getvalue()
+
     def test_clips_shift_local_keyframes_and_expand_visibility_and_opacity(self) -> None:
         animation = resolve_animation_config(
             {
@@ -168,6 +178,122 @@ class AnimationConfigTests(unittest.TestCase):
         holder_config = variant_config(config, holder_variant)
         self.assertEqual(holder_config["model"]["scad_file"], "openconnect_general_holder.scad")
         self.assertEqual(holder_config["render"]["animation"]["object_animations"][0]["object"], "model")
+
+    def test_model_defaults_import_per_model_variant_configs(self) -> None:
+        config = load_config(Path("annotation_renderer/configs/model_defaults.json"), [])
+        names = [variant["name"] for variant in selected_variants(config, None)]
+
+        self.assertEqual(
+            names,
+            [
+                "sturdy_hook_default",
+                "sturdy_shelf_default",
+                "general_holder_default",
+                "drawer_shell_default",
+                "drawer_shell_container_default",
+            ],
+        )
+
+        holder_variant = selected_variants(config, "general_holder_default")[0]
+        holder_config = variant_config(config, holder_variant)
+        self.assertEqual(holder_config["model"]["scad_file"], "openconnect_general_holder.scad")
+        self.assertEqual(holder_config["scene"]["transform"]["rotation_deg"], [0, 0, 0])
+        self.assertEqual(holder_config["render"]["camera_location_offset_mm"], [0, 0, 10])
+        self.assertEqual(holder_config["annotations"]["chains"][0]["ids"], ["holder_width"])
+
+    def test_per_model_default_config_is_directly_renderable(self) -> None:
+        config = load_config(Path("annotation_renderer/configs/general_holder_default.json"), [])
+
+        self.assertEqual(config["model"]["scad_file"], "openconnect_general_holder.scad")
+        self.assertEqual(config["job_name"], "general_holder_scene_default")
+        self.assertEqual(config["annotations"]["chains"][0]["ids"], ["holder_width"])
+
+    def test_list_models_uses_default_model_config(self) -> None:
+        output = self.run_cli("--list-models")
+
+        self.assertIn("general_holder_default", output)
+        self.assertIn("annotation_renderer/configs/general_holder_default.json", output)
+        self.assertIn("model: openconnect_general_holder.scad", output)
+
+    def test_describe_and_list_annotations_report_editable_settings(self) -> None:
+        description = self.run_cli("--describe", "general_holder_default")
+        direct_description = self.run_cli(
+            "--config",
+            "annotation_renderer/configs/general_holder_default.json",
+            "--describe",
+            "general_holder_default",
+        )
+        annotations = self.run_cli("--list-annotations", "general_holder_default")
+
+        self.assertIn("compartment_shape: \"Rectangular\"", description)
+        self.assertIn("Source: annotation_renderer/configs/general_holder_default.json", direct_description)
+        self.assertIn("camera_location_offset_mm: [0,0,10]", description)
+        self.assertIn("dimension: holder_width", annotations)
+        self.assertIn("line_offset_px=20", annotations)
+        self.assertIn("label_offset_px=28", annotations)
+
+    def test_new_config_writes_valid_editable_template(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "holder_custom.json"
+            output = self.run_cli("--new-config", "general_holder_default", "--out", str(output_path))
+            template = json.loads(output_path.read_text(encoding="utf-8"))
+            config = load_config(output_path, [])
+
+        self.assertIn("Wrote:", output)
+        self.assertTrue(template["extends"].endswith("general_holder_default.json"))
+        self.assertIn("scene", template)
+        self.assertEqual(template["model"]["defines"]["compartment_shape"], "Rectangular")
+        self.assertEqual(template["annotations"]["chains"][0]["ids"], ["holder_width"])
+        self.assertEqual(config["model"]["scad_file"], "openconnect_general_holder.scad")
+
+    def test_render_animation_is_validated_during_config_shape_validation(self) -> None:
+        config = {
+            "model": {"scad_file": "demo.scad"},
+            "scene": {"blend_file": "demo.blend", "target_object": "model"},
+            "render": {
+                "animation": {
+                    "fps": "fast",
+                    "object_animations": [{"object": "model", "start_frame": 0, "end_frame": 2}],
+                }
+            },
+            "annotations": {},
+        }
+
+        with self.assertRaisesRegex(ConfigError, "render.animation.fps must be an integer"):
+            validate_config_shape(config)
+
+    def test_render_animation_is_allowed_under_render_config(self) -> None:
+        validate_config_shape(
+            {
+                "model": {"scad_file": "demo.scad"},
+                "scene": {"blend_file": "demo.blend", "target_object": "model"},
+                "render": {
+                    "animation": {
+                        "object_animations": [{"object": "model", "start_frame": 0, "end_frame": 2}],
+                    }
+                },
+                "annotations": {},
+            }
+        )
+
+    def test_schema_places_animation_under_render_config(self) -> None:
+        schema_path = Path("annotation_renderer") / "schemas" / "annotation-render-config.schema.json"
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+        render_properties = schema["$defs"]["renderConfig"]["anyOf"][1]["properties"]
+        scene_default_properties = schema["$defs"]["sceneObjectDefaults"]["anyOf"][0]["properties"]
+        scene_object_properties = schema["$defs"]["sceneObject"]["anyOf"][0]["properties"]
+        self.assertIn("animation", render_properties)
+        self.assertIn("variant_name", schema["properties"])
+        self.assertIn("variant_configs", schema["properties"])
+        self.assertNotIn("animation", scene_default_properties)
+        self.assertNotIn("animation", scene_object_properties)
+
+    def test_pyproject_declares_test_extra(self) -> None:
+        pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
+
+        self.assertIn("test = [", pyproject)
+        self.assertIn('"pytest>=9"', pyproject)
 
 
 if __name__ == "__main__":

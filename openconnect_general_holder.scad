@@ -73,6 +73,7 @@ slot_edge_wall_min_width = 0.6;
 /* [Hidden] */
 $fa = 1;
 $fs = 0.4;
+emit_annotation_metadata = false;
 
 include <lib/opengrid_base.scad>
 use <lib/openconnect_lib.scad>
@@ -133,6 +134,137 @@ slot_face_height = ang_hyp_to_adj(final_holder_tilt_angle, final_holder_height);
 final_slot_h_grids = max(1, floor(holder_width / OG_TILE_SIZE));
 final_slot_v_grids = max(1, round(slot_face_height / OG_TILE_SIZE));
 slot_flat_region = fwd((slot_face_height - round(slot_face_height / OG_TILE_SIZE) * OG_TILE_SIZE) / 2, rect([holder_width, slot_face_height]));
+
+holder_min_x = 0;
+holder_max_x = holder_width;
+holder_min_y = -final_holder_depth;
+holder_max_y = 0;
+holder_min_z = 0;
+holder_max_z = final_holder_height;
+front_opening_annotation_center_x = holder_outer_wall_thickness + compartment_width / 2;
+front_opening_annotation_min_x = front_opening_annotation_center_x - front_opening_width / 2;
+front_opening_annotation_max_x = front_opening_annotation_center_x + front_opening_width / 2;
+front_opening_annotation_y = holder_min_y;
+front_opening_annotation_min_z = holder_max_z - final_front_opening_height;
+front_opening_annotation_max_z = holder_max_z;
+
+module emit_dimension_annotation(id, label, axis, value, start, end, basis) {
+  if (emit_annotation_metadata)
+    echo(str(
+      "OPENGRID_ANNOTATION_V1|",
+      "id=", id,
+      "|kind=dimension",
+      "|label=", label,
+      "|axis=", axis,
+      "|value=", value,
+      "|start=", start[0], ",", start[1], ",", start[2],
+      "|end=", end[0], ",", end[1], ",", end[2],
+      "|basis=", basis
+    ));
+}
+
+function _fmt_context_values(names, values, index=0) =
+  index >= len(names) ? "" :
+  str(index == 0 ? "" : ";", names[index], "=", values[index], _fmt_context_values(names, values, index + 1));
+
+module emit_context_values(id, names, values) {
+  if (emit_annotation_metadata)
+    echo(str(
+      "OPENGRID_ANNOTATION_V1|",
+      "id=", id,
+      "|kind=context",
+      "|values=", _fmt_context_values(names, values)
+    ));
+}
+
+module emit_general_holder_annotations() {
+  emit_context_values(
+    "general_holder_context",
+    [
+      "OG_TILE_SIZE",
+      "compartment_shape",
+      "compartment_column_count",
+      "compartment_row_count",
+      "holder_width",
+      "final_holder_depth",
+      "final_holder_height",
+      "final_holder_tilt_angle",
+      "slot_face_height",
+      "final_slot_h_grids",
+      "final_slot_v_grids",
+      "front_opening_width",
+      "front_opening_height",
+      "final_front_opening_height",
+      "front_opening_rounding"
+    ],
+    [
+      OG_TILE_SIZE,
+      compartment_shape,
+      compartment_column_count,
+      compartment_row_count,
+      holder_width,
+      final_holder_depth,
+      final_holder_height,
+      final_holder_tilt_angle,
+      slot_face_height,
+      final_slot_h_grids,
+      final_slot_v_grids,
+      front_opening_width,
+      front_opening_height,
+      final_front_opening_height,
+      front_opening_rounding
+    ]
+  );
+  emit_dimension_annotation(
+    id="holder_width",
+    label="holder_width",
+    axis="x",
+    value=holder_width,
+    start=[holder_min_x, holder_min_y, holder_min_z],
+    end=[holder_max_x, holder_min_y, holder_min_z],
+    basis="overall_holder_width_on_front_bottom_edge"
+  );
+  emit_dimension_annotation(
+    id="holder_depth",
+    label="holder_depth",
+    axis="y",
+    value=final_holder_depth,
+    start=[holder_min_x, holder_min_y, holder_max_z],
+    end=[holder_min_x, holder_max_y, holder_max_z],
+    basis="overall_holder_depth_on_camera_front_side"
+  );
+  emit_dimension_annotation(
+    id="holder_height",
+    label="holder_height",
+    axis="z",
+    value=final_holder_height,
+    start=[holder_min_x, holder_max_y, holder_min_z],
+    end=[holder_min_x, holder_max_y, holder_max_z],
+    basis="overall_holder_height"
+  );
+  if (front_opening_width > 0 && front_opening_height > 0) {
+    emit_dimension_annotation(
+      id="front_opening_width",
+      label="front_opening_width",
+      axis="x",
+      value=front_opening_width,
+      start=[front_opening_annotation_min_x, front_opening_annotation_y, front_opening_annotation_min_z],
+      end=[front_opening_annotation_max_x, front_opening_annotation_y, front_opening_annotation_min_z],
+      basis="first_front_opening_width"
+    );
+    emit_dimension_annotation(
+      id="front_opening_height",
+      label="front_opening_height",
+      axis="z",
+      value=final_front_opening_height,
+      start=[front_opening_annotation_min_x, front_opening_annotation_y, front_opening_annotation_min_z],
+      end=[front_opening_annotation_min_x, front_opening_annotation_y, front_opening_annotation_max_z],
+      basis="first_front_opening_effective_height"
+    );
+  }
+}
+
+emit_general_holder_annotations();
 
 // xrot(-final_holder_tilt_angle)
 right(holder_width / 2) zrot(180)
