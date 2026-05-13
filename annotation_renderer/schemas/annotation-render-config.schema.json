@@ -19,6 +19,18 @@
     "job_name": {
       "type": "string"
     },
+    "variant_name": {
+      "type": "string",
+      "description": "Name used when this config is imported by another config through variant_configs."
+    },
+    "variant_configs": {
+      "type": "array",
+      "description": "Config files to expose as variants of this config. Paths are resolved relative to this config file.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
     "output_dir": {
       "type": "string"
     },
@@ -418,9 +430,6 @@
             },
             "mesh_shading": {
               "$ref": "#/$defs/meshShading"
-            },
-            "animation": {
-              "$ref": "#/$defs/animationConfig"
             }
           }
         },
@@ -574,8 +583,14 @@
             "fit_margin": {
               "type": "number"
             },
+            "camera_location_offset_mm": {
+              "$ref": "#/$defs/vector3"
+            },
             "mesh_shading": {
               "$ref": "#/$defs/meshShading"
+            },
+            "animation": {
+              "$ref": "#/$defs/animationConfig"
             }
           }
         },

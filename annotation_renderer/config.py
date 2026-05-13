@@ -119,6 +119,54 @@ RENDER_PRESETS: dict[str, dict[str, object]] = {
         "mesh_shading": "flat",
     },
 }
+RENDER_CONFIG_KEYS = {
+    "preset",
+    "engine",
+    "quality",
+    "width",
+    "height",
+    "fit_camera",
+    "fit_margin",
+    "camera_location_offset_mm",
+    "mesh_shading",
+    "animation",
+}
+ANIMATION_CONFIG_KEYS = {
+    "enabled",
+    "frame_start",
+    "frame_end",
+    "duration_frames",
+    "end_pause_frames",
+    "fps",
+    "output_format",
+    "gif_width_px",
+    "interpolation",
+    "object_animations",
+    "objects",
+    "clips",
+}
+ANIMATION_CLIP_CONFIG_KEYS = {"name", "start_frame", "duration_frames", "interpolation", "object_animations", "objects"}
+OBJECT_ANIMATION_CONFIG_KEYS = {
+    "object",
+    "id",
+    "property",
+    "start_frame",
+    "end_frame",
+    "from_location_offset_mm",
+    "to_location_offset_mm",
+    "from_offset_mm",
+    "to_offset_mm",
+    "visible_from_frame",
+    "visibility_keyframes",
+    "opacity_keyframes",
+    "opacity_interpolation",
+    "location_offset_keyframes_mm",
+    "keyframes",
+    "interpolation",
+}
+INTERPOLATION_NAMES = {"linear", "constant", "ease", "ease_in", "ease_out", "ease_in_out", "bezier"}
+OUTPUT_FORMATS = {"gif", "png_sequence"}
+MESH_SHADING_VALUES = {"flat", "smooth", "weighted_normals", "auto_smooth"}
 
 
 @dataclass(frozen=True)
@@ -533,12 +581,14 @@ def resolve_scene_transform(
 
 
 def resolve_render(render_config: object) -> dict[str, object]:
-    return resolve_preset_mapping(
+    render = resolve_preset_mapping(
         render_config,
         presets=RENDER_PRESETS,
         name="render",
         default_preset="cycles_standard_scene",
     )
+    validate_render_config(render)
+    return render
 
 
 def validate_vector_shape(value: object, *, name: str) -> None:
@@ -563,6 +613,209 @@ def validate_vector2_shape(value: object, *, name: str) -> None:
         return
     if not isinstance(value, Sequence) or isinstance(value, (str, bytes)) or len(value) != 2:
         raise ConfigError(f"{name} must be a two-item list or x/y object")
+
+
+def is_integer(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def is_number(value: object) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def validate_allowed_keys(value: Mapping[str, object], *, allowed: set[str], name: str) -> None:
+    for key in value:
+        if key not in allowed:
+            raise ConfigError(f"{name}.{key} is not supported")
+
+
+def validate_integer_field(value: Mapping[str, object], key: str, *, name: str, minimum: int | None = None) -> None:
+    if key not in value:
+        return
+    field_value = value[key]
+    if not is_integer(field_value):
+        raise ConfigError(f"{name}.{key} must be an integer")
+    if minimum is not None and int(field_value) < minimum:
+        raise ConfigError(f"{name}.{key} must be at least {minimum}")
+
+
+def validate_number_field(
+    value: Mapping[str, object],
+    key: str,
+    *,
+    name: str,
+    minimum: float | None = None,
+    maximum: float | None = None,
+) -> None:
+    if key not in value:
+        return
+    field_value = value[key]
+    if not is_number(field_value):
+        raise ConfigError(f"{name}.{key} must be numeric")
+    if minimum is not None and float(field_value) < minimum:
+        raise ConfigError(f"{name}.{key} must be at least {minimum:g}")
+    if maximum is not None and float(field_value) > maximum:
+        raise ConfigError(f"{name}.{key} must be at most {maximum:g}")
+
+
+def validate_enum_field(value: Mapping[str, object], key: str, *, name: str, allowed: set[str]) -> None:
+    if key not in value:
+        return
+    field_value = value[key]
+    if not isinstance(field_value, str) or field_value not in allowed:
+        choices = ", ".join(sorted(allowed))
+        raise ConfigError(f"{name}.{key} must be one of {choices}")
+
+
+def validate_visibility_keyframes(value: object, *, name: str) -> None:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)) or not value:
+        raise ConfigError(f"{name} must be a non-empty array")
+    for index, keyframe in enumerate(value):
+        keyframe_name = f"{name}[{index}]"
+        if not isinstance(keyframe, Mapping):
+            raise ConfigError(f"{keyframe_name} must be an object")
+        validate_allowed_keys(keyframe, allowed={"frame", "visible"}, name=keyframe_name)
+        validate_integer_field(keyframe, "frame", name=keyframe_name, minimum=0)
+        if "visible" not in keyframe or not isinstance(keyframe["visible"], bool):
+            raise ConfigError(f"{keyframe_name}.visible must be a boolean")
+
+
+def validate_opacity_keyframes(value: object, *, name: str) -> None:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)) or not value:
+        raise ConfigError(f"{name} must be a non-empty array")
+    for index, keyframe in enumerate(value):
+        keyframe_name = f"{name}[{index}]"
+        if not isinstance(keyframe, Mapping):
+            raise ConfigError(f"{keyframe_name} must be an object")
+        validate_allowed_keys(keyframe, allowed={"frame", "value", "opacity", "alpha"}, name=keyframe_name)
+        validate_integer_field(keyframe, "frame", name=keyframe_name, minimum=0)
+        if not any(key in keyframe for key in ("value", "opacity", "alpha")):
+            raise ConfigError(f"{keyframe_name}.value is required")
+        for key in ("value", "opacity", "alpha"):
+            validate_number_field(keyframe, key, name=keyframe_name, minimum=0.0, maximum=1.0)
+
+
+def validate_location_offset_keyframes(value: object, *, name: str) -> None:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)) or len(value) < 2:
+        raise ConfigError(f"{name} must be an array with at least two items")
+    for index, keyframe in enumerate(value):
+        keyframe_name = f"{name}[{index}]"
+        if not isinstance(keyframe, Mapping):
+            raise ConfigError(f"{keyframe_name} must be an object")
+        validate_allowed_keys(
+            keyframe,
+            allowed={"frame", "value", "value_mm", "location_offset_mm"},
+            name=keyframe_name,
+        )
+        validate_integer_field(keyframe, "frame", name=keyframe_name, minimum=0)
+        if not any(key in keyframe for key in ("value", "value_mm", "location_offset_mm")):
+            raise ConfigError(f"{keyframe_name}.value is required")
+        for key in ("value", "value_mm", "location_offset_mm"):
+            if key in keyframe:
+                validate_vector_shape(keyframe[key], name=f"{keyframe_name}.{key}")
+
+
+def validate_object_animation_config(value: object, *, name: str) -> None:
+    if not isinstance(value, Mapping):
+        raise ConfigError(f"{name} must be an object")
+    validate_allowed_keys(value, allowed=OBJECT_ANIMATION_CONFIG_KEYS, name=name)
+    object_id = value.get("object") or value.get("id")
+    if not isinstance(object_id, str) or not object_id.strip():
+        raise ConfigError(f"{name}.object is required")
+    if "property" in value and value["property"] != "location":
+        raise ConfigError(f"{name}.property only supports 'location'")
+    for key in ("start_frame", "end_frame", "visible_from_frame"):
+        validate_integer_field(value, key, name=name, minimum=0)
+    if "start_frame" in value and "end_frame" in value and int(value["end_frame"]) <= int(value["start_frame"]):
+        raise ConfigError(f"{name}.end_frame must be greater than {name}.start_frame")
+    for key in ("from_location_offset_mm", "to_location_offset_mm", "from_offset_mm", "to_offset_mm"):
+        if key in value:
+            validate_vector_shape(value[key], name=f"{name}.{key}")
+    for key in ("interpolation", "opacity_interpolation"):
+        validate_enum_field(value, key, name=name, allowed=INTERPOLATION_NAMES)
+    if "visibility_keyframes" in value:
+        validate_visibility_keyframes(value["visibility_keyframes"], name=f"{name}.visibility_keyframes")
+    if "opacity_keyframes" in value:
+        validate_opacity_keyframes(value["opacity_keyframes"], name=f"{name}.opacity_keyframes")
+    for key in ("location_offset_keyframes_mm", "keyframes"):
+        if key in value:
+            validate_location_offset_keyframes(value[key], name=f"{name}.{key}")
+
+
+def validate_object_animation_items(value: object, *, name: str) -> None:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)) or not value:
+        raise ConfigError(f"{name} must be a non-empty array")
+    for index, item in enumerate(value):
+        validate_object_animation_config(item, name=f"{name}[{index}]")
+
+
+def validate_animation_clip_config(value: object, *, name: str) -> None:
+    if not isinstance(value, Mapping):
+        raise ConfigError(f"{name} must be an object")
+    validate_allowed_keys(value, allowed=ANIMATION_CLIP_CONFIG_KEYS, name=name)
+    if "object_animations" not in value and "objects" not in value:
+        raise ConfigError(f"{name}.object_animations is required")
+    validate_integer_field(value, "start_frame", name=name, minimum=0)
+    validate_integer_field(value, "duration_frames", name=name, minimum=1)
+    validate_enum_field(value, "interpolation", name=name, allowed=INTERPOLATION_NAMES)
+    if "name" in value and not isinstance(value["name"], str):
+        raise ConfigError(f"{name}.name must be a string")
+    if "object_animations" in value:
+        validate_object_animation_items(value["object_animations"], name=f"{name}.object_animations")
+    if "objects" in value:
+        validate_object_animation_items(value["objects"], name=f"{name}.objects")
+
+
+def validate_animation_config_shape(value: object, *, name: str = "render.animation") -> None:
+    if not isinstance(value, Mapping):
+        raise ConfigError(f"{name} must be an object")
+    validate_allowed_keys(value, allowed=ANIMATION_CONFIG_KEYS, name=name)
+    if "enabled" in value and not isinstance(value["enabled"], bool):
+        raise ConfigError(f"{name}.enabled must be a boolean")
+    for key, minimum in (
+        ("frame_start", 0),
+        ("frame_end", 1),
+        ("duration_frames", 1),
+        ("end_pause_frames", 0),
+        ("fps", 1),
+        ("gif_width_px", 0),
+    ):
+        validate_integer_field(value, key, name=name, minimum=minimum)
+    frame_start = int(value.get("frame_start", 0))
+    if "frame_end" in value and int(value["frame_end"]) <= frame_start:
+        raise ConfigError(f"{name}.frame_end must be greater than {name}.frame_start")
+    validate_enum_field(value, "output_format", name=name, allowed=OUTPUT_FORMATS)
+    validate_enum_field(value, "interpolation", name=name, allowed=INTERPOLATION_NAMES)
+    if "object_animations" in value:
+        validate_object_animation_items(value["object_animations"], name=f"{name}.object_animations")
+    if "objects" in value:
+        validate_object_animation_items(value["objects"], name=f"{name}.objects")
+    clips = value.get("clips")
+    if clips is not None:
+        if not isinstance(clips, Sequence) or isinstance(clips, (str, bytes)):
+            raise ConfigError(f"{name}.clips must be an array")
+        for index, clip in enumerate(clips):
+            validate_animation_clip_config(clip, name=f"{name}.clips[{index}]")
+    if value.get("enabled", True):
+        has_top_level_items = "object_animations" in value or "objects" in value
+        has_clips = isinstance(clips, Sequence) and not isinstance(clips, (str, bytes)) and bool(clips)
+        if not has_top_level_items and not has_clips:
+            raise ConfigError(f"{name} requires object_animations or clips")
+
+
+def validate_render_config(value: Mapping[str, object]) -> None:
+    validate_allowed_keys(value, allowed=RENDER_CONFIG_KEYS, name="render")
+    validate_enum_field(value, "engine", name="render", allowed={"cycles", "eevee"})
+    validate_enum_field(value, "quality", name="render", allowed={"draft", "standard", "high"})
+    validate_enum_field(value, "mesh_shading", name="render", allowed=MESH_SHADING_VALUES)
+    validate_integer_field(value, "width", name="render", minimum=1)
+    validate_integer_field(value, "height", name="render", minimum=1)
+    validate_number_field(value, "fit_margin", name="render")
+    validate_vector_shape(value.get("camera_location_offset_mm"), name="render.camera_location_offset_mm")
+    if "fit_camera" in value and not isinstance(value["fit_camera"], bool):
+        raise ConfigError("render.fit_camera must be a boolean")
+    if "animation" in value:
+        validate_animation_config_shape(value["animation"])
 
 
 def validate_config_shape(config: Mapping[str, object]) -> None:
