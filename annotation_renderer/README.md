@@ -38,6 +38,8 @@ annotation_renderer/
 
 ## Requirements
 
+Use Python 3.10 or newer. The setup example uses the Windows Python launcher as `py -3` to create a virtual environment with an installed Python 3 runtime; the utility does not require Python 3.11 specifically. After installing dependencies, run renderer commands through the virtual environment's `python.exe` or `opengrid-annotate.exe`.
+
 Create the shared tooling environment from the repository root:
 
 ```powershell
