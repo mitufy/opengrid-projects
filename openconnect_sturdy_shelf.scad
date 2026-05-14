@@ -75,6 +75,7 @@ slot_edge_wall_min_width = 0.6; //0.01
 $fa = 1;
 $fs = 0.4;
 emit_annotation_metadata = false;
+include <lib/annotation_metadata.scad>
 include <lib/opengrid_base.scad>
 use <lib/openconnect_lib.scad>
 slot_edge_feature_widen = "Side"; //[Both, Top, Side, None]
@@ -130,49 +131,6 @@ shelf_annotation_z = shelf_width;
 shelf_depth_annotation_y = shelf_annotation_y + OG_TILE_SIZE;
 shelf_width_annotation_x = shelf_back_thickness;
 shelf_width_annotation_y = shelf_annotation_y + OG_TILE_SIZE + shelf_back_thickness;
-
-module emit_dimension_annotation(id, label, axis, value, start, end, basis) {
-  if (emit_annotation_metadata)
-    echo(str(
-      "OPENGRID_ANNOTATION_V1|",
-      "id=", id,
-      "|kind=dimension",
-      "|label=", label,
-      "|axis=", axis,
-      "|value=", value,
-      "|start=", start[0], ",", start[1], ",", start[2],
-      "|end=", end[0], ",", end[1], ",", end[2],
-      "|basis=", basis
-    ));
-}
-
-function _fmt_context_values(names, values, index=0) =
-  index >= len(names) ? "" :
-  str(index == 0 ? "" : ";", names[index], "=", values[index], _fmt_context_values(names, values, index + 1));
-
-module emit_context_values(id, names, values) {
-  if (emit_annotation_metadata)
-    echo(str(
-      "OPENGRID_ANNOTATION_V1|",
-      "id=", id,
-      "|kind=context",
-      "|values=", _fmt_context_values(names, values)
-    ));
-}
-
-module emit_radius_annotation(id, label, value, center, edge, basis) {
-  if (emit_annotation_metadata)
-    echo(str(
-      "OPENGRID_ANNOTATION_V1|",
-      "id=", id,
-      "|kind=radius",
-      "|label=", label,
-      "|value=", value,
-      "|center=", center[0], ",", center[1], ",", center[2],
-      "|edge=", edge[0], ",", edge[1], ",", edge[2],
-      "|basis=", basis
-    ));
-}
 
 module emit_sturdy_shelf_annotations() {
   emit_context_values(

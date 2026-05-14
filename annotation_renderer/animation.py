@@ -115,8 +115,16 @@ def resolve_animation_config(
                 item_start_frame = int(location_offset_keyframes[0]["frame"])
                 item_end_frame = int(location_offset_keyframes[-1]["frame"])
             else:
-                item_start_frame = int(item.get("start_frame", start_default))
-                item_end_frame = int(item.get("end_frame", end_default))
+                item_start_frame = (
+                    int(item["start_frame"]) + frame_offset
+                    if "start_frame" in item
+                    else start_default
+                )
+                item_end_frame = (
+                    int(item["end_frame"]) + frame_offset
+                    if "end_frame" in item
+                    else end_default
+                )
                 ensure_frame_in_range(item_start_frame, name=f"{item_path}.start_frame")
                 ensure_frame_in_range(item_end_frame, name=f"{item_path}.end_frame")
 

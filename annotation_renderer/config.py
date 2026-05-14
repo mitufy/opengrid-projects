@@ -128,9 +128,58 @@ RENDER_CONFIG_KEYS = {
     "fit_camera",
     "fit_margin",
     "camera_location_offset_mm",
+    "camera_look_at",
+    "output_mode",
     "mesh_shading",
     "animation",
 }
+STYLE_INTEGER_FIELDS: dict[str, tuple[int | None, int | None]] = {
+    "line_alpha": (0, 255),
+    "label_font_size_px": (1, None),
+    "label_outline_width_px": (0, None),
+    "angle_fill_alpha": (0, 255),
+    "image_label_title_fill_alpha": (0, 255),
+    "image_label_title_outline_alpha": (0, 255),
+}
+STYLE_NUMBER_FIELDS: dict[str, tuple[float | None, float | None]] = {
+    "line_width_px": (None, None),
+    "extension_width_px": (None, None),
+    "extension_dash_px": (None, None),
+    "extension_gap_px": (None, None),
+    "tick_length_px": (None, None),
+    "radial_line_width_px": (None, None),
+    "radial_dash_px": (None, None),
+    "radial_gap_px": (None, None),
+    "image_label_margin_px": (0.0, None),
+    "image_label_title_padding_x_px": (0.0, None),
+    "image_label_title_padding_y_px": (0.0, None),
+    "image_label_title_radius_px": (0.0, None),
+    "image_label_title_outline_width_px": (0.0, None),
+    "image_label_title_min_width_px": (0.0, None),
+    "image_label_title_bottom_margin_px": (0.0, None),
+}
+STYLE_BOOLEAN_FIELDS = {
+    "extension_visible",
+    "label_color_by_segment",
+    "image_label_title_area",
+    "show_values",
+    "show_label",
+    "show_angle_label",
+    "show_radius_label",
+}
+STYLE_STRING_FIELDS = {
+    "label_color",
+    "label_outline_color",
+    "angle_fill_color",
+    "image_label_title_fill_color",
+    "image_label_title_outline_color",
+}
+STYLE_OVERRIDE_KEYS = (
+    set(STYLE_INTEGER_FIELDS)
+    | set(STYLE_NUMBER_FIELDS)
+    | STYLE_BOOLEAN_FIELDS
+    | STYLE_STRING_FIELDS
+)
 ANIMATION_CONFIG_KEYS = {
     "enabled",
     "frame_start",
@@ -808,6 +857,8 @@ def validate_render_config(value: Mapping[str, object]) -> None:
     validate_enum_field(value, "engine", name="render", allowed={"cycles", "eevee"})
     validate_enum_field(value, "quality", name="render", allowed={"draft", "standard", "high"})
     validate_enum_field(value, "mesh_shading", name="render", allowed=MESH_SHADING_VALUES)
+    validate_enum_field(value, "camera_look_at", name="render", allowed={"none", "object_center"})
+    validate_enum_field(value, "output_mode", name="render", allowed={"debug", "minimal", "standard"})
     validate_integer_field(value, "width", name="render", minimum=1)
     validate_integer_field(value, "height", name="render", minimum=1)
     validate_number_field(value, "fit_margin", name="render")
@@ -816,6 +867,97 @@ def validate_render_config(value: Mapping[str, object]) -> None:
         raise ConfigError("render.fit_camera must be a boolean")
     if "animation" in value:
         validate_animation_config_shape(value["animation"])
+
+
+def validate_integer_style_field(
+    value: Mapping[str, object],
+    key: str,
+    *,
+    name: str,
+    minimum: int | None = None,
+    maximum: int | None = None,
+) -> None:
+    if key not in value:
+        return
+    field_value = value[key]
+    if not is_integer(field_value):
+        raise ConfigError(f"{name}.{key} must be an integer")
+    if minimum is not None and int(field_value) < minimum:
+        raise ConfigError(f"{name}.{key} must be at least {minimum}")
+    if maximum is not None and int(field_value) > maximum:
+        raise ConfigError(f"{name}.{key} must be at most {maximum}")
+
+
+def validate_style_override_fields(value: Mapping[str, object], *, name: str) -> None:
+    for key, (minimum, maximum) in STYLE_INTEGER_FIELDS.items():
+        validate_integer_style_field(value, key, name=name, minimum=minimum, maximum=maximum)
+    for key, (minimum, maximum) in STYLE_NUMBER_FIELDS.items():
+        validate_number_field(value, key, name=name, minimum=minimum, maximum=maximum)
+    for key in STYLE_BOOLEAN_FIELDS:
+        if key in value and not isinstance(value[key], bool):
+            raise ConfigError(f"{name}.{key} must be a boolean")
+    for key in STYLE_STRING_FIELDS:
+        if key in value and not isinstance(value[key], str):
+            raise ConfigError(f"{name}.{key} must be a string")
+
+
+def validate_string_mapping(value: object, *, name: str) -> None:
+    if not isinstance(value, Mapping):
+        raise ConfigError(f"{name} must be an object")
+    if not all(isinstance(key, str) and isinstance(item, str) for key, item in value.items()):
+        raise ConfigError(f"{name} must map strings to strings")
+
+
+def validate_type_styles(value: object, *, name: str) -> None:
+    if not isinstance(value, Mapping):
+        raise ConfigError(f"{name} must be an object")
+    allowed_keys = {"line_color", "line_colors", "text_color", "text_shade", "font"}
+    for type_name, type_style in value.items():
+        item_name = f"{name}.{type_name}"
+        if not isinstance(type_name, str) or not type_name.strip():
+            raise ConfigError(f"{name} keys must be non-empty strings")
+        if not isinstance(type_style, Mapping):
+            raise ConfigError(f"{item_name} must be an object")
+        validate_allowed_keys(type_style, allowed=allowed_keys, name=item_name)
+        for key in ("line_color", "text_color"):
+            if key in type_style and not isinstance(type_style[key], str):
+                raise ConfigError(f"{item_name}.{key} must be a string")
+        line_colors = type_style.get("line_colors")
+        if line_colors is not None:
+            if (
+                not isinstance(line_colors, Sequence)
+                or isinstance(line_colors, (str, bytes))
+                or not all(isinstance(color, str) for color in line_colors)
+            ):
+                raise ConfigError(f"{item_name}.line_colors must be an array of strings")
+        validate_number_field(type_style, "text_shade", name=item_name, minimum=0.0, maximum=1.0)
+        if "font" in type_style:
+            font = type_style["font"]
+            if not isinstance(font, str) or font not in {"sans", "mono", "serif", "angle"}:
+                raise ConfigError(f"{item_name}.font must be one of angle, mono, sans, serif")
+
+
+def validate_annotation_style(value: object, *, name: str = "annotations.style") -> None:
+    if value is None:
+        return
+    if isinstance(value, str):
+        if value not in STYLE_PRESETS:
+            raise ConfigError(f"Unknown annotation style preset {value!r}")
+        return
+    if not isinstance(value, Mapping):
+        raise ConfigError(f"{name} must be an object or preset name")
+    if CONSTANT_REF_KEY in value:
+        return
+    global_style_keys = STYLE_OVERRIDE_KEYS - {"show_label", "show_angle_label", "show_radius_label"}
+    validate_allowed_keys(value, allowed=global_style_keys | {"preset", "colors", "type_styles"}, name=name)
+    preset = str(value.get("preset", "makerworld_technical_light"))
+    if preset not in STYLE_PRESETS:
+        raise ConfigError(f"Unknown annotation style preset {preset!r}")
+    validate_style_override_fields(value, name=name)
+    if "colors" in value:
+        validate_string_mapping(value["colors"], name=f"{name}.colors")
+    if "type_styles" in value:
+        validate_type_styles(value["type_styles"], name=f"{name}.type_styles")
 
 
 def validate_config_shape(config: Mapping[str, object]) -> None:
@@ -827,7 +969,7 @@ def validate_config_shape(config: Mapping[str, object]) -> None:
         and bool(raw_variants)
     )
     if scene.get("objects") is None:
-        if config.get("model") is None and has_variants:
+        if config.get("model") is None:
             pass
         else:
             validate_model_config(config.get("model"))
@@ -852,6 +994,7 @@ def validate_config_shape(config: Mapping[str, object]) -> None:
             raise ConfigError("annotations.aliases must be an object")
         if not all(isinstance(key, str) and isinstance(label, str) for key, label in aliases.items()):
             raise ConfigError("annotations.aliases must map annotation IDs to strings")
+    validate_annotation_style(annotations.get("style"))
     if not isinstance(chains, Sequence) or isinstance(chains, (str, bytes)):
         raise ConfigError("annotations.chains must be an array")
     for index, chain in enumerate(chains):
@@ -899,6 +1042,9 @@ def validate_annotation_group(value: object, *, name: str) -> None:
             raise ConfigError(f"{name}.labels must be an object")
         if not all(isinstance(key, str) and isinstance(label, str) for key, label in labels.items()):
             raise ConfigError(f"{name}.labels must map annotation IDs to strings")
+    for key in ("line_offset_px", "label_offset_px"):
+        validate_number_field(value, key, name=name)
+    validate_style_override_fields(value, name=name)
 
 
 def validate_angle_radius_group(value: object, *, name: str) -> None:
@@ -923,8 +1069,9 @@ def validate_angle_radius_group(value: object, *, name: str) -> None:
         if key in value and not isinstance(value[key], bool):
             raise ConfigError(f"{name}.{key} must be a boolean")
     for key in ("angle_label_offset_px", "radius_label_offset_px", "angle_label_tangent_offset_px", "radius_label_tangent_offset_px"):
-        if key in value and not isinstance(value[key], (int, float)):
+        if key in value and not is_number(value[key]):
             raise ConfigError(f"{name}.{key} must be numeric")
+    validate_style_override_fields(value, name=name)
 
 
 def validate_image_label(value: object, *, name: str) -> None:
@@ -943,12 +1090,14 @@ def validate_image_label(value: object, *, name: str) -> None:
         if key in value and value[key] is not None and not isinstance(value[key], str):
             raise ConfigError(f"{name}.{key} must be a string")
     for key in ("angle_deg",):
-        if key in value and not isinstance(value[key], (int, float)):
+        if key in value and not is_number(value[key]):
             raise ConfigError(f"{name}.{key} must be numeric")
     if "show_value" in value and not isinstance(value["show_value"], bool):
         raise ConfigError(f"{name}.show_value must be a boolean")
-    if "font_size_px" in value and not isinstance(value["font_size_px"], int):
+    if "font_size_px" in value and not is_integer(value["font_size_px"]):
         raise ConfigError(f"{name}.font_size_px must be an integer")
+    if "font_size_px" in value and int(value["font_size_px"]) < 1:
+        raise ConfigError(f"{name}.font_size_px must be at least 1")
 
 
 def format_scad_define(name: str, value: object) -> str:
@@ -1139,6 +1288,46 @@ def annotation_group_is_optional(config: Mapping[str, object]) -> bool:
     return bool(config.get("optional", False))
 
 
+@dataclass(frozen=True)
+class AnnotationGroupContext:
+    offset: tuple[float, float, float]
+    colors: Mapping[str, object]
+    show_values: bool
+    label_overrides: Mapping[str, object]
+    optional: bool
+
+
+def annotation_ids_from_group(group_config: Mapping[str, object], *, message: str) -> Sequence[object]:
+    ids = group_config.get("ids")
+    if not isinstance(ids, Sequence) or isinstance(ids, (str, bytes)) or not ids:
+        raise ConfigError(message)
+    return ids
+
+
+def annotation_group_context(
+    *,
+    group_config: Mapping[str, object],
+    style_config: Mapping[str, object],
+    expression_context: Mapping[str, float] | None,
+    aliases: Mapping[str, object] | None,
+) -> AnnotationGroupContext:
+    colors = style_config.get("colors", {})
+    if not isinstance(colors, Mapping):
+        colors = {}
+    return AnnotationGroupContext(
+        offset=vector3(
+            group_config.get("display_offset_mm"),
+            default=(0.0, 0.0, 0.0),
+            name="display_offset_mm",
+            context=expression_context,
+        ),
+        colors=colors,
+        show_values=bool(style_config.get("show_values", False)),
+        label_overrides=label_overrides_from_config(group_config, aliases),
+        optional=annotation_group_is_optional(group_config),
+    )
+
+
 def collect_dimension_chain(
     *,
     annotations: Sequence[Mapping[str, object]],
@@ -1147,21 +1336,16 @@ def collect_dimension_chain(
     expression_context: Mapping[str, float] | None = None,
     aliases: Mapping[str, object] | None = None,
 ) -> list[DimensionSegment]:
-    ids = chain_config.get("ids")
-    if not isinstance(ids, Sequence) or isinstance(ids, (str, bytes)) or not ids:
-        raise ConfigError("dimension chain requires a non-empty ids list")
-    offset = vector3(
-        chain_config.get("display_offset_mm"),
-        default=(0.0, 0.0, 0.0),
-        name="display_offset_mm",
-        context=expression_context,
+    ids = annotation_ids_from_group(
+        chain_config,
+        message="dimension chain requires a non-empty ids list",
     )
-    colors = style_config.get("colors", {})
-    if not isinstance(colors, Mapping):
-        colors = {}
-    show_values = bool(style_config.get("show_values", False))
-    label_overrides = label_overrides_from_config(chain_config, aliases)
-    optional = annotation_group_is_optional(chain_config)
+    context = annotation_group_context(
+        group_config=chain_config,
+        style_config=style_config,
+        expression_context=expression_context,
+        aliases=aliases,
+    )
     aligned = len(ids) > 1
 
     segments: list[DimensionSegment] = []
@@ -1170,25 +1354,25 @@ def collect_dimension_chain(
         annotation = find_scad_annotation(annotations, annotation_key)
         segment = annotation_to_dimension_segment(annotation)
         if annotation is None or segment is None:
-            if optional:
+            if context.optional:
                 continue
             raise ConfigError(f"No emitted dimension annotation named {annotation_id!r}")
         parameter_type = annotation_parameter_type(annotation_key, kind="dimension")
-        fallback_color = str(colors.get(annotation_key, DEFAULT_LINE_COLORS.get(annotation_key, "#2f7f8f")))
+        fallback_color = str(context.colors.get(annotation_key, DEFAULT_LINE_COLORS.get(annotation_key, "#2f7f8f")))
         color = (
             type_line_color(style_config, parameter_type, index=index, fallback=fallback_color)
             if aligned
-            else str(colors.get(annotation_key) or type_line_color(style_config, parameter_type, fallback=fallback_color))
+            else str(context.colors.get(annotation_key) or type_line_color(style_config, parameter_type, fallback=fallback_color))
         )
         source_start_mm = mapping_vector(segment["start_mm"])
         source_end_mm = mapping_vector(segment["end_mm"])
         segments.append(
             DimensionSegment(
                 id=annotation_key,
-                label=annotation_label(annotation, override=label_overrides.get(annotation_key), show_value=show_values),
+                label=annotation_label(annotation, override=context.label_overrides.get(annotation_key), show_value=context.show_values),
                 value=str(annotation.get("value", "")),
-                start_mm=add_vectors(source_start_mm, offset),
-                end_mm=add_vectors(source_end_mm, offset),
+                start_mm=add_vectors(source_start_mm, context.offset),
+                end_mm=add_vectors(source_end_mm, context.offset),
                 color=color,
                 parameter_type=parameter_type,
                 source_start_mm=source_start_mm,
@@ -1206,41 +1390,36 @@ def collect_radius_callouts(
     expression_context: Mapping[str, float] | None = None,
     aliases: Mapping[str, object] | None = None,
 ) -> list[RadiusCallout]:
-    ids = callout_config.get("ids")
-    if not isinstance(ids, Sequence) or isinstance(ids, (str, bytes)) or not ids:
-        raise ConfigError("radius callout requires a non-empty ids list")
-    offset = vector3(
-        callout_config.get("display_offset_mm"),
-        default=(0.0, 0.0, 0.0),
-        name="display_offset_mm",
-        context=expression_context,
+    ids = annotation_ids_from_group(
+        callout_config,
+        message="radius callout requires a non-empty ids list",
     )
-    colors = style_config.get("colors", {})
-    if not isinstance(colors, Mapping):
-        colors = {}
-    show_values = bool(style_config.get("show_values", False))
-    label_overrides = label_overrides_from_config(callout_config, aliases)
-    optional = annotation_group_is_optional(callout_config)
+    context = annotation_group_context(
+        group_config=callout_config,
+        style_config=style_config,
+        expression_context=expression_context,
+        aliases=aliases,
+    )
 
     callouts: list[RadiusCallout] = []
     for annotation_id in ids:
         annotation = find_scad_annotation(annotations, str(annotation_id))
         callout = annotation_to_radius_callout(annotation)
         if annotation is None or callout is None:
-            if optional:
+            if context.optional:
                 continue
             raise ConfigError(f"No emitted radius annotation named {annotation_id!r}")
         annotation_key = str(annotation_id)
         parameter_type = annotation_parameter_type(annotation_key, kind="radius")
         fallback_color = DEFAULT_LINE_COLORS.get(annotation_key, "#8b6f2f")
-        color = str(colors.get(annotation_key) or type_line_color(style_config, parameter_type, fallback=fallback_color))
+        color = str(context.colors.get(annotation_key) or type_line_color(style_config, parameter_type, fallback=fallback_color))
         callouts.append(
             RadiusCallout(
                 id=annotation_key,
-                label=annotation_label(annotation, override=label_overrides.get(annotation_key), show_value=show_values),
+                label=annotation_label(annotation, override=context.label_overrides.get(annotation_key), show_value=context.show_values),
                 value=str(annotation.get("value", "")),
-                center_mm=add_vectors(mapping_vector(callout["center_mm"]), offset),
-                edge_mm=add_vectors(mapping_vector(callout["edge_mm"]), offset),
+                center_mm=add_vectors(mapping_vector(callout["center_mm"]), context.offset),
+                edge_mm=add_vectors(mapping_vector(callout["edge_mm"]), context.offset),
                 color=color,
                 parameter_type=parameter_type,
             )
@@ -1256,39 +1435,34 @@ def collect_arc_callouts(
     expression_context: Mapping[str, float] | None = None,
     aliases: Mapping[str, object] | None = None,
 ) -> list[ArcCallout]:
-    ids = callout_config.get("ids")
-    if not isinstance(ids, Sequence) or isinstance(ids, (str, bytes)) or not ids:
-        raise ConfigError("arc callout requires a non-empty ids list")
-    offset = vector3(
-        callout_config.get("display_offset_mm"),
-        default=(0.0, 0.0, 0.0),
-        name="display_offset_mm",
-        context=expression_context,
+    ids = annotation_ids_from_group(
+        callout_config,
+        message="arc callout requires a non-empty ids list",
     )
-    colors = style_config.get("colors", {})
-    if not isinstance(colors, Mapping):
-        colors = {}
-    show_values = bool(style_config.get("show_values", False))
-    label_overrides = label_overrides_from_config(callout_config, aliases)
-    optional = annotation_group_is_optional(callout_config)
+    context = annotation_group_context(
+        group_config=callout_config,
+        style_config=style_config,
+        expression_context=expression_context,
+        aliases=aliases,
+    )
 
     callouts: list[ArcCallout] = []
     for annotation_id in ids:
         annotation = find_scad_annotation(annotations, str(annotation_id))
         callout = annotation_to_arc_callout(annotation)
         if annotation is None or callout is None:
-            if optional:
+            if context.optional:
                 continue
             raise ConfigError(f"No emitted arc annotation named {annotation_id!r}")
         annotation_key = str(annotation_id)
         parameter_type = annotation_parameter_type(annotation_key, kind="arc")
         fallback_color = DEFAULT_LINE_COLORS.get(annotation_key, "#8b6f2f")
-        color = str(colors.get(annotation_key) or type_line_color(style_config, parameter_type, fallback=fallback_color))
-        points = tuple(add_vectors(mapping_vector(point), offset) for point in callout["points_mm"])
+        color = str(context.colors.get(annotation_key) or type_line_color(style_config, parameter_type, fallback=fallback_color))
+        points = tuple(add_vectors(mapping_vector(point), context.offset) for point in callout["points_mm"])
         callouts.append(
             ArcCallout(
                 id=annotation_key,
-                label=annotation_label(annotation, override=label_overrides.get(annotation_key), show_value=show_values),
+                label=annotation_label(annotation, override=context.label_overrides.get(annotation_key), show_value=context.show_values),
                 value=str(annotation.get("value", "")),
                 points_mm=points,
                 color=color,
@@ -1312,29 +1486,23 @@ def collect_angle_radius_callouts(
     if not arc_id or not radius_id:
         raise ConfigError("angle radius callout requires arc_id and radius_id")
 
-    offset = vector3(
-        callout_config.get("display_offset_mm"),
-        default=(0.0, 0.0, 0.0),
-        name="display_offset_mm",
-        context=expression_context,
+    context = annotation_group_context(
+        group_config=callout_config,
+        style_config=style_config,
+        expression_context=expression_context,
+        aliases=aliases,
     )
-    colors = style_config.get("colors", {})
-    if not isinstance(colors, Mapping):
-        colors = {}
-    show_values = bool(style_config.get("show_values", False))
-    label_overrides = label_overrides_from_config(callout_config, aliases)
-    optional = annotation_group_is_optional(callout_config)
 
     radius_annotation = find_scad_annotation(annotations, radius_id)
     radius_callout = annotation_to_radius_callout(radius_annotation)
     if radius_annotation is None or radius_callout is None:
-        if optional:
+        if context.optional:
             return []
         raise ConfigError(f"No emitted radius annotation named {radius_id!r}")
     arc_annotation = find_scad_annotation(annotations, arc_id)
     arc_callout = annotation_to_arc_callout(arc_annotation)
     if arc_annotation is None or arc_callout is None:
-        if optional:
+        if context.optional:
             return []
         raise ConfigError(f"No emitted arc annotation named {arc_id!r}")
 
@@ -1344,18 +1512,18 @@ def collect_angle_radius_callouts(
     elif "value" in arc_annotation:
         angle_value = str(arc_annotation.get("value", ""))
 
-    angle_base_label = str(label_overrides.get(angle_id) or label_overrides.get(arc_id) or angle_id)
-    angle_label = f"{angle_base_label} = {angle_value}" if show_values and angle_value else angle_base_label
+    angle_base_label = str(context.label_overrides.get(angle_id) or context.label_overrides.get(arc_id) or angle_id)
+    angle_label = f"{angle_base_label} = {angle_value}" if context.show_values and angle_value else angle_base_label
     radius_label = annotation_label(
         radius_annotation,
-        override=label_overrides.get(radius_id),
-        show_value=show_values,
+        override=context.label_overrides.get(radius_id),
+        show_value=context.show_values,
     )
     callout_id = str(callout_config.get("id") or f"{angle_id}_{radius_id}").strip()
     angle_type = annotation_parameter_type(angle_id, kind="arc")
     radius_type = annotation_parameter_type(radius_id, kind="radius")
-    arc_fallback = str(colors.get(angle_id) or colors.get(arc_id) or DEFAULT_LINE_COLORS.get(angle_id) or DEFAULT_LINE_COLORS.get(arc_id) or "#8b6f2f")
-    radius_fallback = str(colors.get(radius_id) or DEFAULT_LINE_COLORS.get(radius_id) or arc_fallback)
+    arc_fallback = str(context.colors.get(angle_id) or context.colors.get(arc_id) or DEFAULT_LINE_COLORS.get(angle_id) or DEFAULT_LINE_COLORS.get(arc_id) or "#8b6f2f")
+    radius_fallback = str(context.colors.get(radius_id) or DEFAULT_LINE_COLORS.get(radius_id) or arc_fallback)
     arc_color = type_line_color(style_config, angle_type, fallback=arc_fallback)
     radius_color = type_line_color(style_config, radius_type, fallback=radius_fallback)
 
@@ -1366,9 +1534,9 @@ def collect_angle_radius_callouts(
             angle_value=angle_value,
             radius_label=radius_label,
             radius_value=str(radius_annotation.get("value", "")),
-            center_mm=add_vectors(mapping_vector(radius_callout["center_mm"]), offset),
-            edge_mm=add_vectors(mapping_vector(radius_callout["edge_mm"]), offset),
-            points_mm=tuple(add_vectors(mapping_vector(point), offset) for point in arc_callout["points_mm"]),
+            center_mm=add_vectors(mapping_vector(radius_callout["center_mm"]), context.offset),
+            edge_mm=add_vectors(mapping_vector(radius_callout["edge_mm"]), context.offset),
+            points_mm=tuple(add_vectors(mapping_vector(point), context.offset) for point in arc_callout["points_mm"]),
             arc_color=arc_color,
             radius_color=radius_color,
             angle_type=angle_type,

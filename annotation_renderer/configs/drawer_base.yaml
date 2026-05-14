@@ -1,5 +1,5 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: base_scene.yaml
+extends: animation_presets.yaml
 job_name: opengrid_drawer_defaults_base
 constants:
   drawer_shell_rotation_x_deg: 90

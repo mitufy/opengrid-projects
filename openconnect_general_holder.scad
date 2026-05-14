@@ -82,6 +82,7 @@ $fa = 1;
 $fs = 0.4;
 emit_annotation_metadata = false;
 
+include <lib/annotation_metadata.scad>
 include <lib/opengrid_base.scad>
 use <lib/openconnect_lib.scad>
 
@@ -210,142 +211,90 @@ holder_tilt_angle_arc_end = [
   holder_min_z + holder_tilt_angle_arc_radius * cos(final_holder_tilt_angle)
 ];
 
-module emit_dimension_annotation(id, label, axis, value, start, end, basis) {
-  if (emit_annotation_metadata)
-    echo(str(
-      "OPENGRID_ANNOTATION_V1|",
-      "id=", id,
-      "|kind=dimension",
-      "|label=", label,
-      "|axis=", axis,
-      "|value=", value,
-      "|start=", start[0], ",", start[1], ",", start[2],
-      "|end=", end[0], ",", end[1], ",", end[2],
-      "|basis=", basis
-    ));
-}
-
-function _fmt_annotation_vec(v) = str(v[0], ",", v[1], ",", v[2]);
-function _fmt_annotation_vec_list(points, index=0) =
-  index >= len(points) ? "" :
-  str(index == 0 ? "" : ";", _fmt_annotation_vec(points[index]), _fmt_annotation_vec_list(points, index + 1));
-
-function _fmt_context_values(names, values, index=0) =
-  index >= len(names) ? "" :
-  str(index == 0 ? "" : ";", names[index], "=", values[index], _fmt_context_values(names, values, index + 1));
-
-module emit_context_values(id, names, values) {
-  if (emit_annotation_metadata)
-    echo(str(
-      "OPENGRID_ANNOTATION_V1|",
-      "id=", id,
-      "|kind=context",
-      "|values=", _fmt_context_values(names, values)
-    ));
-}
-
-module emit_feature_annotation(id, label, value, anchor, basis) {
-  if (emit_annotation_metadata)
-    echo(str(
-      "OPENGRID_ANNOTATION_V1|",
-      "id=", id,
-      "|kind=feature",
-      "|label=", label,
-      "|value=", value,
-      "|anchor=", anchor[0], ",", anchor[1], ",", anchor[2],
-      "|basis=", basis
-    ));
-}
-
-module emit_radius_annotation(id, label, value, center, edge, basis) {
-  if (emit_annotation_metadata)
-    echo(str(
-      "OPENGRID_ANNOTATION_V1|",
-      "id=", id,
-      "|kind=radius",
-      "|label=", label,
-      "|value=", value,
-      "|center=", center[0], ",", center[1], ",", center[2],
-      "|edge=", edge[0], ",", edge[1], ",", edge[2],
-      "|basis=", basis
-    ));
-}
-
-module emit_arc_annotation(id, label, value, points, basis) {
-  if (emit_annotation_metadata)
-    echo(str(
-      "OPENGRID_ANNOTATION_V1|",
-      "id=", id,
-      "|kind=arc",
-      "|label=", label,
-      "|value=", value,
-      "|start=", points[0][0], ",", points[0][1], ",", points[0][2],
-      "|end=", points[len(points) - 1][0], ",", points[len(points) - 1][1], ",", points[len(points) - 1][2],
-      "|points=", _fmt_annotation_vec_list(points),
-      "|basis=", basis
-    ));
-}
-
 module emit_general_holder_annotations() {
   emit_context_values(
     "general_holder_context",
     [
       "OG_TILE_SIZE",
       "compartment_shape",
+      "compartment_width",
+      "compartment_depth",
+      "final_compartment_depth",
+      "compartment_height",
+      "final_compartment_height",
       "compartment_column_count",
       "compartment_row_count",
+      "holder_width_mode",
       "holder_width",
+      "holder_depth",
       "final_holder_depth",
+      "body_height",
       "final_holder_height",
+      "holder_bottom_thickness",
+      "holder_outer_wall_thickness",
+      "holder_back_offset",
+      "holder_tilt_angle",
       "final_holder_tilt_angle",
       "slot_face_height",
       "final_slot_h_grids",
       "final_slot_v_grids",
+      "enable_bottom_taper",
+      "compartment_bottom_width",
+      "compartment_bottom_depth",
+      "final_compartment_taper_width",
+      "final_compartment_taper_depth",
+      "holder_vertical_divider_thickness",
+      "holder_horizontal_divider_thickness",
       "front_opening_width",
       "front_opening_height",
       "final_front_opening_height",
       "front_opening_rounding",
-      "compartment_width",
-      "final_compartment_depth",
-      "final_compartment_height",
-      "holder_bottom_thickness",
-      "holder_outer_wall_thickness",
-      "holder_back_offset",
       "final_compartment_rounding",
-      "enable_bottom_taper",
-      "final_compartment_taper_width",
-      "final_compartment_taper_depth",
-      "holder_vertical_divider_thickness",
-      "holder_horizontal_divider_thickness"
+      "slot_lock_distribution",
+      "slot_entryramp_flip",
+      "slot_horizontal_alignment",
+      "slot_vertical_alignment"
     ],
     [
       OG_TILE_SIZE,
       compartment_shape,
+      compartment_width,
+      compartment_depth,
+      final_compartment_depth,
+      compartment_height,
+      final_compartment_height,
       compartment_column_count,
       compartment_row_count,
+      holder_width_mode,
       holder_width,
+      holder_depth,
       final_holder_depth,
       final_holder_height,
+      final_holder_height,
+      max(0, holder_bottom_thickness),
+      holder_outer_wall_thickness,
+      holder_back_offset,
+      holder_tilt_angle,
       final_holder_tilt_angle,
       slot_face_height,
       final_slot_h_grids,
       final_slot_v_grids,
+      enable_bottom_taper,
+      compartment_bottom_width,
+      compartment_bottom_depth,
+      final_compartment_taper_width,
+      final_compartment_taper_depth,
+      holder_vertical_divider_thickness,
+      holder_horizontal_divider_thickness,
       front_opening_width,
       front_opening_height,
       final_front_opening_height,
       front_opening_rounding,
-      compartment_width,
-      final_compartment_depth,
-      final_compartment_height,
-      max(0, holder_bottom_thickness),
-      holder_outer_wall_thickness,
-      holder_back_offset,
       final_compartment_rounding,
-      enable_bottom_taper,
-      final_compartment_taper_width,
-      final_compartment_taper_depth,
-      holder_vertical_divider_thickness,
-      holder_horizontal_divider_thickness
+      slot_lock_distribution,
+      slot_entryramp_flip,
+      slot_horizontal_alignment,
+      slot_vertical_alignment
     ]
   );
   emit_dimension_annotation(
@@ -367,13 +316,22 @@ module emit_general_holder_annotations() {
     basis="overall_holder_depth_on_camera_front_side"
   );
   emit_dimension_annotation(
+    id="body_height",
+    label="body_height",
+    axis="z",
+    value=final_holder_height,
+    start=[holder_max_x, holder_min_y, holder_min_z],
+    end=[holder_max_x, holder_min_y, holder_max_z],
+    basis="overall_holder_height_from_final_holder_height"
+  );
+  emit_dimension_annotation(
     id="holder_height",
     label="holder_height",
     axis="z",
     value=final_holder_height,
-    start=[holder_min_x, holder_max_y, holder_min_z],
-    end=[holder_min_x, holder_max_y, holder_max_z],
-    basis="overall_holder_height"
+    start=[holder_max_x, holder_min_y, holder_min_z],
+    end=[holder_max_x, holder_min_y, holder_max_z],
+    basis="overall_holder_height_from_final_holder_height"
   );
   emit_dimension_annotation(
     id="compartment_width",

@@ -101,6 +101,11 @@
           "name": {
             "type": "string"
           },
+          "extends_variant": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional variant name to use as the base before applying this variant's overrides."
+          },
           "set": {
             "type": "object",
             "description": "Dotted config paths to override for this variant."
@@ -585,6 +590,21 @@
             },
             "camera_location_offset_mm": {
               "$ref": "#/$defs/vector3"
+            },
+            "camera_look_at": {
+              "type": "string",
+              "enum": [
+                "none",
+                "object_center"
+              ]
+            },
+            "output_mode": {
+              "type": "string",
+              "enum": [
+                "minimal",
+                "standard",
+                "debug"
+              ]
             },
             "mesh_shading": {
               "$ref": "#/$defs/meshShading"
