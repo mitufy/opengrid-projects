@@ -273,6 +273,34 @@ def apply_camera_location_offset(camera):
     return [float(value) for value in offset_vector]
 
 
+def camera_object_center(objects, fit_points=None):
+    mins, maxs, _corners = bbox_from_points(fit_points) if fit_points is not None else combined_world_bbox(objects)
+    return (mins + maxs) / 2
+
+
+def apply_camera_look_at(camera, objects, fit_points=None):
+    mode = config.get("camera_look_at", "none")
+    if not mode or mode == "none":
+        return None
+    if mode != "object_center":
+        raise RuntimeError(f"Unsupported camera_look_at mode {mode!r}")
+    target = camera_object_center(objects, fit_points=fit_points)
+    direction = target - camera.location
+    if direction.length <= 1e-9:
+        return {
+            "mode": mode,
+            "target": [float(value) for value in target],
+            "applied": False,
+        }
+    camera.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
+    bpy.context.view_layer.update()
+    return {
+        "mode": mode,
+        "target": [float(value) for value in target],
+        "applied": True,
+    }
+
+
 def configure_render(scene):
     engine = config.get("render_engine", "cycles")
     if engine == "cycles":
@@ -511,8 +539,13 @@ if not rendered_objects:
 configure_render(scene)
 bpy.context.view_layer.update()
 fit_points = animation_fit_points(rendered_objects, objects_by_id, config.get("animation"))
+camera_look_at = apply_camera_look_at(camera, rendered_objects, fit_points=fit_points)
 camera_fit = fit_camera_to_objects(scene, camera, rendered_objects, fit_points=fit_points)
 camera_location_offset = apply_camera_location_offset(camera)
+if camera_location_offset is not None:
+    camera_look_at = apply_camera_look_at(camera, rendered_objects, fit_points=fit_points)
+    if camera_look_at is not None and config.get("fit_camera", False):
+        camera_fit = fit_camera_to_objects(scene, camera, rendered_objects, fit_points=fit_points)
 has_animation = apply_animation(scene, objects_by_id)
 scene.render.filepath = config["render_path"]
 scene.render.image_settings.file_format = "PNG"
@@ -561,6 +594,7 @@ Path(config["projection_path"]).write_text(
                 "matrix_world": [[float(value) for value in row] for row in camera.matrix_world],
                 "fit": camera_fit,
                 "location_offset": camera_location_offset,
+                "look_at": camera_look_at,
             },
             "objects": {
                 object_id: {

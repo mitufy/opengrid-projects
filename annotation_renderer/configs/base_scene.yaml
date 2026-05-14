@@ -9,6 +9,11 @@ constants:
   blender_scene_scale_vector: [blender_scene_scale, blender_scene_scale, blender_scene_scale]
   placeholder_transform:
     location_mm: [0, 0, 0]
+    rotation_deg: [0, 0, 0]
+    scale:
+      $constant: blender_scene_scale_vector
+  wall_placeholder_transform:
+    location_mm: [0, 0, 0]
     rotation_deg: [90, 0, -90]
     scale:
       $constant: blender_scene_scale_vector

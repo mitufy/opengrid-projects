@@ -1,5 +1,5 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: base_scene.yaml
+extends: animation_presets.yaml
 variant_name: general_holder_default
 job_name: general_holder_scene_default
 constants:
@@ -30,23 +30,24 @@ constants:
       image_label_title_min_width_px: 620
       image_label_title_bottom_margin_px: 18
       colors:
-        holder_width: '#000000'
-        holder_depth: '#000000'
-        holder_height: '#000000'
+        compartment_width: '#000000'
+        compartment_depth: '#000000'
+        body_height: '#000000'
         front_opening_width: '#2563eb'
         front_opening_height: '#2563eb'
     aliases:
       compartment_shape: holder_shape
     chains:
-    - ids: [holder_width]
+    - ids: [compartment_width]
       display_offset_mm: [0, 0, 0]
-      line_offset_px: 20
+      line_offset_px: 0
       label_offset_px: 28
-    - ids: [holder_depth]
+    - ids: [compartment_depth]
+      optional: true
       display_offset_mm: [0, 0, 0]
       line_offset_px: 0
       label_offset_px: 24
-    - ids: [holder_height]
+    - ids: [body_height]
       display_offset_mm: [0, 0, 0]
       line_offset_px: -12
       label_offset_px: -24
@@ -78,6 +79,7 @@ scene:
       $constant: blender_scene_scale_vector
 render:
   fit_margin: 0.16
-  camera_location_offset_mm: [0, 0, 10]
+  camera_location_offset_mm: [0, 0, 100]
+  camera_look_at: object_center
 annotations:
   $constant: general_holder_annotations
