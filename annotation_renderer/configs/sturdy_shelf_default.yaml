@@ -1,5 +1,5 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: base_scene.yaml
+extends: animation_presets.yaml
 variant_name: sturdy_shelf_default
 job_name: sturdy_shelf_scene_default
 constants:
@@ -22,5 +22,8 @@ constants:
       show_value: true
 model:
   $constant: sturdy_shelf_model
+scene:
+  transform:
+    $constant: wall_placeholder_transform
 annotations:
   $constant: sturdy_shelf_annotations

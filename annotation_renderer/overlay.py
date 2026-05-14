@@ -178,6 +178,71 @@ def color_with_alpha(color: str, alpha: int) -> tuple[int, int, int, int]:
     return (*ImageColor.getrgb(color)[:3], clamp_alpha(alpha))
 
 
+class OverlayCanvas:
+    def __init__(self, image: Image.Image, *, scale: int = 4):
+        self.scale = scale
+        self.overlay = Image.new("RGBA", (image.width * scale, image.height * scale), (0, 0, 0, 0))
+        self.draw = ImageDraw.Draw(self.overlay)
+
+    def scaled_point(self, point: Sequence[float]) -> tuple[int, int]:
+        return (round(float(point[0]) * self.scale), round(float(point[1]) * self.scale))
+
+    def scaled_width(self, width: float) -> int:
+        return max(1, round(width * self.scale))
+
+    def line(
+        self,
+        point_a: Sequence[float],
+        point_b: Sequence[float],
+        *,
+        width: float,
+        fill: tuple[int, int, int, int],
+    ) -> None:
+        self.draw.line((self.scaled_point(point_a), self.scaled_point(point_b)), fill=fill, width=self.scaled_width(width))
+
+    def polyline(
+        self,
+        points: Sequence[Sequence[float]],
+        *,
+        width: float,
+        fill: tuple[int, int, int, int],
+    ) -> None:
+        if len(points) < 2:
+            return
+        self.draw.line([self.scaled_point(point) for point in points], fill=fill, width=self.scaled_width(width), joint="curve")
+
+    def dashed_line(
+        self,
+        point_a: Sequence[float],
+        point_b: Sequence[float],
+        *,
+        width: float,
+        fill: tuple[int, int, int, int],
+        dash_px: float,
+        gap_px: float,
+    ) -> None:
+        vector = (float(point_b[0]) - float(point_a[0]), float(point_b[1]) - float(point_a[1]))
+        length = (vector[0] ** 2 + vector[1] ** 2) ** 0.5
+        if length <= 1e-6:
+            return
+        direction = (vector[0] / length, vector[1] / length)
+        cursor = 0.0
+        dash = max(1.0, float(dash_px))
+        gap = max(0.0, float(gap_px))
+        while cursor < length:
+            dash_end = min(cursor + dash, length)
+            start = (float(point_a[0]) + direction[0] * cursor, float(point_a[1]) + direction[1] * cursor)
+            end = (float(point_a[0]) + direction[0] * dash_end, float(point_a[1]) + direction[1] * dash_end)
+            self.line(start, end, width=width, fill=fill)
+            cursor = dash_end + gap
+
+    def composite_onto(self, image: Image.Image) -> None:
+        image.alpha_composite(self.overlay.resize(image.size, resample=Image.Resampling.LANCZOS))
+
+    def has_content(self) -> bool:
+        return self.overlay.getbbox() is not None
+
+
 def segment_bbox(
     point_a: Sequence[float],
     point_b: Sequence[float],
@@ -432,43 +497,7 @@ def draw_dimension_chains_overlay(
         raise ValueError("At least one dimension chain is required")
     image = Image.open(render_path).convert("RGBA")
     projected = projection["projection"]
-
-    scale = 4
-    overlay = Image.new("RGBA", (image.width * scale, image.height * scale), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay)
-
-    def scaled_point(point: Sequence[float]) -> tuple[int, int]:
-        return (round(float(point[0]) * scale), round(float(point[1]) * scale))
-
-    def scaled_width(width: float) -> int:
-        return max(1, round(width * scale))
-
-    def draw_segment(point_a: Sequence[float], point_b: Sequence[float], *, width: float, fill: tuple[int, int, int, int]) -> None:
-        draw.line((scaled_point(point_a), scaled_point(point_b)), fill=fill, width=scaled_width(width))
-
-    def draw_dashed_segment(
-        point_a: Sequence[float],
-        point_b: Sequence[float],
-        *,
-        width: float,
-        fill: tuple[int, int, int, int],
-        dash_px: float,
-        gap_px: float,
-    ) -> None:
-        vector = (float(point_b[0]) - float(point_a[0]), float(point_b[1]) - float(point_a[1]))
-        length = (vector[0] ** 2 + vector[1] ** 2) ** 0.5
-        if length <= 1e-6:
-            return
-        direction = (vector[0] / length, vector[1] / length)
-        cursor = 0.0
-        dash = max(1.0, float(dash_px))
-        gap = max(0.0, float(gap_px))
-        while cursor < length:
-            dash_end = min(cursor + dash, length)
-            start = (float(point_a[0]) + direction[0] * cursor, float(point_a[1]) + direction[1] * cursor)
-            end = (float(point_a[0]) + direction[0] * dash_end, float(point_a[1]) + direction[1] * dash_end)
-            draw_segment(start, end, width=width, fill=fill)
-            cursor = dash_end + gap
+    canvas = OverlayCanvas(image)
 
     def one_sided_tick(
         point: Sequence[float],
@@ -539,6 +568,7 @@ def draw_dimension_chains_overlay(
                 "label_outline_width_px": int(style_config.get("label_outline_width_px", LABEL_OUTLINE_WIDTH)),
                 "label_offset_px": spec.label_offset_px,
                 "angle": angle,
+                "style_config": style_config,
             }
         )
 
@@ -546,7 +576,7 @@ def draw_dimension_chains_overlay(
         if not chain["extension_visible"]:
             continue
         for point, baseline_point in zip(chain["source_points"], chain["baseline_points"]):
-            draw_dashed_segment(
+            canvas.dashed_line(
                 point,
                 baseline_point,
                 width=5.0,
@@ -562,7 +592,7 @@ def draw_dimension_chains_overlay(
         for index, (point, baseline_point) in enumerate(zip(chain["source_points"], chain["baseline_points"])):
             segment = segments[min(index, len(segments) - 1)]
             extension = (*ImageColor.getrgb(segment.color)[:3], int(chain["line_alpha"]))
-            draw_dashed_segment(
+            canvas.dashed_line(
                 point,
                 baseline_point,
                 width=float(chain["extension_width_px"]),
@@ -577,10 +607,10 @@ def draw_dimension_chains_overlay(
         source_points = chain["source_points"]
         tick = chain["tick"]
         for start, end in zip(baseline_points, baseline_points[1:]):
-            draw_segment(start, end, width=6.5, fill=halo)
+            canvas.line(start, end, width=6.5, fill=halo)
         for point, source_point in zip(baseline_points, source_points):
             tick_start, tick_end = one_sided_tick(point, source_point, tick)
-            draw_segment(tick_start, tick_end, width=6.5, fill=halo)
+            canvas.line(tick_start, tick_end, width=6.5, fill=halo)
 
     for chain in prepared_chains:
         segments = chain["segments"]
@@ -590,15 +620,14 @@ def draw_dimension_chains_overlay(
         line_alpha = int(chain["line_alpha"])
         for index, segment in enumerate(segments):
             color = (*ImageColor.getrgb(segment.color)[:3], line_alpha)
-            draw_segment(baseline_points[index], baseline_points[index + 1], width=float(chain["line_width_px"]), fill=color)
+            canvas.line(baseline_points[index], baseline_points[index + 1], width=float(chain["line_width_px"]), fill=color)
         for index, (point, source_point) in enumerate(zip(baseline_points, source_points)):
             segment = segments[min(index, len(segments) - 1)]
             color = (*ImageColor.getrgb(segment.color)[:3], line_alpha)
             tick_start, tick_end = one_sided_tick(point, source_point, tick)
-            draw_segment(tick_start, tick_end, width=float(chain["line_width_px"]), fill=color)
+            canvas.line(tick_start, tick_end, width=float(chain["line_width_px"]), fill=color)
 
-    overlay = overlay.resize(image.size, resample=Image.Resampling.LANCZOS)
-    image.alpha_composite(overlay)
+    canvas.composite_onto(image)
 
     chain_metadata = []
     occupied_labels: list[tuple[float, float, float, float]] = []
@@ -611,17 +640,18 @@ def draw_dimension_chains_overlay(
         text_offset = (normal[0] * float(chain["label_offset_px"]), normal[1] * float(chain["label_offset_px"]))
         baseline_points = chain["baseline_points"]
         text_metadata = {}
+        chain_style_config = chain["style_config"]
         for index, segment in enumerate(chain["segments"]):
             midpoint = (
                 (baseline_points[index][0] + baseline_points[index + 1][0]) / 2.0,
                 (baseline_points[index][1] + baseline_points[index + 1][1]) / 2.0,
             )
             label_color = (
-                label_color_for_line(style_config, segment.color, segment.parameter_type)
+                label_color_for_line(chain_style_config, segment.color, segment.parameter_type)
                 if chain["label_color_by_segment"]
                 else str(chain["label_color"])
             )
-            label_font_key = font_key_for_type(style_config, segment.parameter_type)
+            label_font_key = font_key_for_type(chain_style_config, segment.parameter_type)
             preferred_center = (midpoint[0] + text_offset[0], midpoint[1] + text_offset[1])
             label_image = rotated_label_image(
                 text=segment.label,
@@ -697,43 +727,7 @@ def draw_radius_callout_overlay(
         raise ValueError("At least one radius callout is required")
     image = Image.open(render_path).convert("RGBA")
     projected = projection["projection"]
-
-    scale = 4
-    overlay = Image.new("RGBA", (image.width * scale, image.height * scale), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay)
-
-    def scaled_point(point: Sequence[float]) -> tuple[int, int]:
-        return (round(float(point[0]) * scale), round(float(point[1]) * scale))
-
-    def scaled_width(width: float) -> int:
-        return max(1, round(width * scale))
-
-    def draw_segment(point_a: Sequence[float], point_b: Sequence[float], *, width: float, fill: tuple[int, int, int, int]) -> None:
-        draw.line((scaled_point(point_a), scaled_point(point_b)), fill=fill, width=scaled_width(width))
-
-    def draw_dashed_segment(
-        point_a: Sequence[float],
-        point_b: Sequence[float],
-        *,
-        width: float,
-        fill: tuple[int, int, int, int],
-        dash_px: float,
-        gap_px: float,
-    ) -> None:
-        vector = (float(point_b[0]) - float(point_a[0]), float(point_b[1]) - float(point_a[1]))
-        length = (vector[0] ** 2 + vector[1] ** 2) ** 0.5
-        if length <= 1e-6:
-            return
-        direction = (vector[0] / length, vector[1] / length)
-        dash = max(dash_px, 1.0)
-        gap = max(gap_px, 0.0)
-        position = 0.0
-        while position < length:
-            next_position = min(position + dash, length)
-            start = (float(point_a[0]) + direction[0] * position, float(point_a[1]) + direction[1] * position)
-            end = (float(point_a[0]) + direction[0] * next_position, float(point_a[1]) + direction[1] * next_position)
-            draw_segment(start, end, width=width, fill=fill)
-            position += dash + gap
+    canvas = OverlayCanvas(image)
 
     line_alpha = clamp_alpha(int(style_config.get("line_alpha", DEFAULT_LINE_ALPHA)))
     line_width_px = float(style_config.get("line_width_px", 3.0))
@@ -764,13 +758,13 @@ def draw_radius_callout_overlay(
 
         dash_px = max(line_width_px * 5.0, 14.0)
         gap_px = max(line_width_px * 3.2, 9.0)
-        draw_dashed_segment(center, leader_end, width=line_width_px + 3.5, fill=halo, dash_px=dash_px, gap_px=gap_px)
+        canvas.dashed_line(center, leader_end, width=line_width_px + 3.5, fill=halo, dash_px=dash_px, gap_px=gap_px)
 
         color = (*ImageColor.getrgb(callout.color)[:3], line_alpha)
-        draw_dashed_segment(center, leader_end, width=line_width_px, fill=color, dash_px=dash_px, gap_px=gap_px)
-        center_radius = max(2, round(line_width_px * 1.15 * scale))
-        scaled_center = scaled_point(center)
-        draw.ellipse(
+        canvas.dashed_line(center, leader_end, width=line_width_px, fill=color, dash_px=dash_px, gap_px=gap_px)
+        center_radius = max(2, round(line_width_px * 1.15 * canvas.scale))
+        scaled_center = canvas.scaled_point(center)
+        canvas.draw.ellipse(
             (
                 scaled_center[0] - center_radius,
                 scaled_center[1] - center_radius,
@@ -809,10 +803,8 @@ def draw_radius_callout_overlay(
             occupied=occupied_labels,
             shift_axes=[direction, normal],
         )
-        overlay = overlay.resize(image.size, resample=Image.Resampling.LANCZOS)
-        image.alpha_composite(overlay)
-        overlay = Image.new("RGBA", (image.width * scale, image.height * scale), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(overlay)
+        canvas.composite_onto(image)
+        canvas = OverlayCanvas(image)
 
         draw_rotated_label(
             image,
@@ -844,9 +836,8 @@ def draw_radius_callout_overlay(
             "leader_end_px": {"x": round(leader_end[0], 2), "y": round(leader_end[1], 2)},
         }
 
-    if overlay.getbbox() is not None:
-        overlay = overlay.resize(image.size, resample=Image.Resampling.LANCZOS)
-        image.alpha_composite(overlay)
+    if canvas.has_content():
+        canvas.composite_onto(image)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     image.convert("RGB").save(output_path)
@@ -870,24 +861,7 @@ def draw_arc_callout_overlay(
         raise ValueError("At least one arc callout is required")
     image = Image.open(render_path).convert("RGBA")
     projected = projection["projection"]
-
-    scale = 4
-    overlay = Image.new("RGBA", (image.width * scale, image.height * scale), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay)
-
-    def scaled_point(point: Sequence[float]) -> tuple[int, int]:
-        return (round(float(point[0]) * scale), round(float(point[1]) * scale))
-
-    def scaled_width(width: float) -> int:
-        return max(1, round(width * scale))
-
-    def draw_polyline(points: Sequence[Sequence[float]], *, width: float, fill: tuple[int, int, int, int]) -> None:
-        if len(points) < 2:
-            return
-        draw.line([scaled_point(point) for point in points], fill=fill, width=scaled_width(width), joint="curve")
-
-    def draw_segment(point_a: Sequence[float], point_b: Sequence[float], *, width: float, fill: tuple[int, int, int, int]) -> None:
-        draw.line((scaled_point(point_a), scaled_point(point_b)), fill=fill, width=scaled_width(width))
+    canvas = OverlayCanvas(image)
 
     line_alpha = clamp_alpha(int(style_config.get("line_alpha", DEFAULT_LINE_ALPHA)))
     line_width_px = float(style_config.get("line_width_px", 3.0))
@@ -909,8 +883,8 @@ def draw_arc_callout_overlay(
         if len(points) < 2:
             raise ValueError(f"Projected arc callout {callout.id!r} needs at least two points")
         color = (*ImageColor.getrgb(callout.color)[:3], line_alpha)
-        draw_polyline(points, width=line_width_px + 3.5, fill=halo)
-        draw_polyline(points, width=line_width_px, fill=color)
+        canvas.polyline(points, width=line_width_px + 3.5, fill=halo)
+        canvas.polyline(points, width=line_width_px, fill=color)
 
         for endpoint, neighbor in ((points[0], points[1]), (points[-1], points[-2])):
             tangent = (endpoint[0] - neighbor[0], endpoint[1] - neighbor[1])
@@ -919,13 +893,13 @@ def draw_arc_callout_overlay(
                 continue
             normal = (-tangent[1] / length, tangent[0] / length)
             tick = (normal[0] * tick_length_px * 0.35, normal[1] * tick_length_px * 0.35)
-            draw_segment(
+            canvas.line(
                 (endpoint[0] - tick[0], endpoint[1] - tick[1]),
                 (endpoint[0] + tick[0], endpoint[1] + tick[1]),
                 width=line_width_px + 3.5,
                 fill=halo,
             )
-            draw_segment(
+            canvas.line(
                 (endpoint[0] - tick[0], endpoint[1] - tick[1]),
                 (endpoint[0] + tick[0], endpoint[1] + tick[1]),
                 width=line_width_px,
@@ -985,8 +959,7 @@ def draw_arc_callout_overlay(
             "points_px": [{"x": round(point[0], 2), "y": round(point[1], 2)} for point in points],
         }
 
-    overlay = overlay.resize(image.size, resample=Image.Resampling.LANCZOS)
-    image.alpha_composite(overlay)
+    canvas.composite_onto(image)
     for callout in (callouts if show_label else ()):
         text = text_metadata[callout.id]
         draw_rotated_label(
@@ -1027,48 +1000,7 @@ def draw_angle_radius_callout_overlay(
         raise ValueError("At least one angle/radius callout is required")
     image = Image.open(render_path).convert("RGBA")
     projected = projection["projection"]
-
-    scale = 4
-    overlay = Image.new("RGBA", (image.width * scale, image.height * scale), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay)
-
-    def scaled_point(point: Sequence[float]) -> tuple[int, int]:
-        return (round(float(point[0]) * scale), round(float(point[1]) * scale))
-
-    def scaled_width(width: float) -> int:
-        return max(1, round(width * scale))
-
-    def draw_segment(point_a: Sequence[float], point_b: Sequence[float], *, width: float, fill: tuple[int, int, int, int]) -> None:
-        draw.line((scaled_point(point_a), scaled_point(point_b)), fill=fill, width=scaled_width(width))
-
-    def draw_polyline(points: Sequence[Sequence[float]], *, width: float, fill: tuple[int, int, int, int]) -> None:
-        if len(points) < 2:
-            return
-        draw.line([scaled_point(point) for point in points], fill=fill, width=scaled_width(width), joint="curve")
-
-    def draw_dashed_segment(
-        point_a: Sequence[float],
-        point_b: Sequence[float],
-        *,
-        width: float,
-        fill: tuple[int, int, int, int],
-        dash_px: float,
-        gap_px: float,
-    ) -> None:
-        vector = (float(point_b[0]) - float(point_a[0]), float(point_b[1]) - float(point_a[1]))
-        length = (vector[0] ** 2 + vector[1] ** 2) ** 0.5
-        if length <= 1e-6:
-            return
-        direction = (vector[0] / length, vector[1] / length)
-        dash = max(1.0, float(dash_px))
-        gap = max(0.0, float(gap_px))
-        cursor = 0.0
-        while cursor < length:
-            dash_end = min(cursor + dash, length)
-            start = (float(point_a[0]) + direction[0] * cursor, float(point_a[1]) + direction[1] * cursor)
-            end = (float(point_a[0]) + direction[0] * dash_end, float(point_a[1]) + direction[1] * dash_end)
-            draw_segment(start, end, width=width, fill=fill)
-            cursor = dash_end + gap
+    canvas = OverlayCanvas(image)
 
     line_alpha = clamp_alpha(int(style_config.get("line_alpha", DEFAULT_LINE_ALPHA)))
     line_width_px = float(style_config.get("line_width_px", 3.0))
@@ -1117,12 +1049,12 @@ def draw_angle_radius_callout_overlay(
             visible_radius_length = radius_length
 
         if angle_fill_alpha > 0:
-            draw.polygon(
-                [scaled_point(center), *(scaled_point(point) for point in points)],
+            canvas.draw.polygon(
+                [canvas.scaled_point(center), *(canvas.scaled_point(point) for point in points)],
                 fill=(*ImageColor.getrgb(angle_fill_color)[:3], angle_fill_alpha),
             )
 
-        draw_dashed_segment(
+        canvas.dashed_line(
             center,
             radius_leader_end,
             width=line_width_px + 3.5,
@@ -1130,7 +1062,7 @@ def draw_angle_radius_callout_overlay(
             dash_px=radial_dash_px,
             gap_px=radial_gap_px,
         )
-        draw_dashed_segment(
+        canvas.dashed_line(
             center,
             radius_leader_end,
             width=radial_width_px,
@@ -1139,13 +1071,13 @@ def draw_angle_radius_callout_overlay(
             gap_px=radial_gap_px,
         )
 
-        draw_polyline(points, width=line_width_px + 3.2, fill=halo)
-        draw_polyline(points, width=line_width_px, fill=arc_color)
+        canvas.polyline(points, width=line_width_px + 3.2, fill=halo)
+        canvas.polyline(points, width=line_width_px, fill=arc_color)
 
-        dot_radius = max(2, round((line_width_px * 1.05) * scale))
+        dot_radius = max(2, round((line_width_px * 1.05) * canvas.scale))
         for dot_point, dot_color in ((center, radial_color), (start, arc_color), (end, arc_color)):
-            scaled = scaled_point(dot_point)
-            draw.ellipse(
+            scaled = canvas.scaled_point(dot_point)
+            canvas.draw.ellipse(
                 (
                     scaled[0] - dot_radius,
                     scaled[1] - dot_radius,
@@ -1276,8 +1208,7 @@ def draw_angle_radius_callout_overlay(
             "points_px": [{"x": round(point[0], 2), "y": round(point[1], 2)} for point in points],
         }
 
-    overlay = overlay.resize(image.size, resample=Image.Resampling.LANCZOS)
-    image.alpha_composite(overlay)
+    canvas.composite_onto(image)
 
     for callout in callouts:
         angle_text = text_metadata.get(f"{callout.id}.angle")

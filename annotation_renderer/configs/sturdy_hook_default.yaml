@@ -109,6 +109,9 @@ constants:
         $constant: annotation_title_font_size_px
 model:
   $constant: sturdy_hook_model
+scene:
+  transform:
+    $constant: wall_placeholder_transform
 render:
   fit_margin: 0.14
 annotations:

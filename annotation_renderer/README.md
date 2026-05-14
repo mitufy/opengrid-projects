@@ -20,7 +20,7 @@ annotation_renderer/
     scenes/
       opengrid_wall_scene.blend
   configs/
-    animation_examples.yaml
+    animation_presets.yaml
     base_scene.yaml
     drawer_base.yaml
     drawer_shell_container_default.yaml
@@ -54,6 +54,12 @@ For a local editable install with the console entry point:
 ```powershell
 .\build\.venv-tools\Scripts\python.exe -m pip install -e .
 .\build\.venv-tools\Scripts\opengrid-annotate.exe --config annotation_renderer\configs\model_defaults.yaml --validate-only
+```
+
+Check the local environment before rendering:
+
+```powershell
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer --doctor
 ```
 
 Install the optional mesh tooling dependencies and test runner when running the full test suite or mesh comparison/review scripts:
@@ -160,7 +166,15 @@ Print the fully resolved config without invoking OpenSCAD or Blender:
 
 `python -m annotation_renderer` and the optional `opengrid-annotate` console script are the supported entry points.
 
-Single outputs are written under `build/scene_annotations/<job-name>__<timestamp>/`. Gallery outputs are written under `build/scene_annotations/<job-name>__gallery__<timestamp>/`, with each variant in its own subfolder plus `gallery.png`. Generated artifacts stay under `build/` and are ignored by git.
+Final render images are grouped by SCAD source under `build/scene_annotations/<scad-file-stem>/`, for example `build/scene_annotations/openconnect_general_holder/general_holder_scene_default__20260513-215208.png`. This keeps comparable images for the same model in one folder. Gallery runs use the same SCAD subfolder layout inside the gallery folder and also write `gallery.png`.
+
+Use `--output-mode` or `render.output_mode` to control retained sidecars:
+
+* `minimal`: keep only final image outputs, such as `.png` or `.gif`
+* `standard`: keep final image outputs plus a matching `.metadata.json` sidecar
+* `debug`: keep final image outputs, metadata, and all working artifacts under `<scad-file-stem>/debug/<job-name>__<timestamp>/`
+
+`standard` is the default. Generated artifacts stay under `build/` and are ignored by git.
 
 ## Discovery And Templates
 
@@ -183,6 +197,29 @@ List annotation groups and their current offsets:
 ```powershell
 .\build\.venv-tools\Scripts\python.exe -m annotation_renderer --list-annotations general_holder_default
 ```
+
+List the parameters that can be added to annotation config:
+
+```powershell
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer --discover-annotations openconnect_sturdy_hook.scad
+```
+
+The discovery output reads the SCAD source directly. Pass a `.scad` file path, not a render config name such as `sturdy_hook_default` or `drawer_shell_container_default`. It lists possible annotation parameters without running OpenSCAD, so it does not include exact values that depend on customizable model parameters. The list is grouped by config use:
+
+* `dimension parameters` can be added to `annotations.chains[].ids`
+* `radius parameters` can be added to `annotations.radius_callouts[].ids` or `annotations.angle_radius_callouts[].radius_id`
+* `arc parameters` can be added to `annotations.arc_callouts[].ids` or `annotations.angle_radius_callouts[].arc_id`
+* `context value parameters` can be added to `annotations.image_labels[].id`; numeric values can also be used in offsets and `annotations.angle_radius_callouts[].angle_id`
+
+By default, discovery only prints the plain text list. Add `--out` when you want a file:
+
+```powershell
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
+  --discover-annotations openconnect_sturdy_hook.scad `
+  --out build\scene_annotations\sturdy_hook_annotations.yaml
+```
+
+`--out` supports `.txt` for the same plain text list, `.yaml` or `.yml` for editable structured output, and `.json` for machine-readable output. Discovery does not generate temporary STL or OpenSCAD log files.
 
 Generate a compact editable config that extends a default model:
 
@@ -210,7 +247,7 @@ model:
 
 annotations:
   chains:
-    - ids: [holder_width]
+    - ids: [compartment_width]
       display_offset_mm: [0, 0, 0]
       line_offset_px: 20
       label_offset_px: 28
@@ -220,35 +257,31 @@ Keep using the existing `extends` and `$constant` composition features instead o
 
 ## Animation Workflow
 
-Animations are defined in the selected variant under `render.animation`. The renderer still exports the configured OpenSCAD objects and replaces them in the Blender scene, then applies object keyframes before rendering a PNG frame sequence and encoding `animation.gif`. Animation output is unannotated; the same run can still write `render.png` and `annotated.png` for the final still.
+Animations are defined by applying a render animation preset with `--animation-preset`. The renderer still exports the configured OpenSCAD objects and replaces them in the Blender scene, then applies object keyframes before rendering a PNG frame sequence and encoding a GIF. The shortcut clears annotation groups for the run, so animation outputs are unannotated.
 
-The tracked animation examples live in `configs/animation_examples.yaml`, which extends `model_defaults.yaml`. Stable still-image defaults live in per-model files such as `sturdy_hook_default.yaml` and `general_holder_default.yaml`; `model_defaults.yaml` imports those files for gallery and backward-compatible variant commands. Put demo animations and animation-only presets in the extending config.
+Reusable animation presets live in `configs/animation_presets.yaml`. Model configs such as `general_holder_default.yaml`, `sturdy_shelf_default.yaml`, and `drawer_shell_container_default.yaml` extend it, so animations inherit the same scene transform, camera settings, model defines, and materials as the still-image default.
 
 Use this loop when adding an animation:
 
-1. Add or copy a variant in `configs/animation_examples.yaml`.
-2. Set `scene.objects` to the generated objects that should exist in the scene.
-3. Add `render.animation.enabled: true`, `frame_start: 0`, `fps`, and `output_format: "gif"`.
-4. Use `clips` when multiple object animations should run in sequence.
-5. Validate with `--validate-only`, then render the named variant.
+1. Add a reusable render preset under `constants` in `configs/animation_presets.yaml`.
+2. Use `object_animations` for one-object motion or `clips` when multiple object animations should run in sequence.
+3. Validate the target model config with `--animation-preset <preset> --validate-only`.
+4. Render the target model config with that preset.
 
 Example render command:
 
 ```powershell
 .\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
-  --config annotation_renderer\configs\animation_examples.yaml `
-  --variant drawer_install_then_container_slide_animation
+  --config annotation_renderer\configs\drawer_shell_container_default.yaml `
+  --animation-preset drawer_install_then_slide_animation_render
 ```
 
-Animation examples use constants as presets, so variants can stay small:
+General holder insert animation:
 
-```yaml
-name: general_holder_insert_animation
-model:
-  $constant: general_holder_model
-render:
-  $constant: openconnect_insert_animation_render
-annotations: {}
+```powershell
+.\build\.venv-tools\Scripts\python.exe -m annotation_renderer `
+  --config annotation_renderer\configs\general_holder_default.yaml `
+  --animation-preset openconnect_insert_animation_render
 ```
 
 The current animation presets are:
@@ -259,19 +292,30 @@ The current animation presets are:
 * `fade_in_8f_track`: show at the clip boundary and fade alpha from `0` to `1` over 8 frames.
 * `openconnect_insert_animation_render`, `drawer_slide_animation_render`, and `drawer_install_then_slide_animation_render`: full render presets for common GIF jobs.
 
-Animation clips use local frame numbers for their object tracks. The clip `start_frame` shifts those local frames onto the global timeline. This is the compact drawer shell install plus drawer container slide variant:
+Animation clips use local frame numbers for their object tracks. The clip `start_frame` shifts those local frames onto the global timeline. This is the compact drawer shell install plus drawer container slide preset:
 
 ```yaml
-name: drawer_install_then_container_slide_animation
-scene:
-  object_defaults:
-    $constant: drawer_object_defaults
-  objects:
-    - $constant: drawer_shell_object
-    - $constant: drawer_container_object
-render:
-  $constant: drawer_install_then_slide_animation_render
-annotations: {}
+drawer_install_then_slide_animation_render:
+  engine: eevee
+  quality: draft
+  fit_margin: 0.14
+  animation:
+    enabled: true
+    duration_frames: 48
+    clips:
+    - name: shell_openconnect_install
+      start_frame: 0
+      object_animations:
+      - $constant: openconnect_install_track
+        object: drawer_shell
+    - name: container_slide
+      start_frame: 48
+      interpolation: ease_out
+      object_animations:
+      - $constant: fade_in_8f_track
+        object: drawer_container
+        from_location_offset_mm: [0, -50, 0]
+        to_location_offset_mm: [0, 0, 0]
 ```
 
 Supported object animation fields:
@@ -332,6 +376,16 @@ scene:
 
 The expression helper `odd(value)` returns `1` for odd numeric values and `0` for even values, which is useful for half-tile placement corrections.
 
+Use `render.camera_location_offset_mm` when the fitted camera needs to move after framing the model. If the camera should still point at the model after that move, set `render.camera_look_at: object_center`:
+
+```yaml
+render:
+  camera_location_offset_mm: [0, 0, 50]
+  camera_look_at: object_center
+```
+
+`camera_look_at` defaults to `none`. With `object_center`, the runtime rotates the render camera toward the combined generated-object bounding-box center before fitting and repeats that rotation after any location offset.
+
 Expression names can come from top-level numeric `constants`, numeric `model.defines`, and SCAD-emitted numeric context metadata. Prefer SCAD context for values calculated by the model, such as `OG_TILE_SIZE`, `shell_thickness`, `shell_ocslot_part_thickness`, `shelf_back_thickness`, and final derived thicknesses. That keeps config transforms and annotation offsets tied to the same OpenSCAD run that generated the STL.
 
 Because SCAD context only exists after export, `--print-resolved-config` may show `transform: null` with the raw `transform_config` for scene objects whose expressions depend on emitted context. A real render resolves those expressions after parsing each object's OpenSCAD log.
@@ -344,7 +398,7 @@ constants:
   blender_scene_scale_vector: [blender_scene_scale, blender_scene_scale, blender_scene_scale]
   placeholder_transform:
     location_mm: [0, 0, 0]
-    rotation_deg: [90, 0, -90]
+    rotation_deg: [0, 0, 0]
     scale:
       $constant: blender_scene_scale_vector
   small_dimension_chain:
@@ -361,6 +415,16 @@ annotations:
 
 Constant references are resolved after the selected variant and `--set` overrides are applied. Numeric constants still feed expression strings; object, array, string, and boolean constants are only used as reusable config values.
 
+Variants can inherit another variant with `extends_variant`. This is useful when a secondary still-image variant should keep another variant's model, scene, and render settings while changing only a few fields:
+
+```yaml
+variants:
+- name: general_holder_large_opening
+  extends_variant: general_holder_default
+  set:
+    model.defines.front_opening_width: 38
+```
+
 For scenes that need more than one generated object, use `scene.objects`. Put repeated object settings in `scene.object_defaults`; each object is merged over those defaults. This is useful when several objects come from the same SCAD file and mostly share OpenSCAD defines. When `scene.objects` is present, the top-level `model` section is optional:
 
 ```yaml
@@ -369,7 +433,7 @@ constants:
   drawer_container_rotation_x_deg: 0
   placeholder_transform:
     location_mm: [0, 0, 0]
-    rotation_deg: [90, 0, -90]
+    rotation_deg: [0, 0, 0]
     scale: [0.001, 0.001, 0.001]
   drawer_common_model:
     scad_file: openconnect_drawer.scad

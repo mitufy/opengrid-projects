@@ -128,6 +128,7 @@ use <lib/openconnect_lib.scad>
 $fa = 1;
 $fs = 0.4;
 emit_annotation_metadata = false;
+include <lib/annotation_metadata.scad>
 function calc_inner_chamfer(outer_chamfer, wall_thickness) = (outer_chamfer / sqrt(2) + wall_thickness - wall_thickness * sqrt(2)) * sqrt(2);
 
 shell_inner_chamfer = max(0, calc_inner_chamfer(shell_outer_chamfer, shell_thickness));
@@ -284,35 +285,6 @@ shell_annotation_y_min = shell_annotation_offset[1] - shell_height / 2;
 shell_annotation_y_max = shell_annotation_offset[1] + shell_height / 2;
 shell_annotation_z_min = shell_annotation_offset[2];
 shell_annotation_z_max = shell_annotation_offset[2] + shell_depth;
-
-module emit_dimension_annotation(id, label, axis, value, start, end, basis) {
-  if (emit_annotation_metadata)
-    echo(str(
-      "OPENGRID_ANNOTATION_V1|",
-      "id=", id,
-      "|kind=dimension",
-      "|label=", label,
-      "|axis=", axis,
-      "|value=", value,
-      "|start=", start[0], ",", start[1], ",", start[2],
-      "|end=", end[0], ",", end[1], ",", end[2],
-      "|basis=", basis
-    ));
-}
-
-function _fmt_context_values(names, values, index=0) =
-  index >= len(names) ? "" :
-  str(index == 0 ? "" : ";", names[index], "=", values[index], _fmt_context_values(names, values, index + 1));
-
-module emit_context_values(id, names, values) {
-  if (emit_annotation_metadata)
-    echo(str(
-      "OPENGRID_ANNOTATION_V1|",
-      "id=", id,
-      "|kind=context",
-      "|values=", _fmt_context_values(names, values)
-    ));
-}
 
 module emit_drawer_annotation_context() {
   emit_context_values(
