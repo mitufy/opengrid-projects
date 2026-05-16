@@ -1,4 +1,4 @@
-/* 
+/*
 Licensed Creative Commons Attribution 4.0 International
 
 Created by mitufy. https://github.com/mitufy
@@ -270,12 +270,37 @@ _snapbody_text_cfg = text_cfg(
   sizes=_snaptext_sizes,
   fonts=_snaptext_fonts,
   fills=_snaptext_fills,
-  pos_offsets=_snaptext_body_pos
+  pos_offsets=_snaptext_body_pos,
+  text_depth=text_depth
 );
 _screw_add_blunt_text = threads_type == "Blunt";
+_screwtext_texts = [
+  if (_screw_add_blunt_text) OG_SNAP_BLUNT_TEXT,
+  if (_add_thickness_text) str(floor(_snap_thickness)),
+];
+_screwtext_sizes = [
+  if (_screw_add_blunt_text) 4,
+  if (_add_thickness_text) 4.5,
+];
+_screwtext_fonts = [
+  if (_screw_add_blunt_text) OG_SNAP_EMOJI_FONT,
+  if (_add_thickness_text) OG_SNAP_TEXT_FONT,
+];
+_screwtext_fills = [
+  if (_screw_add_blunt_text) true,
+  if (_add_thickness_text) false,
+];
+_screwtext_pos = [
+  if (_screw_add_blunt_text) [_add_thickness_text ? 2.4 : 0, 0],
+  if (_add_thickness_text) [-(_screw_add_blunt_text ? 2.4 : 0), 0],
+];
 _screw_text_cfg = text_cfg(
-  texts=[if (_screw_add_blunt_text) OG_SNAP_BLUNT_TEXT, if (_add_thickness_text) str(floor(_snap_thickness))],
-  pos_offsets=(_screw_add_blunt_text && _add_thickness_text) ? OG_GADGET_TEXT_POSITIONS : [[0, 0]]
+  texts=_screwtext_texts,
+  sizes=_screwtext_sizes,
+  fonts=_screwtext_fonts,
+  fills=_screwtext_fills,
+  pos_offsets=_screwtext_pos,
+  text_depth=text_depth
 );
 _espring_cfg = snap_spring_cfg(
   spring_thickness=spring_thickness,

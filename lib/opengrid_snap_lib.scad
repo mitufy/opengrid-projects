@@ -1,4 +1,4 @@
-/* 
+/*
 Licensed Creative Commons Attribution 4.0 International
 
 Created by mitufy. https://github.com/mitufy
@@ -280,7 +280,7 @@ module snap_cut(snapbody_cfg = [], snapcut_cfg = []) {
           attach(i, FRONT, align=TOP, inside=true)
             cuboid([bottom_cut_length, _side_cut_depth, _side_cut_thickness]);
   }
-  if (_snap_body_shape == "Directional" && !_disable_all_bottom_cut)
+  if (_snap_body_shape == "Directional" && !_disable_all_bottom_cut && !_disable_directional_slant)
     down(_snap_thickness / 2 - _directional_slant_height / 2) {
       bottom_cut_length = _snap_width - _cut_width_inset * 2;
       tag_diff("remove", "inner_remove") {
@@ -390,11 +390,12 @@ module snap_uninstall_notch(snapbody_cfg = [], snapnotch_cfg = [], anchor = BOTT
           attach(FRONT, BACK, align=TOP)
             cuboid([_notch_width, _notch_gap_inset, _notch_gap_height]);
 }
-module expanding_spring(snapbody_cfg = [], spring_cfg = [], snapcorner_cfg = [], snapcut_cfg = []) {
+module expanding_spring(snapbody_cfg = [], spring_cfg = [], snapcorner_cfg = [], snapcut_cfg = [], threads_cfg = []) {
   _body_cfg = struct_merge(snap_body_cfg(), snapbody_cfg);
   _spring_cfg = struct_merge(snap_spring_cfg(), spring_cfg);
   _corner_cfg = struct_merge(snap_corner_cfg(), snapcorner_cfg);
   _cut_cfg = struct_merge(snap_cut_cfg(), snapcut_cfg);
+  _threads_cfg = struct_merge(threads_cfg(), threads_cfg);
 
   _snap_thickness = struct_val(_body_cfg, "snap_thickness");
   _snap_body_shape = struct_val(_body_cfg, "snap_body_shape");
@@ -421,8 +422,7 @@ module expanding_spring(snapbody_cfg = [], spring_cfg = [], snapcorner_cfg = [],
       _directional_slant_height =
         _snap_thickness >= OG_STANDARD_THICKNESS ? struct_val(_cut_cfg, "directional_slant_height_standard")
         : struct_val(_cut_cfg, "directional_slant_height_lite");
-      // constants from opengrid_variable.scad (no global var needed)
-      _threads_negative_diameter = OG_SNAP_THREADS_DIAMETER + OG_SNAP_THREADS_CLEARANCE;
+      _threads_negative_diameter = struct_val(_threads_cfg, "threads_diameter") + struct_val(_threads_cfg, "threads_clearance");
       _snap_body_corner_inner_diagonal = OG_SNAP_CORNER_INNER_DIAGONAL;
 
       // gap_length: minimum reach to clear the thread hole center from the spring wall
@@ -560,7 +560,8 @@ module expanding_snap(
             );
         zrot(_expand_split_angle)
           tag("remove") expanding_spring(
-              snapbody_cfg, spring_cfg, snapcorner_cfg, snapcut_cfg
+              snapbody_cfg=snapbody_cfg, spring_cfg=spring_cfg, snapcorner_cfg=snapcorner_cfg,
+              snapcut_cfg=snapcut_cfg, threads_cfg=threads_cfg
             );
       }
     }

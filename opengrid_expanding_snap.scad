@@ -113,7 +113,8 @@ _snapcut_cfg = snap_cut_cfg();
 
 _expand_cfg = snap_expand_cfg(
   expand_distance_standard=expand_distance_standard,
-  expand_distance_lite=expand_distance_lite
+  expand_distance_lite=expand_distance_lite,
+  expand_split_angle=expand_split_angle
 );
 _threads_cfg = threads_cfg(
   threads_type=threads_type,

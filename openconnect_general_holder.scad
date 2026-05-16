@@ -52,7 +52,7 @@ front_opening_rounding = 3;
 /* [openConnect Settings] */
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
 slot_lock_distribution = "Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
-//Entry ramp direction can matter in tight spaces. 
+//Entry ramp direction can matter in tight spaces.
 slot_entryramp_flip = false;
 
 /* [Advanced Settings] */
@@ -107,10 +107,10 @@ final_holder_tilt_angle = min(adj_opp_to_ang(provisional_holder_height, final_ho
 final_holder_height = max(ang_adj_to_hyp(final_holder_tilt_angle, slot_wall_min_height), holder_height);
 
 final_compartment_rounding = min(compartment_corner_rounding, compartment_width / 2, final_compartment_depth / 2);
-final_holder_rounding = compartment_shape == "Rectangular" ? max(5, final_compartment_rounding) : min(final_compartment_depth / 2, compartment_width / 2);
+final_holder_rounding = compartment_shape == "Rectangular" ? max(EPS, min(final_compartment_depth / 2, compartment_width / 2, final_compartment_rounding)) : min(final_compartment_depth / 2, compartment_width / 2);
 holder_shape = rect([holder_width, final_holder_depth], rounding=[final_compartment_rounding, final_compartment_rounding, 0, 0]);
 
-compartment_height = final_holder_height - max(0, holder_bottom_thickness);
+compartment_height = max(EPS, final_holder_height - max(0, holder_bottom_thickness));
 final_front_opening_height = min(front_opening_height, compartment_height);
 front_opening_outer_fillet = max(0, min(front_opening_rounding, (compartment_width - front_opening_width) / 2));
 front_opening_inner_fillet = max(0, min(front_opening_rounding, front_opening_width / 2));
@@ -137,7 +137,7 @@ slot_flat_region = fwd((slot_face_height - round(slot_face_height / OG_TILE_SIZE
 // xrot(-final_holder_tilt_angle)
 right(holder_width / 2) zrot(180)
     diff() {
-      back(holder_back_offset / 2)
+      back(holder_back_offset)
         back((final_compartment_depth * compartment_row_count + holder_horizontal_divider_thickness * max(0, compartment_row_count - 1)) / 2 + slot_wall_thickness) grid_copies(spacing=[compartment_width + holder_vertical_divider_thickness, final_compartment_depth + holder_horizontal_divider_thickness], n=[compartment_column_count, compartment_row_count])
             up(holder_bottom_thickness) xrot(180)
                 tag("remove") linear_sweep(region=compartment_sweep_profile, height=compartment_height, scale=[compartment_width_scale, compartment_depth_scale], shift=[0, 0], anchor="original_top");

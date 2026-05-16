@@ -1,4 +1,4 @@
-/* 
+/*
 Licensed Creative Commons Attribution-ShareAlike 4.0 International
 
 Created by mitufy. https://github.com/mitufy
@@ -57,7 +57,8 @@ _snaptext_texts = [_add_blunt_text ? OG_SNAP_BLUNT_TEXT : "", _add_thickness_tex
 text_depth = 0.4;
 _text_cfg = text_cfg(
   texts=_snaptext_texts,
-  pos_offsets=(_add_blunt_text && _add_thickness_text) ? OG_GADGET_TEXT_POSITIONS : [[0, 0], [0, 0]]
+  pos_offsets=(_add_blunt_text && _add_thickness_text) ? OG_GADGET_TEXT_POSITIONS : [[0, 0], [0, 0]],
+  text_depth=text_depth
 );
 
 _threads_cfg = threads_cfg(
@@ -119,30 +120,33 @@ default_sweep_profile = rect([body_thickness, body_width], chamfer=final_side_ch
 final_sweep_profile = default_sweep_profile;
 offset_sweep_profile = scale([final_thickness_scale, 1, 1], final_sweep_profile);
 prism_fillet = max(0, min(final_stem_length, hook_stem_fillet));
+thread_join_overlap = EPS * 2;
 
-up(_threads_side_offset) xrot(90)
-    diff() {
-      zrot(90)
-        snap_threads(threads_height=snap_thickness, threads_cfg=_threads_cfg, text_cfg=_text_cfg);
-      fwd(_threads_side_offset - body_width / 2)
-        down(final_stem_length - EPS) xrot(-90)
-            path_sweep(final_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[final_thickness_scale, 1])
-              attach("end", "top")
-                offset_sweep(offset_sweep_profile, height=tip_rounding_radius + EPS, bottom=os_circle(r=tip_rounding_radius));
-      diff("rm2") {
-        fwd(_threads_side_offset - body_width / 2)
-          zrot(180) xrot(180)
-              join_prism(final_sweep_profile, base="plane", length=final_stem_length, base_fillet=prism_fillet, overlap=0) {
-                up(EPS) tag_diff(tag="rm2", remove="rm1")
-                    cuboid([100, 100, prism_fillet], anchor=TOP) {
-                      tag("rm1") cuboid([body_thickness, body_width, final_stem_length + EPS * 2], chamfer=final_side_chamfer, edges="Z", anchor=TOP);
-                      tag("rm1") back(_threads_side_offset - body_width / 2 + 0.1)
-                          cyl(l=final_stem_length + EPS * 2, d=_threads_connect_diameter, anchor=TOP);
-                    }
-              }
-        tag_diff(tag="rm2", remove="rm1") cyl(l=final_stem_length, d=_threads_connect_diameter * 2, anchor=TOP)
-            attach(CENTER, CENTER, inside=true)
-              tag("rm1") cyl(l=final_stem_length + EPS * 2, d=_threads_connect_diameter);
+zrot(180) up(_threads_side_offset) xrot(90)
+      diff() {
+        zrot(90)
+          snap_threads(threads_height=snap_thickness, threads_cfg=_threads_cfg, text_cfg=_text_cfg);
+        up(thread_join_overlap) {
+          fwd(_threads_side_offset - body_width / 2)
+            down(final_stem_length - EPS) xrot(-90)
+                path_sweep(final_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[final_thickness_scale, 1])
+                  attach("end", "top")
+                    offset_sweep(offset_sweep_profile, height=tip_rounding_radius + EPS, bottom=os_circle(r=tip_rounding_radius));
+          diff("rm2") {
+            fwd(_threads_side_offset - body_width / 2)
+              zrot(180) xrot(180)
+                  join_prism(final_sweep_profile, base="plane", length=final_stem_length, base_fillet=prism_fillet, overlap=thread_join_overlap) {
+                    up(EPS) tag_diff(tag="rm2", remove="rm1")
+                        cuboid([100, 100, prism_fillet], anchor=TOP) {
+                          tag("rm1") cuboid([body_thickness, body_width, final_stem_length + EPS * 2], chamfer=final_side_chamfer, edges="Z", anchor=TOP);
+                          tag("rm1") back(_threads_side_offset - body_width / 2 + 0.1)
+                              cyl(l=final_stem_length + EPS * 2, d=_threads_connect_diameter, anchor=TOP);
+                        }
+                  }
+            tag_diff(tag="rm2", remove="rm1") cyl(l=final_stem_length, d=_threads_connect_diameter * 2, anchor=TOP)
+                attach(CENTER, CENTER, inside=true)
+                  tag("rm1") cyl(l=final_stem_length + EPS * 2, d=_threads_connect_diameter);
+          }
+        }
+        tag("remove") fwd(_threads_side_offset - EPS) cuboid([500, 500, 500], anchor=BACK);
       }
-      tag("remove") fwd(_threads_side_offset - EPS) cuboid([500, 500, 500], anchor=BACK);
-    }

@@ -109,24 +109,27 @@ module snap_text(
   _depth = struct_val(_cfg, "text_depth");
 
   _text_count = len(_texts);
-  if (_text_count > 0)
-    attachable(anchor, spin, orient, size=[1, 1, _depth]) {
-      tag_scope() down(_depth / 2)for (i = [0:_text_count - 1]) {
-          if (_texts[i] != "") {
-            _size = len(_sizes) > i ? _sizes[i] : _sizes[0];
-            _font = len(_fonts) > i ? _fonts[i] : _fonts[0];
-            _fill = len(_fills) > i ? _fills[i] : _fills[0];
+  attachable(anchor, spin, orient, size=[1, 1, max(_depth, EPS)]) {
+    tag_scope() {
+      if (_text_count > 0 && _depth > 0)
+        down(_depth / 2)
+          for (i = [0:_text_count - 1]) {
+            if (_texts[i] != "") {
+              _size = len(_sizes) > i ? _sizes[i] : _sizes[0];
+              _font = len(_fonts) > i ? _fonts[i] : _fonts[0];
+              _fill = len(_fills) > i ? _fills[i] : _fills[0];
 
-            _offset = len(_offsets) > i ? _offsets[i] : _offsets[0];
-            right(_offset[0]) back(_offset[1])
-                linear_extrude(height=_depth + EPS) if (_fill)
-                  fill() text(_texts[i], size=_size, anchor=str("center", CENTER), font=_font);
-                else
-                  text(_texts[i], size=_size, anchor=str("center", CENTER), font=_font);
+              _offset = len(_offsets) > i ? _offsets[i] : _offsets[0];
+              right(_offset[0]) back(_offset[1])
+                  linear_extrude(height=_depth + EPS) if (_fill)
+                    fill() text(_texts[i], size=_size, anchor=str("center", CENTER), font=_font);
+                  else
+                    text(_texts[i], size=_size, anchor=str("center", CENTER), font=_font);
+            }
           }
         }
-      children();
-    }
+    children();
+  }
 }
 
 // ── Utility Functions & Modules ──────────────────────────────────────────────
@@ -151,7 +154,7 @@ function is_grid_pos_described(hgrid, vgrid, max_hgrid, max_vgrid, description, 
 // Returns true if the footprint at cp lies fully within limit_region.
 function is_pos_shape_in_region(cp, footprint, limit_region) =
   let (
-    result = [for (i = footprint) point_in_region(cp + i, limit_region) == 1]
+    result = [for (i = footprint) point_in_region(cp + i, limit_region) >= 0]
   ) !in_list(list=result, val=false);
 
 // Conditionally flips children along the given axis. If copy=true, keep the original.

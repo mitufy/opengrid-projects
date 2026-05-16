@@ -20,7 +20,7 @@ stem_height = 8; //0.4
 stem_depth = 12; //0.4
 //Set to 1 to merge stem and stopper into a slope.
 transition_depth_ratio = 0.2; //[0:0.1:1]
-//Stopper is the front part of the holder which prevents the plier from sliding off. 
+//Stopper is the front part of the holder which prevents the plier from sliding off.
 stopper_width_scale = 1; //[0.5:0.1:2]
 stopper_height_scale = 1.4; //[0.5:0.1:2]
 
@@ -47,12 +47,12 @@ holder_tilt_angle = 0; //[0:5:45]
 _add_blunt_text = threads_type == "Blunt";
 _add_thickness_text = thickness_text_mode == "All" || (thickness_text_mode == "Uncommon" && snap_thickness != OG_LITE_BASIC_THICKNESS && snap_thickness != OG_STANDARD_THICKNESS);
 
-_snaptext_texts = [if (_add_blunt_text) OG_SNAP_BLUNT_TEXT, if (_add_thickness_text) str(floor(snap_thickness))];
+_snaptext_texts = [_add_blunt_text ? OG_SNAP_BLUNT_TEXT : "", _add_thickness_text ? str(floor(snap_thickness)) : ""];
 
 text_depth = 0.4;
 _text_cfg = text_cfg(
   texts=_snaptext_texts,
-  pos_offsets=(_add_blunt_text && _add_thickness_text) ? OG_GADGET_TEXT_POSITIONS : [[0, 0]]
+  pos_offsets=(_add_blunt_text && _add_thickness_text) ? OG_GADGET_TEXT_POSITIONS : [[0, 0], [0, 0]]
 );
 
 _threads_cfg = struct_merge(
@@ -69,6 +69,7 @@ stem_transition_depth = stem_depth * transition_depth_ratio;
 
 _threads_connect_diameter = _threads_diameter - OG_THREADS_CONNECT_OFFSET;
 _threads_side_offset = _threads_diameter / 2 - OG_SNAP_THREADS_SIDE_OFFSET;
+thread_join_overlap = EPS * 2;
 
 final_stem_top_width = max(EPS, min(stem_bottom_width, stem_top_width));
 plier_prismoid_top_rounding = max(EPS, min(stem_top_rounding, final_stem_top_width, stem_height / 2));
@@ -77,7 +78,7 @@ plier_prismoid_side_angle = opp_adj_to_ang((stem_bottom_width - final_stem_top_w
 stopper_side_angle = opp_adj_to_ang((stem_bottom_width - final_stem_top_width) * stopper_width_scale / 2, stem_height * stopper_height_scale);
 //align to front and bottom
 zrot(180) up(_threads_side_offset) xrot(90) {
-      fwd(_threads_side_offset) zrot(180) xrot(90) ycopies(n=plier_count, spacing=-stem_depth - stopper_depth + stopper_front_rounding, sp=[0, 0, 0])
+      up(thread_join_overlap) fwd(_threads_side_offset) zrot(180) xrot(90) ycopies(n=plier_count, spacing=-stem_depth - stopper_depth + stopper_front_rounding, sp=[0, 0, 0])
               diff(remove="root_rm") {
                 diff() prismoid(size1=[stem_bottom_width, max(EPS, stem_base_depth)], size2=[final_stem_top_width, max(EPS, stem_base_depth)], h=stem_height, anchor=BACK + BOTTOM) {
                     edge_profile([BOTTOM + LEFT, BOTTOM + RIGHT], excess=2)
@@ -118,6 +119,6 @@ zrot(180) up(_threads_side_offset) xrot(90) {
       diff() {
         fwd(ang_hyp_to_opp(holder_tilt_angle, snap_thickness))
           snap_threads(threads_height=snap_thickness, threads_cfg=_threads_cfg, text_cfg=_text_cfg);
-        tag("remove") fwd(_threads_side_offset) cuboid([500, 500, 500], anchor=BACK);
+        tag("remove") fwd(_threads_side_offset - EPS) cuboid([500, 500, 500], anchor=BACK);
       }
     }

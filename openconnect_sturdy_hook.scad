@@ -67,12 +67,13 @@ _slot_cfg = ocslot_cfg(
   side_clearance=slot_side_clearance,
   depth_clearance=slot_depth_clearance
 );
-vertical_grids = use_custom_height ? max(1, floor(custom_hook_height / OG_TILE_SIZE)) + truss_vertical_grids : hook_vertical_grids + truss_vertical_grids;
+hook_grid_height = use_custom_height ? max(1, floor(custom_hook_height / OG_TILE_SIZE)) : max(1, hook_vertical_grids);
+vertical_grids = hook_grid_height + truss_vertical_grids;
 horizontal_grids = max(1, floor(hook_width / OG_TILE_SIZE));
-hook_stem_height = use_custom_height ? custom_hook_height : hook_vertical_grids * OG_TILE_SIZE;
+hook_stem_height = use_custom_height ? custom_hook_height : hook_grid_height * OG_TILE_SIZE;
 
-final_corner_radius = hook_shape_type == "Circular" ? min(circular_corner_radius, hook_stem_height - hook_thickness / 2 - hook_side_rounding, hook_length) : hook_thickness;
-final_tip_radius = hook_shape_type == "Circular" ? min(circular_tip_radius, hook_length - final_corner_radius) : hook_thickness;
+final_corner_radius = hook_shape_type == "Circular" ? max(hook_thickness/2, min(circular_corner_radius, hook_stem_height - hook_thickness / 2 - hook_side_rounding, hook_length)) : hook_thickness/2;
+final_tip_radius = hook_shape_type == "Circular" ? max(0, min(circular_tip_radius, hook_length - final_corner_radius)) : hook_thickness;
 stem_first_height = max(EPS, hook_stem_height - final_corner_radius);
 available_truss_depth = hook_shape_type == "Circular" ? max(EPS, hook_length - final_tip_radius - hook_thickness / 2) : max(EPS, hook_length - final_tip_radius + hook_thickness);
 

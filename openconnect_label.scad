@@ -1,4 +1,4 @@
-/* 
+/*
 Licensed Creative Commons Attribution-ShareAlike 4.0 International
 
 Created by mitufy. https://github.com/mitufy
@@ -56,11 +56,13 @@ $fs = 0.4;
 EPS = 0.005;
 
 text_edge_offset = 3;
-left_text_metrics = textmetrics(text=label_left_text, font=left_text_font, size=left_font_size, valign="center", halign="center");
-right_text_metrics = textmetrics(text=label_right_text, font=right_text_font, size=right_font_size, valign="center", halign="center");
+left_text_metrics = textmetrics(text=label_left_text, font=left_text_font, size=left_font_size, valign="center", halign="center", spacing=left_letter_spacing);
+right_text_metrics = textmetrics(text=label_right_text, font=right_text_font, size=right_font_size, valign="center", halign="center", spacing=right_letter_spacing);
+left_text_width = left_text_metrics.size.x + left_text_bolden * 2;
+right_text_width = right_text_metrics.size.x + right_text_bolden * 2;
 
 module text_object(extrude_depth = label_thickness) {
-  left(label_width / 2 - left_text_metrics.size.x / 2 - text_edge_offset)
+  left(label_width / 2 - left_text_width / 2 - text_edge_offset)
     right(left_text_position_offset[0]) back(left_text_position_offset[1])
         linear_extrude(extrude_depth) {
           if (left_text_filled)
@@ -69,7 +71,7 @@ module text_object(extrude_depth = label_thickness) {
             offset(r=left_text_bolden) text(text=label_left_text, font=left_text_font, size=left_font_size, valign="center", halign="center", spacing=left_letter_spacing);
         }
   if (label_right_text != "") {
-    right(label_width / 2 - right_text_metrics.size.x / 2 - text_edge_offset)
+    right(label_width / 2 - right_text_width / 2 - text_edge_offset)
       right(right_text_position_offset[0]) back(right_text_position_offset[1])
           linear_extrude(extrude_depth) {
             if (right_text_filled)

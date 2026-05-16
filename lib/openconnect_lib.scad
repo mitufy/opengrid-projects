@@ -1,4 +1,4 @@
-/* 
+/*
 Licensed Creative Commons Attribution 4.0 International
 
 Created by mitufy. https://github.com/mitufy
@@ -295,7 +295,7 @@ module openconnect_head(head_type = "head", head_cfg = [], slot_cfg = [], add_nu
                 openconnect_lock(bottom_height=bottom_height, middle_height=_middle_height, nub_depth=_nub_depth, nub_tip_height=_nub_tip_height, nub_fillet=_nub_fillet, nub_angle=nub_angle_left, nub_flattop=nub_flattop);
             if (add_nubs == "Right" || add_nubs == "Both")
               right(large_rect_width / 2 + size_offset + EPS)
-                xflip() openconnect_lock(bottom_height=bottom_height, middle_height=_nub_depth, nub_depth=_nub_depth, nub_tip_height=_nub_tip_height, nub_fillet=_nub_fillet, nub_angle=0, nub_flattop=nub_flattop);
+                xflip() openconnect_lock(bottom_height=bottom_height, middle_height=_middle_height, nub_depth=_nub_depth, nub_tip_height=_nub_tip_height, nub_fillet=_nub_fillet, nub_angle=0, nub_flattop=nub_flattop);
           }
         }
     children();
@@ -456,7 +456,7 @@ module openconnect_slot_grid_limit_debug(slot_cfg = [], horizontal_grids = 1, ve
   }
 }
 
-module openconnect_slot_grid(slot_cfg = [], slot_type = "slot", horizontal_grids = 1, vertical_grids = 1, slot_slide_direction = "Up", slot_position = "All", slot_lock_distribution = "None", slot_lock_side = "Left", slot_entryramp_flip = false, excess_thickness = EPS, vase_overhang_angle = 45, except_slot_pos = [], chamfer = 0, rounding = 0, limit_region = [], anchor = BOTTOM, spin = 0, orient = UP) {
+module openconnect_slot_grid(slot_cfg = [], slot_type = "slot", horizontal_grids = 1, vertical_grids = 1, slot_slide_direction = "Up", slot_position = "All", slot_lock_distribution = "None", slot_lock_side = "Left", slot_entryramp_flip = false, excess_thickness = EPS, except_slot_pos = [], chamfer = 0, rounding = 0, limit_region = [], anchor = BOTTOM, spin = 0, orient = UP) {
   cfg = struct_merge(ocslot_cfg(), slot_cfg);
   // Slot dimensions needed for grid sizing/placement
   ocslot_total_height = struct_val(cfg, "total_height");

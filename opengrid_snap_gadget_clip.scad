@@ -64,9 +64,11 @@ _add_thickness_text = thickness_text_mode == "All" || (thickness_text_mode == "U
 _snaptext_texts = [_add_blunt_text ? OG_SNAP_BLUNT_TEXT : "", _add_thickness_text ? str(floor(snap_thickness)) : ""];
 
 text_depth = 0.4;
+final_text_depth = max(0, text_depth);
 _text_cfg = text_cfg(
   texts=_snaptext_texts,
-  pos_offsets=(_add_blunt_text && _add_thickness_text) ? OG_GADGET_TEXT_POSITIONS : [[0, 0], [0, 0]]
+  pos_offsets=(_add_blunt_text && _add_thickness_text) ? OG_GADGET_TEXT_POSITIONS : [[0, 0], [0, 0]],
+  text_depth=final_text_depth
 );
 
 _threads_cfg = threads_cfg(
@@ -74,6 +76,7 @@ _threads_cfg = threads_cfg(
   threads_offset_angle=threads_offset_angle
 );
 _threads_side_offset = struct_val(_threads_cfg, "threads_diameter") / 2 - OG_SNAP_THREADS_SIDE_OFFSET;
+thread_join_overlap = EPS * 2;
 symmetric_clip_height = struct_val(_threads_cfg, "threads_diameter") - OG_SNAP_THREADS_SIDE_OFFSET * 2;
 final_tip_diameter = max(EPS, clip_thickness * clip_thickness_scale + 1, tip_diameter);
 final_side_chamfer = max(0, min(clip_thickness / 2 * clip_thickness_scale - OG_MIN_WALL_WIDTH, clip_height / 2 - OG_MIN_WALL_WIDTH, body_side_chamfer));
@@ -113,9 +116,11 @@ final_clip_path =
   : elliptic_clip_path;
 
 knurling_outer_offset = 0;
+final_knurling_texture_size = max(1, knurling_texture_size);
+final_knurling_texture_depth = max(0, min(knurling_texture_depth, final_knurling_texture_size / 2));
 
 clip_profile = rect([clip_thickness, clip_height], chamfer=final_side_chamfer);
-final_clip_entry_tilt_angle = (clip_shape == "Circular" || abs(clip_entry_tilt_angle) == 90) ? clip_entry_tilt_angle : 0;
+final_clip_entry_tilt_angle = clip_shape == "Circular" ? clip_entry_tilt_angle : (clip_entry_tilt_angle > 0 ? 90 : clip_entry_tilt_angle < 0 ? -90 : 0);
 tip_rounding_radius = max(0, min(clip_thickness * clip_thickness_scale - final_side_chamfer * 2, clip_height - final_side_chamfer * 2) / 2 - EPS);
 connect_cuboid_height =
   clip_shape == "Circular" || (clip_shape == "Elliptic" && abs(final_clip_entry_tilt_angle) == 90) ? clip_main_width / 2 + clip_thickness
@@ -125,7 +130,7 @@ zrot(180) xrot(90) back(_threads_side_offset)
       //main diff
       diff() {
         snap_threads(threads_height=snap_thickness, threads_cfg=_threads_cfg, text_cfg=_text_cfg);
-        diff(remove="rm1") {
+        up(thread_join_overlap) diff(remove="rm1") {
           fwd(_threads_side_offset - clip_height / 2) {
             //second inner diff
             diff(remove="rm2", keep="kp2") {
@@ -138,7 +143,7 @@ zrot(180) xrot(90) back(_threads_side_offset)
                 right(clip_shape != "Circular" ? (clip_main_depth / 2 + clip_thickness) * final_clip_entry_tilt_angle / 90 : 0)
                   yrot(final_clip_entry_tilt_angle, cp=[0, 0, clip_shape != "Circular" ? 0 : -(clip_main_width / 2 + clip_thickness)])
                     down(clip_thickness / 2) {
-                      //used to cut off excessive part of connecting cuboid. remove by second inner diff("rm2","kp2") 
+                      //used to cut off excessive part of connecting cuboid. remove by second inner diff("rm2","kp2")
                       if (clip_shape == "Rectangular")
                         tag("rm2") cuboid([clip_main_width + clip_thickness, 200, clip_main_depth + clip_thickness], edges="Y", rounding=final_clip_rect_rounding, anchor=TOP);
                       else
@@ -153,8 +158,8 @@ zrot(180) xrot(90) back(_threads_side_offset)
                             );
                             tag("kp2") back(clip_height - _threads_side_offset) intersection() {
                                   down(clip_main_depth + clip_thickness / 2) xrot(90) linear_sweep(
-                                        rectangular_knurling_shape, clip_height, texture="diamonds", tex_size=[knurling_texture_size, knurling_texture_size],
-                                        tex_depth=knurling_texture_depth, style=knurling_type == "Line" ? "default" : "concave"
+                                        rectangular_knurling_shape, clip_height, texture="diamonds", tex_size=[final_knurling_texture_size, final_knurling_texture_size],
+                                        tex_depth=final_knurling_texture_depth, style=knurling_type == "Line" ? "default" : "concave"
                                       );
                                   cuboid([clip_main_width + clip_thickness / 2, 200, clip_main_depth + clip_thickness / 2], rounding=final_clip_rect_rounding / 2, edges="Y", anchor=TOP);
                                 }
@@ -185,8 +190,8 @@ zrot(180) xrot(90) back(_threads_side_offset)
                                     xrot(90)
                                       linear_sweep(
                                         elliptic_knurling_shape, clip_height,
-                                        texture="diamonds", tex_size=[knurling_texture_size, knurling_texture_size],
-                                        tex_depth=knurling_texture_depth, style=knurling_type == "Line" ? "default" : "concave"
+                                        texture="diamonds", tex_size=[final_knurling_texture_size, final_knurling_texture_size],
+                                        tex_depth=final_knurling_texture_depth, style=knurling_type == "Line" ? "default" : "concave"
                                       );
                                   scale([1, 1, elliptic_ratio]) ycyl(d=clip_main_width + clip_thickness, l=200, anchor=TOP);
                                 }

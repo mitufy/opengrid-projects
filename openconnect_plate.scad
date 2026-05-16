@@ -32,7 +32,8 @@ slot_position = "All"; //["All", "Staggered", "Edge Rows", "Edge Columns", "Corn
 
 /* [Advanced Settings] */
 //Slot alignment applies when the plate size is in millimeters and not divisible by 28.
-plate_slot_alignment = "Center"; //["Center", "Top", "Bottom", "Left", "Right"]
+plate_slot_horizontal_alignment = "Center"; //["Center", "Left", "Right"]
+plate_slot_vertical_alignment = "Center"; //["Center", "Top", "Bottom"]
 //Increase clearances if the slots feel too tight. Reduce it if they are too loose.
 slot_side_clearance = 0.1; //0.01
 slot_depth_clearance = 0.1; //0.01
@@ -66,11 +67,13 @@ final_plate_h_grids = max(1, plate_size_unit == "mm" ? floor(plate_horizontal_si
 final_plate_height = max(1, plate_size_unit == "mm" ? plate_vertical_size : plate_vertical_size * OG_TILE_SIZE);
 final_plate_v_grids = max(1, plate_size_unit == "mm" ? floor(plate_vertical_size / OG_TILE_SIZE) : plate_vertical_size);
 final_plate_thickness = slot_type == "negslot" ? EPS : max(EPS, slot_type == "vase" ? plate_extra_thickness : slot_total_height + plate_extra_thickness);
-final_plate_alignment =
-  plate_slot_alignment == "Center" ? CENTER
-  : plate_slot_alignment == "Top" ? BACK
-  : plate_slot_alignment == "Bottom" ? FRONT
-  : plate_slot_alignment == "Left" ? LEFT : RIGHT;
+final_plate_horizontal_alignment =
+  plate_slot_horizontal_alignment == "Left" ? LEFT
+  : plate_slot_horizontal_alignment == "Right" ? RIGHT : CENTER;
+final_plate_vertical_alignment =
+  plate_slot_vertical_alignment == "Top" ? BACK
+  : plate_slot_vertical_alignment == "Bottom" ? FRONT : CENTER;
+final_plate_alignment = final_plate_horizontal_alignment + final_plate_vertical_alignment;
 
 //BEGIN generation
 down(final_plate_thickness == EPS ? EPS : 0) diff()

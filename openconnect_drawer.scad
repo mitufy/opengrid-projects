@@ -16,7 +16,7 @@ horizontal_grids = 5;
 depth_grids = 5;
 
 /*[Shell Main Settings]*/
-//"Back" for wall-mounted drawers. "Top" for underdesk drawers. Other options are niche and not commonly used. 
+//"Back" for wall-mounted drawers. "Top" for underdesk drawers. Other options are niche and not commonly used.
 shell_slot_position = "Back"; //["Back", "Top", "Bottom", "Left", "Right"]
 shell_top_wall_type = "Solid"; //["Solid","Honeycomb"]
 shell_bottom_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
@@ -68,7 +68,7 @@ label_height = 10;
 label_depth = 1; //0.1
 handle_thickness = 2.4; //0.1
 //How much the handle protrudes from the front of the drawer container.
-handle_depth = 10;
+handle_depth = 12;
 
 /*[Stopper Settings]*/
 //Simple drawer stoppers, preventing the container from sliding all the way out.
@@ -86,12 +86,13 @@ container_back_magnet_thickness = 1; //0.1
 back_magnet_diameter = 6; //0.1
 //Side magnets act as stoppers by holding the container when it's pulled out.
 add_side_magnet_holes = true;
-//If wall thickness is not enough for magnets, small "bulges" will be added. 
+//If wall thickness is not enough for magnets, small "bulges" will be added.
 shell_side_magnet_thickness = 1; //0.1
 container_side_magnet_thickness = 1; //0.1
 side_magnet_diameter = 6; //0.1
-//Below value determine how much the container pulls out before the side magnets engage.
+//Below values determine how much the container pulls out before the side magnets engage.
 side_magnet_shell_edge_distance = 6; //0.1
+side_magnet_container_edge_distance = 6; //0.1
 
 /* [openConnect Settings] */
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
@@ -107,7 +108,6 @@ container_width_clearance = 0.3; //0.05
 container_depth_clearance = 0.4; //0.05
 stopper_width_clearance = 0.2; //0.1
 stopper_height_clearance = 0.2; //0.1
-side_magnet_container_edge_distance = 4; //0.1
 shell_to_slot_wall_thickness = 0.9; //0.1
 //The thickness of the strut of honeycomb pattern.
 honeycomb_strut_hyp = 5; //0.1
@@ -174,7 +174,7 @@ shell_height_divide_tmp =
   len(shell_height_divide_cumnums) == 0 ? []
   : slice(shell_height_divide_nums, 0, len(shell_height_divide_cumnums) - 1);
 shell_height_divide_list =
-  len(shell_height_divide_tmp) == 0 ? []
+  len(shell_height_divide_cumnums) == 0 ? [vertical_grids]
   : last(shell_height_divide_cumnums) == vertical_grids ? shell_height_divide_tmp
   : concat(shell_height_divide_tmp, [vertical_grids - last(shell_height_divide_cumnums)]);
 shell_vertical_compartments = add_shell_divider == "Height" || add_shell_divider == "Both" ? shell_height_divide_list : [vertical_grids];
@@ -186,7 +186,7 @@ shell_width_divide_tmp =
   len(shell_width_divide_cumnums) == 0 ? []
   : slice(shell_width_divide_nums, 0, len(shell_width_divide_cumnums) - 1);
 shell_width_divide_list =
-  len(shell_width_divide_tmp) == 0 ? []
+  len(shell_width_divide_cumnums) == 0 ? [horizontal_grids]
   : last(shell_width_divide_cumnums) == horizontal_grids ? shell_width_divide_tmp
   : concat(shell_width_divide_tmp, [horizontal_grids - last(shell_width_divide_cumnums)]);
 shell_horizontal_compartments = add_shell_divider == "Width" || add_shell_divider == "Both" ? shell_width_divide_list : [horizontal_grids];
@@ -202,6 +202,17 @@ container_back_wall_thickness = container_back_wall_type == "Solid" ? container_
 container_back_wall_height = container_height - container_front_back_height_offset;
 container_side_wall_height = container_back_wall_height - container_outer_chamfer;
 container_divider_wall_height = container_side_wall_height - container_divider_wall_height_offset;
+
+assert(vertical_grids > 0 && horizontal_grids > 0 && depth_grids > 0, "drawer grid counts must be greater than 0");
+assert(shell_thickness > 0, "shell_thickness must be greater than 0");
+assert(shell_inner_width > 0 && shell_inner_height > 0 && shell_inner_depth > 0,
+  "shell inner dimensions must be greater than 0; increase grid counts or reduce shell_thickness/shell_to_slot_wall_thickness");
+assert(container_width > 0 && container_height > 0 && container_depth > 0,
+  "container dimensions must be greater than 0; reduce clearances or increase drawer size");
+assert(container_width - container_side_wall_thickness * 2 > 0 &&
+    container_height - container_bottom_wall_thickness > 0 &&
+    container_depth - container_back_wall_thickness - container_front_wall_thickness > 0,
+  "container inner dimensions must be greater than 0; reduce wall thicknesses or increase drawer size");
 
 //hexwall parameters
 honeycomb_unit_space_adj = 14;
@@ -432,7 +443,7 @@ module drawer_container() {
           attach(FRONT, FRONT, align=BOTTOM, inset=container_back_wall_thickness, inside=true)
             tag(bottom_hc ? "remove" : "keep") cuboid([container_width - container_side_wall_thickness * 2 - (bottom_hc ? container_inner_side_fillet * 2 : 0), container_bottom_wall_thickness + (bottom_hc ? EPS : 0), container_depth - container_front_wall_thickness - container_back_wall_thickness - (bottom_hc ? container_inner_bottom_fillet * 2 : 0)]);
 
-          
+
           tag("mask") {
             attach(FRONT, FRONT, align=TOP, inset=-handle_depth, inside=true)
               cuboid([container_width, container_height, container_front_wall_thickness + handle_depth], edges="Z", chamfer=container_outer_chamfer);
@@ -570,7 +581,7 @@ module drawer_divider(is_shell, by_width) {
                 if (is_shell) {
                   if (!by_width && add_stopper_holes)
                     attach(RIGHT, TOP, inside=true)
-                      tag("") cuboid([shell_width, divider_wall_thickness, side_magnet_hole_diameter + hex_hole_fill_edge]);
+                      tag("") cuboid([shell_width, divider_wall_thickness, stopper_to_front_offset + stopper_height + hex_hole_fill_edge]);
                   if (by_width && add_side_magnet_holes)
                     attach(RIGHT, TOP, inside=true)
                       tag("") cuboid([shell_height, divider_wall_thickness, side_magnet_hole_diameter + hex_hole_fill_edge]);
