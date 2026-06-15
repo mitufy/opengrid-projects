@@ -76,6 +76,7 @@ _slot_cfg = ocslot_cfg(
 );
 final_vase_front_inset_angle = min(adj_opp_to_ang(vase_height, max(0, vase_depth - ang_adj_to_opp(final_vase_tilt_angle, vase_height) - 1)), final_vase_front_inset_limit);
 final_surface_texture_size = max(1, surface_texture_size) * (vase_surface_texture == "checkers" || vase_surface_texture == "cubes" ? 2 : 1);
+vase_bottom_edge_back_offset = ang_hyp_to_opp(final_vase_tilt_angle, vase_grid_height) / 2;
 
 label_overhang_angle = max(10, 45 - final_vase_front_inset_angle);
 label_side_clearance = 0.2;
@@ -89,7 +90,8 @@ label_move =
 //END container parameters
 
 //BEGIN generation
-up(vase_height / 2) xrot(90 + final_vase_tilt_angle) {
+right(vase_width/2)zrot(180)fwd(vase_bottom_edge_back_offset)
+  up(vase_height / 2) xrot(90 + final_vase_tilt_angle) {
     xrot(-final_vase_tilt_angle)
       diff(remove="root_rm") diff(remove="remove", keep="keep root_rm")
           prismoid(size1=[vase_width, vase_depth], h=vase_height, xang=[90, 90], yang=[90 - final_vase_front_inset_angle, 90 - final_vase_tilt_angle], chamfer=0, orient=FRONT, anchor=BACK) {
@@ -169,5 +171,5 @@ up(vase_height / 2) xrot(90 + final_vase_tilt_angle) {
                           }
                 }
           }
-  }
+    }
 //END generation

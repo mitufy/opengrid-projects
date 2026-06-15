@@ -23,8 +23,8 @@ compartment_corner_rounding = 3;
 /* [Holder Body] */
 //"Tile Multiple" uses more space, but makes the sides of the holder align with openGrid tiles.
 holder_width_mode = "Default"; //["Default", "Tile Multiple"]
-//A vertical holder cannot be shorter than 18mm, a 45-degree tilted holder cannot be shorter than 26mm.
-holder_height = 28;
+//Requested usable inside height. Body may grow taller for openConnect slots, tilt, and bottom thickness.
+compartment_height = 26;
 //Setting this value to 0 generates a bottomless holder.
 holder_bottom_thickness = 2; //0.1
 //Affects the thickness of the outer side and front walls.
@@ -45,7 +45,7 @@ compartment_bottom_depth = 10;
 /* [Front Opening] */
 //Cuts an opening into the front wall.
 front_opening_width = 12;
-//Set this value equal to holder_height to cut the front opening down to the bottom.
+//Set this value equal to compartment_height to cut the front opening down to the bottom.
 front_opening_height = 20;
 front_opening_rounding = 3;
 
@@ -101,28 +101,29 @@ minimum_holder_width = max(OG_TILE_SIZE, compartment_width * compartment_column_
 holder_width = holder_width_mode == "Tile Multiple" ? ceil(minimum_holder_width / OG_TILE_SIZE) * OG_TILE_SIZE : minimum_holder_width;
 holder_depth = final_compartment_depth * compartment_row_count + holder_horizontal_divider_thickness * max(0, compartment_row_count - 1) + holder_outer_wall_thickness + slot_wall_thickness;
 final_holder_depth = holder_depth + holder_back_offset;
-provisional_holder_height = max(ang_adj_to_hyp(holder_tilt_angle, slot_wall_min_height), holder_height);
+requested_holder_height = max(EPS, compartment_height) + max(0, holder_bottom_thickness);
+provisional_holder_height = max(ang_adj_to_hyp(holder_tilt_angle, slot_wall_min_height), requested_holder_height);
 //Keep the back wall at least 1mm deep at the base, even if that means reducing the requested tilt.
 final_holder_tilt_angle = min(adj_opp_to_ang(provisional_holder_height, final_holder_depth - 1), holder_tilt_angle);
-final_holder_height = max(ang_adj_to_hyp(final_holder_tilt_angle, slot_wall_min_height), holder_height);
+final_holder_height = max(ang_adj_to_hyp(final_holder_tilt_angle, slot_wall_min_height), requested_holder_height);
 
 final_compartment_rounding = min(compartment_corner_rounding, compartment_width / 2, final_compartment_depth / 2);
 final_holder_rounding = compartment_shape == "Rectangular" ? max(EPS, min(final_compartment_depth / 2, compartment_width / 2, final_compartment_rounding)) : min(final_compartment_depth / 2, compartment_width / 2);
 holder_shape = rect([holder_width, final_holder_depth], rounding=[final_compartment_rounding, final_compartment_rounding, 0, 0]);
 
-compartment_height = max(EPS, final_holder_height - max(0, holder_bottom_thickness));
-final_front_opening_height = min(front_opening_height, compartment_height);
+final_compartment_height = max(EPS, final_holder_height - max(0, holder_bottom_thickness));
+final_front_opening_height = min(front_opening_height, final_compartment_height);
 front_opening_outer_fillet = max(0, min(front_opening_rounding, (compartment_width - front_opening_width) / 2));
 front_opening_inner_fillet = max(0, min(front_opening_rounding, front_opening_width / 2));
 
-// compartment_tilt_depth = final_compartment_depth - ang_adj_to_opp(final_holder_tilt_angle, compartment_height);
+// compartment_tilt_depth = final_compartment_depth - ang_adj_to_opp(final_holder_tilt_angle, final_compartment_height);
 final_compartment_taper_width = enable_bottom_taper ? min(compartment_width, max(1, compartment_bottom_width)) : compartment_width;
 final_compartment_taper_depth =
   !enable_bottom_taper ? final_compartment_depth
   : compartment_shape == "Circular" ? final_compartment_taper_width
   : min(final_compartment_depth, max(1, compartment_bottom_depth));
-final_depth_taper = adj_opp_to_ang(compartment_height, (final_compartment_depth - final_compartment_taper_depth) / 2);
-final_width_taper = adj_opp_to_ang(compartment_height, (compartment_width - final_compartment_taper_width) / 2);
+final_depth_taper = adj_opp_to_ang(final_compartment_height, (final_compartment_depth - final_compartment_taper_depth) / 2);
+final_width_taper = adj_opp_to_ang(final_compartment_height, (compartment_width - final_compartment_taper_width) / 2);
 compartment_sweep_profile =
   compartment_shape == "Rectangular" ? rect([compartment_width, final_compartment_depth], rounding=final_compartment_rounding, $fn=compartment_max_facets)
   : compartment_shape == "Circular" ? circle(d=compartment_width, $fn=compartment_max_facets) : ellipse(d=[compartment_width, final_compartment_depth], $fn=compartment_max_facets);
@@ -140,13 +141,13 @@ right(holder_width / 2) zrot(180)
       back(holder_back_offset)
         back((final_compartment_depth * compartment_row_count + holder_horizontal_divider_thickness * max(0, compartment_row_count - 1)) / 2 + slot_wall_thickness) grid_copies(spacing=[compartment_width + holder_vertical_divider_thickness, final_compartment_depth + holder_horizontal_divider_thickness], n=[compartment_column_count, compartment_row_count])
             up(holder_bottom_thickness) xrot(180)
-                tag("remove") linear_sweep(region=compartment_sweep_profile, height=compartment_height, scale=[compartment_width_scale, compartment_depth_scale], shift=[0, 0], anchor="original_top");
+                tag("remove") linear_sweep(region=compartment_sweep_profile, height=final_compartment_height, scale=[compartment_width_scale, compartment_depth_scale], shift=[0, 0], anchor="original_top");
       prismoid(size1=[holder_width, final_holder_depth], h=final_holder_height, xang=[90, 90], yang=[90 + final_holder_tilt_angle, 90], rounding=[final_holder_rounding, final_holder_rounding, 0, 0], anchor=FRONT + BOTTOM) {
         attach(FRONT, TOP, align=TOP, inside=true) {
           tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[slot_flat_region]);
           // openconnect_slot_grid_limit_debug(slot_cfg=_slot_cfg, horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[slot_flat_region]);
         }
-        front_opening_depth = holder_outer_wall_thickness + final_compartment_depth / 2 - ang_adj_to_opp(final_depth_taper, compartment_height);
+        front_opening_depth = holder_outer_wall_thickness + final_compartment_depth / 2 - ang_adj_to_opp(final_depth_taper, final_compartment_height);
         if (front_opening_width > 0 && front_opening_height > 0)
           tag_diff(tag="remove", remove="rm1")
             line_copies(spacing=compartment_width + holder_vertical_divider_thickness, n=compartment_column_count)
@@ -154,9 +155,9 @@ right(holder_width / 2) zrot(180)
                 tag("") prismoid(size2=[front_opening_width, front_opening_depth], h=final_front_opening_height, xang=[90, 90], yang=[90 - final_depth_taper, 90]) {
                     if (front_opening_outer_fillet > 0)
                       fwd(ang_adj_to_opp(final_depth_taper, front_opening_outer_fillet) / 2)
-                        tag("") edge_mask(holder_bottom_thickness > 0 || final_front_opening_height < compartment_height ? [TOP + LEFT, TOP + RIGHT] : [TOP + LEFT, TOP + RIGHT, BOTTOM + LEFT, BOTTOM + RIGHT])
+                        tag("") edge_mask(holder_bottom_thickness > 0 || final_front_opening_height < final_compartment_height ? [TOP + LEFT, TOP + RIGHT] : [TOP + LEFT, TOP + RIGHT, BOTTOM + LEFT, BOTTOM + RIGHT])
                             rounding_edge_mask(r=front_opening_outer_fillet, spin=90, l=$edge_length + ang_adj_to_opp(final_depth_taper, front_opening_outer_fillet));
-                    if (front_opening_inner_fillet > 0 && (holder_bottom_thickness > 0 || final_front_opening_height < compartment_height))
+                    if (front_opening_inner_fillet > 0 && (holder_bottom_thickness > 0 || final_front_opening_height < final_compartment_height))
                       tag("rm1") edge_mask([BOTTOM + LEFT, BOTTOM + RIGHT])
                           rounding_edge_mask(r=front_opening_inner_fillet);
                   }

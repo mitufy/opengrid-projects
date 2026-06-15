@@ -509,7 +509,7 @@ module drawer_divider(is_shell, by_width) {
   inner_size =
     by_width && !is_shell ? container_width - container_side_wall_thickness * 2 - divider_wall_thickness * len(divide_cumnums)
     : !by_width && !is_shell ? container_depth - container_front_wall_thickness - container_back_wall_thickness - divider_wall_thickness * len(divide_cumnums)
-    : by_width && is_shell ? shell_inner_width - divider_wall_thickness * len(divide_cumnums) : shell_inner_height - divider_wall_thickness * len(divide_cumnums);
+    : by_width && is_shell ? shell_inner_width : shell_inner_height;
   wall_alignment =
     by_width && !is_shell ? LEFT
     : !by_width && !is_shell ? TOP
