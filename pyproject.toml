@@ -32,6 +32,8 @@ packages = ["annotation_renderer"]
 
 [tool.setuptools.package-data]
 annotation_renderer = [
+  "*.md",
+  "assets/*.stl",
   "assets/scenes/*.blend",
   "configs/*.yaml",
   "configs/*.yml",

@@ -1,0 +1,126 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: animation_presets.yaml
+variant_name: openconnect_vasemode_container_default
+job_name: vasemode_container_scene_default
+constants:
+  vasemode_container_model:
+    scad_file: openconnect_vasemode_container.scad
+    defines:
+      vase_surface_texture: checkers
+      horizontal_grids: 2
+      vertical_grids: 3
+      depth_grids: 2
+      vase_tilt_angle: 15
+      label_holder_type: Standard
+  vasemode_container_annotations:
+    style:
+      line_alpha: 255
+      line_width_px: 2.3
+      extension_width_px: 1.1
+      tick_length_px: 14
+      radial_line_width_px: 2.1
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+      angle_fill_color: '#dc2626'
+      image_label_margin_px: 32
+      image_label_title_area: true
+      image_label_title_padding_x_px: 34
+      image_label_title_padding_y_px: 12
+      image_label_title_radius_px: 18
+      image_label_title_fill_color: '#ffffff'
+      image_label_title_fill_alpha: 224
+      image_label_title_outline_color: '#000000'
+      image_label_title_outline_alpha: 255
+      image_label_title_outline_width_px: 4
+      image_label_title_min_width_px: 620
+      image_label_title_bottom_margin_px: 18
+      type_styles:
+        grids:
+          line_colors: ['#000000']
+          font:
+            $constant: annotation_font
+          text_shade: 1.0
+        mm:
+          line_colors: ['#2563eb']
+          font:
+            $constant: annotation_font
+          text_shade: 1.0
+        radius:
+          line_colors: ['#dc2626']
+          font:
+            $constant: annotation_font
+          text_shade: 1.0
+        angle:
+          line_colors: ['#dc2626']
+          font:
+            $constant: annotation_font
+          text_shade: 1.0
+      colors:
+        horizontal_grids: '#000000'
+        vertical_grids: '#000000'
+        depth_grids: '#000000'
+        ocvase_linewidth: '#2563eb'
+        surface_texture_size: '#2563eb'
+        surface_texture_depth: '#2563eb'
+        label_width: '#2563eb'
+        label_height: '#2563eb'
+        label_depth: '#2563eb'
+        vase_tilt_angle: '#dc2626'
+        vase_tilt_angle_radius: '#dc2626'
+        vase_tilt_angle_extent: '#dc2626'
+    aliases:
+      vase_surface_texture: surface_texture
+      label_holder_type: label_holder
+      vase_tilt_angle_extent: vase_tilt_angle
+    chains:
+    - ids: [horizontal_grids]
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 0
+      label_offset_px: 32
+    - ids: [vertical_grids]
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 18
+      label_offset_px: 30
+    - ids: [depth_grids]
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: -30
+      label_offset_px: -34
+    - $constant: small_dimension_chain
+      ids: [ocvase_linewidth]
+      label_offset_px: 34
+    - $constant: small_dimension_chain
+      ids: [label_width]
+      optional: true
+      label_offset_px: 30
+    angle_radius_callouts:
+    - id: vase_tilt_angle_callout
+      arc_id: vase_tilt_angle_extent
+      radius_id: vase_tilt_angle_radius
+      angle_id: vase_tilt_angle
+      optional: true
+      show_radius_label: false
+      angle_label_offset_px: 34
+      angle_fill_alpha: 28
+    image_labels:
+    - $constant: bottom_image_label
+      id: vase_surface_texture
+      show_value: true
+      value_color: '#2563eb'
+      font_size_px:
+        $constant: annotation_title_font_size_px
+    - id: label_holder_type
+      position: top
+      offset_px: [0, 28]
+      show_value: true
+      value_color: '#2563eb'
+      font_size_px:
+        $constant: annotation_aux_label_font_size_px
+model:
+  $constant: vasemode_container_model
+scene:
+  transform:
+    $constant: wall_placeholder_transform
+render:
+  fit_margin: 0.15
+annotations:
+  $constant: vasemode_container_annotations

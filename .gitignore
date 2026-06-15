@@ -1,18 +1,31 @@
+# Local environment and editor state
+.env
+.env.*
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.vscode/
+.idea/
+
+# Generated model/export artifacts
 *.stl
-*.json
-!annotation_renderer/**/*.json
+!annotation_renderer/assets/*.stl
+!annotation_renderer/assets/**/*.stl
 *.3mf
+
+# Local/generated project folders
+blender/
+mesh/
+ref/
 build/
+scripts/
+AGENT.md
 AGENTS.md
 .codex/
 .codex_tmp/
-scripts/
-AGENT.md
 tools/
-tests/
-!tests/
-tests/*
-!tests/test_animation_config.py
 review_manifests/
 requirements-tools.txt
 

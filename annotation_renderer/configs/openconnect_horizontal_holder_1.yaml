@@ -1,0 +1,141 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: base_scene.yaml
+variant_name: openconnect_horizontal_holder_default
+job_name: horizontal_holder_scene_default
+constants:
+  horizontal_holder_model:
+    scad_file: openconnect_horizontal_holder.scad
+    defines:
+      item_width: 190
+      item_height: 60
+      item_depth: 30
+      generate_holder_part: Both
+      holder_slot_position: Top
+  horizontal_holder_annotations:
+    style:
+      line_alpha: 255
+      line_width_px: 2.3
+      extension_width_px: 1.1
+      tick_length_px: 14
+      radial_line_width_px: 2.1
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+      image_label_margin_px: 32
+      image_label_title_area: true
+      image_label_title_padding_x_px: 34
+      image_label_title_padding_y_px: 12
+      image_label_title_radius_px: 18
+      image_label_title_fill_color: '#ffffff'
+      image_label_title_fill_alpha: 224
+      image_label_title_outline_color: '#000000'
+      image_label_title_outline_alpha: 255
+      image_label_title_outline_width_px: 4
+      image_label_title_min_width_px: 620
+      image_label_title_bottom_margin_px: 18
+      colors:
+        item_width: '#000000'
+        item_height: '#000000'
+        item_depth: '#2563eb'
+        item_corner_rounding: '#dc2626'
+        item_corner_rounding_extent: '#dc2626'
+        front_opening_width_margin: '#2563eb'
+        front_opening_height_margin: '#2563eb'
+        side_cutout_front_margin: '#2563eb'
+        side_cutout_back_margin: '#2563eb'
+        side_cutout_top_margin: '#2563eb'
+        side_cutout_bottom_margin: '#2563eb'
+    aliases:
+      holder_slot_position: slot_position
+      item_corner_rounding_extent: item_corner_rounding
+      side_cutout_front_margin: cutout_front_margin
+      side_cutout_back_margin: cutout_back_margin
+      side_cutout_top_margin: cutout_top_margin
+      side_cutout_bottom_margin: cutout_bottom_margin
+    chains:
+    # - ids: [item_width]
+    #   display_offset_mm: [0, 0, 0]
+    #   line_offset_px: 0
+    #   label_offset_px: 30
+    # - ids: [item_height]
+    #   display_offset_mm: [8, 0, 0]
+    #   line_offset_px: 0
+    #   label_offset_px: 28
+    # - ids: [item_depth]
+    #   display_offset_mm: [0, 0, 0]
+    #   line_offset_px: 0
+    #   label_offset_px: 24
+    # - ids: [front_opening_width_margin]
+    #   optional: true
+    #   display_offset_mm: [0, 0, 0]
+    #   line_offset_px: 0
+    #   label_offset_px: 24
+    # - ids: [front_opening_height_margin]
+    #   optional: true
+    #   display_offset_mm: [8, 0, 0]
+    #   line_offset_px: 0
+    #   label_offset_px: 24
+    - ids: [side_cutout_front_margin]
+      optional: true
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 0
+      label_offset_px: 24
+    - ids: [side_cutout_back_margin]
+      optional: true
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 0
+      label_offset_px: 24
+    - ids: [side_cutout_top_margin]
+      optional: true
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 0
+      label_offset_px: 24
+    - ids: [side_cutout_bottom_margin]
+      optional: true
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 0
+      label_offset_px: 24
+    # angle_radius_callouts:
+    # - id: item_corner_rounding_fillet
+    #   arc_id: item_corner_rounding_extent
+    #   radius_id: item_corner_rounding
+    #   angle_id: item_corner_rounding
+    #   optional: true
+    #   show_angle_label: false
+    #   radius_label_offset_px: 36
+    #   angle_fill_alpha: 28
+    image_labels:
+    - $constant: bottom_image_label
+      id: holder_slot_position
+      show_value: true
+      value_color: '#2563eb'
+      font_size_px:
+        $constant: annotation_title_font_size_px
+model:
+  $constant: horizontal_holder_model
+scene:
+  objects:
+  - id: model
+    target_object: placeholder
+    model:
+      $constant: horizontal_holder_model
+    inherit_target_transform: false
+    transform:
+      location_mm: [0, "-(item_height / 2 + og_standard_thickness)", 0]
+      rotation_deg: [-90, 0, 0]
+      scale:
+        $constant: blender_scene_scale_vector
+  - id: openconnect_standard_snap
+    stl_file: ../assets/openconnect_standard_snap.stl
+    inherit_target_transform: false
+    replace_target_object: false
+    transform:
+      location_mm: ["-(og_tile_size / 2)", og_standard_thickness, "-(og_tile_size / 2)"]
+      rotation_deg: [90, 0, 0]
+      scale:
+        $constant: blender_scene_scale_vector
+render:
+  # camera_view: right
+  fit_margin: 0.16
+  camera_location_offset_mm: [100, 0, 0]
+annotations:
+  $constant: horizontal_holder_annotations

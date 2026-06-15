@@ -1,0 +1,118 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: base_scene.yaml
+variant_name: openconnect_sturdy_hook_default
+job_name: sturdy_hook_scene_45
+constants:
+  sturdy_hook_model:
+    scad_file: openconnect_sturdy_hook.scad
+    defines:
+      hook_length: 45
+      hook_shape_type: Circular
+  sturdy_hook_annotations:
+    style:
+      line_alpha: 255
+      line_width_px: 2.3
+      extension_width_px: 1.1
+      tick_length_px: 15
+      radial_line_width_px: 2.1
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+      angle_fill_color: '#dc2626'
+      image_label_margin_px: 32
+      image_label_title_area: true
+      image_label_title_padding_x_px: 34
+      image_label_title_padding_y_px: 12
+      image_label_title_radius_px: 18
+      image_label_title_fill_color: '#ffffff'
+      image_label_title_fill_alpha: 224
+      image_label_title_outline_color: '#000000'
+      image_label_title_outline_alpha: 255
+      image_label_title_outline_width_px: 4
+      image_label_title_min_width_px: 620
+      image_label_title_bottom_margin_px: 18
+      type_styles:
+        grids:
+          line_colors: ['#000000']
+          font:
+            $constant: annotation_font
+          text_shade: 1.0
+        mm:
+          line_colors: ['#2563eb']
+          font:
+            $constant: annotation_font
+          text_shade: 1.0
+        radius:
+          line_colors: ['#dc2626']
+          font:
+            $constant: annotation_font
+          text_shade: 1.0
+        angle:
+          line_colors: ['#dc2626']
+          font:
+            $constant: annotation_font
+          text_shade: 1.0
+      colors:
+        hook_width: '#2563eb'
+        hook_thickness: '#2563eb'
+        hook_length: '#2563eb'
+        hook_vertical_grids: '#000000'
+        truss_vertical_grids: '#000000'
+        circular_tip_radius: '#dc2626'
+        circular_tip_radius_extent: '#dc2626'
+        circular_tip_angle: '#dc2626'
+        truss_angle_radius: '#dc2626'
+        truss_angle_extent: '#dc2626'
+        truss_max_angle: '#dc2626'
+    aliases:
+      hook_vertical_grids: hook_vgrids
+      truss_vertical_grids: truss_vgrids
+      hook_shape_type: hook_shape
+      circular_tip_radius: tip_radius
+      circular_tip_radius_extent: tip_radius
+      circular_tip_angle: tip_angle
+    chains:
+    - ids: [hook_width]
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 0
+      label_offset_px: 34
+    - ids: [hook_thickness, hook_length]
+      label_offset_px: 40
+    - ids: [hook_vertical_grids, truss_vertical_grids]
+      optional: true
+      display_offset_mm: [-3, 0, 0]
+      label_offset_px: 42
+    angle_radius_callouts:
+    - id: circular_tip_angle_radius
+      arc_id: circular_tip_radius_extent
+      radius_id: circular_tip_radius
+      angle_id: circular_tip_angle
+      optional: true
+      angle_label_offset_px: 42
+      angle_label_tangent_offset_px: 28
+      radius_label_offset_px: -30
+      angle_fill_alpha: 28
+    - id: truss_angle_detail
+      arc_id: truss_angle_extent
+      radius_id: truss_angle_radius
+      angle_id: truss_max_angle
+      optional: true
+      show_radius_label: false
+      angle_label_offset_px: 34
+      angle_fill_alpha: 28
+    image_labels:
+    - $constant: bottom_image_label
+      id: hook_shape_type
+      offset_px: [0, -6]
+      show_value: true
+      value_color: '#2563eb'
+      font_size_px:
+        $constant: annotation_title_font_size_px
+model:
+  $constant: sturdy_hook_model
+scene:
+  transform:
+    $constant: wall_placeholder_transform
+render:
+  fit_margin: 0.14
+annotations:
+  $constant: sturdy_hook_annotations
