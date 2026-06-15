@@ -9,15 +9,14 @@ from typing import Mapping, Sequence
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 
-from annotation_renderer.config import (
-    DEFAULT_LINE_ALPHA,
-    DEFAULT_TYPE_STYLES,
+from annotation_renderer.annotation_config import (
     AngleRadiusCallout,
     ArcCallout,
     DimensionSegment,
     ImageLabel,
     RadiusCallout,
 )
+from annotation_renderer.config_defaults import DEFAULT_LINE_ALPHA, DEFAULT_TYPE_STYLES
 
 
 LABEL_TEXT_COLOR = "#18212b"
