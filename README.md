@@ -1,5 +1,11 @@
 A place to store my OpenSCAD models for openGrid.
 
+## Branch Focus
+
+This branch is for the annotated image generation utility. The active work here
+is the `annotation_renderer/` package, CLI, configs, schemas, and docs used to
+render OpenSCAD models into annotated technical images.
+
 # How to use:
 To generate the models locally, download the repository and install **OpenSCAD** and the **BOSL2 library** on your computer. This is faster and more reliable than rendering online. However, if you prefer a simpler method, you can just use the customizer on the MakerWorld model pages.
 
@@ -10,7 +16,7 @@ After installing OpenSCAD, go to **Edit -> Preferences -> Advanced** and ensure 
 
 ## Annotation Renderer Utility
 
-The Blender/OpenSCAD technical drawing image generator lives in [`annotation_renderer/`](annotation_renderer/README.md). It contains the reusable renderer package, CLI, config examples, JSON Schema, and utility-specific documentation.
+The Blender/OpenSCAD technical drawing image generator lives in [`annotation_renderer/`](annotation_renderer/README.md). Start there for the short `opengrid-annotate render <model>` workflow. The longer config and SCAD metadata reference lives in [`annotation_renderer/REFERENCE.md`](annotation_renderer/REFERENCE.md).
 
 ---
 
