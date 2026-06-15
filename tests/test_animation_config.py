@@ -13,22 +13,31 @@ import yaml
 
 from annotation_renderer.animation import resolve_animation_config
 from annotation_renderer.config import ConfigError, DimensionSegment, resolve_render, validate_config_shape
+from annotation_renderer.config_resolution import build_expression_context
 from annotation_renderer.overlay import DimensionChainOverlaySpec, draw_dimension_chains_overlay
 from annotation_renderer.scad_annotations import parse_scad_annotation_line
 from annotation_renderer.scene_cli import (
+    blender_stage_cache_key,
+    cache_enabled_for,
+    cache_root_for,
     command_failure_message,
+    build_blender_config,
     discover_scad_source_annotations,
     discovery_summary_json,
+    default_config_for_model,
     format_annotation_discovery,
     format_doctor_check,
     apply_animation_preset,
     load_config,
     load_gallery_config,
     main,
+    output_file_from_args,
     output_mode_for,
+    overlay_quality_warnings,
     parse_args_from,
     scad_output_folder_name,
     selected_variants,
+    scene_object_specs,
     variant_config,
     write_annotation_discovery_output,
 )
@@ -214,26 +223,26 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("drawer_install_then_slide_animation_render", config["constants"])
 
     def test_animation_preset_shortcut_applies_to_model_defaults(self) -> None:
-        holder_config_file = load_config(Path("annotation_renderer/configs/general_holder_default.yaml"), [])
+        holder_config_file = load_config(Path("annotation_renderer/configs/openconnect_general_holder_default.yaml"), [])
         holder_config = apply_animation_preset(holder_config_file, "openconnect_insert_animation_render")
         self.assertEqual(holder_config["model"]["scad_file"], "openconnect_general_holder.scad")
-        self.assertEqual(holder_config["scene"]["transform"]["rotation_deg"], [0, 0, 0])
+        self.assertEqual(holder_config["scene"]["transform"]["rotation_deg"], ["holder_tilt_angle", 0, 0])
         self.assertEqual(holder_config["render"]["camera_look_at"], "object_center")
         self.assertEqual(holder_config["render"]["animation"]["object_animations"][0]["object"], "model")
         self.assertEqual(holder_config["annotations"], {})
 
-        shelf_config_file = load_config(Path("annotation_renderer/configs/sturdy_shelf_default.yaml"), [])
+        shelf_config_file = load_config(Path("annotation_renderer/configs/openconnect_sturdy_shelf_default.yaml"), [])
         shelf_config = apply_animation_preset(shelf_config_file, "openconnect_insert_animation_render")
         self.assertEqual(shelf_config["scene"]["transform"]["rotation_deg"], [90, 0, -90])
 
-        drawer_config_file = load_config(Path("annotation_renderer/configs/drawer_shell_container_default.yaml"), [])
+        drawer_config_file = load_config(Path("annotation_renderer/configs/openconnect_drawer_shell_container_default.yaml"), [])
         drawer_config = apply_animation_preset(drawer_config_file, "drawer_install_then_slide_animation_render")
         animation = drawer_config["render"]["animation"]
         self.assertEqual(animation["clips"][0]["object_animations"][0]["object"], "drawer_shell")
         self.assertEqual(animation["clips"][1]["object_animations"][0]["opacity_keyframes"][1], {"frame": 8, "value": 1})
 
     def test_animation_preset_shortcut_rejects_non_animation_constants(self) -> None:
-        holder_config_file = load_config(Path("annotation_renderer/configs/general_holder_default.yaml"), [])
+        holder_config_file = load_config(Path("annotation_renderer/configs/openconnect_general_holder_default.yaml"), [])
 
         with self.assertRaisesRegex(ConfigError, "must include render.animation"):
             apply_animation_preset(holder_config_file, "general_holder_model")
@@ -245,36 +254,97 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(
             names,
             [
-                "sturdy_hook_default",
-                "sturdy_shelf_default",
-                "general_holder_default",
-                "drawer_shell_default",
-                "drawer_shell_container_default",
+                "openconnect_sturdy_hook_default",
+                "openconnect_sturdy_shelf_default",
+                "openconnect_general_holder_default",
+                "openconnect_vasemode_container_default",
+                "openconnect_horizontal_holder_default",
+                "openconnect_drawer_shell_default",
+                "openconnect_drawer_shell_container_default",
+                "openconnect_standard_snap_grid_copies",
+                "opengrid_expanding_standard_snap_grid_copies",
             ],
         )
 
-        holder_variant = selected_variants(config, "general_holder_default")[0]
+        holder_variant = selected_variants(config, "openconnect_general_holder_default")[0]
         holder_config = variant_config(config, holder_variant)
         self.assertEqual(holder_config["model"]["scad_file"], "openconnect_general_holder.scad")
-        self.assertEqual(holder_config["scene"]["transform"]["rotation_deg"], [0, 0, 0])
+        self.assertEqual(holder_config["scene"]["transform"]["rotation_deg"], ["holder_tilt_angle", 0, 0])
         self.assertEqual(holder_config["render"]["camera_location_offset_mm"], [0, 0, 100])
         self.assertEqual(holder_config["render"]["camera_look_at"], "object_center")
         self.assertEqual(holder_config["annotations"]["chains"][0]["ids"], ["compartment_width"])
+        self.assertEqual(holder_config["annotations"]["angle_radius_callouts"][0]["angle_id"], "holder_tilt_angle")
+        self.assertEqual(
+            [label["id"] for label in holder_config["annotations"]["image_labels"]],
+            ["compartment_shape"],
+        )
 
-        hook_variant = selected_variants(config, "sturdy_hook_default")[0]
+        vase_variant = selected_variants(config, "openconnect_vasemode_container_default")[0]
+        vase_config = variant_config(config, vase_variant)
+        self.assertEqual(vase_config["model"]["scad_file"], "openconnect_vasemode_container.scad")
+        self.assertEqual(vase_config["scene"]["transform"]["rotation_deg"], [90, 0, -90])
+        self.assertEqual(vase_config["model"]["defines"]["label_holder_type"], "Standard")
+        self.assertEqual(vase_config["annotations"]["chains"][0]["ids"], ["horizontal_grids"])
+        self.assertEqual(vase_config["annotations"]["angle_radius_callouts"][0]["angle_id"], "vase_tilt_angle")
+        self.assertEqual(
+            [label["id"] for label in vase_config["annotations"]["image_labels"]],
+            ["vase_surface_texture", "label_holder_type"],
+        )
+
+        hook_variant = selected_variants(config, "openconnect_sturdy_hook_default")[0]
         hook_config = variant_config(config, hook_variant)
         self.assertEqual(hook_config["scene"]["transform"]["rotation_deg"], [90, 0, -90])
 
-        shelf_variant = selected_variants(config, "sturdy_shelf_default")[0]
+        shelf_variant = selected_variants(config, "openconnect_sturdy_shelf_default")[0]
         shelf_config = variant_config(config, shelf_variant)
         self.assertEqual(shelf_config["scene"]["transform"]["rotation_deg"], [90, 0, -90])
 
+        horizontal_holder_variant = selected_variants(config, "openconnect_horizontal_holder_default")[0]
+        horizontal_holder_config = variant_config(config, horizontal_holder_variant)
+        self.assertEqual(horizontal_holder_config["model"]["scad_file"], "openconnect_horizontal_holder.scad")
+        horizontal_holder_objects = horizontal_holder_config["scene"]["objects"]
+        self.assertEqual(horizontal_holder_objects[0]["model"]["scad_file"], "openconnect_horizontal_holder.scad")
+        self.assertEqual(horizontal_holder_objects[0]["transform"]["rotation_deg"], [-90, 0, 0])
+        self.assertEqual(
+            horizontal_holder_objects[0]["transform"]["location_mm"],
+            [0, "-(item_height / 2 + og_standard_thickness)", 0],
+        )
+        self.assertEqual(horizontal_holder_objects[1]["id"], "openconnect_standard_snap")
+        self.assertEqual(horizontal_holder_objects[1]["stl_file"], "../assets/openconnect_standard_snap.stl")
+        self.assertEqual(horizontal_holder_objects[1]["transform"]["rotation_deg"], [90, 0, 0])
+        self.assertEqual(
+            horizontal_holder_objects[1]["transform"]["location_mm"],
+            ["-(og_tile_size / 2)", "og_standard_thickness", "-(og_tile_size / 2)"],
+        )
+        self.assertNotIn("camera_rotation_deg", horizontal_holder_config["render"])
+        self.assertEqual(horizontal_holder_config["annotations"]["chains"][0]["ids"], ["item_width"])
+        side_margin_chain_ids = [
+            chain["ids"]
+            for chain in horizontal_holder_config["annotations"]["chains"]
+            if chain["ids"][0].startswith("side_cutout_")
+        ]
+        self.assertEqual(
+            side_margin_chain_ids,
+            [
+                ["side_cutout_front_margin"],
+                ["side_cutout_back_margin"],
+                ["side_cutout_top_margin"],
+                ["side_cutout_bottom_margin"],
+            ],
+        )
+        self.assertEqual(horizontal_holder_config["annotations"]["image_labels"][0]["id"], "holder_slot_position")
+
     def test_per_model_default_config_is_directly_renderable(self) -> None:
-        config = load_config(Path("annotation_renderer/configs/general_holder_default.yaml"), [])
+        config = load_config(Path("annotation_renderer/configs/openconnect_general_holder_default.yaml"), [])
 
         self.assertEqual(config["model"]["scad_file"], "openconnect_general_holder.scad")
         self.assertEqual(config["job_name"], "general_holder_scene_default")
         self.assertEqual(config["annotations"]["chains"][0]["ids"], ["compartment_width"])
+        self.assertEqual(config["annotations"]["angle_radius_callouts"][0]["angle_id"], "holder_tilt_angle")
+        self.assertEqual(
+            [label["id"] for label in config["annotations"]["image_labels"]],
+            ["compartment_shape"],
+        )
 
     def test_checked_in_defaults_are_yaml_only(self) -> None:
         config_dir = Path("annotation_renderer/configs")
@@ -286,9 +356,82 @@ class AnimationConfigTests(unittest.TestCase):
     def test_list_models_uses_default_model_config(self) -> None:
         output = self.run_cli("--list-models")
 
-        self.assertIn("general_holder_default", output)
-        self.assertIn("annotation_renderer/configs/general_holder_default.yaml", output)
+        self.assertIn("openconnect_general_holder_default", output)
+        self.assertIn("annotation_renderer/configs/openconnect_general_holder_default.yaml", output)
         self.assertIn("model: openconnect_general_holder.scad", output)
+        self.assertIn("openconnect_horizontal_holder_default", output)
+        self.assertIn("model: openconnect_horizontal_holder.scad", output)
+        self.assertIn("openconnect_vasemode_container_default", output)
+        self.assertIn("model: openconnect_vasemode_container.scad", output)
+        self.assertIn("openconnect_standard_snap_grid_copies", output)
+        self.assertIn("openconnect_standard_snap: ../assets/openconnect_standard_snap.stl", output)
+        self.assertIn("opengrid_expanding_standard_snap_grid_copies", output)
+        self.assertIn("opengrid_expanding_standard_snap: ../assets/opengrid_expanding_standard_snap.stl", output)
+
+    def test_simple_command_aliases_use_model_names(self) -> None:
+        list_output = self.run_cli("list-models")
+        description = self.run_cli("describe", "openconnect_general_holder")
+        vase_description = self.run_cli("describe", "openconnect_vasemode_container")
+        annotations = self.run_cli("list-annotations", "openconnect_general_holder")
+        vase_annotations = self.run_cli("list-annotations", "openconnect_vasemode_container")
+        discovery = self.run_cli("discover", "openconnect_general_holder.scad")
+        doctor_args = parse_args_from(["doctor", "--smoke-render"])
+
+        self.assertIn("openconnect_general_holder_default", list_output)
+        self.assertIn("Source: annotation_renderer/configs/openconnect_general_holder_default.yaml", description)
+        self.assertIn("Source: annotation_renderer/configs/openconnect_vasemode_container_default.yaml", vase_description)
+        self.assertIn("dimension: compartment_width", annotations)
+        self.assertIn("dimension: horizontal_grids", vase_annotations)
+        self.assertIn("Available annotation parameters for openconnect_general_holder:", discovery)
+        self.assertTrue(doctor_args.doctor)
+        self.assertTrue(doctor_args.smoke_render)
+
+    def test_render_shortcut_uses_scad_model_default_config(self) -> None:
+        output = self.run_cli("render", "openconnect_general_holder", "--validate-only")
+
+        self.assertIn("Config OK: annotation_renderer/configs/openconnect_general_holder_default.yaml", output)
+        self.assertIn("Object:    model -> openconnect_general_holder.scad", output)
+        self.assertEqual(
+            default_config_for_model("openconnect_general_holder"),
+            Path("annotation_renderer/configs/openconnect_general_holder_default.yaml").resolve(),
+        )
+        self.assertEqual(
+            default_config_for_model("openconnect_vasemode_container"),
+            Path("annotation_renderer/configs/openconnect_vasemode_container_default.yaml").resolve(),
+        )
+
+    def test_set_override_supports_array_indexes(self) -> None:
+        config = load_config(
+            Path("annotation_renderer/configs/openconnect_general_holder_default.yaml"),
+            ["annotations.chains[0].label_offset_px=36"],
+        )
+
+        self.assertEqual(config["annotations"]["chains"][0]["label_offset_px"], 36)
+
+    def test_output_file_resolves_to_exact_still_image_path(self) -> None:
+        args = parse_args_from(["render", "openconnect_general_holder", "--output-file", "build/final_holder.png"])
+
+        self.assertEqual(output_file_from_args(args), Path("build/final_holder.png").resolve())
+
+    def test_overlay_quality_warnings_report_label_overlaps(self) -> None:
+        warnings = overlay_quality_warnings(
+            {
+                "chains": [
+                    {
+                        "text": {
+                            "first": {"bbox_px": {"left": 0, "top": 0, "right": 30, "bottom": 30}},
+                            "second": {"bbox_px": {"left": 10, "top": 10, "right": 40, "bottom": 40}},
+                        }
+                    }
+                ],
+                "image_labels": {
+                    "title_area": {"bbox_px": {"left": 0, "top": 0, "right": 100, "bottom": 100}},
+                },
+            }
+        )
+
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("label overlap", warnings[0])
 
     def test_doctor_check_format_is_machine_scannable(self) -> None:
         self.assertEqual(format_doctor_check(True, "OpenSCAD", "C:/OpenSCAD/openscad.exe"), "[OK] OpenSCAD: C:/OpenSCAD/openscad.exe")
@@ -442,20 +585,99 @@ class AnimationConfigTests(unittest.TestCase):
 
     def test_discover_annotations_rejects_config_model_names(self) -> None:
         with self.assertRaisesRegex(SystemExit, "expects a \\.scad file path"):
-            main(["--discover-annotations", "drawer_shell_container_default"])
+            main(["--discover-annotations", "openconnect_drawer_shell_container_default"])
 
     def test_general_holder_discovery_uses_customizer_parameter_ids(self) -> None:
         output = self.run_cli("--discover-annotations", "openconnect_general_holder.scad")
 
         self.assertIn("    - compartment_width (axis=x", output)
         self.assertIn("    - compartment_depth (axis=y", output)
-        self.assertIn("    - body_height (axis=z", output)
-        self.assertNotIn("    - holder_width", output)
-        self.assertNotIn("    - holder_depth", output)
-        self.assertNotIn("    - holder_height", output)
-        self.assertNotIn("body_width\n", output)
+        self.assertIn("    - holder_back_offset (axis=y", output)
+        self.assertIn("    - compartment_bottom_width (axis=x", output)
+        self.assertIn("    - compartment_bottom_depth (axis=y", output)
+        self.assertIn("    - holder_vertical_divider_thickness (axis=x", output)
+        self.assertIn("    - holder_horizontal_divider_thickness (axis=y", output)
+        self.assertIn("    - holder_height (axis=z", output)
+        self.assertIn("    - holder_tilt_angle_radius", output)
+        self.assertIn("    - holder_tilt_angle_extent", output)
+        self.assertIn("    - holder_width_mode", output)
+        self.assertNotIn("    - holder_width (axis=", output)
+        self.assertNotIn("    - holder_depth (axis=", output)
+        self.assertNotIn("    - body_height (axis=", output)
+        self.assertNotIn("    - body_width_mode", output)
         self.assertNotIn("final_body_depth", output)
         self.assertNotIn("final_body_height", output)
+
+        annotations = discover_scad_source_annotations(Path("openconnect_general_holder.scad"), defines={})
+        tilt_anchor = next(annotation for annotation in annotations if annotation["id"] == "holder_tilt_angle" and annotation["kind"] == "feature")
+        self.assertEqual(tilt_anchor["basis"], "bottom_rear_side_corner_for_holder_tilt_angle")
+        tilt_radius = next(annotation for annotation in annotations if annotation["id"] == "holder_tilt_angle_radius" and annotation["kind"] == "radius")
+        self.assertEqual(tilt_radius["basis"], "bottom_holder_tilt_angle_anchor_to_tilt_wedge_midpoint")
+        tilt_arc = next(annotation for annotation in annotations if annotation["id"] == "holder_tilt_angle_extent" and annotation["kind"] == "arc")
+        self.assertEqual(tilt_arc["basis"], "tilt_wedge_side_arc_for_holder_tilt_angle")
+        back_offset = next(annotation for annotation in annotations if annotation["id"] == "holder_back_offset" and annotation["kind"] == "dimension")
+        self.assertEqual(back_offset["basis"], "extra_depth_added_by_holder_back_offset")
+        bottom_width = next(annotation for annotation in annotations if annotation["id"] == "compartment_bottom_width" and annotation["kind"] == "dimension")
+        self.assertEqual(bottom_width["basis"], "first_compartment_tapered_bottom_width")
+        bottom_depth = next(annotation for annotation in annotations if annotation["id"] == "compartment_bottom_depth" and annotation["kind"] == "dimension")
+        self.assertEqual(bottom_depth["basis"], "first_compartment_tapered_bottom_depth")
+        vertical_divider = next(annotation for annotation in annotations if annotation["id"] == "holder_vertical_divider_thickness" and annotation["kind"] == "dimension")
+        self.assertEqual(vertical_divider["basis"], "divider_between_first_two_compartment_columns")
+        horizontal_divider = next(annotation for annotation in annotations if annotation["id"] == "holder_horizontal_divider_thickness" and annotation["kind"] == "dimension")
+        self.assertEqual(horizontal_divider["basis"], "divider_between_first_two_compartment_rows")
+
+    def test_horizontal_holder_discovery_uses_customizer_parameter_ids(self) -> None:
+        output = self.run_cli("--discover-annotations", "openconnect_horizontal_holder.scad")
+
+        self.assertIn("    - item_width (axis=x", output)
+        self.assertIn("    - item_height (axis=y", output)
+        self.assertIn("    - item_depth (axis=z", output)
+        self.assertIn("    - front_opening_width_margin (axis=x", output)
+        self.assertIn("    - front_opening_height_margin (axis=y", output)
+        self.assertIn("    - side_cutout_front_margin (axis=y", output)
+        self.assertIn("    - side_cutout_back_margin (axis=y", output)
+        self.assertIn("    - side_cutout_top_margin (axis=z", output)
+        self.assertIn("    - side_cutout_bottom_margin (axis=z", output)
+        self.assertIn("basis=side_cutout_front_margin_to_visible_cutout_edge", output)
+        self.assertIn("basis=side_cutout_top_margin_to_visible_cutout_edge", output)
+        self.assertIn("    - item_corner_rounding", output)
+        self.assertIn("    - item_corner_rounding_extent", output)
+        self.assertIn("    - og_standard_thickness", output)
+        self.assertIn("    - holder_slot_position", output)
+        self.assertIn("    - slot_slide_direction", output)
+        self.assertNotIn("    - final_slot_h_grids", output)
+        self.assertNotIn("    - final_slot_v_grids", output)
+        self.assertNotIn("    - holder_width_edge", output)
+        self.assertNotIn("    - holder_height_edge", output)
+        self.assertNotIn("    - side_cutoff_front_offset", output)
+        self.assertNotIn("    - holder_width (axis=", output)
+        self.assertNotIn("    - holder_depth (axis=", output)
+
+    def test_vasemode_container_discovery_uses_customizer_parameter_ids(self) -> None:
+        output = self.run_cli("--discover-annotations", "openconnect_vasemode_container.scad")
+
+        self.assertIn("    - horizontal_grids (axis=x", output)
+        self.assertIn("    - vertical_grids (axis=z", output)
+        self.assertIn("    - depth_grids (axis=y", output)
+        self.assertIn("    - ocvase_linewidth (axis=x", output)
+        self.assertIn("    - label_width (axis=x", output)
+        self.assertIn("when=label_holder_type != \"None\"", output)
+        self.assertIn("    - vase_tilt_angle_radius", output)
+        self.assertIn("    - vase_tilt_angle_extent", output)
+        self.assertIn("    - vase_surface_texture", output)
+        self.assertIn("    - label_holder_type", output)
+        self.assertNotIn("    - vase_width (axis=", output)
+        self.assertNotIn("    - vase_height (axis=", output)
+
+        annotations = discover_scad_source_annotations(Path("openconnect_vasemode_container.scad"), defines={})
+        tilt_radius = next(annotation for annotation in annotations if annotation["id"] == "vase_tilt_angle_radius")
+        self.assertEqual(tilt_radius["basis"], "vase_tilt_angle_anchor_to_arc_midpoint")
+        label_width = next(
+            annotation
+            for annotation in annotations
+            if annotation["id"] == "label_width" and annotation["kind"] == "dimension"
+        )
+        self.assertEqual(label_width["conditions"], ['label_holder_type != "None"'])
 
     def test_discovery_summary_json_is_compact_parameter_data(self) -> None:
         annotation = parse_scad_annotation_line(
@@ -514,39 +736,57 @@ class AnimationConfigTests(unittest.TestCase):
             self.assertIn("name: demo", yaml_path.read_text(encoding="utf-8"))
 
     def test_describe_and_list_annotations_report_editable_settings(self) -> None:
-        description = self.run_cli("--describe", "general_holder_default")
+        description = self.run_cli("--describe", "openconnect_general_holder_default")
         direct_description = self.run_cli(
             "--config",
-            "annotation_renderer/configs/general_holder_default.yaml",
+            "annotation_renderer/configs/openconnect_general_holder_default.yaml",
             "--describe",
-            "general_holder_default",
+            "openconnect_general_holder_default",
         )
-        annotations = self.run_cli("--list-annotations", "general_holder_default")
+        annotations = self.run_cli("--list-annotations", "openconnect_general_holder_default")
 
         self.assertIn("compartment_shape: \"Rectangular\"", description)
-        self.assertIn("Source: annotation_renderer/configs/general_holder_default.yaml", direct_description)
+        self.assertIn("Source: annotation_renderer/configs/openconnect_general_holder_default.yaml", direct_description)
         self.assertIn("camera_location_offset_mm: [0,0,100]", description)
         self.assertIn("camera_look_at: \"object_center\"", description)
         self.assertIn("dimension: compartment_width", annotations)
+        self.assertIn("angle_radius: holder_tilt_angle_callout", annotations)
+        self.assertNotIn("image_label: holder_tilt_angle", annotations)
         self.assertIn("line_offset_px=0", annotations)
         self.assertIn("label_offset_px=28", annotations)
 
     def test_new_config_writes_valid_editable_template(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             output_path = Path(temp_dir) / "holder_custom.json"
-            output = self.run_cli("--new-config", "general_holder_default", "--out", str(output_path))
+            output = self.run_cli("--new-config", "openconnect_general_holder_default", "--out", str(output_path))
             template = json.loads(output_path.read_text(encoding="utf-8"))
             config = load_config(output_path, [])
 
         self.assertIn("Wrote:", output)
-        self.assertTrue(template["extends"].endswith("general_holder_default.yaml"))
+        self.assertTrue(template["extends"].endswith("openconnect_general_holder_default.yaml"))
         self.assertIn("scene", template)
         self.assertEqual(template["model"]["defines"]["compartment_shape"], "Rectangular")
         self.assertEqual(template["annotations"]["chains"][0]["ids"], ["compartment_width"])
+        self.assertEqual(template["annotations"]["angle_radius_callouts"][0]["angle_id"], "holder_tilt_angle")
+        self.assertEqual(
+            [label["id"] for label in template["annotations"]["image_labels"]],
+            ["compartment_shape"],
+        )
+        self.assertEqual(config["model"]["scad_file"], "openconnect_general_holder.scad")
+
+    def test_new_config_shortcut_accepts_model_stem(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "holder_custom.yaml"
+            output = self.run_cli("new-config", "openconnect_general_holder", "--out", str(output_path))
+            template = yaml.safe_load(output_path.read_text(encoding="utf-8"))
+            config = load_config(output_path, [])
+
+        self.assertIn("Wrote:", output)
+        self.assertTrue(template["extends"].endswith("openconnect_general_holder_default.yaml"))
         self.assertEqual(config["model"]["scad_file"], "openconnect_general_holder.scad")
 
     def test_yaml_config_extends_yaml_default(self) -> None:
-        default_config = Path("annotation_renderer/configs/general_holder_default.yaml").resolve().as_posix()
+        default_config = Path("annotation_renderer/configs/openconnect_general_holder_default.yaml").resolve().as_posix()
         scene_file = Path("annotation_renderer/assets/scenes/opengrid_wall_scene.blend").resolve().as_posix()
         with tempfile.TemporaryDirectory() as temp_dir:
             output_path = Path(temp_dir) / "holder_custom.yaml"
@@ -574,7 +814,7 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(config["model"]["defines"]["custom_label"], "on")
 
     def test_json_config_can_extend_yaml_config(self) -> None:
-        default_config = Path("annotation_renderer/configs/general_holder_default.yaml").resolve().as_posix()
+        default_config = Path("annotation_renderer/configs/openconnect_general_holder_default.yaml").resolve().as_posix()
         scene_file = Path("annotation_renderer/assets/scenes/opengrid_wall_scene.blend").resolve().as_posix()
         with tempfile.TemporaryDirectory() as temp_dir:
             base_yaml_path = Path(temp_dir) / "holder_base.yaml"
@@ -613,15 +853,20 @@ class AnimationConfigTests(unittest.TestCase):
     def test_new_config_writes_yaml_template_from_yaml_extension(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             output_path = Path(temp_dir) / "holder_custom.yaml"
-            output = self.run_cli("--new-config", "general_holder_default", "--out", str(output_path))
+            output = self.run_cli("--new-config", "openconnect_general_holder_default", "--out", str(output_path))
             template = yaml.safe_load(output_path.read_text(encoding="utf-8"))
             config = load_config(output_path, [])
 
         self.assertIn("Wrote:", output)
-        self.assertTrue(template["extends"].endswith("general_holder_default.yaml"))
+        self.assertTrue(template["extends"].endswith("openconnect_general_holder_default.yaml"))
         self.assertIn("scene", template)
         self.assertEqual(template["model"]["defines"]["compartment_shape"], "Rectangular")
         self.assertEqual(template["annotations"]["chains"][0]["ids"], ["compartment_width"])
+        self.assertEqual(template["annotations"]["angle_radius_callouts"][0]["angle_id"], "holder_tilt_angle")
+        self.assertEqual(
+            [label["id"] for label in template["annotations"]["image_labels"]],
+            ["compartment_shape"],
+        )
         self.assertEqual(config["model"]["scad_file"], "openconnect_general_holder.scad")
 
     def test_gallery_config_can_be_yaml(self) -> None:
@@ -663,6 +908,96 @@ class AnimationConfigTests(unittest.TestCase):
             }
         )
 
+    def test_scene_objects_can_reference_prebuilt_stl_files(self) -> None:
+        config = {
+            "constants": {"og_tile_size": 28, "og_standard_thickness": 6.8},
+            "model": {"scad_file": "demo.scad"},
+            "scene": {
+                "blend_file": "demo.blend",
+                "objects": [
+                    {"id": "model", "model": {"scad_file": "demo.scad"}},
+                    {
+                        "id": "snap",
+                        "stl_file": "annotation_renderer/assets/openconnect_standard_snap.stl",
+                        "inherit_target_transform": False,
+                        "transform": {
+                            "location_mm": ["-(og_tile_size / 2)", "og_standard_thickness", "-(og_tile_size / 2)"],
+                            "rotation_deg": [90, 0, 0],
+                            "scale": [0.001, 0.001, 0.001],
+                        },
+                    },
+                ],
+            },
+            "annotations": {},
+        }
+
+        validate_config_shape(config)
+        specs = scene_object_specs(
+            config=config,
+            scene_config=config["scene"],
+            config_dir=Path.cwd(),
+            expression_context=build_expression_context(config),
+        )
+
+        self.assertEqual(specs[1]["source_type"], "stl")
+        self.assertEqual(Path(specs[1]["stl_file"]).name, "openconnect_standard_snap.stl")
+        self.assertEqual(specs[1]["transform"]["location_mm"], [-14.0, 6.8, -14.0])
+
+    def test_scene_line_copies_expand_stl_object_offsets(self) -> None:
+        config_path = Path("annotation_renderer/configs/openconnect_standard_snap_line_copies.yaml")
+        config = load_config(config_path, [])
+        specs = scene_object_specs(
+            config=config,
+            scene_config=config["scene"],
+            config_dir=config_path.parent,
+            expression_context=build_expression_context(config),
+        )
+
+        self.assertEqual([spec["id"] for spec in specs], ["openconnect_standard_snap_0", "openconnect_standard_snap_1"])
+        self.assertEqual([spec["target_object"] for spec in specs], ["openconnect_standard_snap_0", "openconnect_standard_snap_1"])
+        self.assertEqual(specs[0]["transform"]["location_mm"], [-14.0, 6.8, -14.0])
+        self.assertEqual(specs[1]["transform"]["location_mm"], [14.0, 6.8, -14.0])
+
+    def test_scene_grid_copies_expand_stl_object_offsets(self) -> None:
+        config_path = Path("annotation_renderer/configs/openconnect_standard_snap_grid_copies.yaml")
+        config = load_config(config_path, [])
+        specs = scene_object_specs(
+            config=config,
+            scene_config=config["scene"],
+            config_dir=config_path.parent,
+            expression_context=build_expression_context(config),
+        )
+
+        self.assertEqual(
+            [spec["id"] for spec in specs],
+            [
+                "openconnect_standard_snap_0_0_0",
+                "openconnect_standard_snap_1_0_0",
+                "openconnect_standard_snap_0_0_1",
+                "openconnect_standard_snap_1_0_1",
+            ],
+        )
+        self.assertEqual(specs[0]["transform"]["location_mm"], [-14.0, 6.8, -14.0])
+        self.assertEqual(specs[1]["transform"]["location_mm"], [14.0, 6.8, -14.0])
+        self.assertEqual(specs[2]["transform"]["location_mm"], [-14.0, 6.8, 14.0])
+        self.assertEqual(specs[3]["transform"]["location_mm"], [14.0, 6.8, 14.0])
+
+    def test_expanding_snap_grid_copies_use_expanding_stl_transform(self) -> None:
+        config_path = Path("annotation_renderer/configs/opengrid_expanding_standard_snap_grid_copies.yaml")
+        config = load_config(config_path, [])
+        specs = scene_object_specs(
+            config=config,
+            scene_config=config["scene"],
+            config_dir=config_path.parent,
+            expression_context=build_expression_context(config),
+        )
+
+        self.assertEqual(Path(specs[0]["stl_file"]).name, "opengrid_expanding_standard_snap.stl")
+        self.assertEqual(config["render"]["camera_view"], "bottom")
+        self.assertEqual(specs[0]["transform"]["location_mm"], [-14.0, 0.0, -14.0])
+        self.assertEqual(specs[0]["transform"]["rotation_deg"], [-90.0, 180.0, 0.0])
+        self.assertEqual(specs[3]["transform"]["location_mm"], [14.0, 0.0, 14.0])
+
     def test_render_output_mode_is_validated_and_cli_overrides_config(self) -> None:
         render = resolve_render({"preset": "cycles_standard_scene", "output_mode": "debug"})
         args = parse_args_from(["--output-mode", "minimal"])
@@ -673,6 +1008,186 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(output_mode_for(render, args), "minimal")
         with self.assertRaisesRegex(ConfigError, "render.output_mode must be one of debug, minimal, standard"):
             resolve_render({"preset": "cycles_standard_scene", "output_mode": "everything"})
+
+    def test_render_cache_controls_are_resolved_from_cli_and_config(self) -> None:
+        default_args = parse_args_from(["render", "openconnect_general_holder"])
+
+        self.assertTrue(cache_enabled_for({}, default_args))
+        self.assertFalse(cache_enabled_for({"cache": False}, default_args))
+        self.assertFalse(cache_enabled_for({}, parse_args_from(["render", "openconnect_general_holder", "--no-cache"])))
+        self.assertIsNone(
+            cache_root_for(
+                {"output_dir": "build/scene_annotations"},
+                {},
+                parse_args_from(["render", "openconnect_general_holder", "--no-cache"]),
+            )
+        )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            cache_dir = Path(temp_dir) / "cache"
+            args = parse_args_from(["render", "openconnect_general_holder", "--cache-dir", str(cache_dir)])
+            self.assertEqual(cache_root_for({"output_dir": "build/scene_annotations"}, {}, args), cache_dir.resolve())
+            self.assertTrue(cache_dir.exists())
+
+        with self.assertRaisesRegex(ConfigError, "render.cache must be a boolean"):
+            cache_enabled_for({"cache": "yes"}, default_args)
+
+    def test_blender_cache_key_ignores_output_paths_and_tracks_stl_content(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            blend_file = temp_path / "scene.blend"
+            stl_file = temp_path / "model.stl"
+            blend_file.write_bytes(b"blend-v1")
+            stl_file.write_bytes(b"stl-v1")
+            blender_config = {
+                "render_path": str(temp_path / "run-a" / "render.png"),
+                "projection_path": str(temp_path / "run-a" / "projection.json"),
+                "width": 640,
+                "height": 480,
+                "objects": [
+                    {
+                        "id": "model",
+                        "stl_path": str(stl_file),
+                        "target_object": "placeholder",
+                        "transform": {"location": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": [1, 1, 1]},
+                    }
+                ],
+            }
+
+            first_key = blender_stage_cache_key(blender="blender", blend_file=blend_file, blender_config=blender_config)
+            same_inputs_new_output = dict(blender_config)
+            same_inputs_new_output["render_path"] = str(temp_path / "run-b" / "render.png")
+            same_inputs_new_output["projection_path"] = str(temp_path / "run-b" / "projection.json")
+            self.assertEqual(
+                first_key,
+                blender_stage_cache_key(blender="blender", blend_file=blend_file, blender_config=same_inputs_new_output),
+            )
+
+            stl_file.write_bytes(b"stl-v2")
+            self.assertNotEqual(
+                first_key,
+                blender_stage_cache_key(blender="blender", blend_file=blend_file, blender_config=blender_config),
+            )
+
+    def test_render_camera_view_is_validated_and_passed_to_blender(self) -> None:
+        render = resolve_render(
+            {
+                "preset": "cycles_standard_scene",
+                "camera_view": "left",
+                "camera_view_preset": "technical_iso",
+                "camera_rotation_deg": [0, -90, 0],
+                "camera_orbit_deg": [30, 12],
+                "camera_distance_scale": 1.35,
+                "camera_target_offset_mm": [0, "og_tile_size / 2", 0],
+                "camera_roll_deg": 7,
+                "camera_lens_mm": 70,
+                "lighting": {"preset": "technical", "strength": 1.2},
+                "outline": {"enabled": True, "line_width_px": 1.25},
+                "ground_plane": {"enabled": True, "offset_mm": "-og_tile_size / 4"},
+                "cutaway": {
+                    "enabled": True,
+                    "axis": "z",
+                    "keep": "negative",
+                    "position_fraction": "0.35",
+                    "offset_mm": "og_tile_size / 2",
+                    "section_plane": {
+                        "enabled": True,
+                        "color": "#f97316",
+                        "alpha": 0.4,
+                        "padding_mm": "og_tile_size / 10",
+                        "offset_mm": 0.2,
+                    },
+                },
+                "xray": {"enabled": True, "objects": ["model"], "alpha": 0.3},
+                "material_overrides": {"model": {"color": "#ff0000", "alpha": 0.5}},
+            }
+        )
+        self.assertEqual(render["camera_view"], "left")
+        self.assertEqual(render["camera_view_preset"], "technical_iso")
+        self.assertEqual(render["camera_rotation_deg"], [0, -90, 0])
+        self.assertEqual(render["camera_orbit_deg"], [30, 12])
+        self.assertEqual(render["camera_distance_scale"], 1.35)
+        self.assertEqual(render["camera_roll_deg"], 7)
+        self.assertEqual(render["camera_lens_mm"], 70)
+        self.assertEqual(render["lighting"]["preset"], "technical")
+        self.assertEqual(render["material_overrides"]["model"]["alpha"], 0.5)
+        with self.assertRaisesRegex(ConfigError, "render.camera_view must be one of back, bottom, front, left, none, right, top"):
+            resolve_render({"preset": "cycles_standard_scene", "camera_view": "diagonal"})
+        with self.assertRaisesRegex(ConfigError, "render.camera_distance_scale must be at least"):
+            resolve_render({"preset": "cycles_standard_scene", "camera_distance_scale": 0})
+        with self.assertRaisesRegex(ConfigError, "render.camera_view_preset must be one of"):
+            resolve_render({"preset": "cycles_standard_scene", "camera_view_preset": "corner"})
+        with self.assertRaisesRegex(ConfigError, "must not define both camera_focal_length_mm and camera_lens_mm"):
+            resolve_render({"preset": "cycles_standard_scene", "camera_focal_length_mm": 55, "camera_lens_mm": 70})
+        with self.assertRaisesRegex(ConfigError, "must not define both position_mm and position_fraction"):
+            resolve_render(
+                {
+                    "preset": "cycles_standard_scene",
+                    "cutaway": {"position_mm": 10, "position_fraction": 0.5},
+                }
+            )
+
+        blender_config = build_blender_config(
+            scene_config={"camera": "Camera"},
+            render_settings=render,
+            object_records=[
+                {
+                    "id": "model",
+                    "stl_path": "model.stl",
+                    "target_object": "placeholder",
+                    "replace_target_object": True,
+                    "inherit_target_transform": False,
+                    "transform": {"location": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": [1, 1, 1]},
+                    "material": {"roughness": 0.4},
+                }
+            ],
+            projection_points={},
+            render_path=Path("render.png"),
+            projection_path=Path("projection.json"),
+            animation_config=None,
+            animation_frame_dir=None,
+            expression_context={"og_tile_size": 28},
+        )
+
+        self.assertEqual(blender_config["camera_view"], "left")
+        self.assertEqual(blender_config["camera_view_preset"], "technical_iso")
+        self.assertEqual(blender_config["camera_rotation"], [0.0, -90.0, 0.0])
+        self.assertEqual(blender_config["camera_orbit"], [30.0, 12.0])
+        self.assertEqual(blender_config["camera_distance_scale"], 1.35)
+        self.assertEqual(blender_config["camera_target_offset"], [0.0, 0.014, 0.0])
+        self.assertEqual(blender_config["camera_roll"], 7.0)
+        self.assertEqual(blender_config["camera_lens"], 70.0)
+        self.assertEqual(blender_config["lighting"]["preset"], "technical")
+        self.assertEqual(blender_config["ground_plane"]["offset_mm"], -7.0)
+        self.assertEqual(blender_config["cutaway"]["offset_mm"], 14.0)
+        self.assertEqual(blender_config["cutaway"]["position_fraction"], 0.35)
+        self.assertEqual(blender_config["cutaway"]["section_plane"]["padding_mm"], 2.8)
+        self.assertEqual(blender_config["cutaway"]["section_plane"]["offset_mm"], 0.2)
+        self.assertEqual(blender_config["objects"][0]["material"], {"roughness": 0.4, "color": "#ff0000", "alpha": 0.5})
+
+        preset_config = build_blender_config(
+            scene_config={"camera": "Camera"},
+            render_settings=resolve_render({"preset": "cycles_standard_scene", "camera_view_preset": "technical_iso"}),
+            object_records=[
+                {
+                    "id": "model",
+                    "stl_path": "model.stl",
+                    "target_object": "placeholder",
+                    "replace_target_object": True,
+                    "inherit_target_transform": False,
+                    "transform": {"location": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": [1, 1, 1]},
+                }
+            ],
+            projection_points={},
+            render_path=Path("render.png"),
+            projection_path=Path("projection.json"),
+            animation_config=None,
+            animation_frame_dir=None,
+            expression_context={},
+        )
+        self.assertEqual(preset_config["camera_view"], "front")
+        self.assertEqual(preset_config["camera_orbit"], [35.0, 24.0])
+        self.assertEqual(preset_config["camera_distance_scale"], 1.15)
 
     def test_scad_output_folder_name_groups_by_scad_source(self) -> None:
         self.assertEqual(
@@ -784,11 +1299,35 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("animation", render_properties)
         self.assertIn("extends_variant", variant_properties)
         self.assertEqual(render_properties["camera_look_at"]["enum"], ["none", "object_center"])
+        self.assertIn("camera_rotation_deg", render_properties)
+        self.assertIn("camera_orbit_deg", render_properties)
+        self.assertIn("camera_distance_scale", render_properties)
+        self.assertIn("camera_target_offset_mm", render_properties)
+        self.assertIn("camera_roll_deg", render_properties)
+        self.assertIn("camera_lens_mm", render_properties)
+        self.assertIn("camera_focal_length_mm", render_properties)
+        self.assertEqual(render_properties["camera_view"]["enum"], ["none", "front", "back", "left", "right", "top", "bottom"])
+        self.assertIn("camera_view_preset", render_properties)
+        self.assertEqual(schema["$defs"]["lightingPreset"]["enum"], ["scene", "technical", "softbox", "front_lit", "dramatic", "flat"])
+        self.assertIn("lighting", render_properties)
+        self.assertIn("outline", render_properties)
+        self.assertIn("ground_plane", render_properties)
+        self.assertIn("cutaway", render_properties)
+        cutaway_properties = schema["$defs"]["cutawayConfig"]["anyOf"][1]["properties"]
+        self.assertIn("position_fraction", cutaway_properties)
+        self.assertIn("section_plane", cutaway_properties)
+        self.assertIn("xray", render_properties)
+        self.assertIn("material_overrides", render_properties)
         self.assertEqual(render_properties["output_mode"]["enum"], ["minimal", "standard", "debug"])
+        self.assertIn("cache", render_properties)
+        self.assertIn("cache_dir", render_properties)
         self.assertIn("variant_name", schema["properties"])
         self.assertIn("variant_configs", schema["properties"])
         self.assertNotIn("animation", scene_default_properties)
         self.assertNotIn("animation", scene_object_properties)
+        self.assertNotIn("line_copies", scene_default_properties)
+        self.assertIn("line_copies", scene_object_properties)
+        self.assertIn("grid_copies", scene_object_properties)
 
     def test_pyproject_declares_test_extra(self) -> None:
         pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
@@ -796,6 +1335,7 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("test = [", pyproject)
         self.assertIn('"pytest>=9"', pyproject)
         self.assertIn('"PyYAML>=6.0"', pyproject)
+        self.assertIn('"assets/*.stl"', pyproject)
         self.assertIn('"configs/*.yaml"', pyproject)
         self.assertIn('"configs/*.yml"', pyproject)
         self.assertNotIn('"configs/*.json"', pyproject)

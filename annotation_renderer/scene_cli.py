@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -23,34 +23,50 @@ except ImportError:  # pragma: no cover - exercised only in incomplete local env
 
 from annotation_renderer.animation import encode_animation_gif, resolve_animation_config
 from annotation_renderer.blender_scene import write_blender_scene_script
-from annotation_renderer.config import (
-    DEFAULT_OUTPUT_DIR,
-    ConfigError,
-    aliases_from_config,
-    build_expression_context,
-    build_expression_context_for_model,
-    build_scad_defines,
+from annotation_renderer.config_loader import (
+    INHERITED_VARIANTS_KEY,
+    base_job_name,
+    dump_config_data,
+    load_config,
+    load_gallery_config,
+    require_mapping,
+    selected_variants,
+    variant_config,
+    variant_items_from_config,
+)
+from annotation_renderer.annotation_config import (
     collect_angle_radius_callouts,
     collect_arc_callouts,
     collect_dimension_chain,
     collect_image_labels,
     collect_radius_callouts,
-    deep_merge,
-    merge_scene_object_config,
     projection_points_for_angle_radius_callouts,
     projection_points_for_arc_callouts,
     projection_points_for_radius_callouts,
     projection_points_for_segments,
-    resolve_config_constants,
+)
+from annotation_renderer.config_defaults import DEFAULT_OUTPUT_DIR
+from annotation_renderer.config_resolution import (
+    aliases_from_config,
+    build_expression_context,
+    build_expression_context_for_model,
+    build_scad_defines,
+    deep_merge,
+    eval_numeric_expression,
     resolve_config_path,
     resolve_constant_references,
-    resolve_render,
-    resolve_scene,
     resolve_scene_transform,
     resolve_style,
     scene_inherits_target_transform,
-    validate_config_shape,
+    vector2,
     vector3,
+)
+from annotation_renderer.config_schema import CONFIG_SCHEMA_PATH, ConfigError
+from annotation_renderer.config_validation import (
+    merge_scene_object_config,
+    resolve_render,
+    resolve_scene,
+    validate_config_shape,
 )
 from annotation_renderer.openscad import (
     build_openscad_command,
@@ -73,37 +89,32 @@ from annotation_renderer.scad_annotations import (
     read_scad_annotations,
     with_annotation_metadata_define,
 )
+from annotation_renderer.scad_discovery import (
+    discover_scad_source_annotations,
+    discovery_summary_json,
+    format_annotation_discovery,
+    resolve_discovery_scad_path,
+    write_annotation_discovery_output,
+)
 
 
 UTILITY_ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = UTILITY_ROOT.parent
-CONFIG_SCHEMA_PATH = UTILITY_ROOT / "schemas" / "annotation-render-config.schema.json"
 DEFAULT_MODEL_CONFIG_PATH = UTILITY_ROOT / "configs" / "model_defaults.yaml"
 DISCOVERY_ACTIONS = ("list_models", "describe", "list_annotations", "new_config")
-JSON_CONFIG_SUFFIXES = {"", ".json"}
-YAML_CONFIG_SUFFIXES = {".yaml", ".yml"}
+COMMANDS = ("render", "doctor", "discover", "new-config", "list-models", "describe", "list-annotations")
 OUTPUT_MODES = ("minimal", "standard", "debug")
-INHERITED_VARIANTS_KEY = "_inherited_variants"
-DISCOVERY_TEXT_SUFFIXES = {".txt", ".text"}
-DISCOVERY_PARAMETER_SECTIONS = (
-    ("dimension", "dimension parameters", "add to annotations.chains[].ids"),
-    (
-        "radius",
-        "radius parameters",
-        "add to annotations.radius_callouts[].ids or annotations.angle_radius_callouts[].radius_id",
-    ),
-    (
-        "arc",
-        "arc parameters",
-        "add to annotations.arc_callouts[].ids or annotations.angle_radius_callouts[].arc_id",
-    ),
-    (
-        "context",
-        "context value parameters",
-        "add to annotations.image_labels[].id; numeric values also work in offsets and angle_radius_callouts[].angle_id",
-    ),
-)
-DISCOVERY_OBJECT_SELECTOR_DEFINES = {"generate_drawer_shell", "generate_drawer_container"}
+CAMERA_VIEW_PRESETS = {
+    "front_left": {"camera_view": "front", "camera_orbit_deg": [-35, 8], "camera_distance_scale": 1.08},
+    "front_right": {"camera_view": "front", "camera_orbit_deg": [35, 8], "camera_distance_scale": 1.08},
+    "back_left": {"camera_view": "back", "camera_orbit_deg": [35, 8], "camera_distance_scale": 1.08},
+    "back_right": {"camera_view": "back", "camera_orbit_deg": [-35, 8], "camera_distance_scale": 1.08},
+    "top_front": {"camera_view": "top", "camera_orbit_deg": [0, -18], "camera_distance_scale": 1.12},
+    "top_back": {"camera_view": "top", "camera_orbit_deg": [180, -18], "camera_distance_scale": 1.12},
+    "technical_iso": {"camera_view": "front", "camera_orbit_deg": [35, 24], "camera_distance_scale": 1.15},
+    "left_side_zoomed": {"camera_view": "left", "camera_distance_scale": 0.88},
+    "right_side_zoomed": {"camera_view": "right", "camera_distance_scale": 0.88},
+}
 GROUP_STYLE_KEYS = {
     "line_alpha",
     "line_width_px",
@@ -233,234 +244,31 @@ def run_doctor(args: argparse.Namespace) -> int:
     print("Annotation renderer doctor")
     for ok, label, detail in checks:
         print(format_doctor_check(ok, label, detail))
-    return 0 if all(ok for ok, _label, _detail in checks) else 1
-
-
-def parse_override_value(value: str) -> object:
-    try:
-        return json.loads(value)
-    except json.JSONDecodeError:
-        return value
-
-
-def set_dotted_value(config: dict[str, object], path: str, assigned_value: object) -> None:
-    keys = [key.strip() for key in path.split(".") if key.strip()]
-    if not keys:
-        raise ConfigError("Override path is empty")
-    current: dict[str, object] = config
-    for key in keys[:-1]:
-        value = current.get(key)
-        if value is None:
-            value = {}
-            current[key] = value
-        if not isinstance(value, dict):
-            raise ConfigError(f"--set cannot descend into non-object path {key!r}")
-        current = value
-    current[keys[-1]] = assigned_value
-
-
-def apply_override(config: dict[str, object], override: str) -> None:
-    if "=" not in override:
-        raise ConfigError(f"--set override must be path=value, got {override!r}")
-    path, raw_value = override.split("=", 1)
-    set_dotted_value(config, path, parse_override_value(raw_value))
-
-
-class NoAliasSafeDumper(yaml.SafeDumper if yaml is not None else object):
-    def ignore_aliases(self, data: object) -> bool:
-        return True
-
-
-class ConfigSafeLoader(yaml.SafeLoader if yaml is not None else object):
-    pass
-
-
-def represent_compact_sequence(dumper: object, data: Sequence[object]) -> object:
-    flow_style = len(data) <= 4 and all(
-        not isinstance(item, Mapping)
-        and (not isinstance(item, Sequence) or isinstance(item, (str, bytes)))
-        for item in data
-    )
-    return dumper.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=flow_style)
-
-
-if yaml is not None:
-    ConfigSafeLoader.yaml_implicit_resolvers = {
-        key: list(resolvers)
-        for key, resolvers in yaml.SafeLoader.yaml_implicit_resolvers.items()
-    }
-    for key, resolvers in list(ConfigSafeLoader.yaml_implicit_resolvers.items()):
-        ConfigSafeLoader.yaml_implicit_resolvers[key] = [
-            (tag, regexp)
-            for tag, regexp in resolvers
-            if tag != "tag:yaml.org,2002:bool"
-        ]
-    ConfigSafeLoader.add_implicit_resolver(
-        "tag:yaml.org,2002:bool",
-        re.compile(r"^(?:true|false|True|False|TRUE|FALSE)$"),
-        list("tTfF"),
-    )
-    NoAliasSafeDumper.add_representer(list, represent_compact_sequence)
-    NoAliasSafeDumper.add_representer(tuple, represent_compact_sequence)
-
-
-def config_format(path: Path) -> str:
-    suffix = path.suffix.lower()
-    if suffix in JSON_CONFIG_SUFFIXES:
-        return "json"
-    if suffix in YAML_CONFIG_SUFFIXES:
-        return "yaml"
-    raise ConfigError(f"Unsupported config format for {path}. Use .json, .yaml, or .yml.")
-
-
-def load_mapping_file(path: Path, *, description: str) -> dict[str, object]:
-    try:
-        text = path.read_text(encoding="utf-8")
-    except FileNotFoundError as exc:
-        raise ConfigError(f"{description} not found: {path}") from exc
-
-    file_format = config_format(path)
-    try:
-        if file_format == "json":
-            data = json.loads(text)
-        else:
-            if yaml is None:
-                raise ConfigError("YAML config support requires PyYAML. Install with `pip install PyYAML`.")
-            data = yaml.load(text, Loader=ConfigSafeLoader)
-    except ConfigError:
-        raise
-    except Exception as exc:
-        raise ConfigError(f"Could not parse {description.lower()} {path}: {exc}") from exc
-
-    if data is None:
-        data = {}
-    if not isinstance(data, Mapping):
-        raise ConfigError(f"{description} must be an object")
-    return dict(data)
-
-
-def dump_config_data(data: Mapping[str, object], *, path: Path) -> str:
-    file_format = config_format(path)
-    if file_format == "json":
-        return json.dumps(data, indent=2) + "\n"
-    if yaml is None:
-        raise ConfigError("YAML config support requires PyYAML. Install with `pip install PyYAML`.")
-    return yaml.dump(
-        dict(data),
-        Dumper=NoAliasSafeDumper,
-        sort_keys=False,
-        allow_unicode=False,
-        default_flow_style=False,
-    )
-
-
-def discovery_output_format(path: Path) -> str:
-    suffix = path.suffix.lower()
-    if suffix in DISCOVERY_TEXT_SUFFIXES:
-        return "text"
-    if suffix in JSON_CONFIG_SUFFIXES and suffix:
-        return "json"
-    if suffix in YAML_CONFIG_SUFFIXES:
-        return "yaml"
-    raise ConfigError(f"Unsupported discovery output format for {path}. Use .txt, .json, .yaml, or .yml.")
-
-
-def resolve_discovery_scad_path(value: str) -> Path:
-    path = Path(value).expanduser()
-    if not path.is_absolute():
-        path = (PROJECT_ROOT / path).resolve()
-    if path.suffix.lower() != ".scad":
-        raise ConfigError("--discover-annotations expects a .scad file path, not a render config model name")
-    if not path.exists():
-        raise ConfigError(f"SCAD file not found: {path}")
-    return path
-
-
-def variant_from_config_file(config: Mapping[str, object], *, path: Path) -> dict[str, object]:
-    variant_name = config.get("variant_name") or path.stem
-    if not isinstance(variant_name, str) or not variant_name.strip():
-        raise ConfigError(f"variant_name must be a non-empty string in {project_relative_or_absolute(path)}")
-    variant: dict[str, object] = {"name": variant_name.strip(), "_source_config": str(path)}
-    for key in ("job_name", "output_dir", "constants", "model", "scene", "render", "annotations"):
-        if key in config:
-            variant[key] = deepcopy(config[key])
-    return variant
-
-
-def expand_variant_configs(config: dict[str, object], *, config_dir: Path, seen: tuple[Path, ...]) -> dict[str, object]:
-    variant_paths = config.pop("variant_configs", None)
-    if variant_paths is None:
-        return config
-    if not isinstance(variant_paths, Sequence) or isinstance(variant_paths, (str, bytes)):
-        raise ConfigError("variant_configs must be an array of config paths")
-
-    constants = config.get("constants", {})
-    if constants is None:
-        constants = {}
-    if not isinstance(constants, Mapping):
-        raise ConfigError("constants must be an object when variant_configs is used")
-    merged_constants: Mapping[str, object] = constants
-
-    variants = config.get("variants", [])
-    if variants is None:
-        variants = []
-    if not isinstance(variants, Sequence) or isinstance(variants, (str, bytes)):
-        raise ConfigError("variants must be an array when variant_configs is used")
-    merged_variants: list[object] = [deepcopy(item) for item in variants]
-
-    for index, raw_path in enumerate(variant_paths):
-        if not isinstance(raw_path, str) or not raw_path.strip():
-            raise ConfigError(f"variant_configs[{index}] must be a non-empty string")
-        variant_path = resolve_optional_config_path(raw_path, config_dir=config_dir)
-        included_config = load_raw_config(variant_path, seen)
-        included_constants = included_config.get("constants", {})
-        if included_constants is not None:
-            if not isinstance(included_constants, Mapping):
-                raise ConfigError(f"constants must be an object in {project_relative_or_absolute(variant_path)}")
-            merged_constants = deep_merge(merged_constants, included_constants)
-        merged_variants.append(variant_from_config_file(included_config, path=variant_path))
-
-    config["constants"] = deepcopy(dict(merged_constants))
-    config["variants"] = merged_variants
-    return config
-
-
-def load_raw_config(path: Path, seen: tuple[Path, ...] = ()) -> dict[str, object]:
-    if path in seen:
-        chain = " -> ".join(project_relative_or_absolute(item) for item in (*seen, path))
-        raise ConfigError(f"Config extends cycle detected: {chain}")
-    config = load_mapping_file(path, description="Config")
-    extends_value = config.pop("extends", None)
-    if extends_value is None:
-        return expand_variant_configs(config, config_dir=path.parent, seen=(*seen, path))
-    if not isinstance(extends_value, str) or not extends_value.strip():
-        raise ConfigError("extends must be a non-empty string")
-    base_path = resolve_optional_config_path(extends_value, config_dir=path.parent)
-    base_config = load_raw_config(base_path, (*seen, path))
-    merged_config = deep_merge(base_config, config)
-    if "variants" in config:
-        inherited_variants = [
-            *deepcopy(base_config.get(INHERITED_VARIANTS_KEY, [])),
-            *deepcopy(base_config.get("variants", [])),
-        ]
-        if inherited_variants:
-            merged_config[INHERITED_VARIANTS_KEY] = inherited_variants
-    return expand_variant_configs(merged_config, config_dir=path.parent, seen=(*seen, path))
-
-
-def load_config(path: Path, overrides: Sequence[str]) -> dict[str, object]:
-    config = deepcopy(load_raw_config(path))
-    for override in overrides:
-        apply_override(config, override)
-    config = resolve_config_constants(config, include_variants=False)
-    validate_config_shape(config)
-    return config
-
-
-def require_mapping(value: object, *, name: str) -> Mapping[str, object]:
-    if not isinstance(value, Mapping):
-        raise ConfigError(f"{name} must be an object")
-    return value
+    if not all(ok for ok, _label, _detail in checks):
+        return 1
+    if getattr(args, "smoke_render", False):
+        smoke_config_path = default_config_for_model("openconnect_general_holder")
+        print("Smoke render: openconnect_general_holder")
+        smoke_args = argparse.Namespace(**vars(args))
+        smoke_args.config = str(smoke_config_path)
+        smoke_args.command = None
+        smoke_args.model_shortcut = None
+        smoke_args.gallery = False
+        smoke_args.gallery_config = None
+        smoke_args.variant = None
+        smoke_args.animation_preset = None
+        smoke_args.validate_only = False
+        smoke_args.print_resolved_config = False
+        smoke_args.output_mode = "minimal"
+        smoke_args.output_file = None
+        config = load_config(smoke_config_path, smoke_args.overrides)
+        render_config(
+            config=config,
+            config_path=smoke_config_path,
+            config_dir=smoke_config_path.parent,
+            args=smoke_args,
+        )
+    return 0
 
 
 def annotation_mapping_items(
@@ -506,127 +314,98 @@ def style_for_group(style_config: Mapping[str, object], group_config: Mapping[st
     return merged
 
 
-def base_job_name(config: Mapping[str, object]) -> str:
-    if config.get("job_name"):
-        return str(config["job_name"])
-    model = config.get("model", {})
-    if isinstance(model, Mapping) and model.get("scad_file"):
-        return Path(str(model["scad_file"])).stem
-    scene = config.get("scene", {})
-    objects = scene.get("objects", []) if isinstance(scene, Mapping) else []
-    if isinstance(objects, Sequence) and not isinstance(objects, (str, bytes)) and objects:
-        first_object = objects[0]
-        if isinstance(first_object, Mapping):
-            object_id = first_object.get("id")
-            if isinstance(object_id, str) and object_id.strip():
-                return object_id
-            object_model = first_object.get("model")
-            if isinstance(object_model, Mapping) and object_model.get("scad_file"):
-                return Path(str(object_model["scad_file"])).stem
-    return "annotation_render"
-
-
-def variant_items_from_config(config: Mapping[str, object]) -> list[Mapping[str, object]]:
-    raw_variants = config.get("variants", [])
-    if raw_variants is None:
-        return []
-    if not isinstance(raw_variants, Sequence) or isinstance(raw_variants, (str, bytes)):
-        raise ConfigError("variants must be an array")
-    variants: list[Mapping[str, object]] = []
-    for index, variant in enumerate(raw_variants):
-        if not isinstance(variant, Mapping):
-            raise ConfigError(f"variants[{index}] must be an object")
-        name = variant.get("name")
-        if not isinstance(name, str) or not name.strip():
-            raise ConfigError(f"variants[{index}].name is required")
-        variants.append(variant)
-    return variants
-
-
-def variant_config(
-    config: Mapping[str, object],
-    variant: Mapping[str, object],
-    *,
-    stack: tuple[str, ...] = (),
-) -> dict[str, object]:
-    variant_name = str(variant["name"]).strip()
-    if variant_name in stack:
-        chain = " -> ".join((*stack, variant_name))
-        raise ConfigError(f"Variant inheritance cycle detected: {chain}")
-    base_variant_name = variant.get("extends_variant")
-    if base_variant_name is not None:
-        if not isinstance(base_variant_name, str) or not base_variant_name.strip():
-            raise ConfigError(f"variants[{variant_name}].extends_variant must be a non-empty string")
-        inherited_variants = config.get(INHERITED_VARIANTS_KEY, [])
-        if inherited_variants is None:
-            inherited_variants = []
-        if not isinstance(inherited_variants, Sequence) or isinstance(inherited_variants, (str, bytes)):
-            raise ConfigError(f"{INHERITED_VARIANTS_KEY} must be an array")
-        matches = [
-            item
-            for item in [*variant_items_from_config(config), *inherited_variants]
-            if isinstance(item, Mapping) and str(item["name"]).strip() == base_variant_name
-        ]
-        if not matches:
-            raise ConfigError(f"variants[{variant_name}].extends_variant references unknown variant {base_variant_name!r}")
-        resolved = variant_config(config, matches[0], stack=(*stack, variant_name))
-    else:
-        resolved = deepcopy(dict(config))
-        resolved.pop("variants", None)
-        resolved.pop(INHERITED_VARIANTS_KEY, None)
-    if "job_name" not in variant:
-        resolved["job_name"] = f"{base_job_name(config)}__{variant_name}"
-
-    replace_sections = {"model", "annotations"}
-    for key in ("job_name", "output_dir", "constants", "model", "scene", "render", "annotations"):
-        if key not in variant:
-            continue
-        current = resolved.get(key)
-        if key == "constants":
-            override = variant[key]
-            if isinstance(current, Mapping) and isinstance(override, Mapping):
-                resolved[key] = deep_merge(current, override)
-            else:
-                resolved[key] = deepcopy(override)
-            continue
-        override = resolve_constant_references(
-            variant[key],
-            constants=require_mapping(resolved.get("constants", {}), name="constants"),
-            path=f"variants[{variant_name}].{key}",
-        )
-        if key not in replace_sections and isinstance(current, Mapping) and isinstance(override, Mapping):
-            resolved[key] = deep_merge(current, override)
-        else:
-            resolved[key] = deepcopy(override)
-
-    set_values = variant.get("set", {})
-    if set_values is not None:
-        if not isinstance(set_values, Mapping):
-            raise ConfigError(f"variants[{variant_name}].set must be an object")
-        for path, value in set_values.items():
-            set_dotted_value(resolved, str(path), deepcopy(value))
-
-    resolved = resolve_config_constants(resolved, include_variants=False)
-    validate_config_shape(resolved)
-    return resolved
-
-
-def selected_variants(config: Mapping[str, object], selected_name: str | None) -> list[Mapping[str, object]]:
-    variants = variant_items_from_config(config)
-    if selected_name is None:
-        return variants
-    matching = [variant for variant in variants if str(variant["name"]) == selected_name]
-    if not matching:
-        available = ", ".join(str(variant["name"]) for variant in variants) or "none"
-        raise ConfigError(f"Unknown variant {selected_name!r}. Available variants: {available}")
-    return matching
-
-
 def discovery_requested(args: argparse.Namespace) -> bool:
     return any(bool(getattr(args, name, None)) for name in DISCOVERY_ACTIONS)
 
 
+def render_shortcut_requested(args: argparse.Namespace) -> bool:
+    return getattr(args, "command", None) == "render"
+
+
+def set_command_alias_value(args: argparse.Namespace, attr: str, value: object, *, command: str) -> None:
+    current = getattr(args, attr, None)
+    if current not in (None, False, "") and current != value:
+        flag_name = attr.replace("_", "-")
+        raise ConfigError(f"Do not combine `{command}` with --{flag_name}")
+    setattr(args, attr, value)
+
+
+def normalize_command_aliases(args: argparse.Namespace) -> argparse.Namespace:
+    command = getattr(args, "command", None)
+    target = getattr(args, "model_shortcut", None)
+    if command is None or command == "render":
+        return args
+
+    if command == "doctor":
+        if target:
+            raise ConfigError("doctor does not take a model name")
+        set_command_alias_value(args, "doctor", True, command=command)
+        return args
+
+    if command == "list-models":
+        if target:
+            raise ConfigError("list-models does not take a model name")
+        set_command_alias_value(args, "list_models", True, command=command)
+        return args
+
+    if command in {"discover", "new-config", "describe", "list-annotations"} and not target:
+        examples = {
+            "discover": "discover openconnect_general_holder.scad",
+            "new-config": "new-config openconnect_general_holder --out build\\scene_annotations\\my_holder.yaml",
+            "describe": "describe openconnect_general_holder",
+            "list-annotations": "list-annotations openconnect_general_holder",
+        }
+        raise ConfigError(f"{command} requires a target, for example `{examples[command]}`")
+
+    if command == "discover":
+        set_command_alias_value(args, "discover_annotations", target, command=command)
+    elif command == "new-config":
+        set_command_alias_value(args, "new_config", target, command=command)
+    elif command == "describe":
+        set_command_alias_value(args, "describe", target, command=command)
+    elif command == "list-annotations":
+        set_command_alias_value(args, "list_annotations", target, command=command)
+    return args
+
+
+def model_name_from_shortcut(raw_name: str) -> str:
+    name = Path(raw_name).stem if raw_name.lower().endswith(".scad") else raw_name
+    name = sanitize_name(name.strip())
+    if name.endswith("_default"):
+        name = name[: -len("_default")]
+    if not name:
+        raise ConfigError("render requires a SCAD model name, for example `render openconnect_general_holder`")
+    return name
+
+
+def available_render_shortcuts() -> list[str]:
+    shortcuts: list[str] = []
+    for path in sorted((UTILITY_ROOT / "configs").glob("*_default.yaml")):
+        name = path.stem[: -len("_default")]
+        if name not in shortcuts:
+            shortcuts.append(name)
+    return shortcuts
+
+
+def default_config_for_model(model_name: str) -> Path:
+    shortcut = model_name_from_shortcut(model_name)
+    config_path = UTILITY_ROOT / "configs" / f"{shortcut}_default.yaml"
+    if config_path.exists():
+        return config_path.resolve()
+    available = ", ".join(available_render_shortcuts()) or "none"
+    raise ConfigError(
+        f"Unknown render model {model_name!r}. Expected annotation_renderer/configs/{shortcut}_default.yaml. "
+        f"Available models: {available}"
+    )
+
+
 def config_path_from_args(args: argparse.Namespace, *, allow_default: bool = False) -> Path:
+    if render_shortcut_requested(args):
+        if args.config:
+            raise ConfigError("Do not pass --config with `render MODEL`; the model name selects the default config")
+        if not getattr(args, "model_shortcut", None):
+            raise ConfigError("render requires a SCAD model name, for example `render openconnect_general_holder`")
+        return default_config_for_model(str(args.model_shortcut))
     if args.config:
         path = Path(args.config).expanduser()
         if not path.is_absolute():
@@ -651,12 +430,60 @@ def output_root_for(config: Mapping[str, object], args: argparse.Namespace) -> P
     return output_root
 
 
+def output_file_from_args(args: argparse.Namespace) -> Path | None:
+    raw_path = getattr(args, "output_file", None)
+    if not raw_path:
+        return None
+    output_file = Path(str(raw_path)).expanduser()
+    if not output_file.is_absolute():
+        output_file = (PROJECT_ROOT / output_file).resolve()
+    if output_file.suffix.lower() not in {".png", ".jpg", ".jpeg"}:
+        raise ConfigError("--output-file must end with .png, .jpg, or .jpeg for still-image renders")
+    return output_file
+
+
 def output_mode_for(render_config: Mapping[str, object], args: argparse.Namespace) -> str:
     raw_mode = getattr(args, "output_mode", None) or render_config.get("output_mode") or "standard"
     mode = str(raw_mode)
     if mode not in OUTPUT_MODES:
         raise ConfigError(f"render.output_mode must be one of {', '.join(OUTPUT_MODES)}")
     return mode
+
+
+def cache_enabled_for(render_config: Mapping[str, object], args: argparse.Namespace) -> bool:
+    if getattr(args, "no_cache", False):
+        return False
+    raw_value = render_config.get("cache", True)
+    if not isinstance(raw_value, bool):
+        raise ConfigError("render.cache must be a boolean")
+    return raw_value
+
+
+def cache_root_for(config: Mapping[str, object], render_config: Mapping[str, object], args: argparse.Namespace) -> Path | None:
+    if not cache_enabled_for(render_config, args):
+        return None
+    raw_path = getattr(args, "cache_dir", None) or render_config.get("cache_dir")
+    cache_root = Path(str(raw_path)).expanduser() if raw_path else output_root_for(config, args) / ".cache"
+    if not cache_root.is_absolute():
+        cache_root = (PROJECT_ROOT / cache_root).resolve()
+    cache_root.mkdir(parents=True, exist_ok=True)
+    return cache_root
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def stable_json(value: object) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
+
+
+def cache_key_for(value: object) -> str:
+    return hashlib.sha256(stable_json(value).encode("utf-8")).hexdigest()
 
 
 def animation_render_preset(config: Mapping[str, object], preset_name: str) -> Mapping[str, object]:
@@ -688,12 +515,178 @@ def apply_animation_preset(config: Mapping[str, object], preset_name: str) -> di
 def scad_output_folder_name(object_specs: Sequence[Mapping[str, object]]) -> str:
     stems: list[str] = []
     for object_spec in object_specs:
-        stem = Path(str(object_spec["scad_file"])).stem
+        source_path = object_spec.get("scad_file") or object_spec.get("stl_file") or object_spec.get("stl_path")
+        stem = Path(str(source_path)).stem if source_path else "unknown_model"
         if stem not in stems:
             stems.append(stem)
     if not stems:
         return "unknown_model"
     return sanitize_name(stems[0] if len(stems) == 1 else "__".join(stems))
+
+
+def model_record_source(record: Mapping[str, object]) -> str:
+    if record.get("scad_file"):
+        return str(record["scad_file"])
+    if record.get("stl_file"):
+        return str(record["stl_file"])
+    if record.get("stl_path"):
+        return str(record["stl_path"])
+    return "unknown"
+
+
+def vector3_config_items(value: object, *, name: str) -> list[object]:
+    if isinstance(value, Mapping):
+        try:
+            return [value[axis] for axis in ("x", "y", "z")]
+        except KeyError as exc:
+            raise ConfigError(f"{name} mapping must contain x, y, and z") from exc
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)) or len(value) != 3:
+        raise ConfigError(f"{name} must be a three-item list or x/y/z object")
+    return list(value)
+
+
+def int_vector3_config_items(value: object, *, name: str) -> tuple[int, int, int]:
+    if isinstance(value, Mapping):
+        try:
+            items = [value[axis] for axis in ("x", "y", "z")]
+        except KeyError as exc:
+            raise ConfigError(f"{name} mapping must contain x, y, and z") from exc
+    else:
+        if not isinstance(value, Sequence) or isinstance(value, (str, bytes)) or len(value) != 3:
+            raise ConfigError(f"{name} must be a three-item list or x/y/z object")
+        items = list(value)
+    counts: list[int] = []
+    for index, item in enumerate(items):
+        if not isinstance(item, int) or isinstance(item, bool):
+            raise ConfigError(f"{name}[{index}] must be an integer")
+        if item < 1:
+            raise ConfigError(f"{name}[{index}] must be at least 1")
+        counts.append(item)
+    return (counts[0], counts[1], counts[2])
+
+
+def expression_token(value: object) -> str:
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return f"{value:g}"
+    return str(value).strip()
+
+
+def is_zero_expression(value: object) -> bool:
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value) == 0.0
+    try:
+        return float(str(value).strip()) == 0.0
+    except ValueError:
+        return False
+
+
+def offset_expression(base_value: object, spacing_value: object, copy_index: int) -> object:
+    if copy_index == 0 or is_zero_expression(spacing_value):
+        return base_value
+    return f"({expression_token(base_value)}) + ({expression_token(spacing_value)}) * {copy_index}"
+
+
+def add_copy_offset_to_scene_transform(
+    scene_config: Mapping[str, object],
+    *,
+    spacing_mm: object,
+    copy_indices: Sequence[int],
+    name: str,
+    config_name: str,
+) -> dict[str, object]:
+    if all(index == 0 for index in copy_indices):
+        return dict(scene_config)
+    transform = scene_config.get("transform")
+    if not isinstance(transform, Mapping):
+        raise ConfigError(f"{name}.transform is required when {config_name} is used")
+    base_location = vector3_config_items(transform.get("location_mm"), name=f"{name}.transform.location_mm")
+    spacing = vector3_config_items(spacing_mm, name=f"{name}.{config_name}.spacing_mm")
+    updated_transform = dict(transform)
+    updated_transform["location_mm"] = [
+        offset_expression(base_location[axis], spacing[axis], int(copy_indices[axis]))
+        for axis in range(3)
+    ]
+    updated_scene = dict(scene_config)
+    updated_scene["transform"] = updated_transform
+    return updated_scene
+
+
+def expanded_scene_object_configs(
+    raw_objects: Sequence[object],
+    *,
+    object_defaults: object,
+) -> list[tuple[int, dict[str, object], Mapping[str, object] | None]]:
+    expanded: list[tuple[int, dict[str, object], Mapping[str, object] | None]] = []
+    for index, raw_object in enumerate(raw_objects):
+        if not isinstance(raw_object, Mapping):
+            raise ConfigError(f"scene.objects[{index}] must be an object")
+        object_config = merge_scene_object_config(object_defaults, raw_object)
+        grid_copies = object_config.get("grid_copies")
+        line_copies = object_config.get("line_copies")
+        if line_copies is not None and grid_copies is not None:
+            raise ConfigError(f"scene.objects[{index}] must not define both line_copies and grid_copies")
+        if grid_copies is not None:
+            if not isinstance(grid_copies, Mapping):
+                raise ConfigError(f"scene.objects[{index}].grid_copies must be an object")
+            counts = int_vector3_config_items(grid_copies.get("counts"), name=f"scene.objects[{index}].grid_copies.counts")
+            spacing_mm = grid_copies.get("spacing_mm")
+            base_id = str(object_config.get("id", "")).strip()
+            if not base_id:
+                raise ConfigError(f"scene.objects[{index}].id is required")
+            base_target = object_config.get("target_object")
+            for z_index in range(counts[2]):
+                for y_index in range(counts[1]):
+                    for x_index in range(counts[0]):
+                        copied_object = deepcopy(object_config)
+                        copied_object.pop("grid_copies", None)
+                        copied_object["id"] = f"{base_id}_{x_index}_{y_index}_{z_index}"
+                        if isinstance(base_target, str) and base_target.strip():
+                            copied_object["target_object"] = f"{base_target}_{x_index}_{y_index}_{z_index}"
+                        expanded.append(
+                            (
+                                index,
+                                copied_object,
+                                {
+                                    "indices": (x_index, y_index, z_index),
+                                    "spacing_mm": spacing_mm,
+                                    "base_id": base_id,
+                                    "config_name": "grid_copies",
+                                },
+                            )
+                        )
+            continue
+        if line_copies is None:
+            expanded.append((index, object_config, None))
+            continue
+        if not isinstance(line_copies, Mapping):
+            raise ConfigError(f"scene.objects[{index}].line_copies must be an object")
+        count = line_copies.get("count")
+        if not isinstance(count, int) or isinstance(count, bool) or count < 1:
+            raise ConfigError(f"scene.objects[{index}].line_copies.count must be a positive integer")
+        spacing_mm = line_copies.get("spacing_mm")
+        base_id = str(object_config.get("id", "")).strip()
+        if not base_id:
+            raise ConfigError(f"scene.objects[{index}].id is required")
+        base_target = object_config.get("target_object")
+        for copy_index in range(count):
+            copied_object = deepcopy(object_config)
+            copied_object.pop("line_copies", None)
+            copied_object["id"] = f"{base_id}_{copy_index}"
+            if isinstance(base_target, str) and base_target.strip():
+                copied_object["target_object"] = f"{base_target}_{copy_index}"
+            expanded.append(
+                (
+                    index,
+                    copied_object,
+                    {
+                        "indices": (copy_index, 0, 0),
+                        "spacing_mm": spacing_mm,
+                        "base_id": base_id,
+                        "config_name": "line_copies",
+                    },
+                )
+            )
+    return expanded
 
 
 def remove_debug_artifacts(*, output_mode: str, debug_dir: Path, output_dir: Path) -> None:
@@ -706,23 +699,6 @@ def remove_debug_artifacts(*, output_mode: str, debug_dir: Path, output_dir: Pat
     except ValueError as exc:
         raise ConfigError(f"Refusing to clean debug artifacts outside {debug_root}") from exc
     shutil.rmtree(resolved_debug_dir)
-
-
-def resolve_optional_config_path(path_value: str, *, config_dir: Path) -> Path:
-    path = Path(path_value).expanduser()
-    if path.is_absolute():
-        return path.resolve()
-    config_relative = (config_dir / path).resolve()
-    if config_relative.exists():
-        return config_relative
-    return (PROJECT_ROOT / path).resolve()
-
-
-def load_gallery_config(path_value: str | None, *, config_dir: Path) -> tuple[dict[str, object], Path | None]:
-    if not path_value:
-        return {}, None
-    path = resolve_optional_config_path(path_value, config_dir=config_dir)
-    return load_mapping_file(path, description="Gallery config"), path
 
 
 def compact_json(value: object) -> str:
@@ -745,17 +721,26 @@ def resolved_named_config(
     name: str | None,
 ) -> tuple[str, dict[str, object], Path, Mapping[str, object] | None]:
     if name:
+        normalized_name = model_name_from_shortcut(name)
         variants = variant_items_from_config(config)
-        matching = [variant for variant in variants if str(variant["name"]) == name]
+        matching = [
+            variant
+            for variant in variants
+            if str(variant["name"]) == name or model_name_from_shortcut(str(variant["name"])) == normalized_name
+        ]
         if matching:
             variant = matching[0]
-            return name, variant_config(config, variant), source_config_for_variant(config_path, variant), variant
+            return str(variant["name"]), variant_config(config, variant), source_config_for_variant(config_path, variant), variant
         direct_names = {
             config_path.stem,
             str(config.get("variant_name", "")).strip(),
             str(config.get("job_name", "")).strip(),
         }
-        if is_directly_renderable_config(config) and name in direct_names:
+        direct_name_matches = {direct_name for direct_name in direct_names if direct_name}
+        normalized_direct_name_matches = {model_name_from_shortcut(direct_name) for direct_name in direct_name_matches}
+        if is_directly_renderable_config(config) and (
+            name in direct_name_matches or normalized_name in normalized_direct_name_matches
+        ):
             return name, deepcopy(dict(config)), config_path, None
         available = ", ".join(str(variant["name"]) for variant in variants if "name" in variant)
         if is_directly_renderable_config(config):
@@ -783,6 +768,16 @@ def model_records_from_config(config: Mapping[str, object]) -> list[dict[str, ob
             scene_object = merge_scene_object_config(object_defaults, raw_object)
             model = scene_object.get("model")
             if not isinstance(model, Mapping):
+                stl_file = scene_object.get("stl_file")
+                if isinstance(stl_file, str) and stl_file.strip():
+                    records.append(
+                        {
+                            "id": str(scene_object.get("id", "model")),
+                            "target_object": scene_object.get("target_object"),
+                            "stl_file": stl_file,
+                            "defines": {},
+                        }
+                    )
                 continue
             records.append(
                 {
@@ -813,8 +808,7 @@ def model_summary(records: Sequence[Mapping[str, object]]) -> str:
     parts = []
     for record in records:
         object_id = str(record.get("id") or "model")
-        scad_file = str(record.get("scad_file") or "unknown")
-        parts.append(f"{object_id}: {scad_file}")
+        parts.append(f"{object_id}: {model_record_source(record)}")
     return "; ".join(parts)
 
 
@@ -885,492 +879,6 @@ def print_annotation_groups(config: Mapping[str, object]) -> None:
         print(f"  {annotation_offset_summary(kind, group)}")
 
 
-def strip_scad_comments(source: str) -> str:
-    chars = list(source)
-    index = 0
-    in_string = False
-    while index < len(chars):
-        char = chars[index]
-        next_char = chars[index + 1] if index + 1 < len(chars) else ""
-        if in_string:
-            if char == "\\":
-                index += 2
-                continue
-            if char == '"':
-                in_string = False
-            index += 1
-            continue
-        if char == '"':
-            in_string = True
-            index += 1
-            continue
-        if char == "/" and next_char == "/":
-            chars[index] = " "
-            chars[index + 1] = " "
-            index += 2
-            while index < len(chars) and chars[index] != "\n":
-                chars[index] = " "
-                index += 1
-            continue
-        if char == "/" and next_char == "*":
-            chars[index] = " "
-            chars[index + 1] = " "
-            index += 2
-            while index + 1 < len(chars) and not (chars[index] == "*" and chars[index + 1] == "/"):
-                if chars[index] != "\n":
-                    chars[index] = " "
-                index += 1
-            if index + 1 < len(chars):
-                chars[index] = " "
-                chars[index + 1] = " "
-                index += 2
-            continue
-        index += 1
-    return "".join(chars)
-
-
-def matching_delimiter_index(source: str, open_index: int, *, open_char: str, close_char: str) -> int | None:
-    depth = 0
-    index = open_index
-    in_string = False
-    while index < len(source):
-        char = source[index]
-        if in_string:
-            if char == "\\":
-                index += 2
-                continue
-            if char == '"':
-                in_string = False
-            index += 1
-            continue
-        if char == '"':
-            in_string = True
-        elif char == open_char:
-            depth += 1
-        elif char == close_char:
-            depth -= 1
-            if depth == 0:
-                return index
-        index += 1
-    return None
-
-
-def matching_open_delimiter_index(source: str, close_index: int, *, open_char: str, close_char: str) -> int | None:
-    depth = 0
-    index = close_index
-    in_string = False
-    while index >= 0:
-        char = source[index]
-        if in_string:
-            if char == '"':
-                backslashes = 0
-                probe = index - 1
-                while probe >= 0 and source[probe] == "\\":
-                    backslashes += 1
-                    probe -= 1
-                if backslashes % 2 == 0:
-                    in_string = False
-            index -= 1
-            continue
-        if char == '"':
-            in_string = True
-        elif char == close_char:
-            depth += 1
-        elif char == open_char:
-            depth -= 1
-            if depth == 0:
-                return index
-        index -= 1
-    return None
-
-
-def condition_before_block(source: str, brace_index: int) -> str | None:
-    index = brace_index - 1
-    while index >= 0 and source[index].isspace():
-        index -= 1
-    if index < 0 or source[index] != ")":
-        return None
-    open_index = matching_open_delimiter_index(source, index, open_char="(", close_char=")")
-    if open_index is None:
-        return None
-    prefix_end = open_index - 1
-    while prefix_end >= 0 and source[prefix_end].isspace():
-        prefix_end -= 1
-    prefix_start = prefix_end
-    while prefix_start >= 0 and (source[prefix_start].isalnum() or source[prefix_start] == "_"):
-        prefix_start -= 1
-    keyword = source[prefix_start + 1 : prefix_end + 1]
-    if keyword != "if":
-        return None
-    return " ".join(source[open_index + 1 : index].split())
-
-
-def scad_conditional_block_ranges(source: str) -> list[tuple[int, int, str]]:
-    ranges: list[tuple[int, int, str]] = []
-    stack: list[tuple[int, str | None]] = []
-    index = 0
-    in_string = False
-    while index < len(source):
-        char = source[index]
-        if in_string:
-            if char == "\\":
-                index += 2
-                continue
-            if char == '"':
-                in_string = False
-            index += 1
-            continue
-        if char == '"':
-            in_string = True
-        elif char == "{":
-            stack.append((index, condition_before_block(source, index)))
-        elif char == "}" and stack:
-            start, condition = stack.pop()
-            if condition:
-                ranges.append((start, index, condition))
-        index += 1
-    return ranges
-
-
-def split_top_level(value: str, separator: str = ",") -> list[str]:
-    parts: list[str] = []
-    start = 0
-    depths = {"(": 0, "[": 0, "{": 0}
-    matching = {")": "(", "]": "[", "}": "{"}
-    in_string = False
-    index = 0
-    while index < len(value):
-        char = value[index]
-        if in_string:
-            if char == "\\":
-                index += 2
-                continue
-            if char == '"':
-                in_string = False
-            index += 1
-            continue
-        if char == '"':
-            in_string = True
-        elif char in depths:
-            depths[char] += 1
-        elif char in matching:
-            depths[matching[char]] = max(0, depths[matching[char]] - 1)
-        elif char == separator and all(depth == 0 for depth in depths.values()):
-            parts.append(value[start:index].strip())
-            start = index + 1
-        index += 1
-    tail = value[start:].strip()
-    if tail:
-        parts.append(tail)
-    return parts
-
-
-def split_top_level_assignment(value: str) -> tuple[str, str] | None:
-    parts = split_top_level(value, separator="=")
-    if len(parts) != 2:
-        return None
-    return parts[0].strip(), parts[1].strip()
-
-
-def scad_string_literal(value: str) -> str | None:
-    stripped = value.strip()
-    if not stripped.startswith('"') or not stripped.endswith('"'):
-        return None
-    try:
-        parsed = json.loads(stripped)
-    except json.JSONDecodeError:
-        return stripped[1:-1]
-    return parsed if isinstance(parsed, str) else None
-
-
-def scad_string_literals(value: str) -> list[str]:
-    literals: list[str] = []
-    for match in re.finditer(r'"(?:\\.|[^"\\])*"', value):
-        literal = scad_string_literal(match.group(0))
-        if literal is not None:
-            literals.append(literal)
-    return literals
-
-
-def scad_call_named_arguments(call_body: str) -> dict[str, str]:
-    arguments: dict[str, str] = {}
-    for part in split_top_level(call_body):
-        assignment = split_top_level_assignment(part)
-        if assignment is None:
-            continue
-        key, value = assignment
-        if key:
-            arguments[key] = value
-    return arguments
-
-
-def scad_boolean_define_allows_condition(condition: str, defines: Mapping[str, object]) -> bool:
-    for name, value in defines.items():
-        if str(name) not in DISCOVERY_OBJECT_SELECTOR_DEFINES:
-            continue
-        if not isinstance(value, bool):
-            continue
-        for match in re.finditer(rf"(?<![A-Za-z0-9_!])(!?)\b{re.escape(str(name))}\b(?![A-Za-z0-9_])", condition):
-            negated = bool(match.group(1))
-            allowed = not value if negated else value
-            if not allowed:
-                return False
-    return True
-
-
-def discover_scad_source_annotations(scad_file: Path, *, defines: Mapping[str, object]) -> tuple[dict[str, object], ...]:
-    source = strip_scad_comments(scad_file.read_text(encoding="utf-8"))
-    conditional_ranges = scad_conditional_block_ranges(source)
-    annotations: list[dict[str, object]] = []
-    call_kinds = {
-        "emit_dimension_annotation": "dimension",
-        "emit_radius_annotation": "radius",
-        "emit_arc_annotation": "arc",
-        "emit_feature_annotation": "feature",
-    }
-    call_pattern = re.compile(r"\b(emit_context_values|emit_dimension_annotation|emit_radius_annotation|emit_arc_annotation|emit_feature_annotation)\s*\(")
-    for match in call_pattern.finditer(source):
-        prefix = source[max(0, match.start() - 16) : match.start()]
-        if re.search(r"\bmodule\s+$", prefix):
-            continue
-        open_index = source.find("(", match.start())
-        close_index = matching_delimiter_index(source, open_index, open_char="(", close_char=")")
-        if close_index is None:
-            continue
-        conditions = [
-            condition
-            for start, end, condition in conditional_ranges
-            if start < match.start() < end
-        ]
-        if any(not scad_boolean_define_allows_condition(condition, defines) for condition in conditions):
-            continue
-        call_name = match.group(1)
-        call_body = source[open_index + 1 : close_index]
-        if call_name == "emit_context_values":
-            positional = split_top_level(call_body)
-            source_id = scad_string_literal(positional[0]) if positional else None
-            names = scad_string_literals(positional[1]) if len(positional) > 1 else []
-            for name in names:
-                annotation: dict[str, object] = {"id": name, "kind": "context", "source": source_id or "context"}
-                if conditions:
-                    annotation["conditions"] = conditions
-                annotations.append(annotation)
-            continue
-        arguments = scad_call_named_arguments(call_body)
-        annotation_id = scad_string_literal(arguments.get("id", ""))
-        if not annotation_id:
-            continue
-        annotation: dict[str, object] = {
-            "id": annotation_id,
-            "kind": call_kinds[call_name],
-        }
-        if conditions:
-            annotation["conditions"] = conditions
-        axis = scad_string_literal(arguments.get("axis", ""))
-        label = scad_string_literal(arguments.get("label", ""))
-        basis = scad_string_literal(arguments.get("basis", ""))
-        if axis:
-            annotation["axis"] = axis
-        if label and label != annotation_id:
-            annotation["label"] = label
-        if basis:
-            annotation["basis"] = basis
-        annotations.append(annotation)
-    return tuple(annotations)
-
-
-def discovered_annotation_summary(annotation: Mapping[str, object]) -> str:
-    annotation_id = str(annotation.get("id", "unknown"))
-    parts = [annotation_id]
-    axis = annotation.get("axis")
-    label = annotation.get("label")
-    basis = annotation.get("basis")
-    conditions = annotation.get("conditions")
-    details = []
-    if isinstance(axis, str) and axis:
-        details.append(f"axis={axis}")
-    if isinstance(label, str) and label and label != annotation_id:
-        details.append(f"label={label}")
-    if isinstance(basis, str) and basis:
-        details.append(f"basis={basis}")
-    if isinstance(conditions, Sequence) and not isinstance(conditions, (str, bytes)) and conditions:
-        details.append("when=" + " && ".join(str(condition) for condition in conditions))
-    if details:
-        parts.append(f" ({', '.join(details)})")
-    return "".join(parts)
-
-
-def context_parameter_entries(annotations: Sequence[Mapping[str, object]]) -> list[dict[str, object]]:
-    entries: list[dict[str, object]] = []
-    seen: set[str] = set()
-    for annotation in annotations:
-        if annotation.get("kind") != "context":
-            continue
-        source_id = str(annotation.get("id") or "")
-        values = annotation.get("values")
-        added_value = False
-        if isinstance(values, str):
-            for part in values.split(";"):
-                if "=" not in part:
-                    continue
-                raw_name, raw_value = part.split("=", 1)
-                name = raw_name.strip()
-                if not name:
-                    continue
-                added_value = True
-                if name in seen:
-                    continue
-                seen.add(name)
-                entry: dict[str, object] = {
-                    "id": name,
-                    "kind": "context",
-                }
-                entries.append(entry)
-        if added_value or not source_id or source_id in seen:
-            continue
-        seen.add(source_id)
-        entry = {
-            "id": source_id,
-            "kind": "context",
-        }
-        source = annotation.get("source")
-        conditions = annotation.get("conditions")
-        if isinstance(source, str) and source.strip():
-            entry["source"] = source
-        if isinstance(conditions, Sequence) and not isinstance(conditions, (str, bytes)) and conditions:
-            entry["conditions"] = list(conditions)
-        entries.append(entry)
-    return entries
-
-
-def compact_parameter_entry(annotation: Mapping[str, object]) -> dict[str, object]:
-    entry: dict[str, object] = {
-        "id": str(annotation.get("id") or "unknown"),
-        "kind": str(annotation.get("kind", "feature")),
-    }
-    for key in ("axis", "label", "basis", "source", "conditions"):
-        value = annotation.get(key)
-        if value is not None and (not isinstance(value, str) or value.strip()):
-            entry[key] = value
-    return entry
-
-
-def discovered_parameter_groups(annotations: Sequence[Mapping[str, object]]) -> dict[str, list[Mapping[str, object]]]:
-    grouped: dict[str, list[Mapping[str, object]]] = {}
-    supported_kinds = {kind for kind, _label, _hint in DISCOVERY_PARAMETER_SECTIONS}
-    for annotation in annotations:
-        kind = str(annotation.get("kind", "feature"))
-        if kind == "context":
-            continue
-        if kind not in supported_kinds:
-            continue
-        grouped.setdefault(kind, []).append(compact_parameter_entry(annotation))
-    context_entries = context_parameter_entries(annotations)
-    if context_entries:
-        grouped["context"] = context_entries
-    return grouped
-
-
-def format_annotation_discovery(name: str, object_discoveries: Sequence[Mapping[str, object]]) -> str:
-    preferred_kinds = tuple(kind for kind, _label, _hint in DISCOVERY_PARAMETER_SECTIONS)
-    lines = [f"Available annotation parameters for {name}:"]
-    for discovery in object_discoveries:
-        object_id = str(discovery.get("id") or "model")
-        annotations = discovery.get("annotations", ())
-        if not isinstance(annotations, Sequence) or isinstance(annotations, (str, bytes)):
-            annotations = ()
-        log_path = discovery.get("log_path")
-        source_path = discovery.get("source_path")
-        lines.append(f"- object: {object_id}")
-        if isinstance(source_path, Path):
-            lines.append(f"  source: {project_relative_or_absolute(source_path)}")
-        if isinstance(log_path, Path) and log_path.exists():
-            lines.append(f"  log: {project_relative_or_absolute(log_path)}")
-        if not annotations:
-            lines.append("  no annotation parameters emitted")
-            continue
-
-        grouped = discovered_parameter_groups(
-            [annotation for annotation in annotations if isinstance(annotation, Mapping)]
-        )
-
-        ordered_kinds = [
-            *[kind for kind in preferred_kinds if kind in grouped],
-            *sorted(kind for kind in grouped if kind not in preferred_kinds),
-        ]
-        if not ordered_kinds:
-            lines.append("  no annotation parameters emitted")
-            continue
-        for kind in ordered_kinds:
-            section = next(
-                ((label, hint) for section_kind, label, hint in DISCOVERY_PARAMETER_SECTIONS if section_kind == kind),
-                (f"{kind} parameters", "custom annotation metadata"),
-            )
-            lines.append(f"  {section[0]} ({section[1]}):")
-            for annotation in grouped[kind]:
-                lines.append(f"    - {discovered_annotation_summary(annotation)}")
-    return "\n".join(lines)
-
-
-def discovery_summary_json(
-    *,
-    name: str,
-    object_discoveries: Sequence[Mapping[str, object]],
-) -> dict[str, object]:
-    objects = []
-    for discovery in object_discoveries:
-        annotations = discovery.get("annotations", ())
-        if not isinstance(annotations, Sequence) or isinstance(annotations, (str, bytes)):
-            annotations = ()
-        parsed_annotations = [annotation for annotation in annotations if isinstance(annotation, Mapping)]
-        object_summary: dict[str, object] = {
-            "id": str(discovery.get("id") or "model"),
-            "annotation_count": len(parsed_annotations),
-            "parameters": {
-                kind: list(items)
-                for kind, items in discovered_parameter_groups(parsed_annotations).items()
-            },
-        }
-        source_path = discovery.get("source_path")
-        if isinstance(source_path, Path):
-            object_summary["source"] = project_relative_or_absolute(source_path)
-        objects.append(object_summary)
-    return {
-        "name": name,
-        "objects": objects,
-    }
-
-
-def write_annotation_discovery_output(
-    *,
-    output_path: Path,
-    text_output: str,
-    name: str,
-    discoveries: Sequence[Mapping[str, object]],
-) -> None:
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_format = discovery_output_format(output_path)
-    if output_format == "text":
-        output_path.write_text(text_output + "\n", encoding="utf-8")
-        return
-    summary = discovery_summary_json(name=name, object_discoveries=discoveries)
-    if output_format == "json":
-        output_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
-        return
-    if yaml is None:
-        raise ConfigError("YAML discovery output requires PyYAML. Install with `pip install PyYAML`.")
-    output_path.write_text(
-        yaml.dump(
-            summary,
-            Dumper=NoAliasSafeDumper,
-            sort_keys=False,
-            allow_unicode=False,
-            default_flow_style=False,
-        ),
-        encoding="utf-8",
-    )
-
-
 def run_annotation_discovery(
     *,
     args: argparse.Namespace,
@@ -1436,7 +944,7 @@ def print_model_description(*, name: str, config: Mapping[str, object], source_c
     print(f"Camera: {scene.get('camera', 'Camera')}")
     print("Models:")
     for record in model_records_from_config(config):
-        print(f"- {record.get('id')}: {record.get('scad_file')} -> {record.get('target_object')}")
+        print(f"- {record.get('id')}: {model_record_source(record)} -> {record.get('target_object')}")
         defines = record.get("defines", {})
         if isinstance(defines, Mapping) and defines:
             for define_name, value in defines.items():
@@ -1445,7 +953,32 @@ def print_model_description(*, name: str, config: Mapping[str, object], source_c
             for define in defines:
                 print(f"  {define}")
     print("Render:")
-    for key in ("engine", "quality", "width", "height", "fit_camera", "fit_margin", "camera_location_offset_mm", "camera_look_at", "output_mode"):
+    for key in (
+        "engine",
+        "quality",
+        "width",
+        "height",
+        "fit_camera",
+        "fit_margin",
+        "camera_view",
+        "camera_view_preset",
+        "camera_rotation_deg",
+        "camera_orbit_deg",
+        "camera_distance_scale",
+        "camera_target_offset_mm",
+        "camera_location_offset_mm",
+        "camera_roll_deg",
+        "camera_lens_mm",
+        "camera_focal_length_mm",
+        "camera_look_at",
+        "lighting",
+        "outline",
+        "ground_plane",
+        "cutaway",
+        "xray",
+        "material_overrides",
+        "output_mode",
+    ):
         if key in render:
             print(f"- {key}: {compact_json(render[key])}")
     annotations = config.get("annotations", {})
@@ -1516,7 +1049,14 @@ def editable_model_template(config: Mapping[str, object]) -> dict[str, object]:
 
 
 def config_reference(*, source_config: Path, output_path: Path) -> str:
-    relative = os.path.relpath(source_config, start=output_path.parent)
+    return path_reference(source_config, start=output_path.parent)
+
+
+def path_reference(path: Path, *, start: Path) -> str:
+    try:
+        relative = os.path.relpath(path.resolve(), start=start.resolve())
+    except ValueError:
+        return project_relative_or_absolute(path)
     return Path(relative).as_posix()
 
 
@@ -1532,7 +1072,7 @@ def write_new_config_template(
         raise ConfigError(f"Output config already exists: {output_path}. Use --force to overwrite it.")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     template: dict[str, object] = {
-        "$schema": Path(os.path.relpath(CONFIG_SCHEMA_PATH, start=output_path.parent)).as_posix(),
+        "$schema": path_reference(CONFIG_SCHEMA_PATH, start=output_path.parent),
         "extends": config_reference(source_config=source_config, output_path=output_path),
         "job_name": f"{sanitize_name(name)}_custom",
     }
@@ -1541,7 +1081,7 @@ def write_new_config_template(
     if isinstance(blend_file, str) and blend_file.strip():
         scene_path = resolve_config_path(blend_file, config_dir=source_config.parent, project_root=PROJECT_ROOT)
         template["scene"] = {
-            "blend_file": Path(os.path.relpath(scene_path, start=output_path.parent)).as_posix()
+            "blend_file": path_reference(scene_path, start=output_path.parent)
         }
     template.update(editable_model_template(config))
     editable_annotations = editable_annotations_template(config)
@@ -1597,12 +1137,23 @@ def run_discovery(*, config: Mapping[str, object], config_path: Path, args: argp
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "command",
+        nargs="?",
+        choices=COMMANDS,
+        help="Shortcut command, for example `render MODEL`, `doctor`, `discover FILE.scad`, or `new-config MODEL`.",
+    )
+    parser.add_argument("model_shortcut", nargs="?", help="Model name or SCAD file used by shortcut commands.")
     parser.add_argument("--config", help="Path to scene annotation render JSON or YAML config.")
     parser.add_argument("--gallery-config", help="Path to contact-sheet settings JSON or YAML config used with --gallery.")
     parser.add_argument("--output-dir", help="Override output directory root.")
+    parser.add_argument("--output-file", help="Write the final still image to an exact path instead of a timestamped output path.")
+    parser.add_argument("--cache-dir", help="Override the render-stage cache directory. Defaults to <output-dir>\\.cache.")
+    parser.add_argument("--no-cache", action="store_true", help="Disable OpenSCAD and Blender render-stage cache reuse for this run.")
     parser.add_argument("--openscad", default="openscad", help="OpenSCAD executable.")
     parser.add_argument("--blender", default="blender", help="Blender executable.")
     parser.add_argument("--doctor", action="store_true", help="Check local renderer dependencies and paths.")
+    parser.add_argument("--smoke-render", action="store_true", help="With --doctor, run one minimal default render after dependency checks pass.")
     parser.add_argument("--print-schema", action="store_true", help="Print the JSON Schema for render configs and exit.")
     parser.add_argument("--print-resolved-config", action="store_true", help="Print the resolved render config as JSON and exit.")
     parser.add_argument("--validate-only", action="store_true", help="Validate and resolve the config without rendering.")
@@ -1638,7 +1189,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 def parse_args() -> argparse.Namespace:
     parser = build_arg_parser()
-    return parser.parse_args()
+    return normalize_command_aliases(parser.parse_args())
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -1651,7 +1202,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 def parse_args_from(argv: Sequence[str]) -> argparse.Namespace:
     parser = build_arg_parser()
-    return parser.parse_args(list(argv))
+    return normalize_command_aliases(parser.parse_args(list(argv)))
 
 
 def resolved_config_snapshot(
@@ -1691,9 +1242,28 @@ def resolved_config_snapshot(
                 {
                     "id": str(object_spec["id"]),
                     "target_object": str(object_spec["target_object"]),
-                    "scad_file": project_relative_or_absolute(Path(object_spec["scad_file"])),
-                    "scad_file_exists": Path(object_spec["scad_file"]).exists(),
-                    "defines": list(build_scad_defines(require_mapping(object_spec["model_config"], name="model"))),
+                    "source_type": str(object_spec.get("source_type") or "model"),
+                    "scad_file": (
+                        project_relative_or_absolute(Path(object_spec["scad_file"]))
+                        if object_spec.get("scad_file") is not None
+                        else None
+                    ),
+                    "scad_file_exists": (
+                        Path(object_spec["scad_file"]).exists() if object_spec.get("scad_file") is not None else None
+                    ),
+                    "stl_file": (
+                        project_relative_or_absolute(Path(object_spec["stl_file"]))
+                        if object_spec.get("stl_file") is not None
+                        else None
+                    ),
+                    "stl_file_exists": (
+                        Path(object_spec["stl_file"]).exists() if object_spec.get("stl_file") is not None else None
+                    ),
+                    "defines": (
+                        list(build_scad_defines(require_mapping(object_spec["model_config"], name="model")))
+                        if object_spec.get("model_config") is not None
+                        else []
+                    ),
                     "expression_context": object_spec["expression_context"],
                     "inherit_target_transform": bool(object_spec["inherit_target_transform"]),
                     "transform": object_spec["transform"],
@@ -1757,6 +1327,7 @@ def scene_object_specs(
             {
                 "id": "model",
                 "target_object": str(scene_config["target_object"]),
+                "source_type": "model",
                 "model_config": model_config,
                 "scad_file": resolve_config_path(
                     str(model_config["scad_file"]),
@@ -1778,17 +1349,32 @@ def scene_object_specs(
     object_defaults = scene_config.get("object_defaults")
     specs: list[dict[str, object]] = []
     seen_ids: set[str] = set()
-    for index, raw_object in enumerate(raw_objects):
-        if not isinstance(raw_object, Mapping):
-            raise ConfigError(f"scene.objects[{index}] must be an object")
-        object_config = merge_scene_object_config(object_defaults, raw_object)
+    for index, object_config, copy_config in expanded_scene_object_configs(raw_objects, object_defaults=object_defaults):
         object_id = str(object_config["id"]).strip()
         if object_id in seen_ids:
-            raise ConfigError(f"scene.objects[{index}].id duplicates {object_id!r}")
+            raise ConfigError(f"scene.objects[{index}].id duplicates expanded object id {object_id!r}")
         seen_ids.add(object_id)
 
-        model_config = require_mapping(object_config.get("model"), name=f"scene.objects[{index}].model")
-        object_context = build_expression_context_for_model(config, model_config)
+        raw_model_config = object_config.get("model")
+        raw_stl_file = object_config.get("stl_file")
+        if raw_model_config is not None:
+            source_type = "model"
+            model_config = require_mapping(raw_model_config, name=f"scene.objects[{index}].model")
+            object_context = build_expression_context_for_model(config, model_config)
+            scad_file = resolve_config_path(
+                str(model_config["scad_file"]),
+                config_dir=config_dir,
+                project_root=PROJECT_ROOT,
+            )
+            stl_file = None
+        elif isinstance(raw_stl_file, str) and raw_stl_file.strip():
+            source_type = "stl"
+            model_config = None
+            object_context = dict(expression_context)
+            scad_file = None
+            stl_file = resolve_config_path(raw_stl_file, config_dir=config_dir, project_root=PROJECT_ROOT)
+        else:
+            raise ConfigError(f"scene.objects[{index}] must define exactly one of model or stl_file")
         object_scene_config = dict(scene_config)
         object_scene_config.pop("objects", None)
         object_scene_config.pop("object_defaults", None)
@@ -1798,6 +1384,19 @@ def scene_object_specs(
                     object_scene_config[key] = deep_merge(object_scene_config["transform"], object_config[key])
                 else:
                     object_scene_config[key] = object_config[key]
+        if copy_config is not None:
+            copy_indices = tuple(int(item) for item in copy_config["indices"])
+            object_context["copy_index"] = float(copy_indices[0])
+            object_context["copy_index_x"] = float(copy_indices[0])
+            object_context["copy_index_y"] = float(copy_indices[1])
+            object_context["copy_index_z"] = float(copy_indices[2])
+            object_scene_config = add_copy_offset_to_scene_transform(
+                object_scene_config,
+                spacing_mm=copy_config.get("spacing_mm"),
+                copy_indices=copy_indices,
+                name=f"scene.objects[{object_id}]",
+                config_name=str(copy_config.get("config_name") or "copies"),
+            )
         inherit_target_transform = scene_inherits_target_transform(object_scene_config)
         object_transform = (
             resolve_scene_transform_for_object(
@@ -1816,12 +1415,10 @@ def scene_object_specs(
             {
                 "id": object_id,
                 "target_object": str(object_config.get("target_object") or object_id),
+                "source_type": source_type,
                 "model_config": model_config,
-                "scad_file": resolve_config_path(
-                    str(model_config["scad_file"]),
-                    config_dir=config_dir,
-                    project_root=PROJECT_ROOT,
-                ),
+                "scad_file": scad_file,
+                "stl_file": stl_file,
                 "expression_context": object_context,
                 "object_scene_config": object_scene_config,
                 "inherit_target_transform": inherit_target_transform,
@@ -1854,89 +1451,93 @@ def projection_points_for_object(points: Mapping[str, list[float]], *, object_id
     return {key: {"object": object_id, "coords": coords} for key, coords in points.items()}
 
 
-def render_config(
+def openscad_stage_cache_key(
     *,
-    config: Mapping[str, object],
-    config_path: Path,
-    config_dir: Path,
-    args: argparse.Namespace,
-    run_dir: Path | None = None,
-) -> dict[str, object]:
-    scene_config = resolve_scene(config.get("scene", {}))
-    render_config = resolve_render(config.get("render", {}))
-    annotation_config = require_mapping(config.get("annotations", {}), name="annotations")
-    style_config = resolve_style(annotation_config.get("style"))
-    expression_context = build_expression_context(config)
-    aliases = aliases_from_config(annotation_config)
-
-    blend_file = resolve_config_path(str(scene_config["blend_file"]), config_dir=config_dir, project_root=PROJECT_ROOT)
-    object_specs = scene_object_specs(
-        config=config,
-        scene_config=scene_config,
-        config_dir=config_dir,
-        expression_context=expression_context,
-        resolve_transforms=False,
-    )
-    for object_spec in object_specs:
-        scad_file = Path(object_spec["scad_file"])
-        if not scad_file.exists():
-            raise ConfigError(f"SCAD file not found for object {object_spec['id']}: {scad_file}")
-    if not blend_file.exists():
-        raise ConfigError(f"Blender scene not found: {blend_file}")
-    if args.validate_only:
-        print(f"Config OK: {project_relative_or_absolute(config_path)}")
-        print(f"Scene:     {blend_file}")
-        for object_spec in object_specs:
-            print(f"Object:    {object_spec['id']} -> {project_relative_or_absolute(Path(object_spec['scad_file']))}")
-        return {
-            "job_name": base_job_name(config),
-            "validated": True,
-            "config": config,
-            "objects": object_specs,
-            "blend_file": blend_file,
+    scad_file: Path,
+    defines: Sequence[str],
+    executable: str,
+) -> str:
+    return cache_key_for(
+        {
+            "stage": "openscad_export_v1",
+            "scad_file": project_relative_or_absolute(scad_file),
+            "scad_sha256": file_sha256(scad_file),
+            "defines": list(with_annotation_metadata_define(defines)),
+            "executable": executable,
+            "backend": "Manifold",
+            "enable_textmetrics": True,
         }
+    )
 
-    blender = require_blender_executable(args.blender)
-    job_name = sanitize_name(str(config.get("job_name") or base_job_name(config)))
-    output_mode = output_mode_for(render_config, args)
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    run_name = f"{job_name}__{timestamp}"
-    output_parent = run_dir if run_dir is not None else output_root_for(config, args)
-    output_dir = output_parent / scad_output_folder_name(object_specs)
-    debug_dir = output_dir / "debug" / run_name
-    output_dir.mkdir(parents=True, exist_ok=True)
-    debug_dir.mkdir(parents=True, exist_ok=True)
-    run_dir = debug_dir
 
+def export_object_records(
+    *,
+    object_specs: Sequence[Mapping[str, object]],
+    run_dir: Path,
+    args: argparse.Namespace,
+    cache_root: Path | None = None,
+) -> tuple[list[dict[str, object]], dict[str, list[str]]]:
     object_records: list[dict[str, object]] = []
     openscad_commands: dict[str, list[str]] = {}
+    shared_scad_context: dict[str, float] = {}
     for object_spec in object_specs:
         object_id = str(object_spec["id"])
         safe_object_id = sanitize_name(object_id)
-        stl_path = run_dir / f"{safe_object_id}.stl"
-        openscad_log = run_dir / f"openscad_export__{safe_object_id}.log"
-        model_config = require_mapping(object_spec["model_config"], name=f"scene.objects[{object_id}].model")
-        scad_file = Path(object_spec["scad_file"])
-        defines = build_scad_defines(model_config)
-        openscad_command = build_openscad_command(
-            executable=args.openscad,
-            scad_file=scad_file,
-            output_path=stl_path,
-            defines=with_annotation_metadata_define(defines),
-        )
-        openscad_result = run_command_logged(openscad_command, cwd=PROJECT_ROOT, log_path=openscad_log)
-        if openscad_result.returncode != 0:
-            raise SystemExit(
-                command_failure_message(
-                    f"OpenSCAD export failed for object {object_id}",
-                    log_path=openscad_log,
-                )
+        source_type = str(object_spec.get("source_type") or "model")
+        base_context = dict(object_spec["expression_context"])
+        base_context.update(shared_scad_context)
+
+        if source_type == "stl":
+            stl_path = Path(object_spec["stl_file"])
+            openscad_log = None
+            defines = ()
+            scad_annotations = []
+            scad_context: dict[str, float] = {}
+            object_context = base_context
+            cache_info = {"stage": "source_stl", "enabled": False, "hit": False}
+        else:
+            stl_path = run_dir / f"{safe_object_id}.stl"
+            openscad_log = run_dir / f"openscad_export__{safe_object_id}.log"
+            model_config = require_mapping(object_spec["model_config"], name=f"scene.objects[{object_id}].model")
+            scad_file = Path(object_spec["scad_file"])
+            defines = build_scad_defines(model_config)
+            openscad_command = build_openscad_command(
+                executable=args.openscad,
+                scad_file=scad_file,
+                output_path=stl_path,
+                defines=with_annotation_metadata_define(defines),
             )
-        openscad_commands[object_id] = openscad_command
-        scad_annotations = read_scad_annotations(openscad_log)
-        scad_context = numeric_context_from_scad_annotations(scad_annotations)
-        object_context = dict(object_spec["expression_context"])
-        object_context.update(scad_context)
+            cache_info = {"stage": "openscad", "enabled": cache_root is not None, "hit": False}
+            cached_stl = None
+            cached_log = None
+            if cache_root is not None:
+                key = openscad_stage_cache_key(scad_file=scad_file, defines=defines, executable=str(openscad_command[0]))
+                cache_info["key"] = key
+                cache_dir = cache_root / "openscad" / key
+                cached_stl = cache_dir / "model.stl"
+                cached_log = cache_dir / "openscad_export.log"
+                if cached_stl.exists() and cached_log.exists():
+                    shutil.copy2(cached_stl, stl_path)
+                    shutil.copy2(cached_log, openscad_log)
+                    cache_info["hit"] = True
+            if not cache_info["hit"]:
+                openscad_result = run_command_logged(openscad_command, cwd=PROJECT_ROOT, log_path=openscad_log)
+                if openscad_result.returncode != 0:
+                    raise SystemExit(
+                        command_failure_message(
+                            f"OpenSCAD export failed for object {object_id}",
+                            log_path=openscad_log,
+                        )
+                    )
+                if cached_stl is not None and cached_log is not None:
+                    cached_stl.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(stl_path, cached_stl)
+                    shutil.copy2(openscad_log, cached_log)
+            openscad_commands[object_id] = openscad_command
+            scad_annotations = read_scad_annotations(openscad_log)
+            scad_context = numeric_context_from_scad_annotations(scad_annotations)
+            object_context = dict(base_context)
+            object_context.update(scad_context)
         object_scene_config = require_mapping(
             object_spec["object_scene_config"],
             name=f"scene.objects[{object_id}]",
@@ -1961,16 +1562,28 @@ def render_config(
                 "scad_context": scad_context,
                 "expression_context": object_context,
                 "transform": object_transform,
+                "cache": cache_info,
             }
         )
         object_records.append(object_record)
+        shared_scad_context.update(scad_context)
+    return object_records, openscad_commands
 
-    animation_config = resolve_animation_config(render_config.get("animation"), object_records=object_records)
 
+def collect_annotation_render_state(
+    *,
+    config: Mapping[str, object],
+    annotation_config: Mapping[str, object],
+    style_config: Mapping[str, object],
+    expression_context: Mapping[str, float],
+    object_records: Sequence[Mapping[str, object]],
+) -> dict[str, object]:
+    aliases = aliases_from_config(annotation_config)
     annotation_object_id = str(annotation_config.get("object") or object_records[0]["id"])
     annotation_record = next((record for record in object_records if str(record["id"]) == annotation_object_id), None)
     if annotation_record is None:
         raise ConfigError(f"annotations.object references unknown scene object {annotation_object_id!r}")
+
     scad_annotations = annotation_record["scad_annotations"]
     annotation_expression_context = annotation_record.get("expression_context", expression_context)
     chain_items = chain_items_from_config(annotation_config)
@@ -2024,10 +1637,6 @@ def render_config(
     angle_radius_pairs = [
         (item, group) for item, group in zip(angle_radius_items, angle_radius_groups, strict=True) if group
     ]
-    active_chains = [group for _, group in chain_pairs]
-    active_radius_groups = [group for _, group in radius_pairs]
-    active_arc_groups = [group for _, group in arc_pairs]
-    active_angle_radius_groups = [group for _, group in angle_radius_pairs]
     image_labels = collect_image_labels(
         config=config,
         labels_config=image_label_items,
@@ -2035,36 +1644,135 @@ def render_config(
         style_config=style_config,
         expression_context=annotation_expression_context,
     )
+    return {
+        "annotation_object_id": annotation_object_id,
+        "scad_annotations": scad_annotations,
+        "chain_pairs": chain_pairs,
+        "radius_pairs": radius_pairs,
+        "arc_pairs": arc_pairs,
+        "angle_radius_pairs": angle_radius_pairs,
+        "active_chains": [group for _, group in chain_pairs],
+        "active_radius_groups": [group for _, group in radius_pairs],
+        "active_arc_groups": [group for _, group in arc_pairs],
+        "active_angle_radius_groups": [group for _, group in angle_radius_pairs],
+        "image_labels": image_labels,
+    }
 
+
+def build_projection_points_for_annotations(annotation_state: Mapping[str, object]) -> dict[str, dict[str, object]]:
+    annotation_object_id = str(annotation_state["annotation_object_id"])
     projection_points: dict[str, dict[str, object]] = {}
-    for chain_segments in active_chains:
+    for chain_segments in annotation_state["active_chains"]:
         projection_points.update(projection_points_for_object(projection_points_for_segments(chain_segments), object_id=annotation_object_id))
-    for radius_callouts in active_radius_groups:
+    for radius_callouts in annotation_state["active_radius_groups"]:
         projection_points.update(projection_points_for_object(projection_points_for_radius_callouts(radius_callouts), object_id=annotation_object_id))
-    for arc_callouts in active_arc_groups:
+    for arc_callouts in annotation_state["active_arc_groups"]:
         projection_points.update(projection_points_for_object(projection_points_for_arc_callouts(arc_callouts), object_id=annotation_object_id))
-    for angle_radius_callouts in active_angle_radius_groups:
+    for angle_radius_callouts in annotation_state["active_angle_radius_groups"]:
         projection_points.update(
             projection_points_for_object(
                 projection_points_for_angle_radius_callouts(angle_radius_callouts),
                 object_id=annotation_object_id,
             )
         )
+    return projection_points
 
-    render_path = run_dir / "render.png"
-    annotated_path = output_dir / f"{run_name}.png"
-    animation_frame_dir = run_dir / "animation_frames" if animation_config else None
-    animation_path = (
-        output_dir / f"{run_name}.gif"
-        if animation_config and str(animation_config.get("output_format")) == "gif"
-        else None
+
+def render_setting(
+    render_settings: Mapping[str, object],
+    preset_settings: Mapping[str, object],
+    key: str,
+    default: object = None,
+) -> object:
+    return render_settings[key] if key in render_settings else preset_settings.get(key, default)
+
+
+def scalar_render_setting(
+    value: object,
+    *,
+    default: float,
+    name: str,
+    context: Mapping[str, float],
+) -> float:
+    if value is None:
+        value = default
+    return eval_numeric_expression(value, context=context, name=name)
+
+
+def material_for_object(record: Mapping[str, object], render_settings: Mapping[str, object]) -> object:
+    material = record.get("material")
+    overrides = render_settings.get("material_overrides")
+    if not isinstance(overrides, Mapping):
+        return material
+    override = overrides.get(str(record["id"]))
+    if override is None:
+        return material
+    if isinstance(material, Mapping) and isinstance(override, Mapping):
+        return deep_merge(material, override)
+    return override
+
+
+def resolve_scene_edit_config(
+    value: object,
+    *,
+    scalar_keys: Sequence[str] = (),
+    scalar_keys_mm: Sequence[str] = (),
+    expression_context: Mapping[str, float],
+    name: str,
+) -> object:
+    if value is None or isinstance(value, bool) or isinstance(value, str):
+        return value
+    if not isinstance(value, Mapping):
+        return value
+    resolved = dict(value)
+    for key in scalar_keys_mm:
+        if key in resolved:
+            resolved[key] = eval_numeric_expression(
+                resolved[key],
+                context=expression_context,
+                name=f"{name}.{key}",
+            )
+    for key in scalar_keys:
+        if key in resolved:
+            resolved[key] = eval_numeric_expression(
+                resolved[key],
+                context=expression_context,
+                name=f"{name}.{key}",
+            )
+    section_plane = resolved.get("section_plane")
+    if isinstance(section_plane, Mapping):
+        section_resolved = dict(section_plane)
+        for key in ("padding_mm", "offset_mm"):
+            if key in section_resolved:
+                section_resolved[key] = eval_numeric_expression(
+                    section_resolved[key],
+                    context=expression_context,
+                    name=f"{name}.section_plane.{key}",
+                )
+        resolved["section_plane"] = section_resolved
+    return resolved
+
+
+def build_blender_config(
+    *,
+    scene_config: Mapping[str, object],
+    render_settings: Mapping[str, object],
+    object_records: Sequence[Mapping[str, object]],
+    projection_points: Mapping[str, object],
+    render_path: Path,
+    projection_path: Path,
+    animation_config: Mapping[str, object] | None,
+    animation_frame_dir: Path | None,
+    expression_context: Mapping[str, float],
+) -> dict[str, object]:
+    camera_view_preset = str(render_settings.get("camera_view_preset") or "")
+    camera_preset_settings = CAMERA_VIEW_PRESETS.get(camera_view_preset, {})
+    camera_lens_value = (
+        render_settings.get("camera_lens_mm")
+        if "camera_lens_mm" in render_settings
+        else render_settings.get("camera_focal_length_mm")
     )
-    projection_path = run_dir / "projection.json"
-    blender_config_path = run_dir / "blender_scene_config.json"
-    blender_script_path = run_dir / "blender_scene_render.py"
-    blender_log = run_dir / "blender.log"
-
-    blender_config = {
+    blender_config: dict[str, object] = {
         "objects": [
             {
                 "id": str(record["id"]),
@@ -2074,8 +1782,8 @@ def render_config(
                 "inherit_target_transform": bool(record["inherit_target_transform"]),
                 "object_transform": record["transform"],
                 "material_source_object": record.get("material_source_object"),
-                "material": record.get("material"),
-                "mesh_shading": str(record.get("mesh_shading") or render_config.get("mesh_shading", "flat")),
+                "material": material_for_object(record, render_settings),
+                "mesh_shading": str(record.get("mesh_shading") or render_settings.get("mesh_shading", "flat")),
             }
             for record in object_records
         ],
@@ -2083,33 +1791,187 @@ def render_config(
         "render_path": str(render_path),
         "projection_path": str(projection_path),
         "projection_points": projection_points,
-        "width": int(render_config.get("width", 1200)),
-        "height": int(render_config.get("height", 900)),
-        "render_engine": str(render_config.get("engine", "cycles")),
-        "quality": str(render_config.get("quality", "standard")),
-        "fit_camera": bool(render_config.get("fit_camera", False)),
-        "fit_margin": float(render_config.get("fit_margin", 0.08)),
+        "width": int(render_settings.get("width", 1200)),
+        "height": int(render_settings.get("height", 900)),
+        "render_engine": str(render_settings.get("engine", "cycles")),
+        "quality": str(render_settings.get("quality", "standard")),
+        "fit_camera": bool(render_settings.get("fit_camera", False)),
+        "fit_margin": float(render_settings.get("fit_margin", 0.08)),
         "camera_location_offset": [
             value / 1000.0
             for value in vector3(
-                render_config.get("camera_location_offset_mm"),
+                render_settings.get("camera_location_offset_mm"),
                 default=(0.0, 0.0, 0.0),
                 name="render.camera_location_offset_mm",
                 context=expression_context,
             )
         ],
-        "camera_look_at": str(render_config.get("camera_look_at", "none")),
-        "mesh_shading": str(render_config.get("mesh_shading", "flat")),
+        "camera_target_offset": [
+            value / 1000.0
+            for value in vector3(
+                render_setting(render_settings, camera_preset_settings, "camera_target_offset_mm"),
+                default=(0.0, 0.0, 0.0),
+                name="render.camera_target_offset_mm",
+                context=expression_context,
+            )
+        ],
+        "camera_rotation": (
+            list(
+                vector3(
+                    render_setting(render_settings, camera_preset_settings, "camera_rotation_deg"),
+                    name="render.camera_rotation_deg",
+                    context=expression_context,
+                )
+            )
+            if "camera_rotation_deg" in render_settings or "camera_rotation_deg" in camera_preset_settings
+            else None
+        ),
+        "camera_orbit": list(
+            vector2(
+                render_setting(render_settings, camera_preset_settings, "camera_orbit_deg"),
+                default=(0.0, 0.0),
+                name="render.camera_orbit_deg",
+                context=expression_context,
+            )
+        ),
+        "camera_distance_scale": scalar_render_setting(
+            render_setting(render_settings, camera_preset_settings, "camera_distance_scale"),
+            default=1.0,
+            name="render.camera_distance_scale",
+            context=expression_context,
+        ),
+        "camera_roll": scalar_render_setting(
+            render_setting(render_settings, camera_preset_settings, "camera_roll_deg"),
+            default=0.0,
+            name="render.camera_roll_deg",
+            context=expression_context,
+        ),
+        "camera_lens": (
+            scalar_render_setting(
+                camera_lens_value,
+                default=50.0,
+                name="render.camera_lens_mm",
+                context=expression_context,
+            )
+            if camera_lens_value is not None
+            else None
+        ),
+        "camera_look_at": str(render_settings.get("camera_look_at", "none")),
+        "camera_view": str(render_setting(render_settings, camera_preset_settings, "camera_view", "none")),
+        "camera_view_preset": camera_view_preset or None,
+        "lighting": render_settings.get("lighting"),
+        "outline": render_settings.get("outline"),
+        "ground_plane": resolve_scene_edit_config(
+            render_settings.get("ground_plane"),
+            scalar_keys_mm=("offset_mm",),
+            expression_context=expression_context,
+            name="render.ground_plane",
+        ),
+        "cutaway": resolve_scene_edit_config(
+            render_settings.get("cutaway"),
+            scalar_keys_mm=("position_mm", "offset_mm"),
+            scalar_keys=("position_fraction",),
+            expression_context=expression_context,
+            name="render.cutaway",
+        ),
+        "xray": render_settings.get("xray"),
+        "mesh_shading": str(render_settings.get("mesh_shading", "flat")),
     }
     if animation_config:
         assert animation_frame_dir is not None
         animation_frame_dir.mkdir(parents=True, exist_ok=True)
         blender_config["animation"] = animation_config
         blender_config["animation_frame_path"] = str(animation_frame_dir / "frame_")
+    return blender_config
+
+
+def normalized_blender_cache_config(blender_config: Mapping[str, object]) -> dict[str, object]:
+    normalized = deepcopy(dict(blender_config))
+    normalized["render_path"] = "<render>"
+    normalized["projection_path"] = "<projection>"
+    normalized.pop("animation_frame_path", None)
+    objects = normalized.get("objects")
+    if isinstance(objects, list):
+        normalized_objects = []
+        for item in objects:
+            if not isinstance(item, Mapping):
+                normalized_objects.append(item)
+                continue
+            normalized_item = deepcopy(dict(item))
+            stl_path = Path(str(normalized_item.get("stl_path", "")))
+            if stl_path.exists():
+                normalized_item["stl_path"] = {
+                    "name": stl_path.name,
+                    "sha256": file_sha256(stl_path),
+                }
+            normalized_objects.append(normalized_item)
+        normalized["objects"] = normalized_objects
+    return normalized
+
+
+def blender_stage_cache_key(
+    *,
+    blender: str,
+    blend_file: Path,
+    blender_config: Mapping[str, object],
+) -> str:
+    return cache_key_for(
+        {
+            "stage": "blender_render_projection_v1",
+            "blender": blender,
+            "blend_file": project_relative_or_absolute(blend_file),
+            "blend_file_sha256": file_sha256(blend_file),
+            "runtime_sha256": file_sha256(UTILITY_ROOT / "blender_runtime.py"),
+            "config": normalized_blender_cache_config(blender_config),
+        }
+    )
+
+
+def run_blender_scene(
+    *,
+    blender: str,
+    blend_file: Path,
+    blender_config: Mapping[str, object],
+    blender_config_path: Path,
+    blender_script_path: Path,
+    blender_log: Path,
+    render_path: Path,
+    projection_path: Path,
+    cache_root: Path | None = None,
+) -> tuple[list[str], dict[str, object]]:
     blender_config_path.write_text(json.dumps(blender_config, indent=2) + "\n", encoding="utf-8")
     write_blender_scene_script(blender_script_path)
-
     blender_command = [blender, "--background", str(blend_file), "--python", str(blender_script_path)]
+    cache_info: dict[str, object] = {
+        "stage": "blender",
+        "enabled": cache_root is not None and "animation" not in blender_config,
+        "hit": False,
+    }
+    if cache_root is not None and "animation" in blender_config:
+        cache_info["disabled_reason"] = "animation"
+    cached_render = None
+    cached_projection = None
+    cached_log = None
+    if cache_info["enabled"]:
+        key = blender_stage_cache_key(
+            blender=blender,
+            blend_file=blend_file,
+            blender_config=blender_config,
+        )
+        cache_info["key"] = key
+        cache_dir = cache_root / "blender" / key
+        cached_render = cache_dir / "render.png"
+        cached_projection = cache_dir / "projection.json"
+        cached_log = cache_dir / "blender.log"
+        if cached_render.exists() and cached_projection.exists():
+            shutil.copy2(cached_render, render_path)
+            shutil.copy2(cached_projection, projection_path)
+            if cached_log.exists():
+                shutil.copy2(cached_log, blender_log)
+            else:
+                blender_log.write_text(f"Blender cache hit: {key}\n", encoding="utf-8")
+            cache_info["hit"] = True
+            return blender_command, cache_info
     with blender_log.open("w", encoding="utf-8", errors="replace") as log_handle:
         blender_result = subprocess.run(
             blender_command,
@@ -2120,26 +1982,61 @@ def render_config(
         )
     if blender_result.returncode != 0 or not render_path.exists() or not projection_path.exists():
         raise SystemExit(command_failure_message("Blender scene render failed", log_path=blender_log))
-    animation_frames: list[Path] = []
-    if animation_config and animation_frame_dir is not None:
-        animation_frames = sorted(animation_frame_dir.glob("*.png"))
-        if not animation_frames:
-            raise SystemExit(command_failure_message("Blender animation render failed", log_path=blender_log))
-        if animation_path is not None:
-            encode_animation_gif(
-                frame_paths=animation_frames,
-                output_path=animation_path,
-                fps=int(animation_config.get("fps", 24)),
-                width_px=int(animation_config.get("gif_width_px", 0)),
-            )
+    if cached_render is not None and cached_projection is not None:
+        cached_render.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(render_path, cached_render)
+        shutil.copy2(projection_path, cached_projection)
+        if cached_log is not None:
+            shutil.copy2(blender_log, cached_log)
+    return blender_command, cache_info
 
-    projection = json.loads(projection_path.read_text(encoding="utf-8"))
+
+def encode_animation_artifacts(
+    *,
+    animation_config: Mapping[str, object] | None,
+    animation_frame_dir: Path | None,
+    animation_path: Path | None,
+    blender_log: Path,
+) -> list[Path]:
+    if not animation_config or animation_frame_dir is None:
+        return []
+    animation_frames = sorted(animation_frame_dir.glob("*.png"))
+    if not animation_frames:
+        raise SystemExit(command_failure_message("Blender animation render failed", log_path=blender_log))
+    if animation_path is not None:
+        encode_animation_gif(
+            frame_paths=animation_frames,
+            output_path=animation_path,
+            fps=int(animation_config.get("fps", 24)),
+            width_px=int(animation_config.get("gif_width_px", 0)),
+        )
+    return animation_frames
+
+
+def overlay_step_path(*, index: int, total: int, annotated_path: Path, run_dir: Path) -> Path:
+    return annotated_path if index == total else run_dir / f"annotated_step_{index}.png"
+
+
+def apply_annotation_overlays(
+    *,
+    render_path: Path,
+    annotated_path: Path,
+    run_dir: Path,
+    projection: Mapping[str, object],
+    style_config: Mapping[str, object],
+    annotation_state: Mapping[str, object],
+) -> dict[str, object]:
     current_input = render_path
     chain_overlays = []
     radius_overlays = []
     arc_overlays = []
     angle_radius_overlays = []
     image_label_overlay = None
+    active_chains = annotation_state["active_chains"]
+    active_radius_groups = annotation_state["active_radius_groups"]
+    active_arc_groups = annotation_state["active_arc_groups"]
+    active_angle_radius_groups = annotation_state["active_angle_radius_groups"]
+    image_labels = annotation_state["image_labels"]
     total_overlay_steps = (
         (1 if active_chains else 0)
         + len(active_radius_groups)
@@ -2150,7 +2047,7 @@ def render_config(
     overlay_index = 0
     if active_chains:
         overlay_index += 1
-        output_path = annotated_path if overlay_index == total_overlay_steps else run_dir / f"annotated_step_{overlay_index}.png"
+        output_path = overlay_step_path(index=overlay_index, total=total_overlay_steps, annotated_path=annotated_path, run_dir=run_dir)
         chain_overlays = draw_dimension_chains_overlay(
             render_path=current_input,
             output_path=output_path,
@@ -2162,13 +2059,13 @@ def render_config(
                     label_offset_px=float(chain_config.get("label_offset_px", 40.0)),
                     style_config=style_for_group(style_config, chain_config),
                 )
-                for chain_config, chain_segments in chain_pairs
+                for chain_config, chain_segments in annotation_state["chain_pairs"]
             ],
         )
         current_input = output_path
-    for arc_config, arc_callouts in arc_pairs:
+    for arc_config, arc_callouts in annotation_state["arc_pairs"]:
         overlay_index += 1
-        output_path = annotated_path if overlay_index == total_overlay_steps else run_dir / f"annotated_step_{overlay_index}.png"
+        output_path = overlay_step_path(index=overlay_index, total=total_overlay_steps, annotated_path=annotated_path, run_dir=run_dir)
         overlay = draw_arc_callout_overlay(
             render_path=current_input,
             output_path=output_path,
@@ -2180,9 +2077,9 @@ def render_config(
         )
         arc_overlays.append(overlay)
         current_input = output_path
-    for radius_config, radius_callouts in radius_pairs:
+    for radius_config, radius_callouts in annotation_state["radius_pairs"]:
         overlay_index += 1
-        output_path = annotated_path if overlay_index == total_overlay_steps else run_dir / f"annotated_step_{overlay_index}.png"
+        output_path = overlay_step_path(index=overlay_index, total=total_overlay_steps, annotated_path=annotated_path, run_dir=run_dir)
         overlay = draw_radius_callout_overlay(
             render_path=current_input,
             output_path=output_path,
@@ -2193,9 +2090,9 @@ def render_config(
         )
         radius_overlays.append(overlay)
         current_input = output_path
-    for callout_config, angle_radius_callouts in angle_radius_pairs:
+    for callout_config, angle_radius_callouts in annotation_state["angle_radius_pairs"]:
         overlay_index += 1
-        output_path = annotated_path if overlay_index == total_overlay_steps else run_dir / f"annotated_step_{overlay_index}.png"
+        output_path = overlay_step_path(index=overlay_index, total=total_overlay_steps, annotated_path=annotated_path, run_dir=run_dir)
         overlay = draw_angle_radius_callout_overlay(
             render_path=current_input,
             output_path=output_path,
@@ -2213,7 +2110,7 @@ def render_config(
         current_input = output_path
     if image_labels:
         overlay_index += 1
-        output_path = annotated_path if overlay_index == total_overlay_steps else run_dir / f"annotated_step_{overlay_index}.png"
+        output_path = overlay_step_path(index=overlay_index, total=total_overlay_steps, annotated_path=annotated_path, run_dir=run_dir)
         image_label_overlay = draw_image_label_overlay(
             render_path=current_input,
             output_path=output_path,
@@ -2224,11 +2121,100 @@ def render_config(
 
     if total_overlay_steps == 0:
         shutil.copyfile(render_path, annotated_path)
+    return {
+        "chains": chain_overlays,
+        "radius_callouts": radius_overlays,
+        "arc_callouts": arc_overlays,
+        "angle_radius_callouts": angle_radius_overlays,
+        "image_labels": image_label_overlay,
+    }
 
-    metadata = {
+
+def overlay_bbox_from_metadata(value: object) -> tuple[float, float, float, float] | None:
+    if not isinstance(value, Mapping):
+        return None
+    bbox = value.get("bbox_px")
+    if not isinstance(bbox, Mapping):
+        return None
+    try:
+        return (
+            float(bbox["left"]),
+            float(bbox["top"]),
+            float(bbox["right"]),
+            float(bbox["bottom"]),
+        )
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def iter_overlay_label_bboxes(value: object, *, path: str = "overlay") -> list[tuple[str, tuple[float, float, float, float]]]:
+    bboxes: list[tuple[str, tuple[float, float, float, float]]] = []
+    bbox = overlay_bbox_from_metadata(value)
+    if bbox is not None:
+        bboxes.append((path, bbox))
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            if key in {"bbox_px", "title_area"}:
+                continue
+            bboxes.extend(iter_overlay_label_bboxes(item, path=f"{path}.{key}"))
+    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        for index, item in enumerate(value):
+            bboxes.extend(iter_overlay_label_bboxes(item, path=f"{path}[{index}]"))
+    return bboxes
+
+
+def bbox_overlap_area(left: tuple[float, float, float, float], right: tuple[float, float, float, float]) -> float:
+    width = max(0.0, min(left[2], right[2]) - max(left[0], right[0]))
+    height = max(0.0, min(left[3], right[3]) - max(left[1], right[1]))
+    return width * height
+
+
+def overlay_quality_warnings(overlays: Mapping[str, object], *, max_warnings: int = 10) -> list[str]:
+    labels = iter_overlay_label_bboxes(overlays)
+    warnings: list[str] = []
+    for left_index, (left_name, left_bbox) in enumerate(labels):
+        for right_name, right_bbox in labels[left_index + 1 :]:
+            area = bbox_overlap_area(left_bbox, right_bbox)
+            if area <= 25.0:
+                continue
+            warnings.append(f"label overlap: {left_name} and {right_name} overlap by {area:.0f}px^2")
+            if len(warnings) >= max_warnings:
+                return warnings
+    return warnings
+
+
+def build_render_metadata(
+    *,
+    job_name: str,
+    output_mode: str,
+    config_path: Path,
+    expression_context: Mapping[str, float],
+    blend_file: Path,
+    scene_config: Mapping[str, object],
+    object_records: Sequence[Mapping[str, object]],
+    blender_config: Mapping[str, object],
+    style_config: Mapping[str, object],
+    annotation_state: Mapping[str, object],
+    projection: Mapping[str, object],
+    overlays: Mapping[str, object],
+    output_dir: Path,
+    run_dir: Path,
+    render_path: Path,
+    annotated_path: Path,
+    metadata_path: Path,
+    animation_path: Path | None,
+    animation_frame_dir: Path | None,
+    projection_path: Path,
+    blender_log: Path,
+    openscad_commands: Mapping[str, Sequence[str]],
+    blender_command: Sequence[str],
+    cache_info: Mapping[str, object],
+) -> dict[str, object]:
+    return {
         "job_name": job_name,
         "output_mode": output_mode,
         "config": project_relative_or_absolute(config_path),
+        "cache": dict(cache_info),
         "constants": expression_context,
         "scene": {
             "blend_file": str(blend_file),
@@ -2237,7 +2223,17 @@ def render_config(
                 {
                     "id": str(record["id"]),
                     "target_object": str(record["target_object"]),
-                    "scad_file": project_relative_or_absolute(Path(record["scad_file"])),
+                    "source_type": str(record.get("source_type") or "model"),
+                    "scad_file": (
+                        project_relative_or_absolute(Path(record["scad_file"]))
+                        if record.get("scad_file") is not None
+                        else None
+                    ),
+                    "stl_file": (
+                        project_relative_or_absolute(Path(record["stl_file"]))
+                        if record.get("stl_file") is not None
+                        else None
+                    ),
                     "defines": list(record["defines"]),
                     "expression_context": record["expression_context"],
                     "scad_context": record["scad_context"],
@@ -2247,14 +2243,15 @@ def render_config(
                     "replace_target_object": bool(record["replace_target_object"]),
                     "material_source_object": record.get("material_source_object"),
                     "material": record.get("material"),
+                    "cache": record.get("cache"),
                 }
                 for record in object_records
             ],
         },
         "render": blender_config,
         "style": style_config,
-        "annotation_object": annotation_object_id,
-        "scad_annotations": scad_annotations,
+        "annotation_object": annotation_state["annotation_object_id"],
+        "scad_annotations": annotation_state["scad_annotations"],
         "chains": [
             [
                 {
@@ -2267,7 +2264,7 @@ def render_config(
                 }
                 for segment in chain_segments
             ]
-            for chain_segments in active_chains
+            for chain_segments in annotation_state["active_chains"]
         ],
         "radius_callouts": [
             [
@@ -2280,7 +2277,7 @@ def render_config(
                 }
                 for callout in radius_callouts
             ]
-            for radius_callouts in active_radius_groups
+            for radius_callouts in annotation_state["active_radius_groups"]
         ],
         "arc_callouts": [
             [
@@ -2292,7 +2289,7 @@ def render_config(
                 }
                 for callout in arc_callouts
             ]
-            for arc_callouts in active_arc_groups
+            for arc_callouts in annotation_state["active_arc_groups"]
         ],
         "angle_radius_callouts": [
             [
@@ -2308,7 +2305,7 @@ def render_config(
                 }
                 for callout in angle_radius_callouts
             ]
-            for angle_radius_callouts in active_angle_radius_groups
+            for angle_radius_callouts in annotation_state["active_angle_radius_groups"]
         ],
         "image_labels": [
             {
@@ -2318,16 +2315,10 @@ def render_config(
                 "offset_px": list(label.offset_px),
                 "angle_deg": label.angle_deg,
             }
-            for label in image_labels
+            for label in annotation_state["image_labels"]
         ],
         "projection": projection,
-        "overlay": {
-            "chains": chain_overlays,
-            "radius_callouts": radius_overlays,
-            "arc_callouts": arc_overlays,
-            "angle_radius_callouts": angle_radius_overlays,
-            "image_labels": image_label_overlay,
-        },
+        "overlay": dict(overlays),
         "paths": {
             "output_dir": project_relative_or_absolute(output_dir),
             "debug_dir": project_relative_or_absolute(run_dir) if output_mode == "debug" else None,
@@ -2338,27 +2329,207 @@ def render_config(
             "openscad_logs": {
                 str(record["id"]): project_relative_or_absolute(Path(record["openscad_log"]))
                 for record in object_records
+                if record.get("openscad_log") is not None
             } if output_mode == "debug" else {},
             "blender_log": project_relative_or_absolute(blender_log) if output_mode == "debug" else None,
             "render": project_relative_or_absolute(render_path) if output_mode == "debug" else None,
             "annotated": project_relative_or_absolute(annotated_path),
-            "metadata": project_relative_or_absolute(output_dir / f"{run_name}.metadata.json") if output_mode != "minimal" else None,
+            "metadata": project_relative_or_absolute(metadata_path) if output_mode != "minimal" else None,
             "animation": project_relative_or_absolute(animation_path) if animation_path is not None else None,
             "animation_frames": project_relative_or_absolute(animation_frame_dir) if animation_frame_dir is not None and output_mode == "debug" else None,
             "projection": project_relative_or_absolute(projection_path) if output_mode == "debug" else None,
         },
         "commands": {
             "openscad": openscad_commands,
-            "blender": blender_command,
+            "blender": list(blender_command),
         },
     }
-    metadata_path = output_dir / f"{run_name}.metadata.json"
+
+
+def render_config(
+    *,
+    config: Mapping[str, object],
+    config_path: Path,
+    config_dir: Path,
+    args: argparse.Namespace,
+    run_dir: Path | None = None,
+) -> dict[str, object]:
+    scene_config = resolve_scene(config.get("scene", {}))
+    render_settings = resolve_render(config.get("render", {}))
+    annotation_config = require_mapping(config.get("annotations", {}), name="annotations")
+    style_config = resolve_style(annotation_config.get("style"))
+    expression_context = build_expression_context(config)
+
+    blend_file = resolve_config_path(str(scene_config["blend_file"]), config_dir=config_dir, project_root=PROJECT_ROOT)
+    object_specs = scene_object_specs(
+        config=config,
+        scene_config=scene_config,
+        config_dir=config_dir,
+        expression_context=expression_context,
+        resolve_transforms=False,
+    )
+    for object_spec in object_specs:
+        if object_spec.get("scad_file") is not None:
+            scad_file = Path(object_spec["scad_file"])
+            if not scad_file.exists():
+                raise ConfigError(f"SCAD file not found for object {object_spec['id']}: {scad_file}")
+        elif object_spec.get("stl_file") is not None:
+            stl_file = Path(object_spec["stl_file"])
+            if not stl_file.exists():
+                raise ConfigError(f"STL file not found for object {object_spec['id']}: {stl_file}")
+    if not blend_file.exists():
+        raise ConfigError(f"Blender scene not found: {blend_file}")
+    if args.validate_only:
+        print(f"Config OK: {project_relative_or_absolute(config_path)}")
+        print(f"Scene:     {blend_file}")
+        for object_spec in object_specs:
+            source_path = object_spec.get("scad_file") or object_spec.get("stl_file")
+            print(f"Object:    {object_spec['id']} -> {project_relative_or_absolute(Path(source_path))}")
+        return {
+            "job_name": base_job_name(config),
+            "validated": True,
+            "config": config,
+            "objects": object_specs,
+            "blend_file": blend_file,
+        }
+
+    exact_output_file = output_file_from_args(args)
+    blender = require_blender_executable(args.blender)
+    job_name = sanitize_name(str(config.get("job_name") or base_job_name(config)))
+    output_mode = output_mode_for(render_settings, args)
+    cache_root = cache_root_for(config, render_settings, args)
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    run_name = f"{job_name}__{timestamp}"
+    output_parent = run_dir if run_dir is not None else output_root_for(config, args)
+    output_dir = output_parent / scad_output_folder_name(object_specs)
+    debug_dir = output_dir / "debug" / run_name
+    output_dir.mkdir(parents=True, exist_ok=True)
+    debug_dir.mkdir(parents=True, exist_ok=True)
+    run_dir = debug_dir
+
+    object_records, openscad_commands = export_object_records(
+        object_specs=object_specs,
+        run_dir=run_dir,
+        args=args,
+        cache_root=cache_root,
+    )
+    animation_config = resolve_animation_config(render_settings.get("animation"), object_records=object_records)
+    annotation_state = collect_annotation_render_state(
+        config=config,
+        annotation_config=annotation_config,
+        style_config=style_config,
+        expression_context=expression_context,
+        object_records=object_records,
+    )
+    projection_points = build_projection_points_for_annotations(annotation_state)
+
+    render_path = run_dir / "render.png"
+    annotated_path = exact_output_file or (output_dir / f"{run_name}.png")
+    animation_frame_dir = run_dir / "animation_frames" if animation_config else None
+    animation_path = (
+        output_dir / f"{run_name}.gif"
+        if animation_config and str(animation_config.get("output_format")) == "gif"
+        else None
+    )
+    projection_path = run_dir / "projection.json"
+    blender_config_path = run_dir / "blender_scene_config.json"
+    blender_script_path = run_dir / "blender_scene_render.py"
+    blender_log = run_dir / "blender.log"
+
+    blender_config = build_blender_config(
+        scene_config=scene_config,
+        render_settings=render_settings,
+        object_records=object_records,
+        projection_points=projection_points,
+        render_path=render_path,
+        projection_path=projection_path,
+        animation_config=animation_config,
+        animation_frame_dir=animation_frame_dir,
+        expression_context=expression_context,
+    )
+    blender_command, blender_cache_info = run_blender_scene(
+        blender=blender,
+        blend_file=blend_file,
+        blender_config=blender_config,
+        blender_config_path=blender_config_path,
+        blender_script_path=blender_script_path,
+        blender_log=blender_log,
+        render_path=render_path,
+        projection_path=projection_path,
+        cache_root=cache_root,
+    )
+    encode_animation_artifacts(
+        animation_config=animation_config,
+        animation_frame_dir=animation_frame_dir,
+        animation_path=animation_path,
+        blender_log=blender_log,
+    )
+
+    projection = json.loads(projection_path.read_text(encoding="utf-8"))
+    overlays = apply_annotation_overlays(
+        render_path=render_path,
+        annotated_path=annotated_path,
+        run_dir=run_dir,
+        projection=projection,
+        style_config=style_config,
+        annotation_state=annotation_state,
+    )
+    warnings = overlay_quality_warnings(overlays)
+    if warnings:
+        overlays["warnings"] = warnings
+
+    metadata_path = (
+        annotated_path.with_name(f"{annotated_path.stem}.metadata.json")
+        if exact_output_file is not None
+        else output_dir / f"{run_name}.metadata.json"
+    )
+    metadata = build_render_metadata(
+        job_name=job_name,
+        output_mode=output_mode,
+        config_path=config_path,
+        expression_context=expression_context,
+        blend_file=blend_file,
+        scene_config=scene_config,
+        object_records=object_records,
+        blender_config=blender_config,
+        style_config=style_config,
+        annotation_state=annotation_state,
+        projection=projection,
+        overlays=overlays,
+        output_dir=output_dir,
+        run_dir=run_dir,
+        render_path=render_path,
+        annotated_path=annotated_path,
+        metadata_path=metadata_path,
+        animation_path=animation_path,
+        animation_frame_dir=animation_frame_dir,
+        projection_path=projection_path,
+        blender_log=blender_log,
+        openscad_commands=openscad_commands,
+        blender_command=blender_command,
+        cache_info={
+            "root": project_relative_or_absolute(cache_root) if cache_root is not None else None,
+            "objects": {str(record["id"]): record.get("cache") for record in object_records},
+            "blender": blender_cache_info,
+        },
+    )
     if output_mode != "minimal":
         metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     remove_debug_artifacts(output_mode=output_mode, debug_dir=run_dir, output_dir=output_dir)
 
     print(f"Output folder: {project_relative_or_absolute(output_dir)}")
     print(f"Annotated:    {project_relative_or_absolute(annotated_path)}")
+    if cache_root is not None:
+        openscad_cache_records = [
+            record
+            for record in object_records
+            if isinstance(record.get("cache"), Mapping) and record["cache"].get("stage") == "openscad"
+        ]
+        object_hits = sum(1 for record in openscad_cache_records if record["cache"].get("hit"))
+        blender_hit = bool(blender_cache_info.get("hit"))
+        print(f"Cache:        OpenSCAD {object_hits}/{len(openscad_cache_records)} hit, Blender {'hit' if blender_hit else 'miss'}")
+    for warning in warnings:
+        print(f"Warning:      {warning}")
     if animation_path is not None:
         print(f"Animation:    {project_relative_or_absolute(animation_path)}")
     elif animation_frame_dir is not None and output_mode == "debug":
@@ -2375,6 +2546,11 @@ def render_config(
         "annotated": annotated_path,
         "metadata": metadata_path if output_mode != "minimal" else None,
         "output_mode": output_mode,
+        "cache": {
+            "root": cache_root,
+            "objects": {str(record["id"]): record.get("cache") for record in object_records},
+            "blender": blender_cache_info,
+        },
     }
     if animation_path is not None:
         result["animation"] = animation_path
@@ -2544,9 +2720,13 @@ def run_gallery(
 def run(args: argparse.Namespace) -> int:
     if args.doctor:
         return run_doctor(args)
+    if getattr(args, "smoke_render", False):
+        raise ConfigError("--smoke-render is only supported with --doctor")
     if args.print_schema:
         print(CONFIG_SCHEMA_PATH.read_text(encoding="utf-8"), end="")
         return 0
+    if render_shortcut_requested(args) and discovery_requested(args):
+        raise ConfigError("Discovery commands do not support `render MODEL`; use the discovery command directly")
     if args.discover_annotations:
         return run_annotation_discovery(args=args)
     config_path = config_path_from_args(args, allow_default=discovery_requested(args))
@@ -2559,6 +2739,8 @@ def run(args: argparse.Namespace) -> int:
     gallery_config, gallery_config_path = load_gallery_config(args.gallery_config, config_dir=config_dir)
 
     if args.gallery:
+        if getattr(args, "output_file", None):
+            raise ConfigError("--output-file is not supported with --gallery; use --output-dir for gallery output")
         if args.animation_preset:
             raise ConfigError("--animation-preset is not supported with --gallery")
         return run_gallery(

@@ -10,6 +10,14 @@ from mathutils import Euler, Matrix, Vector
 
 
 config = json.loads(Path(__file__).with_name("blender_scene_config.json").read_text(encoding="utf-8"))
+CAMERA_VIEW_DIRECTIONS = {
+    "front": Vector((0.0, -1.0, 0.0)),
+    "back": Vector((0.0, 1.0, 0.0)),
+    "left": Vector((-1.0, 0.0, 0.0)),
+    "right": Vector((1.0, 0.0, 0.0)),
+    "top": Vector((0.0, 0.0, 1.0)),
+    "bottom": Vector((0.0, 0.0, -1.0)),
+}
 
 
 def try_set(target, name, value):
@@ -69,6 +77,20 @@ def parse_material_color(value, alpha=1.0):
             channels.append(float(alpha))
         return tuple(channels)
     raise RuntimeError(f"Unsupported material color {value!r}")
+
+
+def scene_control_settings(value, *, default_enabled=False):
+    if value is None:
+        return {"enabled": default_enabled}
+    if isinstance(value, bool):
+        return {"enabled": value}
+    if isinstance(value, str):
+        return {"enabled": True, "preset": value}
+    if isinstance(value, dict):
+        settings = dict(value)
+        settings.setdefault("enabled", True)
+        return settings
+    raise RuntimeError(f"Unsupported scene control config {value!r}")
 
 
 def configured_material(name, material_config, source_materials):
@@ -273,9 +295,57 @@ def apply_camera_location_offset(camera):
     return [float(value) for value in offset_vector]
 
 
+def apply_camera_rotation(camera):
+    rotation_deg = config.get("camera_rotation")
+    if rotation_deg is None:
+        return None
+    camera.rotation_euler = Euler(tuple(radians(float(value)) for value in rotation_deg), "XYZ")
+    bpy.context.view_layer.update()
+    return [float(value) for value in rotation_deg]
+
+
+def apply_camera_lens(camera):
+    lens = config.get("camera_lens")
+    if lens is None:
+        return None
+    lens = float(lens)
+    if lens <= 0.0:
+        raise RuntimeError("camera_lens must be greater than 0")
+    old_lens = float(getattr(camera.data, "lens", lens))
+    if hasattr(camera.data, "lens"):
+        camera.data.lens = lens
+    bpy.context.view_layer.update()
+    return {
+        "lens_mm": lens,
+        "old_lens_mm": old_lens,
+        "applied": hasattr(camera.data, "lens"),
+    }
+
+
 def camera_object_center(objects, fit_points=None):
     mins, maxs, _corners = bbox_from_points(fit_points) if fit_points is not None else combined_world_bbox(objects)
     return (mins + maxs) / 2
+
+
+def vector_metadata(vector):
+    return [float(value) for value in vector]
+
+
+def aim_camera_at(camera, target, mode):
+    direction = target - camera.location
+    if direction.length <= 1e-9:
+        return {
+            "mode": mode,
+            "target": vector_metadata(target),
+            "applied": False,
+        }
+    camera.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
+    bpy.context.view_layer.update()
+    return {
+        "mode": mode,
+        "target": vector_metadata(target),
+        "applied": True,
+    }
 
 
 def apply_camera_look_at(camera, objects, fit_points=None):
@@ -285,19 +355,151 @@ def apply_camera_look_at(camera, objects, fit_points=None):
     if mode != "object_center":
         raise RuntimeError(f"Unsupported camera_look_at mode {mode!r}")
     target = camera_object_center(objects, fit_points=fit_points)
-    direction = target - camera.location
-    if direction.length <= 1e-9:
+    return aim_camera_at(camera, target, mode)
+
+
+def apply_camera_target_offset(camera, objects, fit_points=None):
+    offset = config.get("camera_target_offset", (0.0, 0.0, 0.0))
+    if not offset:
+        return None
+    offset_vector = Vector((float(offset[0]), float(offset[1]), float(offset[2])))
+    if offset_vector.length <= 1e-9:
+        return None
+    center = camera_object_center(objects, fit_points=fit_points)
+    target = center + offset_vector
+    look_at = aim_camera_at(camera, target, "camera_target_offset")
+    return {
+        "offset": vector_metadata(offset_vector),
+        "center": vector_metadata(center),
+        "target": vector_metadata(target),
+        "look_at": look_at,
+        "applied": bool(look_at.get("applied")),
+    }
+
+
+def apply_camera_roll(camera):
+    roll_deg = float(config.get("camera_roll", 0.0))
+    if abs(roll_deg) <= 1e-9:
+        return None
+    camera.rotation_euler.rotate_axis("Z", radians(roll_deg))
+    bpy.context.view_layer.update()
+    return {
+        "roll_deg": roll_deg,
+        "applied": True,
+    }
+
+
+def apply_camera_orbit(camera, objects, fit_points=None):
+    orbit_deg = config.get("camera_orbit", (0.0, 0.0))
+    if not orbit_deg:
+        return None
+    yaw_deg = float(orbit_deg[0])
+    pitch_deg = float(orbit_deg[1])
+    if abs(yaw_deg) <= 1e-9 and abs(pitch_deg) <= 1e-9:
+        return None
+    target = camera_object_center(objects, fit_points=fit_points)
+    vector = camera.location - target
+    if vector.length <= 1e-9:
         return {
-            "mode": mode,
-            "target": [float(value) for value in target],
+            "orbit_deg": [yaw_deg, pitch_deg],
+            "target": vector_metadata(target),
             "applied": False,
         }
-    camera.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
+
+    if abs(yaw_deg) > 1e-9:
+        vector = Matrix.Rotation(radians(yaw_deg), 4, Vector((0.0, 0.0, 1.0))) @ vector
+    if abs(pitch_deg) > 1e-9:
+        pitch_axis = vector.cross(Vector((0.0, 0.0, 1.0)))
+        if pitch_axis.length <= 1e-9:
+            pitch_axis = camera.matrix_world.to_quaternion() @ Vector((1.0, 0.0, 0.0))
+        pitch_axis.normalize()
+        vector = Matrix.Rotation(radians(pitch_deg), 4, pitch_axis) @ vector
+
+    camera.location = target + vector
+    look_at = aim_camera_at(camera, target, "camera_orbit")
+    bpy.context.view_layer.update()
+    return {
+        "orbit_deg": [yaw_deg, pitch_deg],
+        "target": vector_metadata(target),
+        "location": vector_metadata(camera.location),
+        "look_at": look_at,
+        "applied": True,
+    }
+
+
+def apply_camera_distance_scale(camera, objects, fit_points=None):
+    scale = float(config.get("camera_distance_scale", 1.0))
+    if abs(scale - 1.0) <= 1e-9:
+        return None
+    if scale <= 0.0:
+        raise RuntimeError("camera_distance_scale must be greater than 0")
+    target = camera_object_center(objects, fit_points=fit_points)
+    if camera.data.type == "ORTHO":
+        old_scale = float(camera.data.ortho_scale)
+        camera.data.ortho_scale = old_scale * scale
+        bpy.context.view_layer.update()
+        return {
+            "scale": scale,
+            "target": vector_metadata(target),
+            "ortho_scale_before": old_scale,
+            "ortho_scale_after": float(camera.data.ortho_scale),
+            "applied": True,
+        }
+
+    vector = camera.location - target
+    if vector.length <= 1e-9:
+        return {
+            "scale": scale,
+            "target": vector_metadata(target),
+            "applied": False,
+        }
+    old_distance = float(vector.length)
+    camera.location = target + vector * scale
+    look_at = aim_camera_at(camera, target, "camera_distance_scale")
+    bpy.context.view_layer.update()
+    return {
+        "scale": scale,
+        "target": vector_metadata(target),
+        "distance_before": old_distance,
+        "distance_after": float((camera.location - target).length),
+        "location": vector_metadata(camera.location),
+        "look_at": look_at,
+        "applied": True,
+    }
+
+
+def object_local_view_direction(obj, mode):
+    local_direction = CAMERA_VIEW_DIRECTIONS[mode]
+    world_direction = obj.matrix_world.to_quaternion() @ local_direction
+    if world_direction.length <= 1e-9:
+        world_direction = local_direction.copy()
+    return world_direction.normalized()
+
+
+def apply_camera_view(camera, objects, fit_points=None):
+    mode = config.get("camera_view", "none")
+    if not mode or mode == "none":
+        return None
+    if mode not in CAMERA_VIEW_DIRECTIONS:
+        raise RuntimeError(f"Unsupported camera_view mode {mode!r}")
+    if not objects:
+        return None
+
+    mins, maxs, _corners = bbox_from_points(fit_points) if fit_points is not None else combined_world_bbox(objects)
+    target = (mins + maxs) / 2
+    source_object = objects[0]
+    direction = object_local_view_direction(source_object, mode)
+    distance = max((maxs - mins).length * 2.0, 0.02)
+    camera.location = target + direction * distance
+    look_at = aim_camera_at(camera, target, mode)
     bpy.context.view_layer.update()
     return {
         "mode": mode,
-        "target": [float(value) for value in target],
-        "applied": True,
+        "object": source_object.name,
+        "target": vector_metadata(target),
+        "direction": vector_metadata(direction),
+        "distance": float(distance),
+        "look_at": look_at,
     }
 
 
@@ -326,6 +528,352 @@ def configure_render(scene):
     try_set(getattr(scene, "eevee", None), "taa_render_samples", sample_count)
     scene.render.filepath = config["render_path"]
     scene.render.image_settings.file_format = "PNG"
+
+
+def set_world_light(scene, color, strength):
+    if scene.world is None:
+        scene.world = bpy.data.worlds.new("annotation_world")
+    scene.world.color = color[:3]
+    try:
+        scene.world.use_nodes = True
+        background = next((node for node in scene.world.node_tree.nodes if node.type == "BACKGROUND"), None)
+        if background is not None:
+            background.inputs["Color"].default_value = color
+            background.inputs["Strength"].default_value = float(strength)
+    except Exception:
+        pass
+
+
+def remove_scene_lights():
+    removed = []
+    for obj in list(bpy.data.objects):
+        if obj.type == "LIGHT":
+            removed.append(obj.name)
+            bpy.data.objects.remove(obj, do_unlink=True)
+    return removed
+
+
+def aim_object_at(obj, target):
+    direction = target - obj.location
+    if direction.length <= 1e-9:
+        return False
+    obj.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
+    return True
+
+
+def add_area_light(name, *, location, target, energy, size, color):
+    data = bpy.data.lights.new(name, type="AREA")
+    data.energy = float(energy)
+    data.size = float(size)
+    data.color = color[:3]
+    obj = bpy.data.objects.new(name, data)
+    bpy.context.collection.objects.link(obj)
+    obj.location = location
+    aim_object_at(obj, target)
+    return obj
+
+
+def camera_basis(camera):
+    rotation = camera.matrix_world.to_quaternion()
+    view = (camera.location - (camera.location + rotation @ Vector((0.0, 0.0, -1.0)))).normalized()
+    right = (rotation @ Vector((1.0, 0.0, 0.0))).normalized()
+    up = (rotation @ Vector((0.0, 1.0, 0.0))).normalized()
+    return view, right, up
+
+
+def configure_lighting(scene, camera, objects):
+    value = config.get("lighting")
+    if value is None:
+        return None
+    settings = scene_control_settings(value)
+    if not settings.get("enabled", True):
+        return {"enabled": False}
+    preset = str(settings.get("preset") or "technical")
+    if preset == "scene":
+        return {"preset": "scene", "applied": False}
+
+    color = parse_material_color(settings.get("color", "#ffffff"), alpha=1.0)
+    strength_scale = float(settings.get("strength", 1.0))
+    ambient_strength = float(settings.get("ambient_strength", 0.25 if preset != "flat" else 0.9))
+    set_world_light(scene, color, ambient_strength)
+    removed = remove_scene_lights()
+
+    mins, maxs, _corners = combined_world_bbox(objects)
+    target = (mins + maxs) / 2
+    diag = max(float((maxs - mins).length), 0.25)
+    view, right, up = camera_basis(camera)
+    light_specs = []
+
+    if preset == "flat":
+        light_specs = []
+    elif preset == "front_lit":
+        light_specs = [
+            ("front_key", target + view * diag * 1.4 + up * diag * 0.25, 520.0, diag * 1.5),
+        ]
+    elif preset == "softbox":
+        light_specs = [
+            ("softbox", target + view * diag * 1.2 + up * diag * 0.9 + right * diag * 0.15, 650.0, diag * 2.3),
+        ]
+    elif preset == "dramatic":
+        light_specs = [
+            ("dramatic_key", target + view * diag * 1.1 + right * diag * 0.85 + up * diag * 0.85, 850.0, diag * 0.85),
+            ("dramatic_rim", target - view * diag * 0.9 - right * diag * 0.55 + up * diag * 0.45, 180.0, diag * 0.75),
+        ]
+    else:
+        light_specs = [
+            ("technical_key", target + view * diag * 1.25 + right * diag * 0.55 + up * diag * 0.85, 520.0, diag * 1.2),
+            ("technical_fill", target + view * diag * 1.05 - right * diag * 0.85 + up * diag * 0.35, 160.0, diag * 1.8),
+            ("technical_rim", target - view * diag * 0.9 + up * diag * 0.7, 95.0, diag * 1.4),
+        ]
+
+    added = [
+        add_area_light(
+            f"annotation_{name}",
+            location=location,
+            target=target,
+            energy=energy * strength_scale,
+            size=size,
+            color=color,
+        ).name
+        for name, location, energy, size in light_specs
+    ]
+    bpy.context.view_layer.update()
+    return {
+        "preset": preset,
+        "removed": removed,
+        "added": added,
+        "ambient_strength": ambient_strength,
+        "strength": strength_scale,
+        "applied": True,
+    }
+
+
+def configure_outline(scene):
+    value = config.get("outline")
+    if value is None:
+        return None
+    settings = scene_control_settings(value)
+    if not settings.get("enabled", True):
+        try_set(scene.render, "use_freestyle", False)
+        return {"enabled": False}
+
+    line_color = parse_material_color(settings.get("line_color", "#111827"), alpha=1.0)
+    line_width = float(settings.get("line_width_px", 1.5))
+    try_set(scene.render, "use_freestyle", True)
+    view_layer = bpy.context.view_layer
+    try_set(view_layer, "use_freestyle", True)
+    try:
+        freestyle_settings = view_layer.freestyle_settings
+        if len(freestyle_settings.linesets) == 0:
+            bpy.ops.scene.freestyle_lineset_add()
+        line_set = freestyle_settings.linesets[0]
+        line_style = line_set.linestyle
+        line_style.color = line_color[:3]
+        line_style.thickness = line_width
+    except Exception:
+        pass
+    return {
+        "enabled": True,
+        "line_color": list(line_color),
+        "line_width_px": line_width,
+        "applied": True,
+    }
+
+
+def configure_ground_plane(objects):
+    value = config.get("ground_plane")
+    if value is None:
+        return None
+    settings = scene_control_settings(value)
+    if not settings.get("enabled", True):
+        return {"enabled": False}
+
+    mins, maxs, _corners = combined_world_bbox(objects)
+    center = (mins + maxs) / 2
+    dims = maxs - mins
+    size = max(float(dims.x), float(dims.y), 0.08) * float(settings.get("size_scale", 2.5))
+    offset = float(settings.get("offset_mm", 0.0)) / 1000.0
+    z = float(mins.z) + offset
+    bpy.ops.mesh.primitive_plane_add(size=size, location=(float(center.x), float(center.y), z))
+    plane = bpy.context.object
+    plane.name = "annotation_ground_plane"
+    material = configured_material(
+        plane.name,
+        {
+            "color": settings.get("color", "#f8fafc"),
+            "alpha": float(settings.get("alpha", 1.0)),
+            "roughness": float(settings.get("roughness", 0.7)),
+        },
+        [],
+    )
+    plane.data.materials.append(material)
+    if settings.get("shadow_only", False):
+        try_set(plane, "is_shadow_catcher", True)
+    bpy.context.view_layer.update()
+    return {
+        "enabled": True,
+        "name": plane.name,
+        "location": vector_metadata(plane.location),
+        "size": size,
+        "shadow_only": bool(settings.get("shadow_only", False)),
+    }
+
+
+def selected_render_objects(objects_by_id, settings, *, name):
+    object_ids = settings.get("objects")
+    if object_ids is None:
+        return list(objects_by_id.items())
+    selected = []
+    for object_id in object_ids:
+        if object_id not in objects_by_id:
+            raise RuntimeError(f"{name} references unknown object {object_id!r}")
+        selected.append((object_id, objects_by_id[object_id]))
+    return selected
+
+
+def cutaway_position(settings, *, bounds_min, bounds_max, center_values, axis_index):
+    if "position_mm" in settings:
+        return float(settings["position_mm"]) / 1000.0, "position_mm"
+    offset = float(settings.get("offset_mm", 0.0)) / 1000.0
+    if "position_fraction" in settings:
+        fraction = float(settings["position_fraction"])
+        if fraction < 0.0 or fraction > 1.0:
+            raise RuntimeError("cutaway.position_fraction must be between 0 and 1")
+        return bounds_min[axis_index] + (bounds_max[axis_index] - bounds_min[axis_index]) * fraction + offset, "position_fraction"
+    return center_values[axis_index] + offset, "center_offset"
+
+
+def add_cutaway_section_plane(settings, *, axis_name, axis_index, keep, position, bounds_min, bounds_max, center_values):
+    section_value = settings.get("section_plane")
+    if section_value is None:
+        return None
+    section = scene_control_settings(section_value)
+    if not section.get("enabled", True):
+        return {"enabled": False}
+
+    padding = float(section.get("padding_mm", 1.0)) / 1000.0
+    keep_sign = 1.0 if keep == "positive" else -1.0
+    plane_offset = float(section.get("offset_mm", 0.15)) / 1000.0 * keep_sign
+    other_axes = [index for index in range(3) if index != axis_index]
+    low_a = bounds_min[other_axes[0]] - padding
+    high_a = bounds_max[other_axes[0]] + padding
+    low_b = bounds_min[other_axes[1]] - padding
+    high_b = bounds_max[other_axes[1]] + padding
+
+    vertices = []
+    for a_value, b_value in ((low_a, low_b), (high_a, low_b), (high_a, high_b), (low_a, high_b)):
+        coords = list(center_values)
+        coords[axis_index] = position + plane_offset
+        coords[other_axes[0]] = a_value
+        coords[other_axes[1]] = b_value
+        vertices.append(tuple(coords))
+
+    mesh = bpy.data.meshes.new("annotation_cutaway_section_plane_mesh")
+    mesh.from_pydata(vertices, [], [(0, 1, 2, 3)])
+    mesh.update()
+    plane = bpy.data.objects.new("annotation_cutaway_section_plane", mesh)
+    bpy.context.collection.objects.link(plane)
+    material = configured_material(
+        plane.name,
+        {
+            "color": section.get("color", "#f97316"),
+            "alpha": float(section.get("alpha", 0.32)),
+            "roughness": 0.85,
+        },
+        [],
+    )
+    try_set(material, "show_transparent_back", True)
+    plane.data.materials.append(material)
+    bpy.context.view_layer.update()
+    return {
+        "enabled": True,
+        "name": plane.name,
+        "axis": axis_name,
+        "location": position + plane_offset,
+        "padding": padding,
+        "offset": plane_offset,
+        "color": section.get("color", "#f97316"),
+        "alpha": float(section.get("alpha", 0.32)),
+    }
+
+
+def apply_cutaway(objects_by_id):
+    value = config.get("cutaway")
+    if value is None:
+        return None
+    settings = scene_control_settings(value)
+    if not settings.get("enabled", True):
+        return {"enabled": False}
+
+    selected = selected_render_objects(objects_by_id, settings, name="cutaway")
+    selected_objects = [obj for _object_id, obj in selected]
+    mins, maxs, _corners = combined_world_bbox(selected_objects)
+    center = (mins + maxs) / 2
+    axis_name = str(settings.get("axis", "x")).lower()
+    axis_index = {"x": 0, "y": 1, "z": 2}[axis_name]
+    keep = str(settings.get("keep", "positive"))
+    bounds_min = [float(mins.x), float(mins.y), float(mins.z)]
+    bounds_max = [float(maxs.x), float(maxs.y), float(maxs.z)]
+    center_values = [float(center.x), float(center.y), float(center.z)]
+    position, position_mode = cutaway_position(
+        settings,
+        bounds_min=bounds_min,
+        bounds_max=bounds_max,
+        center_values=center_values,
+        axis_index=axis_index,
+    )
+    diag = max(float((maxs - mins).length), 0.1)
+    margin = diag * 2.0
+    remove_min = bounds_min[axis_index] - margin
+    remove_max = position
+    if keep == "negative":
+        remove_min = position
+        remove_max = bounds_max[axis_index] + margin
+
+    cutter_location = center_values
+    cutter_dimensions = [
+        max(bounds_max[index] - bounds_min[index] + margin * 2.0, 0.1)
+        for index in range(3)
+    ]
+    cutter_location[axis_index] = (remove_min + remove_max) / 2.0
+    cutter_dimensions[axis_index] = max(abs(remove_max - remove_min), 0.001)
+    bpy.ops.mesh.primitive_cube_add(size=1.0, location=tuple(cutter_location))
+    cutter = bpy.context.object
+    cutter.name = "annotation_cutaway_cutter"
+    cutter.dimensions = tuple(cutter_dimensions)
+    bpy.context.view_layer.update()
+    cutter.hide_viewport = True
+    cutter.hide_render = True
+
+    modified = []
+    for object_id, obj in selected:
+        modifier = obj.modifiers.new("annotation_cutaway", "BOOLEAN")
+        modifier.operation = "DIFFERENCE"
+        modifier.object = cutter
+        try_set(modifier, "solver", "FAST")
+        modified.append(object_id)
+    section_plane = add_cutaway_section_plane(
+        settings,
+        axis_name=axis_name,
+        axis_index=axis_index,
+        keep=keep,
+        position=position,
+        bounds_min=bounds_min,
+        bounds_max=bounds_max,
+        center_values=center_values,
+    )
+    bpy.context.view_layer.update()
+    return {
+        "enabled": True,
+        "axis": axis_name,
+        "keep": keep,
+        "position": position,
+        "position_mode": position_mode,
+        "position_fraction": settings.get("position_fraction"),
+        "objects": modified,
+        "cutter": cutter.name,
+        "section_plane": section_plane,
+    }
 
 
 def keyframe_interpolation_settings(name):
@@ -433,6 +981,40 @@ def set_material_opacity(material, opacity):
                 principled.inputs["Base Color"].default_value = base_color
 
 
+def apply_xray(objects_by_id):
+    value = config.get("xray")
+    if value is None:
+        return None
+    settings = scene_control_settings(value)
+    if not settings.get("enabled", True):
+        return {"enabled": False}
+
+    alpha = float(settings.get("alpha", 0.28))
+    color = parse_material_color(settings["color"], alpha=alpha) if "color" in settings else None
+    selected = selected_render_objects(objects_by_id, settings, name="xray")
+    changed = []
+    for object_id, obj in selected:
+        materials = opacity_materials(obj)
+        for material in materials:
+            if color is not None:
+                material.diffuse_color = color
+                principled = principled_bsdf(material)
+                if principled is not None and "Base Color" in principled.inputs:
+                    principled.inputs["Base Color"].default_value = color
+            set_material_opacity(material, alpha)
+            try_set(material, "blend_method", "BLEND")
+            try_set(material, "show_transparent_back", True)
+            try_set(material, "use_screen_refraction", True)
+        changed.append(object_id)
+    bpy.context.view_layer.update()
+    return {
+        "enabled": True,
+        "objects": changed,
+        "alpha": alpha,
+        "color": list(color) if color is not None else None,
+    }
+
+
 def apply_opacity_keyframes(obj, keyframes, interpolation_name):
     if not keyframes:
         return
@@ -536,16 +1118,40 @@ for object_config in object_configs:
 if not rendered_objects:
     raise RuntimeError("No render objects configured")
 
+cutaway = apply_cutaway(objects_by_id)
+xray = apply_xray(objects_by_id)
 configure_render(scene)
 bpy.context.view_layer.update()
 fit_points = animation_fit_points(rendered_objects, objects_by_id, config.get("animation"))
-camera_look_at = apply_camera_look_at(camera, rendered_objects, fit_points=fit_points)
+camera_lens = apply_camera_lens(camera)
+camera_rotation = apply_camera_rotation(camera)
+camera_view = apply_camera_view(camera, rendered_objects, fit_points=fit_points)
+camera_look_at = None if camera_view is not None else apply_camera_look_at(camera, rendered_objects, fit_points=fit_points)
 camera_fit = fit_camera_to_objects(scene, camera, rendered_objects, fit_points=fit_points)
 camera_location_offset = apply_camera_location_offset(camera)
 if camera_location_offset is not None:
-    camera_look_at = apply_camera_look_at(camera, rendered_objects, fit_points=fit_points)
-    if camera_look_at is not None and config.get("fit_camera", False):
+    should_refit = False
+    if camera_view is not None:
+        camera_view["look_at_after_offset"] = aim_camera_at(
+            camera,
+            camera_object_center(rendered_objects, fit_points=fit_points),
+            str(camera_view["mode"]),
+        )
+        should_refit = True
+    elif camera_look_at is not None:
+        camera_look_at = apply_camera_look_at(camera, rendered_objects, fit_points=fit_points)
+        should_refit = True
+    if should_refit and config.get("fit_camera", False):
         camera_fit = fit_camera_to_objects(scene, camera, rendered_objects, fit_points=fit_points)
+camera_orbit = apply_camera_orbit(camera, rendered_objects, fit_points=fit_points)
+if camera_orbit is not None and camera_orbit.get("applied") and config.get("fit_camera", False):
+    camera_fit = fit_camera_to_objects(scene, camera, rendered_objects, fit_points=fit_points)
+camera_distance_scale = apply_camera_distance_scale(camera, rendered_objects, fit_points=fit_points)
+camera_target_offset = apply_camera_target_offset(camera, rendered_objects, fit_points=fit_points)
+camera_roll = apply_camera_roll(camera)
+ground_plane = configure_ground_plane(rendered_objects)
+lighting = configure_lighting(scene, camera, rendered_objects)
+outline = configure_outline(scene)
 has_animation = apply_animation(scene, objects_by_id)
 scene.render.filepath = config["render_path"]
 scene.render.image_settings.file_format = "PNG"
@@ -592,9 +1198,24 @@ Path(config["projection_path"]).write_text(
                 "type": camera.data.type,
                 "location": [float(value) for value in camera.location],
                 "matrix_world": [[float(value) for value in row] for row in camera.matrix_world],
+                "lens": camera_lens,
+                "configured_rotation": camera_rotation,
+                "view": camera_view,
+                "view_preset": config.get("camera_view_preset"),
                 "fit": camera_fit,
                 "location_offset": camera_location_offset,
+                "orbit": camera_orbit,
+                "distance_scale": camera_distance_scale,
+                "target_offset": camera_target_offset,
+                "roll": camera_roll,
                 "look_at": camera_look_at,
+            },
+            "scene_controls": {
+                "lighting": lighting,
+                "outline": outline,
+                "ground_plane": ground_plane,
+                "cutaway": cutaway,
+                "xray": xray,
             },
             "objects": {
                 object_id: {
