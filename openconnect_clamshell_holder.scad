@@ -60,9 +60,11 @@ slot_edge_wall_min_width = 0.6; //0.01
 
 /* [Hidden] */
 include <lib/opengrid_base.scad>
+include <lib/annotation_metadata.scad>
 use <lib/openconnect_lib.scad>
 $fa = 1;
 $fs = 0.4;
+emit_annotation_metadata = false;
 //A slot is generated for every tile by default.
 slot_position = "All"; //["All", "Staggered", "Edge Rows", "Edge Columns", "Corners"]
 //Double Lock can be very difficult to install. They are intended for small models that only use one or two slots.
@@ -89,6 +91,15 @@ holder_height = item_height + holder_thickness + holder_front_thickness;
 holder_depth = item_depth + holder_thickness + holder_top_thickness;
 
 final_corner_rounding = max(0, min(item_width / 2, item_height / 2, item_corner_rounding));
+effective_front_opening_side_margin = is_undef(holder_width_edge) ? front_opening_side_margin : holder_width_edge;
+effective_front_opening_end_margin = is_undef(holder_height_edge) ? front_opening_end_margin : holder_height_edge;
+final_front_opening_side_margin = max(0, min(item_width / 2, effective_front_opening_side_margin));
+final_front_opening_end_margin = max(0, min(item_height / 2, effective_front_opening_end_margin));
+effective_holder_side_opening = is_undef(holder_side_cutoff) ? holder_side_opening : holder_side_cutoff;
+effective_side_opening_front_margin = is_undef(side_cutoff_front_offset) ? side_opening_front_margin : side_cutoff_front_offset;
+effective_side_opening_back_margin = is_undef(side_cutoff_back_offset) ? side_opening_back_margin : side_cutoff_back_offset;
+effective_side_opening_top_margin = is_undef(side_cutoff_top_offset) ? side_opening_top_margin : side_cutoff_top_offset;
+effective_side_opening_bottom_margin = is_undef(side_cutoff_bottom_offset) ? side_opening_bottom_margin : side_cutoff_bottom_offset;
 //The calculation of horizontal slots for Front version is just an approximation.
 final_slot_h_grids =
   holder_slot_position == "Top" ? max(1, floor(holder_width / OG_TILE_SIZE))
@@ -106,6 +117,226 @@ middle_cutoff_size = middle_cutoff_size_base + holder_middle_cutoff_tiles * OG_T
 middle_cutoff_offset = final_slot_h_grids % 2 != holder_middle_cutoff_tiles % 2 ? OG_TILE_SIZE / 2 : 0;
 //END holder geometry calculations
 
+holder_min_x = -holder_width / 2;
+holder_max_x = holder_width / 2;
+holder_min_y = -holder_height / 2;
+holder_max_y = holder_height / 2;
+holder_min_z = 0;
+holder_max_z = holder_depth;
+bottom_annotation_z = holder_min_z;
+item_center_y = (holder_front_thickness - holder_thickness) / 2;
+item_center_z = holder_thickness + item_depth / 2;
+item_min_x = -item_width / 2;
+item_max_x = item_width / 2;
+item_min_y = item_center_y - item_height / 2;
+item_max_y = item_center_y + item_height / 2;
+item_min_z = holder_thickness;
+item_max_z = holder_thickness + item_depth;
+item_corner_rounding_center = [item_min_x + final_corner_rounding, item_min_y + final_corner_rounding, bottom_annotation_z];
+item_corner_rounding_arc_segments = 12;
+function item_corner_rounding_arc_point(angle) = [
+  item_corner_rounding_center[0] + cos(angle) * final_corner_rounding,
+  item_corner_rounding_center[1] + sin(angle) * final_corner_rounding,
+  bottom_annotation_z
+];
+item_corner_rounding_arc_points = [
+  for (i = [0:item_corner_rounding_arc_segments])
+    item_corner_rounding_arc_point(180 + 90 * i / item_corner_rounding_arc_segments)
+];
+item_corner_rounding_radius_edge = item_corner_rounding_arc_point(225);
+side_opening_height = item_height - final_front_opening_end_margin * 2 - effective_side_opening_front_margin - effective_side_opening_back_margin;
+side_opening_depth = item_depth + holder_thickness - effective_side_opening_top_margin - effective_side_opening_bottom_margin;
+side_opening_width =
+  effective_side_opening_back_margin < 0 || effective_side_opening_front_margin < 0 ? holder_width / 2
+  : (holder_width - (item_width - final_front_opening_side_margin * 2)) / 2 + max(0, final_corner_rounding - effective_side_opening_back_margin, final_corner_rounding - effective_side_opening_front_margin);
+side_opening_side_face_x = effective_holder_side_opening == "Left" ? holder_min_x : holder_max_x;
+side_opening_wall_front_y = holder_min_y + holder_front_thickness + final_front_opening_end_margin;
+side_opening_front_y = side_opening_wall_front_y + effective_side_opening_front_margin;
+side_opening_back_y = side_opening_front_y + side_opening_height;
+side_opening_wall_back_y = side_opening_back_y + effective_side_opening_back_margin;
+side_opening_wall_top_z = holder_depth - holder_top_thickness;
+side_opening_top_z = side_opening_wall_top_z - effective_side_opening_top_margin;
+side_opening_bottom_z = side_opening_top_z - side_opening_depth;
+side_opening_wall_bottom_z = side_opening_bottom_z - effective_side_opening_bottom_margin;
+side_opening_mid_y = (side_opening_front_y + side_opening_back_y) / 2;
+side_opening_mid_z = (side_opening_bottom_z + side_opening_top_z) / 2;
+
+module emit_horizontal_holder_annotations() {
+  emit_context_values(
+    "horizontal_holder_context",
+    [
+      "OG_TILE_SIZE",
+      "og_tile_size",
+      "og_standard_thickness",
+      "item_width",
+      "item_height",
+      "item_depth",
+      "item_corner_rounding",
+      "generate_holder_part",
+      "holder_slot_column_limit",
+      "holder_slot_position",
+      "holder_thickness",
+      "front_opening_side_margin",
+      "front_opening_end_margin",
+      "holder_side_opening",
+      "side_opening_front_margin",
+      "side_opening_back_margin",
+      "side_opening_top_margin",
+      "side_opening_bottom_margin",
+      "slot_lock_distribution",
+      "slot_entryramp_flip",
+      "front_slot_position_offset",
+      "slot_slide_direction",
+      "slot_side_clearance",
+      "slot_depth_clearance",
+      "slot_edge_bridge_min_width",
+      "slot_edge_wall_min_width"
+    ],
+    [
+      OG_TILE_SIZE,
+      OG_TILE_SIZE,
+      OG_STANDARD_THICKNESS,
+      item_width,
+      item_height,
+      item_depth,
+      item_corner_rounding,
+      generate_holder_part,
+      holder_slot_column_limit,
+      holder_slot_position,
+      holder_thickness,
+      effective_front_opening_side_margin,
+      effective_front_opening_end_margin,
+      effective_holder_side_opening,
+      effective_side_opening_front_margin,
+      effective_side_opening_back_margin,
+      effective_side_opening_top_margin,
+      effective_side_opening_bottom_margin,
+      slot_lock_distribution,
+      slot_entryramp_flip,
+      front_slot_position_offset,
+      slot_slide_direction,
+      slot_side_clearance,
+      slot_depth_clearance,
+      slot_edge_bridge_min_width,
+      slot_edge_wall_min_width
+    ]
+  );
+  emit_dimension_annotation(
+    id="item_width",
+    label="item_width",
+    axis="x",
+    value=item_width,
+    start=[item_min_x, item_min_y, bottom_annotation_z],
+    end=[item_max_x, item_min_y, bottom_annotation_z],
+    basis="bottom_plane_item_width"
+  );
+  emit_dimension_annotation(
+    id="item_height",
+    label="item_height",
+    axis="y",
+    value=item_height,
+    start=[item_min_x, item_min_y, bottom_annotation_z],
+    end=[item_min_x, item_max_y, bottom_annotation_z],
+    basis="bottom_plane_item_height"
+  );
+  emit_dimension_annotation(
+    id="item_depth",
+    label="item_depth",
+    axis="z",
+    value=item_depth,
+    start=[item_max_x, item_max_y, bottom_annotation_z],
+    end=[item_max_x, item_max_y, bottom_annotation_z + item_depth],
+    basis="bottom_plane_item_depth"
+  );
+  if (final_corner_rounding > 0) {
+    emit_radius_annotation(
+      id="item_corner_rounding",
+      label="item_corner_rounding",
+      value=final_corner_rounding,
+      center=item_corner_rounding_center,
+      edge=item_corner_rounding_radius_edge,
+      basis="bottom_front_left_item_corner_rounding_center_to_arc_midpoint"
+    );
+    emit_arc_annotation(
+      id="item_corner_rounding_extent",
+      label="item_corner_rounding_extent",
+      value=final_corner_rounding,
+      points=item_corner_rounding_arc_points,
+      basis="bottom_front_left_item_corner_rounding_fillet_arc"
+    );
+  }
+  if (effective_front_opening_side_margin > 0) {
+    emit_dimension_annotation(
+      id="front_opening_side_margin",
+      label="front_opening_side_margin",
+      axis="x",
+      value=effective_front_opening_side_margin,
+      start=[item_min_x, item_min_y, holder_min_z],
+      end=[item_min_x + final_front_opening_side_margin, item_min_y, holder_min_z],
+      basis="left_front_opening_side_margin"
+    );
+  }
+  if (effective_front_opening_end_margin > 0) {
+    emit_dimension_annotation(
+      id="front_opening_end_margin",
+      label="front_opening_end_margin",
+      axis="y",
+      value=effective_front_opening_end_margin,
+      start=[item_min_x, item_min_y, holder_min_z],
+      end=[item_min_x, item_min_y + final_front_opening_end_margin, holder_min_z],
+      basis="front_opening_end_margin"
+    );
+  }
+  if (effective_holder_side_opening != "None" && side_opening_height > 0 && side_opening_depth > 0) {
+    if (effective_side_opening_front_margin > 0) {
+      emit_dimension_annotation(
+        id="side_opening_front_margin",
+        label="side_opening_front_margin",
+        axis="y",
+        value=effective_side_opening_front_margin,
+        start=[side_opening_side_face_x, side_opening_wall_front_y, side_opening_mid_z],
+        end=[side_opening_side_face_x, side_opening_front_y, side_opening_mid_z],
+        basis="side_opening_front_margin_to_visible_cutout_edge"
+      );
+    }
+    if (effective_side_opening_back_margin > 0) {
+      emit_dimension_annotation(
+        id="side_opening_back_margin",
+        label="side_opening_back_margin",
+        axis="y",
+        value=effective_side_opening_back_margin,
+        start=[side_opening_side_face_x, side_opening_back_y, side_opening_mid_z],
+        end=[side_opening_side_face_x, side_opening_wall_back_y, side_opening_mid_z],
+        basis="side_opening_back_margin_to_visible_cutout_edge"
+      );
+    }
+    if (effective_side_opening_top_margin > 0) {
+      emit_dimension_annotation(
+        id="side_opening_top_margin",
+        label="side_opening_top_margin",
+        axis="z",
+        value=effective_side_opening_top_margin,
+        start=[side_opening_side_face_x, side_opening_mid_y, side_opening_top_z],
+        end=[side_opening_side_face_x, side_opening_mid_y, side_opening_wall_top_z],
+        basis="side_opening_top_margin_to_visible_cutout_edge"
+      );
+    }
+    if (effective_side_opening_bottom_margin > 0) {
+      emit_dimension_annotation(
+        id="side_opening_bottom_margin",
+        label="side_opening_bottom_margin",
+        axis="z",
+        value=effective_side_opening_bottom_margin,
+        start=[side_opening_side_face_x, side_opening_mid_y, side_opening_wall_bottom_z],
+        end=[side_opening_side_face_x, side_opening_mid_y, side_opening_bottom_z],
+        basis="side_opening_bottom_margin_to_visible_cutout_edge"
+      );
+    }
+  }
+}
+
+emit_horizontal_holder_annotations();
+
 //BEGIN holder generation
 up(generate_holder_part == "Both" ? holder_depth / 2 : holder_width / 2) yrot(generate_holder_part == "Left" ? -90 : generate_holder_part == "Right" ? 90 : 0)
     conditional_half(v=generate_holder_part == "Left" ? LEFT : RIGHT, pos_offset=middle_cutoff_offset + final_front_slot_position_offset, condition=generate_holder_part != "Both", mask_size=max(holder_width, holder_height) + 10)
@@ -114,38 +345,33 @@ up(generate_holder_part == "Both" ? holder_depth / 2 : holder_width / 2) yrot(ge
               down((holder_top_thickness - holder_thickness) / 2)
                 attach(CENTER, CENTER)
                   tag("remove") cuboid([item_width, item_height, item_depth + EPS * 2], edges="Z", rounding=final_corner_rounding);
-              if (item_width - front_opening_side_margin * 2 > 0 && item_height - front_opening_end_margin * 2 > 0)
+              if (item_width - final_front_opening_side_margin * 2 > 0 && item_height - final_front_opening_end_margin * 2 > 0)
                 attach(BOTTOM, BOTTOM, inside=true)
-                  cuboid([item_width - front_opening_side_margin * 2, item_height - front_opening_end_margin * 2, holder_thickness + EPS * 2], edges="Z", rounding=min((item_width - front_opening_side_margin * 2) / 2, (item_height - front_opening_end_margin * 2) / 2, final_corner_rounding));
+                  cuboid([item_width - final_front_opening_side_margin * 2, item_height - final_front_opening_end_margin * 2, holder_thickness + EPS * 2], edges="Z", rounding=min((item_width - final_front_opening_side_margin * 2) / 2, (item_height - final_front_opening_end_margin * 2) / 2, final_corner_rounding));
               right(middle_cutoff_offset + final_front_slot_position_offset) {
                 attach(CENTER, CENTER, inside=true)
                   cuboid([middle_cutoff_size, holder_height + 10, holder_depth + 10]);
-                if (front_opening_end_margin > 0 && item_height - front_opening_end_margin * 2 > 0)
+                if (final_front_opening_end_margin > 0 && item_height - final_front_opening_end_margin * 2 > 0)
                   attach(BOTTOM, BOTTOM, inside=true)
-                    cuboid([middle_cutoff_size, item_height - front_opening_end_margin * 2, holder_thickness + EPS * 2])
+                    cuboid([middle_cutoff_size, item_height - final_front_opening_end_margin * 2, holder_thickness + EPS * 2])
                       edge_mask("Z")
-                        rounding_edge_mask(r=min(max(0, item_width - front_opening_side_margin * 2 - final_corner_rounding * 2), front_opening_end_margin, 2), spin=180);
+                        rounding_edge_mask(r=min(max(0, item_width - final_front_opening_side_margin * 2 - final_corner_rounding * 2), final_front_opening_end_margin, 2), spin=180);
               }
             }
-          if (holder_side_opening != "None") {
-            side_opening_height = item_height - front_opening_end_margin * 2 - side_opening_front_margin - side_opening_back_margin;
-            side_opening_depth = item_depth + holder_thickness - side_opening_top_margin - side_opening_bottom_margin;
-            side_opening_width =
-              side_opening_back_margin < 0 || side_opening_front_margin < 0 ? holder_width / 2
-              : (holder_width - (item_width - front_opening_side_margin * 2)) / 2 + max(0, final_corner_rounding - side_opening_back_margin, final_corner_rounding - side_opening_front_margin);
-            rounding_edges = side_opening_bottom_margin > 0 ? "X" : [FRONT + TOP, BACK + TOP];
+          if (effective_holder_side_opening != "None") {
+            rounding_edges = effective_side_opening_bottom_margin > 0 ? "X" : [FRONT + TOP, BACK + TOP];
             if (side_opening_height > 0 && side_opening_depth > 0)
-              back(holder_front_thickness + side_opening_front_margin + front_opening_end_margin) down(holder_top_thickness + side_opening_top_margin) {
-                  conditional_flip(axis="X", copy=holder_side_opening == "Both", condition=(holder_side_opening == "Both" || holder_side_opening == "Left"))
+              back(holder_front_thickness + effective_side_opening_front_margin + final_front_opening_end_margin) down(holder_top_thickness + effective_side_opening_top_margin) {
+                  conditional_flip(axis="X", copy=effective_holder_side_opening == "Both", condition=(effective_holder_side_opening == "Both" || effective_holder_side_opening == "Left"))
                     attach(FRONT + TOP, FRONT + TOP, align=RIGHT, inside=true)
-                      cuboid([side_opening_width + EPS, side_opening_height + EPS * 2, side_opening_depth + EPS * 2], edges=rounding_edges, rounding=min(side_opening_height / 2, side_opening_depth / 2, 2)) {
-                        if (side_opening_front_margin - final_corner_rounding > EPS && side_opening_back_margin - final_corner_rounding > EPS && front_opening_side_margin > EPS) {
-                          if (side_opening_front_margin - final_corner_rounding > EPS)
+                      cuboid([side_opening_width, side_opening_height + EPS, side_opening_depth + EPS], edges=rounding_edges, rounding=min(side_opening_height / 2, side_opening_depth / 2, 2)) {
+                        if (effective_side_opening_front_margin - final_corner_rounding > EPS && effective_side_opening_back_margin - final_corner_rounding > EPS && final_front_opening_side_margin > EPS) {
+                          if (effective_side_opening_front_margin - final_corner_rounding > EPS)
                             edge_mask([LEFT + FRONT])
-                              rounding_edge_mask(r=min(side_opening_front_margin - final_corner_rounding, front_opening_side_margin, 2), spin=-90);
-                          if (side_opening_back_margin - final_corner_rounding > EPS)
+                              rounding_edge_mask(r=min(effective_side_opening_front_margin - final_corner_rounding, final_front_opening_side_margin, 2), spin=-90);
+                          if (effective_side_opening_back_margin - final_corner_rounding > EPS)
                             edge_mask([LEFT + BACK])
-                              rounding_edge_mask(r=min(side_opening_back_margin - final_corner_rounding, front_opening_side_margin, 2), spin=-90);
+                              rounding_edge_mask(r=min(effective_side_opening_back_margin - final_corner_rounding, final_front_opening_side_margin, 2), spin=-90);
                         }
                       }
                 }
