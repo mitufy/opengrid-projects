@@ -397,6 +397,252 @@
         }
       ]
     },
+    "cameraViewPreset": {
+      "type": "string",
+      "enum": [
+        "front_left",
+        "front_right",
+        "back_left",
+        "back_right",
+        "top_front",
+        "top_back",
+        "technical_iso",
+        "left_side_zoomed",
+        "right_side_zoomed"
+      ]
+    },
+    "lightingPreset": {
+      "type": "string",
+      "enum": [
+        "scene",
+        "technical",
+        "softbox",
+        "front_lit",
+        "dramatic",
+        "flat"
+      ]
+    },
+    "lightingConfig": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/lightingPreset"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "preset": {
+              "$ref": "#/$defs/lightingPreset"
+            },
+            "strength": {
+              "type": "number",
+              "minimum": 0
+            },
+            "ambient_strength": {
+              "type": "number",
+              "minimum": 0
+            },
+            "color": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "outlineConfig": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "line_color": {
+              "type": "string"
+            },
+            "line_width_px": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "groundPlaneConfig": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "offset_mm": {
+              "$ref": "#/$defs/numberOrExpression"
+            },
+            "size_scale": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "color": {
+              "type": "string"
+            },
+            "alpha": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "roughness": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "shadow_only": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "cutawayConfig": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "objects": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "axis": {
+              "type": "string",
+              "enum": [
+                "x",
+                "y",
+                "z"
+              ]
+            },
+            "keep": {
+              "type": "string",
+              "enum": [
+                "positive",
+                "negative"
+              ]
+            },
+            "position_mm": {
+              "$ref": "#/$defs/numberOrExpression"
+            },
+            "position_fraction": {
+              "$ref": "#/$defs/numberOrExpression"
+            },
+            "offset_mm": {
+              "$ref": "#/$defs/numberOrExpression"
+            },
+            "section_plane": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "color": {
+                      "type": "string"
+                    },
+                    "alpha": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "padding_mm": {
+                      "$ref": "#/$defs/numberOrExpression"
+                    },
+                    "offset_mm": {
+                      "$ref": "#/$defs/numberOrExpression"
+                    }
+                  }
+                },
+                {
+                  "$ref": "#/$defs/constantRef"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "xrayConfig": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "objects": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "alpha": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "color": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "materialOverrides": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/material"
+      }
+    },
     "meshShading": {
       "type": "string",
       "enum": [
@@ -418,6 +664,10 @@
             "model": {
               "$ref": "#/$defs/partialModelConfig"
             },
+            "stl_file": {
+              "type": "string",
+              "minLength": 1
+            },
             "replace_target_object": {
               "type": "boolean"
             },
@@ -435,6 +685,89 @@
             },
             "mesh_shading": {
               "$ref": "#/$defs/meshShading"
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "sceneLineCopies": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "count",
+            "spacing_mm"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "spacing_mm": {
+              "$ref": "#/$defs/vector3"
+            }
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
+    "gridCopyCounts": {
+      "anyOf": [
+        {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "x",
+            "y",
+            "z"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "x": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "y": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "z": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      ]
+    },
+    "sceneGridCopies": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "counts",
+            "spacing_mm"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "counts": {
+              "$ref": "#/$defs/gridCopyCounts"
+            },
+            "spacing_mm": {
+              "$ref": "#/$defs/vector3"
             }
           }
         },
@@ -462,6 +795,10 @@
             "model": {
               "$ref": "#/$defs/partialModelConfig"
             },
+            "stl_file": {
+              "type": "string",
+              "minLength": 1
+            },
             "replace_target_object": {
               "type": "boolean"
             },
@@ -479,6 +816,12 @@
             },
             "mesh_shading": {
               "$ref": "#/$defs/meshShading"
+            },
+            "line_copies": {
+              "$ref": "#/$defs/sceneLineCopies"
+            },
+            "grid_copies": {
+              "$ref": "#/$defs/sceneGridCopies"
             }
           }
         },
@@ -591,12 +934,67 @@
             "camera_location_offset_mm": {
               "$ref": "#/$defs/vector3"
             },
+            "camera_target_offset_mm": {
+              "$ref": "#/$defs/vector3"
+            },
+            "camera_rotation_deg": {
+              "$ref": "#/$defs/vector3"
+            },
+            "camera_orbit_deg": {
+              "$ref": "#/$defs/vector2"
+            },
+            "camera_distance_scale": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "camera_roll_deg": {
+              "$ref": "#/$defs/numberOrExpression"
+            },
+            "camera_focal_length_mm": {
+              "$ref": "#/$defs/numberOrExpression"
+            },
+            "camera_lens_mm": {
+              "$ref": "#/$defs/numberOrExpression"
+            },
             "camera_look_at": {
               "type": "string",
               "enum": [
                 "none",
                 "object_center"
               ]
+            },
+            "camera_view": {
+              "type": "string",
+              "enum": [
+                "none",
+                "front",
+                "back",
+                "left",
+                "right",
+                "top",
+                "bottom"
+              ]
+            },
+            "camera_view_preset": {
+              "$ref": "#/$defs/cameraViewPreset"
+            },
+            "lighting": {
+              "$ref": "#/$defs/lightingConfig"
+            },
+            "outline": {
+              "$ref": "#/$defs/outlineConfig"
+            },
+            "ground_plane": {
+              "$ref": "#/$defs/groundPlaneConfig"
+            },
+            "cutaway": {
+              "$ref": "#/$defs/cutawayConfig"
+            },
+            "xray": {
+              "$ref": "#/$defs/xrayConfig"
+            },
+            "material_overrides": {
+              "$ref": "#/$defs/materialOverrides"
             },
             "output_mode": {
               "type": "string",
@@ -605,6 +1003,14 @@
                 "standard",
                 "debug"
               ]
+            },
+            "cache": {
+              "type": "boolean",
+              "description": "Reuse OpenSCAD exports and Blender render/projection artifacts when source and render inputs are unchanged."
+            },
+            "cache_dir": {
+              "type": "string",
+              "description": "Optional render-stage cache directory. Defaults to <output_dir>/.cache."
             },
             "mesh_shading": {
               "$ref": "#/$defs/meshShading"
