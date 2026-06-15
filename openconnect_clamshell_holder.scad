@@ -64,9 +64,11 @@ slot_edge_wall_min_width = 0.6; //0.01
 
 /* [Hidden] */
 include <lib/opengrid_base.scad>
+include <lib/annotation_metadata.scad>
 use <lib/openconnect_lib.scad>
 $fa = 1;
 $fs = 0.4;
+emit_annotation_metadata = false;
 //A slot is generated for every tile by default.
 slot_position = "All"; //["All", "Staggered", "Edge Rows", "Edge Columns", "Corners"]
 //Double Lock can be very difficult to install. They are intended for small models that only use one or two slots.
@@ -93,6 +95,15 @@ holder_height = item_height + holder_thickness + holder_front_thickness;
 holder_depth = item_depth + holder_thickness + holder_top_thickness;
 
 final_corner_rounding = max(0, min(item_width / 2, item_height / 2, item_corner_rounding));
+effective_front_opening_left_right_margin = front_opening_left_right_margin;
+effective_front_opening_top_bottom_margin = front_opening_top_bottom_margin;
+final_front_opening_left_right_margin = max(0, min(item_width / 2, effective_front_opening_left_right_margin));
+final_front_opening_top_bottom_margin = max(0, min(item_height / 2, effective_front_opening_top_bottom_margin));
+effective_holder_side_cutout = holder_side_cutout;
+effective_side_cutout_top_margin = side_cutout_top_margin;
+effective_side_cutout_bottom_margin = side_cutout_bottom_margin;
+effective_side_cutout_back_margin = side_cutout_back_margin;
+effective_side_cutout_front_margin = side_cutout_front_margin;
 //The calculation of horizontal slots for Front version is just an approximation.
 final_slot_h_grids =
   holder_slot_position == "Back" ? max(1, floor(holder_width / OG_TILE_SIZE))
@@ -106,6 +117,224 @@ holder_middle_cutoff_tiles = max(0, final_slot_h_grids - max(1, holder_slot_colu
 middle_cutoff_size = middle_cutoff_size_base + holder_middle_cutoff_tiles * OG_TILE_SIZE;
 middle_cutoff_offset = final_slot_h_grids % 2 != holder_middle_cutoff_tiles % 2 ? OG_TILE_SIZE / 2 : 0;
 //END holder geometry calculations
+
+holder_min_x = -holder_width / 2;
+holder_max_x = holder_width / 2;
+holder_min_y = -holder_height / 2;
+holder_max_y = holder_height / 2;
+holder_min_z = 0;
+holder_max_z = holder_depth;
+bottom_annotation_z = holder_min_z;
+item_center_y = (holder_front_thickness - holder_thickness) / 2;
+item_center_z = holder_thickness + item_depth / 2;
+item_min_x = -item_width / 2;
+item_max_x = item_width / 2;
+item_min_y = item_center_y - item_height / 2;
+item_max_y = item_center_y + item_height / 2;
+item_min_z = holder_thickness;
+item_max_z = holder_thickness + item_depth;
+item_corner_rounding_center = [item_min_x + final_corner_rounding, item_min_y + final_corner_rounding, bottom_annotation_z];
+item_corner_rounding_arc_segments = 12;
+function item_corner_rounding_arc_point(angle) = [
+  item_corner_rounding_center[0] + cos(angle) * final_corner_rounding,
+  item_corner_rounding_center[1] + sin(angle) * final_corner_rounding,
+  bottom_annotation_z
+];
+item_corner_rounding_arc_points = [
+  for (i = [0:item_corner_rounding_arc_segments])
+    item_corner_rounding_arc_point(180 + 90 * i / item_corner_rounding_arc_segments)
+];
+item_corner_rounding_radius_edge = item_corner_rounding_arc_point(225);
+side_cutout_height = item_height - final_front_opening_top_bottom_margin * 2 - effective_side_cutout_top_margin - effective_side_cutout_bottom_margin;
+side_cutout_depth = item_depth + holder_thickness - effective_side_cutout_back_margin - effective_side_cutout_front_margin;
+side_cutout_width =
+  effective_side_cutout_bottom_margin < 0 || effective_side_cutout_top_margin < 0 ? holder_width / 2
+  : (holder_width - (item_width - final_front_opening_left_right_margin * 2)) / 2 + max(0, final_corner_rounding - effective_side_cutout_bottom_margin, final_corner_rounding - effective_side_cutout_top_margin);
+side_cutout_side_face_x = effective_holder_side_cutout == "Left" ? holder_min_x : holder_max_x;
+side_cutout_wall_top_y = holder_min_y + holder_front_thickness + final_front_opening_top_bottom_margin;
+side_cutout_top_y = side_cutout_wall_top_y + effective_side_cutout_top_margin;
+side_cutout_bottom_y = side_cutout_top_y + side_cutout_height;
+side_cutout_wall_bottom_y = side_cutout_bottom_y + effective_side_cutout_bottom_margin;
+side_cutout_wall_back_z = holder_depth - holder_top_thickness;
+side_cutout_back_z = side_cutout_wall_back_z - effective_side_cutout_back_margin;
+side_cutout_front_z = side_cutout_back_z - side_cutout_depth;
+side_cutout_wall_front_z = side_cutout_front_z - effective_side_cutout_front_margin;
+side_cutout_mid_y = (side_cutout_top_y + side_cutout_bottom_y) / 2;
+side_cutout_mid_z = (side_cutout_front_z + side_cutout_back_z) / 2;
+
+module emit_horizontal_holder_annotations() {
+  emit_context_values(
+    "horizontal_holder_context",
+    [
+      "OG_TILE_SIZE",
+      "og_tile_size",
+      "og_standard_thickness",
+      "item_width",
+      "item_height",
+      "item_depth",
+      "item_corner_rounding",
+      "generate_holder_part",
+      "holder_slot_column_limit",
+      "holder_slot_position",
+      "holder_thickness",
+      "front_opening_left_right_margin",
+      "front_opening_top_bottom_margin",
+      "holder_side_cutout",
+      "side_cutout_top_margin",
+      "side_cutout_bottom_margin",
+      "side_cutout_back_margin",
+      "side_cutout_front_margin",
+      "slot_lock_distribution",
+      "slot_entryramp_flip",
+      "slot_slide_direction",
+      "slot_side_clearance",
+      "slot_depth_clearance",
+      "slot_edge_bridge_min_width",
+      "slot_edge_wall_min_width"
+    ],
+    [
+      OG_TILE_SIZE,
+      OG_TILE_SIZE,
+      OG_STANDARD_THICKNESS,
+      item_width,
+      item_height,
+      item_depth,
+      item_corner_rounding,
+      generate_holder_part,
+      holder_slot_column_limit,
+      holder_slot_position,
+      holder_thickness,
+      effective_front_opening_left_right_margin,
+      effective_front_opening_top_bottom_margin,
+      effective_holder_side_cutout,
+      effective_side_cutout_top_margin,
+      effective_side_cutout_bottom_margin,
+      effective_side_cutout_back_margin,
+      effective_side_cutout_front_margin,
+      slot_lock_distribution,
+      slot_entryramp_flip,
+      slot_slide_direction,
+      slot_side_clearance,
+      slot_depth_clearance,
+      slot_edge_bridge_min_width,
+      slot_edge_wall_min_width
+    ]
+  );
+  emit_dimension_annotation(
+    id="item_width",
+    label="item_width",
+    axis="x",
+    value=item_width,
+    start=[item_min_x, item_min_y, bottom_annotation_z],
+    end=[item_max_x, item_min_y, bottom_annotation_z],
+    basis="bottom_plane_item_width"
+  );
+  emit_dimension_annotation(
+    id="item_height",
+    label="item_height",
+    axis="y",
+    value=item_height,
+    start=[item_min_x, item_min_y, bottom_annotation_z],
+    end=[item_min_x, item_max_y, bottom_annotation_z],
+    basis="bottom_plane_item_height"
+  );
+  emit_dimension_annotation(
+    id="item_depth",
+    label="item_depth",
+    axis="z",
+    value=item_depth,
+    start=[item_max_x, item_max_y, bottom_annotation_z],
+    end=[item_max_x, item_max_y, bottom_annotation_z + item_depth],
+    basis="bottom_plane_item_depth"
+  );
+  if (final_corner_rounding > 0) {
+    emit_radius_annotation(
+      id="item_corner_rounding",
+      label="item_corner_rounding",
+      value=final_corner_rounding,
+      center=item_corner_rounding_center,
+      edge=item_corner_rounding_radius_edge,
+      basis="bottom_front_left_item_corner_rounding_center_to_arc_midpoint"
+    );
+    emit_arc_annotation(
+      id="item_corner_rounding_extent",
+      label="item_corner_rounding_extent",
+      value=final_corner_rounding,
+      points=item_corner_rounding_arc_points,
+      basis="bottom_front_left_item_corner_rounding_fillet_arc"
+    );
+  }
+  if (effective_front_opening_left_right_margin > 0) {
+    emit_dimension_annotation(
+      id="front_opening_left_right_margin",
+      label="front_opening_left_right_margin",
+      axis="x",
+      value=effective_front_opening_left_right_margin,
+      start=[item_min_x, item_min_y, holder_min_z],
+      end=[item_min_x + final_front_opening_left_right_margin, item_min_y, holder_min_z],
+      basis="left_front_opening_left_right_margin"
+    );
+  }
+  if (effective_front_opening_top_bottom_margin > 0) {
+    emit_dimension_annotation(
+      id="front_opening_top_bottom_margin",
+      label="front_opening_top_bottom_margin",
+      axis="y",
+      value=effective_front_opening_top_bottom_margin,
+      start=[item_min_x, item_min_y, holder_min_z],
+      end=[item_min_x, item_min_y + final_front_opening_top_bottom_margin, holder_min_z],
+      basis="front_opening_top_bottom_margin"
+    );
+  }
+  if (effective_holder_side_cutout != "None" && side_cutout_height > 0 && side_cutout_depth > 0) {
+    if (effective_side_cutout_top_margin > 0) {
+      emit_dimension_annotation(
+        id="side_cutout_top_margin",
+        label="side_cutout_top_margin",
+        axis="y",
+        value=effective_side_cutout_top_margin,
+        start=[side_cutout_side_face_x, side_cutout_wall_top_y, side_cutout_mid_z],
+        end=[side_cutout_side_face_x, side_cutout_top_y, side_cutout_mid_z],
+        basis="side_cutout_top_margin_to_visible_cutout_edge"
+      );
+    }
+    if (effective_side_cutout_bottom_margin > 0) {
+      emit_dimension_annotation(
+        id="side_cutout_bottom_margin",
+        label="side_cutout_bottom_margin",
+        axis="y",
+        value=effective_side_cutout_bottom_margin,
+        start=[side_cutout_side_face_x, side_cutout_bottom_y, side_cutout_mid_z],
+        end=[side_cutout_side_face_x, side_cutout_wall_bottom_y, side_cutout_mid_z],
+        basis="side_cutout_bottom_margin_to_visible_cutout_edge"
+      );
+    }
+    if (effective_side_cutout_back_margin > 0) {
+      emit_dimension_annotation(
+        id="side_cutout_back_margin",
+        label="side_cutout_back_margin",
+        axis="z",
+        value=effective_side_cutout_back_margin,
+        start=[side_cutout_side_face_x, side_cutout_mid_y, side_cutout_back_z],
+        end=[side_cutout_side_face_x, side_cutout_mid_y, side_cutout_wall_back_z],
+        basis="side_cutout_back_margin_to_visible_cutout_edge"
+      );
+    }
+    if (effective_side_cutout_front_margin > 0) {
+      emit_dimension_annotation(
+        id="side_cutout_front_margin",
+        label="side_cutout_front_margin",
+        axis="z",
+        value=effective_side_cutout_front_margin,
+        start=[side_cutout_side_face_x, side_cutout_mid_y, side_cutout_wall_front_z],
+        end=[side_cutout_side_face_x, side_cutout_mid_y, side_cutout_front_z],
+        basis="side_cutout_front_margin_to_visible_cutout_edge"
+      );
+    }
+  }
+}
+
+emit_horizontal_holder_annotations();
 
 //BEGIN holder generation
 up(generate_holder_part == "Both" ? holder_height / 2 : holder_width / 2)

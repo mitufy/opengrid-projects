@@ -49,6 +49,8 @@ surface_texture_depth = 1; //0.2
 /* [Hidden] */
 $fa = 1;
 $fs = 0.4;
+emit_annotation_metadata = false;
+include <lib/annotation_metadata.scad>
 include <lib/opengrid_base.scad>
 use <lib/openconnect_lib.scad>
 
@@ -92,6 +94,251 @@ label_move =
   label_holder_type == "Split-Left" ? -vase_width / 2
   : label_holder_type == "Split-Right" ? vase_width / 2 : 0;
 //END container parameters
+
+vase_annotation_x_min = -vase_width / 2;
+vase_annotation_x_max = vase_width / 2;
+vase_annotation_back_y = 0;
+vase_annotation_front_y = vase_depth;
+vase_annotation_mid_y = vase_depth / 2;
+vase_annotation_z_min = 0;
+vase_annotation_z_max = vase_height;
+vase_annotation_tilted_top_y = vase_annotation_back_y + ang_adj_to_opp(final_vase_tilt_angle, vase_height);
+vase_tilt_angle_anchor = [vase_annotation_x_max, vase_annotation_back_y, vase_annotation_z_min];
+vase_tilt_angle_arc_radius = max(vase_height, OG_TILE_SIZE);
+vase_tilt_angle_arc_segments = 12;
+function vase_tilt_angle_arc_point(angle) = [
+  vase_tilt_angle_anchor[0],
+  vase_tilt_angle_anchor[1] + sin(angle) * vase_tilt_angle_arc_radius,
+  vase_tilt_angle_anchor[2] + cos(angle) * vase_tilt_angle_arc_radius
+];
+vase_tilt_angle_arc_points = [
+  for (i = [0:vase_tilt_angle_arc_segments])
+    vase_tilt_angle_arc_point(final_vase_tilt_angle * i / vase_tilt_angle_arc_segments)
+];
+vase_tilt_angle_radius_edge = vase_tilt_angle_arc_point(final_vase_tilt_angle / 2);
+
+vase_front_inset_angle_anchor = [vase_annotation_x_max, vase_annotation_front_y, vase_annotation_z_max];
+vase_front_inset_angle_arc_radius = max(OG_TILE_SIZE, vase_height / 2);
+vase_front_inset_angle_arc_segments = 12;
+function vase_front_inset_angle_arc_point(angle) = [
+  vase_front_inset_angle_anchor[0],
+  vase_front_inset_angle_anchor[1] - sin(angle) * vase_front_inset_angle_arc_radius,
+  vase_front_inset_angle_anchor[2] - cos(angle) * vase_front_inset_angle_arc_radius
+];
+vase_front_inset_angle_arc_points = [
+  for (i = [0:vase_front_inset_angle_arc_segments])
+    vase_front_inset_angle_arc_point(final_vase_front_inset_angle * i / vase_front_inset_angle_arc_segments)
+];
+vase_front_inset_angle_radius_edge = vase_front_inset_angle_arc_point(final_vase_front_inset_angle / 2);
+
+label_annotation_x_min = label_move - final_label_width / 2;
+label_annotation_x_max = label_move + final_label_width / 2;
+label_annotation_y = vase_annotation_front_y + label_holder_depth;
+label_annotation_z_min = max(0, vase_annotation_z_max - final_label_height);
+label_annotation_z_max = vase_annotation_z_max;
+
+module emit_vasemode_container_annotations() {
+  emit_context_values(
+    "vasemode_container_context",
+    [
+      "OG_TILE_SIZE",
+      "ocvase_linewidth",
+      "final_ocvase_linewidth",
+      "vase_surface_texture",
+      "horizontal_grids",
+      "vertical_grids",
+      "depth_grids",
+      "final_horizontal_grids",
+      "final_vertical_grids",
+      "final_depth_grids",
+      "vase_width",
+      "vase_depth",
+      "vase_grid_height",
+      "vase_height",
+      "vase_tilt_angle",
+      "final_vase_tilt_angle",
+      "vase_front_inset_angle",
+      "final_vase_front_inset_angle",
+      "label_holder_type",
+      "label_width",
+      "label_height",
+      "label_depth",
+      "slot_position",
+      "slot_lock_distribution",
+      "slot_side_clearance",
+      "slot_depth_clearance",
+      "surface_texture_size",
+      "surface_texture_depth",
+      "final_surface_texture_size"
+    ],
+    [
+      OG_TILE_SIZE,
+      ocvase_linewidth,
+      final_ocvase_linewidth,
+      vase_surface_texture,
+      horizontal_grids,
+      vertical_grids,
+      depth_grids,
+      final_horizontal_grids,
+      final_vertical_grids,
+      final_depth_grids,
+      vase_width,
+      vase_depth,
+      vase_grid_height,
+      vase_height,
+      vase_tilt_angle,
+      final_vase_tilt_angle,
+      vase_front_inset_angle,
+      final_vase_front_inset_angle,
+      label_holder_type,
+      label_width,
+      label_height,
+      label_depth,
+      slot_position,
+      slot_lock_distribution,
+      slot_side_clearance,
+      slot_depth_clearance,
+      surface_texture_size,
+      final_surface_texture_depth,
+      final_surface_texture_size
+    ]
+  );
+  emit_dimension_annotation(
+    id="horizontal_grids",
+    label=str("horizontal_grids x ", OG_TILE_SIZE, "mm"),
+    axis="x",
+    value=vase_width,
+    start=[vase_annotation_x_min, vase_annotation_back_y, vase_annotation_z_max],
+    end=[vase_annotation_x_max, vase_annotation_back_y, vase_annotation_z_max],
+    basis="overall_container_width_from_horizontal_grids"
+  );
+  emit_dimension_annotation(
+    id="vertical_grids",
+    label=str("vertical_grids x ", OG_TILE_SIZE, "mm"),
+    axis="z",
+    value=vase_grid_height,
+    start=[vase_annotation_x_min, vase_annotation_back_y, vase_annotation_z_min],
+    end=[vase_annotation_x_min, vase_annotation_tilted_top_y, vase_annotation_z_max],
+    basis="nominal_container_height_from_vertical_grids"
+  );
+  emit_dimension_annotation(
+    id="depth_grids",
+    label=str("depth_grids x ", OG_TILE_SIZE, "mm"),
+    axis="y",
+    value=vase_depth,
+    start=[vase_annotation_x_max, vase_annotation_back_y, vase_annotation_z_min],
+    end=[vase_annotation_x_max, vase_annotation_front_y, vase_annotation_z_min],
+    basis="container_depth_from_depth_grids_or_custom_depth"
+  );
+  emit_dimension_annotation(
+    id="ocvase_linewidth",
+    label="ocvase_linewidth",
+    axis="x",
+    value=final_ocvase_linewidth,
+    start=[vase_annotation_x_min, vase_annotation_front_y, vase_annotation_z_max],
+    end=[vase_annotation_x_min + final_ocvase_linewidth, vase_annotation_front_y, vase_annotation_z_max],
+    basis="single_wall_vase_mode_line_width"
+  );
+  emit_feature_annotation(
+    id="vase_tilt_angle",
+    label="vase_tilt_angle",
+    value=final_vase_tilt_angle,
+    anchor=vase_tilt_angle_anchor,
+    basis="bottom_side_corner_for_vase_tilt_angle"
+  );
+  if (final_vase_tilt_angle > 0) {
+    emit_radius_annotation(
+      id="vase_tilt_angle_radius",
+      label="vase_tilt_angle_radius",
+      value=vase_tilt_angle_arc_radius,
+      center=vase_tilt_angle_anchor,
+      edge=vase_tilt_angle_radius_edge,
+      basis="vase_tilt_angle_anchor_to_arc_midpoint"
+    );
+    emit_arc_annotation(
+      id="vase_tilt_angle_extent",
+      label="vase_tilt_angle_extent",
+      value=final_vase_tilt_angle,
+      points=vase_tilt_angle_arc_points,
+      basis="side_arc_for_vase_tilt_angle"
+    );
+  }
+  emit_feature_annotation(
+    id="vase_front_inset_angle",
+    label="vase_front_inset_angle",
+    value=final_vase_front_inset_angle,
+    anchor=vase_front_inset_angle_anchor,
+    basis="top_front_side_corner_for_vase_front_inset_angle"
+  );
+  if (final_vase_front_inset_angle > 0) {
+    emit_radius_annotation(
+      id="vase_front_inset_angle_radius",
+      label="vase_front_inset_angle_radius",
+      value=vase_front_inset_angle_arc_radius,
+      center=vase_front_inset_angle_anchor,
+      edge=vase_front_inset_angle_radius_edge,
+      basis="front_inset_angle_anchor_to_arc_midpoint"
+    );
+    emit_arc_annotation(
+      id="vase_front_inset_angle_extent",
+      label="vase_front_inset_angle_extent",
+      value=final_vase_front_inset_angle,
+      points=vase_front_inset_angle_arc_points,
+      basis="side_arc_for_vase_front_inset_angle"
+    );
+  }
+  if (vase_surface_texture != "") {
+    emit_dimension_annotation(
+      id="surface_texture_size",
+      label="surface_texture_size",
+      axis="z",
+      value=final_surface_texture_size,
+      start=[vase_annotation_x_min, vase_annotation_mid_y, vase_annotation_z_min],
+      end=[vase_annotation_x_min, vase_annotation_mid_y, vase_annotation_z_min + final_surface_texture_size],
+      basis="visible_surface_texture_repeat_size"
+    );
+    emit_dimension_annotation(
+      id="surface_texture_depth",
+      label="surface_texture_depth",
+      axis="y",
+      value=final_surface_texture_depth,
+      start=[vase_annotation_x_min, vase_annotation_front_y, vase_annotation_z_max / 2],
+      end=[vase_annotation_x_min, vase_annotation_front_y + final_surface_texture_depth, vase_annotation_z_max / 2],
+      basis="surface_texture_relief_depth"
+    );
+  }
+  if (label_holder_type != "None") {
+    emit_dimension_annotation(
+      id="label_width",
+      label="label_width",
+      axis="x",
+      value=final_label_width,
+      start=[label_annotation_x_min, label_annotation_y, label_annotation_z_max],
+      end=[label_annotation_x_max, label_annotation_y, label_annotation_z_max],
+      basis="label_slot_clear_width"
+    );
+    emit_dimension_annotation(
+      id="label_height",
+      label="label_height",
+      axis="z",
+      value=final_label_height,
+      start=[label_annotation_x_min, label_annotation_y, label_annotation_z_min],
+      end=[label_annotation_x_min, label_annotation_y, label_annotation_z_max],
+      basis="label_slot_clear_height"
+    );
+    emit_dimension_annotation(
+      id="label_depth",
+      label="label_depth",
+      axis="y",
+      value=final_label_depth,
+      start=[label_annotation_x_max, vase_annotation_front_y, label_annotation_z_min],
+      end=[label_annotation_x_max, vase_annotation_front_y + final_label_depth, label_annotation_z_min],
+      basis="label_insert_depth"
+    );
+  }
+}
+
+emit_vasemode_container_annotations();
 
 //BEGIN generation
 right(vase_width/2)zrot(180)fwd(vase_bottom_edge_back_offset)
