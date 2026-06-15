@@ -1,0 +1,129 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: openconnect_general_holder_default.yaml
+job_name: render_settings_gallery
+gallery:
+  columns: 2
+  thumbnail_width: 560
+variants:
+- name: technical_iso_outline
+  set:
+    job_name: gallery_technical_iso_outline
+    render.camera_view_preset: technical_iso
+    render.camera_distance_scale: 1.14
+    render.lighting:
+      preset: flat
+      ambient_strength: 0.82
+    render.outline:
+      enabled: true
+      line_width_px: 2.2
+      line_color: '#111827'
+    render.material_overrides:
+      model:
+        color: '#cbd5e1'
+        roughness: 0.62
+- name: softbox_outline
+  set:
+    job_name: gallery_softbox_outline
+    render.camera_view_preset: front_left
+    render.camera_distance_scale: 1.1
+    render.lighting:
+      preset: softbox
+      strength: 0.28
+      ambient_strength: 0.12
+    render.outline:
+      enabled: true
+      line_width_px: 2.2
+      line_color: '#111827'
+    render.material_overrides:
+      model:
+        color: '#7f8f9f'
+        roughness: 0.7
+- name: ground_plane_flat
+  set:
+    job_name: gallery_ground_plane_flat
+    render.camera_view_preset: front_left
+    render.camera_distance_scale: 1.1
+    render.lighting:
+      preset: flat
+      ambient_strength: 0.55
+    render.ground_plane:
+      enabled: true
+      offset_mm: -1
+      size_scale: 2.4
+      color: '#dfe7f1'
+    render.outline:
+      enabled: true
+      line_width_px: 2.3
+      line_color: '#111827'
+    render.material_overrides:
+      model:
+        color: '#8fa1b3'
+        roughness: 0.68
+- name: lens_roll_composed
+  set:
+    job_name: gallery_lens_roll_composed
+    render.camera_view_preset: technical_iso
+    render.camera_lens_mm: 90
+    render.camera_roll_deg: 2
+    render.camera_distance_scale: 1.18
+    render.lighting:
+      preset: flat
+      ambient_strength: 0.78
+    render.outline:
+      enabled: true
+      line_width_px: 2.1
+      line_color: '#111827'
+    render.material_overrides:
+      model:
+        color: '#b9c4d0'
+        roughness: 0.62
+- name: cross_section_plane
+  set:
+    job_name: gallery_cross_section_plane
+    annotations.chains: []
+    annotations.angle_radius_callouts: []
+    annotations.image_labels: []
+    render.camera_view_preset: technical_iso
+    render.camera_distance_scale: 1.1
+    render.lighting:
+      preset: flat
+      ambient_strength: 0.75
+    render.outline:
+      enabled: true
+      line_width_px: 2.3
+      line_color: '#111827'
+    render.cutaway:
+      enabled: true
+      axis: x
+      keep: negative
+      position_fraction: 0.72
+      section_plane:
+        enabled: true
+        color: '#f97316'
+        alpha: 0.35
+        padding_mm: 1
+        offset_mm: 0.1
+    render.material_overrides:
+      model:
+        color: '#8fa1b3'
+        roughness: 0.7
+- name: dramatic_product_view
+  set:
+    job_name: gallery_dramatic_product_view
+    annotations.chains: []
+    annotations.angle_radius_callouts: []
+    annotations.image_labels: []
+    render.camera_view_preset: technical_iso
+    render.camera_distance_scale: 1.12
+    render.lighting:
+      preset: dramatic
+      strength: 0.8
+      ambient_strength: 0.24
+    render.outline:
+      enabled: true
+      line_width_px: 1.8
+      line_color: '#111827'
+    render.material_overrides:
+      model:
+        color: '#adb8c3'
+        roughness: 0.65

@@ -1,0 +1,22 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: base_scene.yaml
+variant_name: opengrid_expanding_standard_snap_grid_copies
+job_name: expanding_standard_snap_grid_copies_scene
+scene:
+  objects:
+  - id: opengrid_expanding_standard_snap
+    stl_file: ../assets/opengrid_expanding_standard_snap.stl
+    inherit_target_transform: false
+    replace_target_object: false
+    transform:
+      location_mm: ["-(og_tile_size / 2)", 0, "-(og_tile_size / 2)"]
+      rotation_deg: [-90, 180, 0]
+      scale:
+        $constant: blender_scene_scale_vector
+    grid_copies:
+      counts: [2, 1, 2]
+      spacing_mm: [og_tile_size, 0, og_tile_size]
+render:
+  camera_view: bottom
+  fit_margin: 0.16
+annotations: {}

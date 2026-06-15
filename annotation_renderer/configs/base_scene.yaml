@@ -5,6 +5,8 @@ constants:
   annotation_title_font_size_px: 34
   annotation_aux_label_font_size_px: 24
   annotation_font: sans
+  og_tile_size: 28
+  og_standard_thickness: 6.8
   blender_scene_scale: 0.001
   blender_scene_scale_vector: [blender_scene_scale, blender_scene_scale, blender_scene_scale]
   placeholder_transform:
