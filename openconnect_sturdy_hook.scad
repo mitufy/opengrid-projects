@@ -72,7 +72,7 @@ vertical_grids = hook_grid_height + truss_vertical_grids;
 horizontal_grids = max(1, floor(hook_width / OG_TILE_SIZE));
 hook_stem_height = use_custom_height ? custom_hook_height : hook_grid_height * OG_TILE_SIZE;
 
-final_corner_radius = hook_shape_type == "Circular" ? max(hook_thickness/2, min(circular_corner_radius, hook_stem_height - hook_thickness / 2 - hook_side_rounding, hook_length)) : hook_thickness/2;
+final_corner_radius = hook_shape_type == "Circular" ? max(hook_thickness / 2, min(circular_corner_radius, hook_stem_height - hook_thickness / 2 - hook_side_rounding, hook_length)) : hook_thickness / 2;
 final_tip_radius = hook_shape_type == "Circular" ? max(0, min(circular_tip_radius, hook_length - final_corner_radius)) : hook_thickness;
 stem_first_height = max(EPS, hook_stem_height - final_corner_radius);
 available_truss_depth = hook_shape_type == "Circular" ? max(EPS, hook_length - final_tip_radius - hook_thickness / 2) : max(EPS, hook_length - final_tip_radius + hook_thickness);
@@ -136,9 +136,9 @@ diff(remove="rm0")
       }
       if (hook_shape_type == "Rectangular")
         tag_diff(remove="rm2", tag="kp1") {
-          right(hook_length - final_tip_radius)
-            attach(FRONT, FRONT, align=LEFT, inside=true, shiftout=0)
-              tag("") cuboid([hook_thickness + final_corner_radius, hook_thickness + final_corner_radius - tip_length, hook_width])
+          right(hook_length - final_tip_radius / 2)
+            attach(FRONT + LEFT, FRONT + LEFT, inside=true)
+              tag("") cuboid([hook_thickness + final_tip_radius / 2, hook_thickness + final_tip_radius / 2, hook_width])
                   back(final_tip_radius / 2) left(final_tip_radius / 2)
                       tag("rm2") zcyl(r=hook_thickness, h=hook_width + EPS * 2);
         }
