@@ -71,6 +71,7 @@ STYLE_PRESETS: dict[str, dict[str, object]] = {
         "label_outline_color": "#f8fafc",
         "label_outline_width_px": 2,
         "show_values": False,
+        "auto_adjust_labels": False,
         "colors": {},
         "type_styles": DEFAULT_TYPE_STYLES,
     }
@@ -125,6 +126,7 @@ STYLE_BOOLEAN_FIELDS = {
     "label_color_by_segment",
     "image_label_title_area",
     "show_values",
+    "auto_adjust_labels",
     "show_label",
     "show_angle_label",
     "show_radius_label",
@@ -157,6 +159,7 @@ RENDER_OUTPUT_MODE_VALUES = schema_property_enum("renderConfig", "output_mode")
 
 SCENE_OBJECT_CONFIG_KEYS = schema_allowed_keys("sceneObject")
 SCENE_OBJECT_DEFAULT_KEYS = schema_allowed_keys("sceneObjectDefaults")
+SCENE_CONFIG_KEYS = schema_allowed_keys("sceneConfig")
 RENDER_CONFIG_KEYS = schema_allowed_keys("renderConfig")
 ANIMATION_CONFIG_KEYS = schema_allowed_keys("animationConfig")
 ANIMATION_CLIP_CONFIG_KEYS = schema_allowed_keys("animationClipConfig")

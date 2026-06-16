@@ -148,43 +148,62 @@ constants:
 variants:
 - name: sturdy_hook_circular_details
   job_name: sturdy_hook_circular_details_45
-  model:
-    $constant: sturdy_hook_model
+  scene:
+    objects:
+    - id: model
+      target_object: placeholder
+      model:
+        $constant: sturdy_hook_model
   annotations:
     $constant: sturdy_hook_circular_detail_annotations
 - name: sturdy_hook_rectangular_details
   job_name: sturdy_hook_rectangular_details
-  model:
-    $constant: sturdy_hook_model
-    defines:
-      hook_shape_type: Rectangular
+  scene:
+    objects:
+    - id: model
+      target_object: placeholder
+      model:
+        $constant: sturdy_hook_model
+        defines:
+          hook_shape_type: Rectangular
   annotations:
     $constant: sturdy_hook_rectangular_detail_annotations
 - name: sturdy_hook_truss_details
   job_name: sturdy_hook_truss_details
-  model:
-    $constant: sturdy_hook_model
-    defines:
-      truss_vertical_grids: 1
+  scene:
+    objects:
+    - id: model
+      target_object: placeholder
+      model:
+        $constant: sturdy_hook_model
+        defines:
+          truss_vertical_grids: 1
   annotations:
     $constant: sturdy_hook_truss_detail_annotations
 - name: sturdy_shelf_truss_details
   job_name: sturdy_shelf_truss_details
-  model:
-    $constant: sturdy_shelf_model
+  scene:
+    objects:
+    - id: model
+      target_object: placeholder
+      model:
+        $constant: sturdy_shelf_model
   annotations:
     $constant: sturdy_shelf_truss_detail_annotations
 - name: sturdy_shelf_edge_texture_details
   job_name: sturdy_shelf_edge_texture_details
-  model:
-    $constant: sturdy_shelf_model
-    defines:
-      add_texture: true
+  scene:
+    objects:
+    - id: model
+      target_object: placeholder
+      model:
+        $constant: sturdy_shelf_model
+        defines:
+          add_texture: true
   annotations:
     $constant: sturdy_shelf_edge_texture_detail_annotations
 - name: drawer_shell_clearance_details
   job_name: drawer_shell_clearance_details
-  model: null
   scene:
     object_defaults:
       $constant: drawer_object_defaults
@@ -196,7 +215,6 @@ variants:
     $constant: drawer_shell_detail_annotations
 - name: drawer_container_label_handle_details
   job_name: drawer_container_label_handle_details
-  model: null
   scene:
     object_defaults:
       $constant: drawer_object_defaults

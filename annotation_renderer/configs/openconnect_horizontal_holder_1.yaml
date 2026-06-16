@@ -110,8 +110,6 @@ constants:
       value_color: '#2563eb'
       font_size_px:
         $constant: annotation_title_font_size_px
-model:
-  $constant: horizontal_holder_model
 scene:
   objects:
   - id: model

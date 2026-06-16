@@ -359,21 +359,29 @@ def format_context_value(value: object) -> str:
     return str(value)
 
 
+def image_label_value(value: object) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, str):
+        stripped = value.strip()
+        if len(stripped) >= 2 and stripped[0] == stripped[-1] == '"':
+            return stripped[1:-1]
+        return stripped
+    return str(value)
+
+
 def model_define_value(
-    config: Mapping[str, object],
     label_id: str,
     *,
     expression_context: Mapping[str, float] | None = None,
+    value_context: Mapping[str, object] | None = None,
 ) -> str:
-    model = config.get("model", {})
-    defines = model.get("defines", {}) if isinstance(model, Mapping) else {}
-    if isinstance(defines, Mapping) and label_id in defines:
-        value = defines[label_id]
-        if isinstance(value, str):
-            return value.strip('"')
-        if isinstance(value, bool):
-            return "true" if value else "false"
-        return str(value)
+    if value_context is not None and label_id in value_context:
+        value = image_label_value(value_context[label_id])
+        if value:
+            return value
     if expression_context is not None and label_id in expression_context:
         return format_context_value(expression_context[label_id])
     return ""
@@ -381,11 +389,11 @@ def model_define_value(
 
 def collect_image_labels(
     *,
-    config: Mapping[str, object],
     labels_config: Sequence[Mapping[str, object]],
     annotation_config: Mapping[str, object],
     style_config: Mapping[str, object],
     expression_context: Mapping[str, float] | None = None,
+    value_context: Mapping[str, object] | None = None,
 ) -> list[ImageLabel]:
     aliases = aliases_from_config(annotation_config)
     show_values_default = bool(style_config.get("show_values", False))
@@ -398,9 +406,14 @@ def collect_image_labels(
             value_text = None
         else:
             label_text = str(label_config.get("label") or aliases.get(label_id) or label_id)
-            value = str(
-                label_config.get("value")
-                or model_define_value(config, label_id, expression_context=expression_context)
+            value = (
+                image_label_value(label_config["value"])
+                if "value" in label_config
+                else model_define_value(
+                    label_id,
+                    expression_context=expression_context,
+                    value_context=value_context,
+                )
             ).strip()
             show_value = bool(label_config.get("show_value", show_values_default))
             value_text = value if show_value and value else None

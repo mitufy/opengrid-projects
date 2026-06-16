@@ -1,12 +1,12 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
 variant_name: openconnect_sturdy_hook_default
-job_name: sturdy_hook_scene_45
+job_name: sturdy_hook_scene
 constants:
   sturdy_hook_model:
     scad_file: openconnect_sturdy_hook.scad
     defines:
-      hook_length: 45
+      hook_length: 38
       hook_shape_type: Circular
   sturdy_hook_annotations:
     style:
@@ -52,9 +52,9 @@ constants:
             $constant: annotation_font
           text_shade: 1.0
       colors:
-        hook_width: '#2563eb'
-        hook_thickness: '#2563eb'
-        hook_length: '#2563eb'
+        hook_width: '#000000'
+        hook_thickness: '#000000'
+        hook_length: '#000000'
         hook_vertical_grids: '#000000'
         truss_vertical_grids: '#000000'
         circular_tip_radius: '#dc2626'
@@ -64,8 +64,8 @@ constants:
         truss_angle_extent: '#dc2626'
         truss_max_angle: '#dc2626'
     aliases:
-      hook_vertical_grids: hook_vgrids
-      truss_vertical_grids: truss_vgrids
+      hook_vertical_grids: hook_vgrids x 28mm
+      truss_vertical_grids: truss_vgrids x 28mm
       hook_shape_type: hook_shape
       circular_tip_radius: tip_radius
       circular_tip_radius_extent: tip_radius
@@ -74,31 +74,16 @@ constants:
     - ids: [hook_width]
       display_offset_mm: [0, 0, 0]
       line_offset_px: 0
-      label_offset_px: 34
+      label_offset_px: 30
+      font_size_px: 30
     - ids: [hook_thickness, hook_length]
-      label_offset_px: 40
+      display_offset_mm: [0, 0, 0]
+      label_offset_px: -30
     - ids: [hook_vertical_grids, truss_vertical_grids]
       optional: true
-      display_offset_mm: [-3, 0, 0]
-      label_offset_px: 42
-    angle_radius_callouts:
-    - id: circular_tip_angle_radius
-      arc_id: circular_tip_radius_extent
-      radius_id: circular_tip_radius
-      angle_id: circular_tip_angle
-      optional: true
-      angle_label_offset_px: 42
-      angle_label_tangent_offset_px: 28
-      radius_label_offset_px: -30
-      angle_fill_alpha: 28
-    - id: truss_angle_detail
-      arc_id: truss_angle_extent
-      radius_id: truss_angle_radius
-      angle_id: truss_max_angle
-      optional: true
-      show_radius_label: false
-      angle_label_offset_px: 34
-      angle_fill_alpha: 28
+      display_offset_mm: [-5, 0, 0]
+      label_offset_px: -30
+      font_size_px: 30
     image_labels:
     - $constant: bottom_image_label
       id: hook_shape_type
@@ -107,12 +92,18 @@ constants:
       value_color: '#2563eb'
       font_size_px:
         $constant: annotation_title_font_size_px
-model:
-  $constant: sturdy_hook_model
 scene:
+  objects:
+  - id: model
+    target_object: placeholder
+    model:
+      $constant: sturdy_hook_model
   transform:
     $constant: wall_placeholder_transform
 render:
-  fit_margin: 0.14
+  fit_margin: 0.05
+  camera_location_offset_mm: [30, 0, 0]
+  camera_rotation_offset_deg: [0, 0, 10]
+  # camera_look_at: object_center
 annotations:
   $constant: sturdy_hook_annotations

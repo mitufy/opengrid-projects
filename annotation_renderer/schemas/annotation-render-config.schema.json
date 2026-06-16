@@ -52,19 +52,6 @@
       "type": "object",
       "description": "Reusable scalar values or JSON snippets. Numeric constants are also available to expression strings."
     },
-    "model": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/modelConfig"
-        },
-        {
-          "$ref": "#/$defs/constantRef"
-        },
-        {
-          "type": "null"
-        }
-      ]
-    },
     "scene": {
       "anyOf": [
         {
@@ -118,19 +105,6 @@
           },
           "constants": {
             "type": "object"
-          },
-          "model": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/modelConfig"
-              },
-              {
-                "$ref": "#/$defs/constantRef"
-              },
-              {
-                "type": "null"
-              }
-            ]
           },
           "scene": {
             "type": "object"
@@ -832,26 +806,12 @@
     },
     "sceneConfig": {
       "type": "object",
-      "anyOf": [
-        {
-          "required": [
-            "blend_file",
-            "target_object"
-          ]
-        },
-        {
-          "required": [
-            "blend_file",
-            "objects"
-          ]
-        }
+      "required": [
+        "blend_file"
       ],
       "additionalProperties": false,
       "properties": {
         "blend_file": {
-          "type": "string"
-        },
-        "target_object": {
           "type": "string"
         },
         "camera": {
@@ -938,6 +898,9 @@
               "$ref": "#/$defs/vector3"
             },
             "camera_rotation_deg": {
+              "$ref": "#/$defs/vector3"
+            },
+            "camera_rotation_offset_deg": {
               "$ref": "#/$defs/vector3"
             },
             "camera_orbit_deg": {
@@ -1812,6 +1775,9 @@
               "minimum": 0
             },
             "show_values": {
+              "type": "boolean"
+            },
+            "auto_adjust_labels": {
               "type": "boolean"
             },
             "colors": {

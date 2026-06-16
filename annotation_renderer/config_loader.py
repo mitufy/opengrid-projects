@@ -186,7 +186,7 @@ def variant_from_config_file(config: Mapping[str, object], *, path: Path) -> dic
     if not isinstance(variant_name, str) or not variant_name.strip():
         raise ConfigError(f"variant_name must be a non-empty string in {project_relative_or_absolute(path)}")
     variant: dict[str, object] = {"name": variant_name.strip(), "_source_config": str(path)}
-    for key in ("job_name", "output_dir", "constants", "model", "scene", "render", "annotations"):
+    for key in ("job_name", "output_dir", "constants", "scene", "render", "annotations"):
         if key in config:
             variant[key] = deepcopy(config[key])
     return variant
@@ -282,9 +282,6 @@ def require_mapping(value: object, *, name: str) -> Mapping[str, object]:
 def base_job_name(config: Mapping[str, object]) -> str:
     if config.get("job_name"):
         return str(config["job_name"])
-    model = config.get("model", {})
-    if isinstance(model, Mapping) and model.get("scad_file"):
-        return Path(str(model["scad_file"])).stem
     scene = config.get("scene", {})
     objects = scene.get("objects", []) if isinstance(scene, Mapping) else []
     if isinstance(objects, Sequence) and not isinstance(objects, (str, bytes)) and objects:
@@ -350,8 +347,8 @@ def variant_config(
     if "job_name" not in variant:
         resolved["job_name"] = f"{base_job_name(config)}__{variant_name}"
 
-    replace_sections = {"model", "annotations"}
-    for key in ("job_name", "output_dir", "constants", "model", "scene", "render", "annotations"):
+    replace_sections = {"annotations"}
+    for key in ("job_name", "output_dir", "constants", "scene", "render", "annotations"):
         if key not in variant:
             continue
         current = resolved.get(key)

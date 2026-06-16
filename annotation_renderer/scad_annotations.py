@@ -120,6 +120,31 @@ def numeric_context_from_scad_annotations(annotations: Sequence[Mapping[str, obj
     return context
 
 
+def value_context_from_scad_annotations(annotations: Sequence[Mapping[str, object]]) -> dict[str, str]:
+    context: dict[str, str] = {}
+    for annotation in annotations:
+        if annotation.get("kind") != "context":
+            continue
+        values = annotation.get("values")
+        if isinstance(values, str):
+            for part in values.split(";"):
+                if "=" not in part:
+                    continue
+                raw_name, raw_value = part.split("=", 1)
+                name = raw_name.strip()
+                value = raw_value.strip()
+                if name and value and value != "undef":
+                    context[name] = value
+        name = annotation.get("id")
+        value = annotation.get("value")
+        if not isinstance(name, str) or not name.strip():
+            continue
+        formatted = str(value).strip()
+        if formatted and formatted != "undef":
+            context[name] = formatted
+    return context
+
+
 def find_scad_annotation(
     annotations: Sequence[Mapping[str, object]],
     annotation_id: str,
