@@ -115,9 +115,12 @@ constants:
       value_color: '#2563eb'
       font_size_px:
         $constant: annotation_aux_label_font_size_px
-model:
-  $constant: vasemode_container_model
 scene:
+  objects:
+  - id: model
+    target_object: placeholder
+    model:
+      $constant: vasemode_container_model
   transform:
     $constant: wall_placeholder_transform
 render:

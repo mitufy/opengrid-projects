@@ -55,7 +55,7 @@ Render with one temporary override:
 
 ```powershell
 .\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder `
-  --set model.defines.compartment_column_count=3
+  --set scene.objects[0].model.defines.compartment_column_count=3
 ```
 
 List the built-in renderable models:

@@ -232,12 +232,6 @@ def build_expression_context(config: Mapping[str, object]) -> dict[str, float]:
         for name, value in constants.items():
             if isinstance(value, (int, float)) and not isinstance(value, bool):
                 context[str(name)] = float(value)
-    model = config.get("model", {})
-    defines = model.get("defines", {}) if isinstance(model, Mapping) else {}
-    if isinstance(defines, Mapping):
-        for name, value in defines.items():
-            if isinstance(value, (int, float)) and not isinstance(value, bool):
-                context.setdefault(str(name), float(value))
     return context
 
 

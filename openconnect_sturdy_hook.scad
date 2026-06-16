@@ -134,7 +134,7 @@ offset_sweep_profile = scale([hook_scale_at(1), 1, 1], final_sweep_profile);
 sliceoff_angle = hook_tip_sliceoff_side == "None" || hook_tip_sliceoff_target_width <= 0 || hook_tip_sliceoff_target_width >= hook_width ? 0 : -adj_opp_to_ang(hook_length, hook_width - hook_tip_sliceoff_target_width);
 final_slot_entryramp_flip = hook_tip_sliceoff_side == "None" ? slot_entryramp_flip : hook_tip_sliceoff_side == "Right";
 hook_length_annotation_y = -hook_stem_height;
-hook_length_annotation_z = hook_width;
+hook_side_annotation_z = 0;
 hook_width_annotation_x = hook_thickness - final_side_chamfer;
 hook_width_annotation_y = 0;
 final_truss_height = truss_vertical_grids * OG_TILE_SIZE;
@@ -148,7 +148,7 @@ final_truss_depth =
   : 0;
 truss_angle_arc_radius = truss_vertical_grids > 0 ? max(3, min(final_truss_depth, final_truss_height) * 0.32) : 0;
 truss_angle_arc_segments = 12;
-truss_angle_center_anchor = [hook_thickness, -(hook_stem_height + final_truss_height), hook_length_annotation_z];
+truss_angle_center_anchor = [hook_thickness, -(hook_stem_height + final_truss_height), hook_side_annotation_z];
 function _truss_angle_arc_anchor(angle) = [
   truss_angle_center_anchor[0] + truss_angle_arc_radius * sin(angle),
   truss_angle_center_anchor[1] + truss_angle_arc_radius * cos(angle),
@@ -160,10 +160,10 @@ truss_angle_arc_points = [
     _truss_angle_arc_anchor(final_truss_angle * i / truss_angle_arc_segments)
 ];
 function _path_last(path) = path[len(path) - 1];
-function _hook_path_point_to_model_top(point) = [
+function _hook_path_point_to_model_annotation_side(point) = [
   hook_thickness / 2 + point[0],
   point[1] - stem_first_height + hook_thickness_at(path_first_ratio) / 2,
-  hook_width
+  hook_side_annotation_z
 ];
 function _sq(value) = value * value;
 function _circumcenter_xy(a, b, c) =
@@ -188,11 +188,11 @@ function _hook_tip_radius_path_at(angle) = [
 ];
 hook_tip_radius_arc_points = [
   for (i = [0:hook_tip_radius_arc_segments])
-    _hook_path_point_to_model_top(_path_last(turtle(_hook_tip_radius_path_at(hook_tip_radius_arc_angle * i / hook_tip_radius_arc_segments))))
+    _hook_path_point_to_model_annotation_side(_path_last(turtle(_hook_tip_radius_path_at(hook_tip_radius_arc_angle * i / hook_tip_radius_arc_segments))))
 ];
-hook_tip_radius_start_anchor = _hook_path_point_to_model_top(_path_last(turtle(hook_path_pre_tip)));
-hook_tip_radius_mid_anchor = _hook_path_point_to_model_top(_path_last(turtle(_hook_tip_radius_path_at(hook_tip_radius_arc_angle / 2))));
-hook_tip_radius_end_anchor = _hook_path_point_to_model_top(_path_last(turtle(hook_path_circ)));
+hook_tip_radius_start_anchor = _hook_path_point_to_model_annotation_side(_path_last(turtle(hook_path_pre_tip)));
+hook_tip_radius_mid_anchor = _hook_path_point_to_model_annotation_side(_path_last(turtle(_hook_tip_radius_path_at(hook_tip_radius_arc_angle / 2))));
+hook_tip_radius_end_anchor = _hook_path_point_to_model_annotation_side(_path_last(turtle(hook_path_circ)));
 hook_tip_radius_center_anchor = _circumcenter_xy(hook_tip_radius_start_anchor, hook_tip_radius_mid_anchor, hook_tip_radius_end_anchor);
 hook_corner_radius_arc_segments = 12;
 function _hook_corner_radius_path_at(angle) = [
@@ -201,23 +201,23 @@ function _hook_corner_radius_path_at(angle) = [
 ];
 hook_corner_radius_arc_points = [
   for (i = [0:hook_corner_radius_arc_segments])
-    _hook_path_point_to_model_top(_path_last(turtle(_hook_corner_radius_path_at(90 * i / hook_corner_radius_arc_segments))))
+    _hook_path_point_to_model_annotation_side(_path_last(turtle(_hook_corner_radius_path_at(90 * i / hook_corner_radius_arc_segments))))
 ];
-hook_corner_radius_start_anchor = _hook_path_point_to_model_top(_path_last(turtle(["setdir", -90])));
-hook_corner_radius_mid_anchor = _hook_path_point_to_model_top(_path_last(turtle(_hook_corner_radius_path_at(45))));
-hook_corner_radius_end_anchor = _hook_path_point_to_model_top(_path_last(turtle(hook_path_base)));
+hook_corner_radius_start_anchor = _hook_path_point_to_model_annotation_side(_path_last(turtle(["setdir", -90])));
+hook_corner_radius_mid_anchor = _hook_path_point_to_model_annotation_side(_path_last(turtle(_hook_corner_radius_path_at(45))));
+hook_corner_radius_end_anchor = _hook_path_point_to_model_annotation_side(_path_last(turtle(hook_path_base)));
 hook_corner_radius_center_anchor = _circumcenter_xy(hook_corner_radius_start_anchor, hook_corner_radius_mid_anchor, hook_corner_radius_end_anchor);
-rectangular_tip_start_anchor = _hook_path_point_to_model_top(_path_last(turtle([
+rectangular_tip_start_anchor = _hook_path_point_to_model_annotation_side(_path_last(turtle([
   "setdir", -90,
   "arcleft", final_corner_radius,
   "move", max(EPS, hook_length - final_corner_radius - final_tip_radius),
   "arcleft", final_tip_radius, 90
 ])));
-rectangular_tip_end_anchor = _hook_path_point_to_model_top(_path_last(turtle(hook_path_rect)));
+rectangular_tip_end_anchor = _hook_path_point_to_model_annotation_side(_path_last(turtle(hook_path_rect)));
 hook_length_end_anchor =
   hook_shape_type == "Circular"
   ? hook_tip_radius_end_anchor
-  : [hook_thickness + hook_length, hook_length_annotation_y, hook_length_annotation_z];
+  : [hook_thickness + hook_length, hook_length_annotation_y, hook_side_annotation_z];
 
 module emit_sturdy_hook_annotations() {
   emit_context_values(
@@ -272,8 +272,8 @@ module emit_sturdy_hook_annotations() {
     label=str("hook_vertical_grids x ", OG_TILE_SIZE, "mm"),
     axis="y",
     value=hook_stem_height,
-    start=[0, 0, hook_length_annotation_z],
-    end=[0, -hook_stem_height, hook_length_annotation_z],
+    start=[0, 0, hook_side_annotation_z],
+    end=[0, -hook_stem_height, hook_side_annotation_z],
     basis="stem_height_from_hook_vertical_grids"
   );
   emit_dimension_annotation(
@@ -281,8 +281,8 @@ module emit_sturdy_hook_annotations() {
     label="hook_thickness",
     axis="x",
     value=hook_thickness,
-    start=[0, hook_length_annotation_y, hook_length_annotation_z],
-    end=[hook_thickness, hook_length_annotation_y, hook_length_annotation_z],
+    start=[0, hook_length_annotation_y, hook_side_annotation_z],
+    end=[hook_thickness, hook_length_annotation_y, hook_side_annotation_z],
     basis="stem_thickness_same_plane_as_hook_length"
   );
   emit_dimension_annotation(
@@ -290,7 +290,7 @@ module emit_sturdy_hook_annotations() {
     label="hook_length",
     axis="x",
     value=hook_length,
-    start=[hook_thickness, hook_length_annotation_y, hook_length_annotation_z],
+    start=[hook_thickness, hook_length_annotation_y, hook_side_annotation_z],
     end=hook_length_end_anchor,
     basis="outer_reach_after_stem"
   );
@@ -309,8 +309,8 @@ module emit_sturdy_hook_annotations() {
       label=str("truss_vertical_grids x ", OG_TILE_SIZE, "mm"),
       axis="y",
       value=truss_vertical_grids * OG_TILE_SIZE,
-      start=[0, -hook_stem_height, hook_length_annotation_z],
-      end=[0, -(hook_stem_height + truss_vertical_grids * OG_TILE_SIZE), hook_length_annotation_z],
+      start=[0, -hook_stem_height, hook_side_annotation_z],
+      end=[0, -(hook_stem_height + truss_vertical_grids * OG_TILE_SIZE), hook_side_annotation_z],
       basis="truss_height_from_truss_vertical_grids"
     );
     emit_radius_annotation(

@@ -52,7 +52,7 @@ Use `--set path=value` for one-off changes:
 
 ```powershell
 .\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder `
-  --set model.defines.compartment_column_count=3 `
+  --set scene.objects[0].model.defines.compartment_column_count=3 `
   --set render.camera_view_preset=technical_iso
 ```
 
@@ -153,10 +153,15 @@ annotation offsets:
 extends: ../../annotation_renderer/configs/openconnect_general_holder_default.yaml
 job_name: my_general_holder
 
-model:
-  defines:
-    compartment_shape: Rectangular
-    compartment_column_count: 2
+scene:
+  objects:
+  - id: model
+    target_object: placeholder
+    model:
+      scad_file: openconnect_general_holder.scad
+      defines:
+        compartment_shape: Rectangular
+        compartment_column_count: 2
 
 render:
   camera_view_preset: technical_iso

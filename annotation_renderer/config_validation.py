@@ -26,6 +26,7 @@ from annotation_renderer.config_defaults import (
     RENDER_QUALITY_VALUES,
     SCENE_OBJECT_CONFIG_KEYS,
     SCENE_OBJECT_DEFAULT_KEYS,
+    SCENE_CONFIG_KEYS,
     STYLE_BOOLEAN_FIELDS,
     STYLE_INTEGER_FIELDS,
     STYLE_NUMBER_FIELDS,
@@ -46,14 +47,13 @@ def resolve_scene(scene_config: object) -> dict[str, object]:
     if "preset" in scene_config:
         raise ConfigError("scene.preset is not supported; set scene.blend_file explicitly")
     resolved = dict(scene_config)
+    validate_allowed_keys(resolved, allowed=SCENE_CONFIG_KEYS, name="scene")
     if "blend_file" not in resolved or not isinstance(resolved["blend_file"], str) or not str(resolved["blend_file"]).strip():
         raise ConfigError("scene.blend_file is required")
     objects = resolved.get("objects")
     if objects is None:
         if "object_defaults" in resolved:
             raise ConfigError("scene.object_defaults requires scene.objects")
-        if "target_object" not in resolved or not isinstance(resolved["target_object"], str) or not str(resolved["target_object"]).strip():
-            raise ConfigError("scene.target_object is required")
     else:
         validate_scene_object_defaults(resolved.get("object_defaults"))
         validate_scene_objects(objects, object_defaults=resolved.get("object_defaults"))
@@ -665,6 +665,7 @@ def validate_render_config(value: Mapping[str, object]) -> None:
     validate_vector_shape(value.get("camera_location_offset_mm"), name="render.camera_location_offset_mm")
     validate_vector_shape(value.get("camera_target_offset_mm"), name="render.camera_target_offset_mm")
     validate_vector_shape(value.get("camera_rotation_deg"), name="render.camera_rotation_deg")
+    validate_vector_shape(value.get("camera_rotation_offset_deg"), name="render.camera_rotation_offset_deg")
     validate_vector2_shape(value.get("camera_orbit_deg"), name="render.camera_orbit_deg")
     validate_number_expression_field(value, "camera_roll_deg", name="render")
     validate_number_expression_field(value, "camera_focal_length_mm", name="render")
@@ -775,20 +776,16 @@ def validate_annotation_style(value: object, *, name: str = "annotations.style")
 
 
 def validate_config_shape(config: Mapping[str, object]) -> None:
-    scene = resolve_scene(config.get("scene", {}))
+    if "model" in config:
+        raise ConfigError("top-level model is not supported; put model config in scene.objects[*].model")
+    resolve_scene(config.get("scene", {}))
     raw_variants = config.get("variants", [])
-    has_variants = (
-        isinstance(raw_variants, Sequence)
-        and not isinstance(raw_variants, (str, bytes))
-        and bool(raw_variants)
-    )
-    if scene.get("objects") is None:
-        if config.get("model") is None:
-            pass
-        else:
-            validate_model_config(config.get("model"))
-    elif config.get("model") is not None:
-        validate_model_config(config.get("model"))
+    if isinstance(raw_variants, Sequence) and not isinstance(raw_variants, (str, bytes)):
+        for index, variant in enumerate(raw_variants):
+            if isinstance(variant, Mapping) and "model" in variant:
+                raise ConfigError(
+                    f"variants[{index}].model is not supported; put model config in variants[{index}].scene.objects[*].model"
+                )
     resolve_render(config.get("render", {}))
 
     annotations = config.get("annotations")

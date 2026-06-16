@@ -160,6 +160,10 @@ def label_bbox(center: tuple[float, float], size: tuple[int, int]) -> tuple[floa
     )
 
 
+def auto_adjust_labels_enabled(style_config: Mapping[str, object]) -> bool:
+    return bool(style_config.get("auto_adjust_labels", False))
+
+
 def expanded_bbox(bbox: tuple[float, float, float, float], padding: float) -> tuple[float, float, float, float]:
     return (bbox[0] - padding, bbox[1] - padding, bbox[2] + padding, bbox[3] + padding)
 
@@ -327,7 +331,13 @@ def place_label(
     shift_axes: Sequence[tuple[float, float]],
     margin_px: float = 8.0,
     secondary_axes_last_resort: bool = False,
+    auto_adjust: bool = False,
 ) -> tuple[tuple[float, float], tuple[float, float, float, float]]:
+    if not auto_adjust:
+        bbox = label_bbox(preferred_center, label_size)
+        occupied.append(expanded_bbox(bbox, 3.0))
+        return preferred_center, bbox
+
     offsets = (0.0, 14.0, -14.0, 28.0, -28.0, 46.0, -46.0, 70.0, -70.0, 96.0, -96.0, 128.0, -128.0)
     units: list[tuple[float, float]] = []
     for axis in shift_axes:
@@ -667,6 +677,7 @@ def draw_dimension_chains_overlay(
                 image_size=image.size,
                 occupied=occupied_labels,
                 shift_axes=[direction],
+                auto_adjust=auto_adjust_labels_enabled(chain_style_config),
             )
             draw_rotated_label(
                 image,
@@ -734,6 +745,7 @@ def draw_radius_callout_overlay(
     label_font_size_px = int(style_config.get("label_font_size_px", 28))
     label_outline_color = str(style_config.get("label_outline_color", LABEL_OUTLINE_COLOR))
     label_outline_width_px = int(style_config.get("label_outline_width_px", LABEL_OUTLINE_WIDTH))
+    auto_adjust_labels = auto_adjust_labels_enabled(style_config)
 
     halo = (255, 255, 255, clamp_alpha(min(190, max(130, line_alpha + 26))))
     text_metadata = {}
@@ -801,6 +813,7 @@ def draw_radius_callout_overlay(
             image_size=image.size,
             occupied=occupied_labels,
             shift_axes=[direction, normal],
+            auto_adjust=auto_adjust_labels,
         )
         canvas.composite_onto(image)
         canvas = OverlayCanvas(image)
@@ -868,6 +881,7 @@ def draw_arc_callout_overlay(
     label_font_size_px = int(style_config.get("label_font_size_px", 28))
     label_outline_color = str(style_config.get("label_outline_color", LABEL_OUTLINE_COLOR))
     label_outline_width_px = int(style_config.get("label_outline_width_px", LABEL_OUTLINE_WIDTH))
+    auto_adjust_labels = auto_adjust_labels_enabled(style_config)
 
     halo = (255, 255, 255, clamp_alpha(min(190, max(130, line_alpha + 26))))
     text_metadata = {}
@@ -940,6 +954,7 @@ def draw_arc_callout_overlay(
                 image_size=image.size,
                 occupied=occupied_labels,
                 shift_axes=[normal, direction],
+                auto_adjust=auto_adjust_labels,
             )
             text_metadata[callout.id] = {
                 "center_px": {"x": round(label_center[0], 2), "y": round(label_center[1], 2)},
@@ -1012,6 +1027,7 @@ def draw_angle_radius_callout_overlay(
     angle_fill_alpha = clamp_alpha(int(style_config.get("angle_fill_alpha", 30)))
     angle_fill_color = str(style_config.get("angle_fill_color", "#d9ead3"))
     label_avoidance_padding_px = float(style_config.get("label_avoidance_padding_px", 3.0))
+    auto_adjust_labels = auto_adjust_labels_enabled(style_config)
     text_metadata = {}
     callout_metadata = {}
     occupied_labels: list[tuple[float, float, float, float]] = []
@@ -1127,6 +1143,7 @@ def draw_angle_radius_callout_overlay(
                 image_size=image.size,
                 occupied=occupied_labels,
                 shift_axes=[arc_normal, arc_direction],
+                auto_adjust=auto_adjust_labels,
             )
             text_metadata[f"{callout.id}.angle"] = {
                 "center_px": {"x": round(angle_center[0], 2), "y": round(angle_center[1], 2)},
@@ -1182,6 +1199,7 @@ def draw_angle_radius_callout_overlay(
                 occupied=radius_occupied,
                 shift_axes=[radius_direction, radius_normal],
                 secondary_axes_last_resort=True,
+                auto_adjust=auto_adjust_labels,
             )
             occupied_labels.append(expanded_bbox(radius_bbox, 3.0))
             text_metadata[f"{callout.id}.radius"] = {
@@ -1287,6 +1305,7 @@ def draw_image_label_overlay(
     title_outline_width_px = int(style_config.get("image_label_title_outline_width_px", 4))
     title_min_width_px = float(style_config.get("image_label_title_min_width_px", 620))
     title_bottom_margin_px = float(style_config.get("image_label_title_bottom_margin_px", 18))
+    auto_adjust_labels = auto_adjust_labels_enabled(style_config)
 
     metadata = {}
     occupied_labels: list[tuple[float, float, float, float]] = []
@@ -1317,6 +1336,7 @@ def draw_image_label_overlay(
             image_size=image.size,
             occupied=occupied_labels,
             shift_axes=shift_axes,
+            auto_adjust=auto_adjust_labels,
         )
         prepared_labels.append((label, label_image, center, bbox))
         metadata[label.id] = {

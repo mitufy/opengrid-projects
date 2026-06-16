@@ -382,9 +382,9 @@ module emit_drawer_shell_annotations() {
       label=str("depth_grids x ", OG_TILE_SIZE, "mm"),
       axis="z",
       value=shell_depth,
-      start=[shell_annotation_x_min, shell_annotation_y_max, shell_annotation_z_min],
-      end=[shell_annotation_x_min, shell_annotation_y_max, shell_annotation_z_max],
-      basis="drawer_shell_depth_from_depth_grids_opposite_width_edge"
+      start=[shell_annotation_x_max, shell_annotation_y_max, shell_annotation_z_min],
+      end=[shell_annotation_x_max, shell_annotation_y_max, shell_annotation_z_max],
+      basis="drawer_shell_depth_from_depth_grids_right_width_edge"
     );
     emit_dimension_annotation(
       id="shell_thickness",
@@ -418,9 +418,9 @@ module emit_drawer_shell_annotations() {
       label="container_depth_clearance",
       axis="z",
       value=container_depth_clearance,
-      start=[shell_annotation_x_min, shell_annotation_y_max, shell_annotation_z_max - shell_ocslot_part_thickness],
-      end=[shell_annotation_x_min, shell_annotation_y_max, shell_annotation_z_max - shell_ocslot_part_thickness - container_depth_clearance],
-      basis="front_depth_clearance_between_shell_and_container"
+      start=[shell_annotation_x_max, shell_annotation_y_max, shell_annotation_z_max - shell_ocslot_part_thickness],
+      end=[shell_annotation_x_max, shell_annotation_y_max, shell_annotation_z_max - shell_ocslot_part_thickness - container_depth_clearance],
+      basis="front_depth_clearance_between_shell_and_container_right_width_edge"
     );
   }
 }

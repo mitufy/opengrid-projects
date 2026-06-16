@@ -20,9 +20,12 @@ constants:
     - $constant: bottom_image_label
       id: shelf_type
       show_value: true
-model:
-  $constant: sturdy_shelf_model
 scene:
+  objects:
+  - id: model
+    target_object: placeholder
+    model:
+      $constant: sturdy_shelf_model
   transform:
     $constant: wall_placeholder_transform
 annotations:

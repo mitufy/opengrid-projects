@@ -86,9 +86,12 @@ constants:
       value_color: '#2563eb'
       font_size_px:
         $constant: annotation_title_font_size_px
-model:
-  $constant: general_holder_model
 scene:
+  objects:
+  - id: model
+    target_object: placeholder
+    model:
+      $constant: general_holder_model
   transform:
     location_mm: [0, 0, 0]
     rotation_deg: [holder_tilt_angle, 0, 0]

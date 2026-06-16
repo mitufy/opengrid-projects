@@ -32,10 +32,8 @@ constants:
     offset_px: [0, -24]
     font_size_px:
       $constant: annotation_title_font_size_px
-model: null
 scene:
   blend_file: ../assets/scenes/opengrid_wall_scene.blend
-  target_object: placeholder
   camera: Camera
   replace_target_object: true
   inherit_target_transform: false

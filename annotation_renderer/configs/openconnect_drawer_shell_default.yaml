@@ -2,7 +2,6 @@ $schema: ../schemas/annotation-render-config.schema.json
 extends: drawer_base.yaml
 variant_name: openconnect_drawer_shell_default
 job_name: openconnect_drawer_shell_scene_default
-model: null
 scene:
   object_defaults:
     $constant: drawer_object_defaults

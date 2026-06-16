@@ -191,7 +191,7 @@ Generate a compact editable config that extends a default model:
   --out build\scene_annotations\my_holder.yaml
 ```
 
-The generated config includes editable model defines and annotation offset groups, plus a `scene.blend_file` path rewritten relative to the output file so it validates from any folder. Use a `.yaml` or `.yml` output path to write YAML, or `.json` to write JSON.
+The generated config includes editable object-scoped model defines and annotation offset groups, plus a `scene.blend_file` path rewritten relative to the output file so it validates from any folder. Use a `.yaml` or `.yml` output path to write YAML, or `.json` to write JSON.
 
 ## YAML And JSON
 
@@ -201,11 +201,16 @@ The renderer accepts `.yaml`, `.yml`, and `.json` files anywhere a config path i
 extends: ../../annotation_renderer/configs/openconnect_general_holder_default.yaml
 job_name: general_holder_custom
 
-model:
-  defines:
-    compartment_shape: Rectangular
-    compartment_column_count: 2
-    compartment_row_count: 1
+scene:
+  objects:
+    - id: model
+      target_object: placeholder
+      model:
+        scad_file: openconnect_general_holder.scad
+        defines:
+          compartment_shape: Rectangular
+          compartment_column_count: 2
+          compartment_row_count: 1
 
 annotations:
   chains:
@@ -308,7 +313,7 @@ The tracked defaults are split by model. `base_scene.yaml` holds shared scene, r
 The tracked default config keeps the Blender scene binding explicit:
 
 * `scene.blend_file: "../assets/scenes/opengrid_wall_scene.blend"` for the packaged Blender scene
-* `scene.target_object` or `scene.objects[*].target_object` for the object to replace
+* `scene.objects[*].target_object` for the Blender object to replace
 * `scene.camera: "Camera"` for the render camera
 * `render.preset: "cycles_standard_scene"` for Cycles standard quality, camera fitting, and flat STL shading
 * `annotations.style.preset: "makerworld_technical_light"` for muted translucent dimension lines and outlined labels
@@ -323,7 +328,11 @@ constants:
   blender_scene_scale: 0.001
 scene:
   blend_file: ../assets/scenes/opengrid_wall_scene.blend
-  target_object: drawer
+  objects:
+  - id: drawer_shell
+    target_object: drawer
+    model:
+      scad_file: openconnect_drawer.scad
   camera: Camera
   replace_target_object: true
   inherit_target_transform: false
@@ -368,7 +377,16 @@ render:
 
 This is applied before `camera_view` and `camera_look_at`, so those higher-level aiming options override it when configured.
 
-Expression names can come from top-level numeric `constants`, numeric `model.defines`, and SCAD-emitted numeric context metadata. Prefer SCAD context for values calculated by the model, such as `OG_TILE_SIZE`, `shell_thickness`, `shell_ocslot_part_thickness`, `shelf_back_thickness`, and final derived thicknesses. That keeps config transforms and annotation offsets tied to the same OpenSCAD run that generated the STL.
+Use `render.camera_rotation_offset_deg` for a final additive rotation tweak after camera view, look-at, fitting, location offset, orbit, and target-offset handling:
+
+```yaml
+render:
+  camera_rotation_offset_deg: [0, 0, 5]
+```
+
+This adds XYZ Euler degrees to the camera's current rotation. It is useful for small framing adjustments without replacing the base camera rotation.
+
+Expression names can come from top-level numeric `constants`, numeric `scene.objects[*].model.defines` for the active object, and SCAD-emitted numeric context metadata. Prefer SCAD context for values calculated by the model, such as `OG_TILE_SIZE`, `shell_thickness`, `shell_ocslot_part_thickness`, `shelf_back_thickness`, and final derived thicknesses. That keeps config transforms and annotation offsets tied to the same OpenSCAD run that generated the STL.
 
 Because SCAD context only exists after export, `--print-resolved-config` may show `transform: null` with the raw `transform_config` for scene objects whose expressions depend on emitted context. A real render resolves those expressions after parsing each object's OpenSCAD log.
 
@@ -404,10 +422,10 @@ variants:
 - name: general_holder_large_opening
   extends_variant: openconnect_general_holder_default
   set:
-    model.defines.front_opening_width: 38
+    scene.objects[0].model.defines.front_opening_width: 38
 ```
 
-For scenes that need more than one object, use `scene.objects`. Each object must define exactly one source: `model` for an OpenSCAD-generated STL, or `stl_file` for a prebuilt STL asset. Put repeated object settings in `scene.object_defaults`; each object is merged over those defaults. This is useful when several objects come from the same SCAD file and mostly share OpenSCAD defines. When `scene.objects` is present, the top-level `model` section is optional:
+Use `scene.objects` for every renderable source. Each object must define exactly one source: `model` for an OpenSCAD-generated STL, or `stl_file` for a prebuilt STL asset. Put repeated object settings in `scene.object_defaults`; each object is merged over those defaults. This is useful when several objects come from the same SCAD file and mostly share OpenSCAD defines:
 
 ```yaml
 constants:
@@ -628,7 +646,13 @@ aliases:
 
 Dimension `chains` draw straight measured spans from emitted `kind=dimension` metadata. The helper lines between the measured feature and the dimension line are dashed by default and inherit the measured segment color. Hide them for a specific chain with `extension_visible: false`, or tune their pattern with `extension_dash_px` and `extension_gap_px`.
 
-Labels are auto-placed after projection. The renderer preserves the label angle, clamps labels inside the image, and nudges labels along the annotation direction/normal to reduce overlap with other labels drawn in the same overlay step.
+Labels use their projected anchor and configured offsets by default. The renderer still reports final label overlap warnings when labels collide. Set `annotations.style.auto_adjust_labels` to `true` to enable automatic placement; when enabled, the renderer preserves the label angle, clamps labels inside the image, and nudges labels along the annotation direction/normal to reduce overlap with other labels drawn in the same overlay step.
+
+```yaml
+annotations:
+  style:
+    auto_adjust_labels: true
+```
 
 `radius_callouts` draw dashed radial leaders from emitted `kind=radius` metadata:
 
@@ -681,7 +705,7 @@ image_labels:
     show_value: true
 ```
 
-When `show_value` is true, image labels first use an explicit `value`, then `model.defines`, then numeric SCAD context metadata from the annotated object. That lets labels such as `shell_thickness`, `handle_depth`, or `shelf_texture_depth` show the actual value used by OpenSCAD without repeating it in config.
+When `show_value` is true, image labels first use an explicit `value`, then the annotated object's `scene.objects[*].model.defines`, then SCAD context metadata from that same object. That lets labels such as `shell_thickness`, `handle_depth`, or `shelf_texture_depth` show the actual value used by OpenSCAD without repeating it in config.
 
 Annotation groups can override label and line sizing when a parameter span is physically small:
 
@@ -701,10 +725,10 @@ Use top-level `variants` when several images share most of the same scene and re
 variants:
   - name: deep_drawer_shell
     set:
-      model.defines.depth_grids: 6
+      scene.objects[0].model.defines.depth_grids: 6
 ```
 
-Variant objects can also override full config sections when a dotted path is not enough. `model` and `annotations` are replaced as complete sections so model-specific labels do not leak between variants. `constants`, `scene`, and `render` are merged with the base config so shared Blender scene settings can stay in one place.
+Variant objects can also override full config sections when a dotted path is not enough. `annotations` is replaced as a complete section so model-specific labels do not leak between variants. `constants`, `scene`, and `render` are merged with the base config so shared Blender scene settings can stay in one place.
 
 Use `variant_configs` when a gallery config should import complete per-model config files as variants:
 

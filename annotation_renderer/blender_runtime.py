@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from math import radians
+from math import degrees, radians
 from pathlib import Path
 
 import bpy
@@ -302,6 +302,27 @@ def apply_camera_rotation(camera):
     camera.rotation_euler = Euler(tuple(radians(float(value)) for value in rotation_deg), "XYZ")
     bpy.context.view_layer.update()
     return [float(value) for value in rotation_deg]
+
+
+def apply_camera_rotation_offset(camera):
+    rotation_offset_deg = config.get("camera_rotation_offset", (0.0, 0.0, 0.0))
+    if not rotation_offset_deg:
+        return None
+    offset_values = [float(value) for value in rotation_offset_deg]
+    if all(abs(value) <= 1e-9 for value in offset_values):
+        return None
+    before = [degrees(float(value)) for value in camera.rotation_euler]
+    camera.rotation_euler = Euler(
+        tuple(float(camera.rotation_euler[index]) + radians(offset_values[index]) for index in range(3)),
+        camera.rotation_euler.order,
+    )
+    bpy.context.view_layer.update()
+    return {
+        "offset_deg": offset_values,
+        "before_deg": before,
+        "after_deg": [degrees(float(value)) for value in camera.rotation_euler],
+        "applied": True,
+    }
 
 
 def apply_camera_lens(camera):
@@ -1148,6 +1169,7 @@ if camera_orbit is not None and camera_orbit.get("applied") and config.get("fit_
     camera_fit = fit_camera_to_objects(scene, camera, rendered_objects, fit_points=fit_points)
 camera_distance_scale = apply_camera_distance_scale(camera, rendered_objects, fit_points=fit_points)
 camera_target_offset = apply_camera_target_offset(camera, rendered_objects, fit_points=fit_points)
+camera_rotation_offset = apply_camera_rotation_offset(camera)
 camera_roll = apply_camera_roll(camera)
 ground_plane = configure_ground_plane(rendered_objects)
 lighting = configure_lighting(scene, camera, rendered_objects)
@@ -1207,6 +1229,7 @@ Path(config["projection_path"]).write_text(
                 "orbit": camera_orbit,
                 "distance_scale": camera_distance_scale,
                 "target_offset": camera_target_offset,
+                "rotation_offset": camera_rotation_offset,
                 "roll": camera_roll,
                 "look_at": camera_look_at,
             },

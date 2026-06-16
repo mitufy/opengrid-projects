@@ -87,6 +87,7 @@ from annotation_renderer.overlay import (
 from annotation_renderer.scad_annotations import (
     numeric_context_from_scad_annotations,
     read_scad_annotations,
+    value_context_from_scad_annotations,
     with_annotation_metadata_define,
 )
 from annotation_renderer.scad_discovery import (
@@ -418,9 +419,7 @@ def config_path_from_args(args: argparse.Namespace, *, allow_default: bool = Fal
 
 def is_directly_renderable_config(config: Mapping[str, object]) -> bool:
     scene = resolve_scene(config.get("scene", {}))
-    if scene.get("objects") is not None:
-        return True
-    return config.get("model") is not None
+    return scene.get("objects") is not None
 
 
 def output_root_for(config: Mapping[str, object], args: argparse.Namespace) -> Path:
@@ -788,17 +787,6 @@ def model_records_from_config(config: Mapping[str, object]) -> list[dict[str, ob
                 }
             )
         return records
-
-    model = config.get("model")
-    if isinstance(model, Mapping):
-        records.append(
-            {
-                "id": "model",
-                "target_object": scene.get("target_object"),
-                "scad_file": model.get("scad_file"),
-                "defines": model.get("defines", {}),
-            }
-        )
     return records
 
 
@@ -963,6 +951,7 @@ def print_model_description(*, name: str, config: Mapping[str, object], source_c
         "camera_view",
         "camera_view_preset",
         "camera_rotation_deg",
+        "camera_rotation_offset_deg",
         "camera_orbit_deg",
         "camera_distance_scale",
         "camera_target_offset_mm",
@@ -1031,11 +1020,14 @@ def editable_annotations_template(config: Mapping[str, object]) -> dict[str, obj
 
 
 def editable_model_template(config: Mapping[str, object]) -> dict[str, object]:
-    model = config.get("model")
-    if isinstance(model, Mapping):
-        defines = model.get("defines", {})
-        if isinstance(defines, Mapping) and defines:
-            return {"model": {"defines": deepcopy(dict(defines))}}
+    scene = resolve_scene(config.get("scene", {}))
+    raw_objects = scene.get("objects")
+    if isinstance(raw_objects, Sequence) and not isinstance(raw_objects, (str, bytes)) and raw_objects:
+        editable_scene: dict[str, object] = {"objects": deepcopy(list(raw_objects))}
+        object_defaults = scene.get("object_defaults")
+        if object_defaults is not None:
+            editable_scene["object_defaults"] = deepcopy(object_defaults)
+        return {"scene": editable_scene}
     constants = config.get("constants", {})
     if isinstance(constants, Mapping):
         editable_constants: dict[str, object] = {}
@@ -1083,7 +1075,7 @@ def write_new_config_template(
         template["scene"] = {
             "blend_file": path_reference(scene_path, start=output_path.parent)
         }
-    template.update(editable_model_template(config))
+    template = deep_merge(template, editable_model_template(config))
     editable_annotations = editable_annotations_template(config)
     if editable_annotations:
         template["annotations"] = editable_annotations
@@ -1182,7 +1174,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         dest="overrides",
-        help="Override a config value with dotted path syntax, for example model.defines.hook_length=50.",
+        help="Override a config value with dotted path syntax, for example scene.objects[0].model.defines.hook_length=50.",
     )
     return parser
 
@@ -1308,41 +1300,7 @@ def scene_object_specs(
 ) -> list[dict[str, object]]:
     raw_objects = scene_config.get("objects")
     if raw_objects is None:
-        model_config = require_mapping(config.get("model", {}), name="model")
-        object_context = build_expression_context_for_model(config, model_config)
-        inherit_target_transform = scene_inherits_target_transform(scene_config)
-        scene_transform = (
-            resolve_scene_transform_for_object(
-                scene_config,
-                expression_context=object_context,
-                name="scene",
-                allow_deferred=allow_deferred_transforms,
-            )
-            if resolve_transforms
-            else None
-        )
-        if not inherit_target_transform and scene_config.get("transform") is None:
-            raise ConfigError("scene.transform is required when scene.inherit_target_transform is false")
-        return [
-            {
-                "id": "model",
-                "target_object": str(scene_config["target_object"]),
-                "source_type": "model",
-                "model_config": model_config,
-                "scad_file": resolve_config_path(
-                    str(model_config["scad_file"]),
-                    config_dir=config_dir,
-                    project_root=PROJECT_ROOT,
-                ),
-                "expression_context": object_context,
-                "object_scene_config": dict(scene_config),
-                "inherit_target_transform": inherit_target_transform,
-                "transform": scene_transform,
-                "replace_target_object": bool(scene_config.get("replace_target_object", True)),
-                "material_source_object": None,
-                "mesh_shading": None,
-            }
-        ]
+        raise ConfigError("scene.objects is required for renderable configs")
 
     if not isinstance(raw_objects, Sequence) or isinstance(raw_objects, (str, bytes)):
         raise ConfigError("scene.objects must be an array")
@@ -1493,6 +1451,7 @@ def export_object_records(
             defines = ()
             scad_annotations = []
             scad_context: dict[str, float] = {}
+            scad_value_context: dict[str, str] = {}
             object_context = base_context
             cache_info = {"stage": "source_stl", "enabled": False, "hit": False}
         else:
@@ -1536,6 +1495,7 @@ def export_object_records(
             openscad_commands[object_id] = openscad_command
             scad_annotations = read_scad_annotations(openscad_log)
             scad_context = numeric_context_from_scad_annotations(scad_annotations)
+            scad_value_context = value_context_from_scad_annotations(scad_annotations)
             object_context = dict(base_context)
             object_context.update(scad_context)
         object_scene_config = require_mapping(
@@ -1560,6 +1520,7 @@ def export_object_records(
                 "defines": defines,
                 "scad_annotations": scad_annotations,
                 "scad_context": scad_context,
+                "scad_value_context": scad_value_context,
                 "expression_context": object_context,
                 "transform": object_transform,
                 "cache": cache_info,
@@ -1568,6 +1529,18 @@ def export_object_records(
         object_records.append(object_record)
         shared_scad_context.update(scad_context)
     return object_records, openscad_commands
+
+
+def label_value_context_for_record(record: Mapping[str, object]) -> dict[str, object]:
+    context: dict[str, object] = {}
+    model_config = record.get("model_config")
+    defines = model_config.get("defines", {}) if isinstance(model_config, Mapping) else {}
+    if isinstance(defines, Mapping):
+        context.update({str(name): value for name, value in defines.items()})
+    scad_value_context = record.get("scad_value_context")
+    if isinstance(scad_value_context, Mapping):
+        context.update({str(name): value for name, value in scad_value_context.items()})
+    return context
 
 
 def collect_annotation_render_state(
@@ -1638,11 +1611,11 @@ def collect_annotation_render_state(
         (item, group) for item, group in zip(angle_radius_items, angle_radius_groups, strict=True) if group
     ]
     image_labels = collect_image_labels(
-        config=config,
         labels_config=image_label_items,
         annotation_config=annotation_config,
         style_config=style_config,
         expression_context=annotation_expression_context,
+        value_context=label_value_context_for_record(annotation_record),
     )
     return {
         "annotation_object_id": annotation_object_id,
@@ -1825,6 +1798,14 @@ def build_blender_config(
             )
             if "camera_rotation_deg" in render_settings or "camera_rotation_deg" in camera_preset_settings
             else None
+        ),
+        "camera_rotation_offset": list(
+            vector3(
+                render_setting(render_settings, camera_preset_settings, "camera_rotation_offset_deg"),
+                default=(0.0, 0.0, 0.0),
+                name="render.camera_rotation_offset_deg",
+                context=expression_context,
+            )
         ),
         "camera_orbit": list(
             vector2(
