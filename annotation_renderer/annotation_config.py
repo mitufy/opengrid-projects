@@ -103,6 +103,31 @@ class AnnotationGroupContext:
     optional: bool
 
 
+def color_override(colors: Mapping[str, object], annotation_id: str) -> str | None:
+    color = colors.get(annotation_id)
+    if color is None:
+        return None
+    color_text = str(color).strip()
+    return color_text or None
+
+
+def annotation_line_color(
+    *,
+    style_config: Mapping[str, object],
+    colors: Mapping[str, object],
+    annotation_id: str,
+    parameter_type: str,
+    index: int = 0,
+    fallback: str,
+) -> str:
+    return color_override(colors, annotation_id) or type_line_color(
+        style_config,
+        parameter_type,
+        index=index,
+        fallback=fallback,
+    )
+
+
 def annotation_ids_from_group(group_config: Mapping[str, object], *, message: str) -> Sequence[object]:
     ids = group_config.get("ids")
     if not isinstance(ids, Sequence) or isinstance(ids, (str, bytes)) or not ids:
@@ -164,11 +189,13 @@ def collect_dimension_chain(
                 continue
             raise ConfigError(f"No emitted dimension annotation named {annotation_id!r}")
         parameter_type = annotation_parameter_type(annotation_key, kind="dimension")
-        fallback_color = str(context.colors.get(annotation_key, DEFAULT_LINE_COLORS.get(annotation_key, "#2f7f8f")))
-        color = (
-            type_line_color(style_config, parameter_type, index=index, fallback=fallback_color)
-            if aligned
-            else str(context.colors.get(annotation_key) or type_line_color(style_config, parameter_type, fallback=fallback_color))
+        color = annotation_line_color(
+            style_config=style_config,
+            colors=context.colors,
+            annotation_id=annotation_key,
+            parameter_type=parameter_type,
+            index=index if aligned else 0,
+            fallback=DEFAULT_LINE_COLORS.get(annotation_key, "#2f7f8f"),
         )
         source_start_mm = mapping_vector(segment["start_mm"])
         source_end_mm = mapping_vector(segment["end_mm"])
@@ -217,8 +244,13 @@ def collect_radius_callouts(
             raise ConfigError(f"No emitted radius annotation named {annotation_id!r}")
         annotation_key = str(annotation_id)
         parameter_type = annotation_parameter_type(annotation_key, kind="radius")
-        fallback_color = DEFAULT_LINE_COLORS.get(annotation_key, "#8b6f2f")
-        color = str(context.colors.get(annotation_key) or type_line_color(style_config, parameter_type, fallback=fallback_color))
+        color = annotation_line_color(
+            style_config=style_config,
+            colors=context.colors,
+            annotation_id=annotation_key,
+            parameter_type=parameter_type,
+            fallback=DEFAULT_LINE_COLORS.get(annotation_key, "#8b6f2f"),
+        )
         callouts.append(
             RadiusCallout(
                 id=annotation_key,
@@ -262,8 +294,13 @@ def collect_arc_callouts(
             raise ConfigError(f"No emitted arc annotation named {annotation_id!r}")
         annotation_key = str(annotation_id)
         parameter_type = annotation_parameter_type(annotation_key, kind="arc")
-        fallback_color = DEFAULT_LINE_COLORS.get(annotation_key, "#8b6f2f")
-        color = str(context.colors.get(annotation_key) or type_line_color(style_config, parameter_type, fallback=fallback_color))
+        color = annotation_line_color(
+            style_config=style_config,
+            colors=context.colors,
+            annotation_id=annotation_key,
+            parameter_type=parameter_type,
+            fallback=DEFAULT_LINE_COLORS.get(annotation_key, "#8b6f2f"),
+        )
         points = tuple(add_vectors(mapping_vector(point), context.offset) for point in callout["points_mm"])
         callouts.append(
             ArcCallout(
@@ -328,10 +365,22 @@ def collect_angle_radius_callouts(
     callout_id = str(callout_config.get("id") or f"{angle_id}_{radius_id}").strip()
     angle_type = annotation_parameter_type(angle_id, kind="arc")
     radius_type = annotation_parameter_type(radius_id, kind="radius")
-    arc_fallback = str(context.colors.get(angle_id) or context.colors.get(arc_id) or DEFAULT_LINE_COLORS.get(angle_id) or DEFAULT_LINE_COLORS.get(arc_id) or "#8b6f2f")
-    radius_fallback = str(context.colors.get(radius_id) or DEFAULT_LINE_COLORS.get(radius_id) or arc_fallback)
-    arc_color = type_line_color(style_config, angle_type, fallback=arc_fallback)
-    radius_color = type_line_color(style_config, radius_type, fallback=radius_fallback)
+    arc_color = (
+        color_override(context.colors, angle_id)
+        or color_override(context.colors, arc_id)
+        or type_line_color(
+            style_config,
+            angle_type,
+            fallback=DEFAULT_LINE_COLORS.get(angle_id) or DEFAULT_LINE_COLORS.get(arc_id) or "#8b6f2f",
+        )
+    )
+    radius_color = annotation_line_color(
+        style_config=style_config,
+        colors=context.colors,
+        annotation_id=radius_id,
+        parameter_type=radius_type,
+        fallback=DEFAULT_LINE_COLORS.get(radius_id, "#8b6f2f"),
+    )
 
     return [
         AngleRadiusCallout(
@@ -419,7 +468,7 @@ def collect_image_labels(
             value_text = value if show_value and value else None
             if show_value and value:
                 label_text = f"{label_text} = {value}"
-        font_size = label_config.get("font_size_px")
+        font_size = label_config.get("label_font_size_px", label_config.get("font_size_px"))
         labels.append(
             ImageLabel(
                 id=label_id,

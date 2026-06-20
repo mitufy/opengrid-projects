@@ -22,23 +22,20 @@ constants:
       label_holder_type: label_holder
       vase_tilt_angle_extent: vase_tilt_angle
     chains:
-    - ids: [horizontal_grids]
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: 0
-      label_offset_px: 32
-      font_size_px: 26
-    - ids: [vertical_grids]
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: 80
-      label_offset_px: 30
-      font_size_px: 28
+    # - ids: [horizontal_grids]
+    #   display_offset_mm: [0, 0, 0]
+    #   line_offset_px: 0
+    #   label_offset_px: 32
+    #   font_size_px: 26
+    # - ids: [vertical_grids]
+    #   display_offset_mm: [0, 0, 0]
+    #   line_offset_px: 80
+    #   label_offset_px: 30
+    #   font_size_px: 28
     - ids: [depth_grids]
       display_offset_mm: [0, 0, 0]
-      line_offset_px: -50
-      label_offset_px: -34
-      font_size_px: 26
-    - ids: [label_width]
-      display_offset_mm: [0, 0, 0]
+      line_offset_px: 60
+      label_offset_px: 20
       font_size_px: 26
     # - $constant: small_dimension_chain
     #   ids: [ocvase_linewidth]
@@ -47,15 +44,15 @@ constants:
     #   ids: [label_width]
     #   optional: true
     #   label_offset_px: 30
-    # angle_radius_callouts:
-    # - id: vase_tilt_angle_callout
-    #   arc_id: vase_tilt_angle_extent
-    #   radius_id: vase_tilt_angle_radius
-    #   angle_id: vase_tilt_angle
-    #   optional: true
-    #   show_radius_label: false
-    #   angle_label_offset_px: 34
-    #   angle_fill_alpha: 28
+    angle_radius_callouts:
+    - id: vase_tilt_angle_callout
+      arc_id: vase_tilt_angle_extent
+      radius_id: vase_tilt_angle_radius
+      angle_id: vase_tilt_angle
+      optional: true
+      show_radius_label: false
+      angle_label_offset_px: 34
+      angle_fill_alpha: 28
     # image_labels:
     # - $constant: bottom_image_label
     #   id: vase_surface_texture
@@ -82,5 +79,6 @@ scene:
       $constant: blender_scene_scale_vector
 render:
   fit_margin: 0.15
+  camera_view: right
 annotations:
   $constant: vasemode_container_annotations

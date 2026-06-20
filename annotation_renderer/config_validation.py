@@ -905,8 +905,9 @@ def validate_image_label(value: object, *, name: str) -> None:
             raise ConfigError(f"{name}.{key} must be numeric")
     if "show_value" in value and not isinstance(value["show_value"], bool):
         raise ConfigError(f"{name}.show_value must be a boolean")
-    if "font_size_px" in value and not is_integer(value["font_size_px"]):
-        raise ConfigError(f"{name}.font_size_px must be an integer")
-    if "font_size_px" in value and int(value["font_size_px"]) < 1:
-        raise ConfigError(f"{name}.font_size_px must be at least 1")
+    for key in ("font_size_px", "label_font_size_px"):
+        if key in value and not is_integer(value[key]):
+            raise ConfigError(f"{name}.{key} must be an integer")
+        if key in value and int(value[key]) < 1:
+            raise ConfigError(f"{name}.{key} must be at least 1")
 

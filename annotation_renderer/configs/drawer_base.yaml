@@ -44,7 +44,6 @@ constants:
     inherit_target_transform: false
   drawer_shell_object:
     id: drawer_shell
-    target_object: drawer
     model:
       defines:
         $constant: drawer_shell_defines
@@ -54,8 +53,6 @@ constants:
       $constant: drawer_shell_transform
   drawer_container_object:
     id: drawer_container
-    target_object: drawer_container
-    material_source_object: drawer
     model:
       defines:
         $constant: drawer_container_defines
@@ -65,6 +62,10 @@ constants:
       $constant: drawer_container_transform
   drawer_grid_annotations:
     object: drawer_shell
+    style:
+      $constant: default_annotation_style
+    aliases:
+      $constant: default_grid_label_aliases
     chains:
     - ids: [horizontal_grids]
       label_offset_px: 42

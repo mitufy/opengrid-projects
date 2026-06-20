@@ -357,7 +357,7 @@ module emit_drawer_shell_annotations() {
   if (generate_drawer_shell) {
     emit_dimension_annotation(
       id="horizontal_grids",
-      label=str("horizontal_grids x ", OG_TILE_SIZE, "mm"),
+      label="horizontal_grids",
       axis="x",
       value=shell_width,
       start=[shell_annotation_x_min, shell_annotation_y_min, shell_annotation_z_max],
@@ -366,7 +366,7 @@ module emit_drawer_shell_annotations() {
     );
     emit_dimension_annotation(
       id="vertical_grids",
-      label=str("vertical_grids x ", OG_TILE_SIZE, "mm"),
+      label="vertical_grids",
       axis="y",
       value=shell_height,
       start=[shell_annotation_x_max, shell_annotation_y_min, shell_annotation_z_max],
@@ -375,7 +375,7 @@ module emit_drawer_shell_annotations() {
     );
     emit_dimension_annotation(
       id="depth_grids",
-      label=str("depth_grids x ", OG_TILE_SIZE, "mm"),
+      label="depth_grids",
       axis="z",
       value=shell_depth,
       start=[shell_annotation_x_max, shell_annotation_y_max, shell_annotation_z_min],

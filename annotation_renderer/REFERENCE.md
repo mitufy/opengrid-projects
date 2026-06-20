@@ -102,6 +102,9 @@ Essential commands:
 # Validate the default config without rendering
 .\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder --validate-only
 
+# Render a named config from annotation_renderer\configs without --config
+.\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_sturdy_hook_angle
+
 # Render one config path directly
 .\build\.venv-tools\Scripts\opengrid-annotate.exe `
   --config annotation_renderer\configs\openconnect_general_holder_default.yaml
@@ -137,8 +140,9 @@ Use `--output-mode` or `render.output_mode` to control retained sidecars:
 
 `standard` is the default. Generated artifacts stay under `build/` and are ignored by git.
 
-When generated label bounding boxes overlap, the renderer prints a warning and
-stores the warning in the metadata overlay section when metadata is enabled.
+When generated label bounding boxes overlap, or emitted annotation anchors are
+well outside the exported STL bounds, the renderer prints a warning and stores
+the warning in metadata when metadata is enabled.
 
 ## Discovery And Templates
 
@@ -168,7 +172,7 @@ List the parameters that can be added to annotation config:
 .\build\.venv-tools\Scripts\opengrid-annotate.exe discover openconnect_sturdy_hook.scad
 ```
 
-The discovery output reads the SCAD source directly. Pass a `.scad` file path, not a render config name such as `openconnect_sturdy_hook_default` or `openconnect_drawer_shell_container_default`. It lists possible annotation parameters without running OpenSCAD, so it does not include exact values that depend on customizable model parameters. The list is grouped by config use:
+The discovery output reads the SCAD source directly. Pass a `.scad` file path, not a render config name such as `openconnect_sturdy_hook_default` or `openconnect_drawer_shell_container_default`. It lists Customizer-facing annotation parameters without running OpenSCAD, so it does not include exact values that depend on customizable model parameters. Internal helper metadata used to draw composed arcs and radius leaders is hidden from discovery. The list is grouped by config use:
 
 * `dimension parameters` can be added to `annotations.chains[].ids`
 * `radius parameters` can be added to `annotations.radius_callouts[].ids` or `annotations.angle_radius_callouts[].radius_id`
@@ -204,7 +208,6 @@ job_name: general_holder_custom
 scene:
   objects:
     - id: model
-      target_object: placeholder
       model:
         scad_file: openconnect_general_holder.scad
         defines:
@@ -221,6 +224,26 @@ annotations:
 ```
 
 Keep using the existing `extends` and `$constant` composition features instead of YAML anchors or merge keys. That keeps configs portable between YAML and JSON.
+
+Checked-in model configs use `constants.default_annotation_style` from `configs/base_scene.yaml` for shared annotation line, font, color-type, and image-title defaults. Use `style.type_styles` for broad parameter categories such as `mm`, `grids`, `radius`, and `angle`. Use `style.colors` only as a per-parameter escape hatch; explicit entries there win over type styles. Keep model-specific offsets local, and override only the style keys that differ:
+
+```yaml
+constants:
+  my_annotations:
+    style:
+      $constant: default_annotation_style
+      tick_length_px: 15
+```
+
+Grid-count annotations should use their actual parameter IDs in `chains`, then add the display affix through aliases. The built-in `default_grid_label_aliases` constant covers `horizontal_grids`, `vertical_grids`, and `depth_grids`:
+
+```yaml
+annotations:
+  aliases:
+    $constant: default_grid_label_aliases
+  chains:
+    - ids: [horizontal_grids]
+```
 
 ## Animation Workflow
 
@@ -310,17 +333,17 @@ Configs contain the model parameters, Blender scene binding, render settings, an
 
 The tracked defaults are split by model. `base_scene.yaml` holds shared scene, render, and annotation constants. Each model default extends it and is directly renderable. `model_defaults.yaml` imports the per-model files with `variant_configs`, so running it without `--variant` renders the first imported variant and `--gallery` renders all imported variants.
 
-The tracked default config keeps the Blender scene binding explicit:
+The tracked default config keeps the Blender scene and render binding explicit:
 
 * `scene.blend_file: "../assets/scenes/opengrid_wall_scene.blend"` for the packaged Blender scene
-* `scene.objects[*].target_object` for the Blender object to replace
+* `scene.objects[*].id` for stable generated object names used by annotations and render controls
 * `scene.camera: "Camera"` for the render camera
 * `render.preset: "cycles_standard_scene"` for Cycles standard quality, camera fitting, and flat STL shading
 * `annotations.style.preset: "makerworld_technical_light"` for muted translucent dimension lines and outlined labels
 
 New render scene controls are opt-in. Existing configs keep their default render behavior unless they explicitly set fields such as `camera_view_preset`, `lighting`, `outline`, `ground_plane`, `cutaway`, `xray`, or `material_overrides`.
 
-Scene transforms can come from config instead of the Blender placeholder object. Set `inherit_target_transform` to `false` and provide `transform`. `location_mm` uses millimeters and is converted to Blender meters internally, while `rotation_deg` and `scale` map directly to the imported STL object transform:
+Scene transforms usually come from config. Set `inherit_target_transform` to `false` and provide `transform`. `location_mm` uses millimeters and is converted to Blender meters internally, while `rotation_deg` and `scale` map directly to the imported STL object transform:
 
 ```yaml
 constants:
@@ -330,7 +353,6 @@ scene:
   blend_file: ../assets/scenes/opengrid_wall_scene.blend
   objects:
   - id: drawer_shell
-    target_object: drawer
     model:
       scad_file: openconnect_drawer.scad
   camera: Camera
@@ -450,7 +472,6 @@ constants:
     inherit_target_transform: false
   drawer_shell_object:
     id: drawer_shell
-    target_object: drawer
     model:
       defines:
         generate_drawer_shell: true
@@ -463,8 +484,6 @@ constants:
       rotation_deg: [drawer_shell_rotation_x_deg, 0, 0]
   drawer_container_object:
     id: drawer_container
-    target_object: drawer_container
-    material_source_object: drawer
     material:
       color: '#ffffff'
       roughness: 0.5
@@ -635,7 +654,7 @@ display_offset_mm:
 
 Here `OG_TILE_SIZE` and `shelf_back_thickness` are intended to come from SCAD context metadata, so the offset follows the actual shelf model settings.
 
-By default, annotation text uses only the emitted label and does not append the current parameter value. That keeps labels stable for documentation, for example `hook_length` or `horizontal_grids x 28mm`. Set `annotations.style.show_values` to `true` only when a render should include text like `hook_length = 45`.
+By default, annotation text uses only the emitted label or config alias and does not append the current parameter value. That keeps labels stable for documentation, for example `hook_length` or `horizontal_grids x 28mm`. Set `annotations.style.show_values` to `true` only when a render should include text like `hook_length = 45`.
 
 Use `annotations.aliases` to shorten parameter names once for every annotation group. Per-group `labels` still work and override aliases when both are present:
 
@@ -667,7 +686,7 @@ radius_callouts:
 
 Use the optional `labels` mapping on a chain, radius callout, arc callout, or angle/radius callout to keep the SCAD metadata ID stable while shortening the text for a documentation image.
 
-For radius parameters, prefer `radius_callouts` so the label is attached to a center-to-edge radius leader. Set `label_offset_px` to `0` to align the text directly with the radius line; non-zero values move the label perpendicular to that leader. Use `arc_callouts` when the curve extent itself is the annotated feature or when you want to highlight the affected arc alongside a radius leader. `arc_callouts` draw a projected curve from emitted `kind=arc` metadata:
+For radius parameters, prefer `radius_callouts` so the label is attached to a center-to-edge radius leader. Set `label_offset_px` to `0` to align the text directly with the radius line; non-zero values move the label perpendicular to that leader. `arc_callouts` are advanced: they draw a projected curve from emitted `kind=arc` helper metadata, which is usually internal and hidden from discovery:
 
 ```yaml
 arc_callouts:
@@ -678,7 +697,7 @@ arc_callouts:
     label_offset_px: 42
 ```
 
-`angle_radius_callouts` pair one emitted `kind=arc` annotation with one emitted `kind=radius` annotation. This is useful for circular tip parameters where the same projected shape should show the affected arc angle and the arc radius without drawing the rest of the circle:
+`angle_radius_callouts` pair one emitted `kind=arc` helper annotation with one emitted `kind=radius` annotation. This is useful for Customizer parameters where the same projected shape should show an angle and radius without drawing the rest of the circle:
 
 ```yaml
 angle_radius_callouts:
@@ -707,6 +726,8 @@ image_labels:
 
 When `show_value` is true, image labels first use an explicit `value`, then the annotated object's `scene.objects[*].model.defines`, then SCAD context metadata from that same object. That lets labels such as `shell_thickness`, `handle_depth`, or `shelf_texture_depth` show the actual value used by OpenSCAD without repeating it in config.
 
+Image labels accept `font_size_px`; `label_font_size_px` is also accepted as an alias.
+
 Annotation groups can override label and line sizing when a parameter span is physically small:
 
 ```yaml
@@ -716,6 +737,8 @@ tick_length_px: 12
 line_width_px: 2.2
 extension_visible: false
 ```
+
+For annotation groups, `label_font_size_px` is the canonical label size field. `font_size_px` is accepted as an alias for consistency with image labels.
 
 ## Variants
 
@@ -778,7 +801,7 @@ emit_annotation_metadata = false;
 Then emit lines using the `OPENGRID_ANNOTATION_V1` format when that flag is true. Dimension anchors are model-local coordinates:
 
 ```text
-OPENGRID_ANNOTATION_V1|id=shelf_width|kind=dimension|label=shelf_width|axis=z|value=84|start=0,-28,0|end=0,-28,84|basis=left_to_right_width
+OPENGRID_ANNOTATION_V1|id=horizontal_grids|kind=dimension|label=horizontal_grids|axis=z|value=84|start=0,-28,0|end=0,-28,84|basis=left_to_right_width_from_horizontal_grids
 ```
 
 Radius callouts use `center` and `edge` instead of `start` and `end`:

@@ -1,0 +1,53 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: base_scene.yaml
+variant_name: opengrid_framefit_hook_new_default
+job_name: framefit_hook_scene
+constants:
+  framefit_hook_model:
+    scad_file: opengrid_framefit_hook_new.scad
+  framefit_hook_annotations:
+    style:
+      $constant: default_annotation_style
+      auto_adjust_labels: true
+      tick_length_px: 12
+      type_styles:
+        grids:
+          line_colors: ['#2563eb']
+        mm:
+          line_colors: ['#000000']
+    aliases:
+      vertical_grids: vgrids x 28mm
+      truss_vertical_grid: truss_vgrid x 28mm
+      hook_tip_shape: tip_shape
+    chains:
+    - ids: [hook_width]
+      display_offset_mm: [0, 0, 0]
+      label_offset_px: 28
+      label_font_size_px: 24
+    - ids: [hook_length]
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: -48
+      label_offset_px: -64
+      label_font_size_px: 24
+    - ids: [vertical_grids, truss_vertical_grid]
+      optional: true
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 46
+      label_offset_px: 58
+      label_font_size_px: 24
+    # - $constant: small_dimension_chain
+    #   ids: [hook_back_thickness, hook_bottom_thickness]
+    #   optional: true
+    #   label_font_size_px: 20
+scene:
+  objects:
+  - id: model
+    model:
+      $constant: framefit_hook_model
+    transform:
+      location_mm: [0, 0, -56]
+      rotation_deg: [0, 0, 180]
+render:
+  fit_margin: 0.08
+annotations:
+  $constant: framefit_hook_annotations

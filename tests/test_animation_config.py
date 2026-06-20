@@ -12,12 +12,18 @@ from PIL import Image
 import yaml
 
 from annotation_renderer.animation import resolve_animation_config
-from annotation_renderer.annotation_config import collect_image_labels
+from annotation_renderer.annotation_config import (
+    collect_angle_radius_callouts,
+    collect_dimension_chain,
+    collect_image_labels,
+)
 from annotation_renderer.config import ConfigError, DimensionSegment, resolve_render, validate_config_shape
-from annotation_renderer.config_resolution import build_expression_context
+from annotation_renderer.config_resolution import build_expression_context, resolve_style
 from annotation_renderer.overlay import DimensionChainOverlaySpec, draw_dimension_chains_overlay
 from annotation_renderer.scad_annotations import parse_scad_annotation_line, value_context_from_scad_annotations
 from annotation_renderer.scene_cli import (
+    annotation_bounds_quality_warnings,
+    audit_scad_annotation_bounds,
     blender_stage_cache_key,
     cache_enabled_for,
     cache_root_for,
@@ -40,6 +46,7 @@ from annotation_renderer.scene_cli import (
     scad_output_folder_name,
     selected_variants,
     scene_object_specs,
+    style_for_group,
     variant_config,
     write_annotation_discovery_output,
 )
@@ -269,6 +276,75 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(labels[0].label, "shell_slot_position = Back")
         self.assertEqual(labels[0].value_text, "Back")
 
+    def test_image_labels_accept_label_font_size_alias(self) -> None:
+        labels = collect_image_labels(
+            labels_config=[{"id": "mode", "label_font_size_px": 33}],
+            annotation_config={},
+            style_config={},
+            expression_context={},
+            value_context={},
+        )
+
+        self.assertEqual(labels[0].font_size_px, 33)
+
+    def test_explicit_annotation_color_overrides_type_style_for_dimensions(self) -> None:
+        annotations = [
+            parse_scad_annotation_line(
+                'ECHO: "OPENGRID_ANNOTATION_V1|id=body_width|kind=dimension|label=body_width|axis=x|value=80|start=0,0,0|end=80,0,0|basis=test"'
+            ),
+            parse_scad_annotation_line(
+                'ECHO: "OPENGRID_ANNOTATION_V1|id=body_depth|kind=dimension|label=body_depth|axis=y|value=40|start=0,0,0|end=0,40,0|basis=test"'
+            ),
+        ]
+
+        chain = collect_dimension_chain(
+            annotations=[annotation for annotation in annotations if annotation is not None],
+            chain_config={"ids": ["body_width", "body_depth"]},
+            style_config=resolve_style(
+                {
+                    "colors": {"body_width": "#123456"},
+                    "type_styles": {"mm": {"line_colors": ["#0000ff"]}},
+                }
+            ),
+        )
+
+        self.assertEqual(chain[0].color, "#123456")
+        self.assertEqual(chain[1].color, "#0000ff")
+
+    def test_explicit_annotation_color_overrides_type_style_for_angle_radius_callouts(self) -> None:
+        annotations = [
+            parse_scad_annotation_line(
+                'ECHO: "OPENGRID_ANNOTATION_V1|id=tip_radius|kind=radius|label=tip_radius|value=15|center=0,0,0|edge=15,0,0|basis=test"'
+            ),
+            parse_scad_annotation_line(
+                'ECHO: "OPENGRID_ANNOTATION_V1|id=tip_radius_extent|kind=arc|label=tip_radius|value=90|points=15,0,0;10,10,0;0,15,0|basis=test"'
+            ),
+        ]
+
+        callouts = collect_angle_radius_callouts(
+            annotations=[annotation for annotation in annotations if annotation is not None],
+            callout_config={
+                "arc_id": "tip_radius_extent",
+                "radius_id": "tip_radius",
+                "angle_id": "tip_angle",
+            },
+            style_config=resolve_style(
+                {
+                    "colors": {
+                        "tip_angle": "#123456",
+                        "tip_radius": "#654321",
+                    },
+                    "type_styles": {
+                        "angle": {"line_colors": ["#dc2626"]},
+                        "radius": {"line_colors": ["#dc2626"]},
+                    },
+                }
+            ),
+        )
+
+        self.assertEqual(callouts[0].arc_color, "#123456")
+        self.assertEqual(callouts[0].radius_color, "#654321")
+
     def test_scad_value_context_keeps_string_values(self) -> None:
         annotation = parse_scad_annotation_line(
             'ECHO: "OPENGRID_ANNOTATION_V1|id=drawer_context|kind=context|values=shell_slot_position=Back;horizontal_grids=5;bad=undef"'
@@ -327,10 +403,17 @@ class AnimationConfigTests(unittest.TestCase):
         hook_variant = selected_variants(config, "openconnect_sturdy_hook_default")[0]
         hook_config = variant_config(config, hook_variant)
         self.assertEqual(hook_config["scene"]["transform"]["rotation_deg"], [90, 0, -90])
+        self.assertEqual(
+            hook_config["annotations"]["angle_radius_callouts"][0]["radius_id"],
+            "circular_corner_radius",
+        )
 
         shelf_variant = selected_variants(config, "openconnect_sturdy_shelf_default")[0]
         shelf_config = variant_config(config, shelf_variant)
         self.assertEqual(shelf_config["scene"]["transform"]["rotation_deg"], [90, 0, -90])
+        self.assertEqual(shelf_config["annotations"]["chains"][0]["ids"], ["depth_grids"])
+        self.assertEqual(shelf_config["annotations"]["chains"][1]["ids"], ["horizontal_grids"])
+        self.assertEqual(shelf_config["annotations"]["aliases"]["horizontal_grids"], "horizontal_grids x 28mm")
 
         horizontal_holder_variant = selected_variants(config, "openconnect_horizontal_holder_default")[0]
         horizontal_holder_config = variant_config(config, horizontal_holder_variant)
@@ -433,6 +516,20 @@ class AnimationConfigTests(unittest.TestCase):
             Path("annotation_renderer/configs/openconnect_vasemode_container_default.yaml").resolve(),
         )
 
+    def test_render_shortcut_accepts_named_config_files(self) -> None:
+        output = self.run_cli("render", "openconnect_standard_snap_grid_copies", "--validate-only")
+
+        self.assertIn("Config OK: annotation_renderer/configs/openconnect_standard_snap_grid_copies.yaml", output)
+        self.assertIn("Object:    openconnect_standard_snap_0_0_0 -> annotation_renderer/assets/openconnect_standard_snap.stl", output)
+        self.assertEqual(
+            default_config_for_model("openconnect_standard_snap_grid_copies"),
+            Path("annotation_renderer/configs/openconnect_standard_snap_grid_copies.yaml").resolve(),
+        )
+        self.assertEqual(
+            default_config_for_model("openconnect_standard_snap_grid_copies.yaml"),
+            Path("annotation_renderer/configs/openconnect_standard_snap_grid_copies.yaml").resolve(),
+        )
+
     def test_set_override_supports_array_indexes(self) -> None:
         config = load_config(
             Path("annotation_renderer/configs/openconnect_general_holder_default.yaml"),
@@ -465,6 +562,40 @@ class AnimationConfigTests(unittest.TestCase):
 
         self.assertEqual(len(warnings), 1)
         self.assertIn("label overlap", warnings[0])
+
+    def test_annotation_bounds_audit_reports_far_outside_anchor_points(self) -> None:
+        annotation = parse_scad_annotation_line(
+            'ECHO: "OPENGRID_ANNOTATION_V1|id=depth_grids|kind=dimension|label=depth_grids|axis=y|value=56|start=10,10,10|end=10,-40,10|basis=test"'
+        )
+        self.assertIsNotNone(annotation)
+
+        audit = audit_scad_annotation_bounds(
+            [annotation],
+            {
+                "min": {"x": 0.0, "y": 0.0, "z": 0.0},
+                "max": {"x": 20.0, "y": 20.0, "z": 20.0},
+            },
+            tolerance_mm=2.0,
+        )
+
+        self.assertEqual(len(audit["outliers"]), 1)
+        self.assertEqual(audit["outliers"][0]["id"], "depth_grids")
+        self.assertEqual(audit["outliers"][0]["field"], "end_mm")
+        self.assertIn("depth_grids.end_mm", audit["warnings"][0])
+
+    def test_annotation_bounds_quality_warnings_prefix_object_id(self) -> None:
+        warnings = annotation_bounds_quality_warnings(
+            [
+                {
+                    "id": "model",
+                    "annotation_bounds_audit": {
+                        "warnings": ["annotation anchor outside STL bounds: depth_grids.end_mm is 40.0mm outside"],
+                    },
+                }
+            ]
+        )
+
+        self.assertEqual(warnings, ["object model: annotation anchor outside STL bounds: depth_grids.end_mm is 40.0mm outside"])
 
     def test_doctor_check_format_is_machine_scannable(self) -> None:
         self.assertEqual(format_doctor_check(True, "OpenSCAD", "C:/OpenSCAD/openscad.exe"), "[OK] OpenSCAD: C:/OpenSCAD/openscad.exe")
@@ -630,10 +761,11 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("    - compartment_bottom_depth (axis=y", output)
         self.assertIn("    - holder_vertical_divider_thickness (axis=x", output)
         self.assertIn("    - holder_horizontal_divider_thickness (axis=y", output)
-        self.assertIn("    - holder_height (axis=z", output)
-        self.assertIn("    - holder_tilt_angle_radius", output)
-        self.assertIn("    - holder_tilt_angle_extent", output)
+        self.assertIn("    - compartment_height (axis=z", output)
         self.assertIn("    - holder_width_mode", output)
+        self.assertNotIn("    - holder_height (axis=z", output)
+        self.assertNotIn("    - holder_tilt_angle_radius", output)
+        self.assertNotIn("    - holder_tilt_angle_extent", output)
         self.assertNotIn("    - holder_width (axis=", output)
         self.assertNotIn("    - holder_depth (axis=", output)
         self.assertNotIn("    - body_height (axis=", output)
@@ -646,8 +778,12 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(tilt_anchor["basis"], "bottom_rear_side_corner_for_holder_tilt_angle")
         tilt_radius = next(annotation for annotation in annotations if annotation["id"] == "holder_tilt_angle_radius" and annotation["kind"] == "radius")
         self.assertEqual(tilt_radius["basis"], "bottom_holder_tilt_angle_anchor_to_tilt_wedge_midpoint")
+        self.assertTrue(tilt_radius["internal"])
         tilt_arc = next(annotation for annotation in annotations if annotation["id"] == "holder_tilt_angle_extent" and annotation["kind"] == "arc")
         self.assertEqual(tilt_arc["basis"], "tilt_wedge_side_arc_for_holder_tilt_angle")
+        self.assertTrue(tilt_arc["internal"])
+        compartment_height = next(annotation for annotation in annotations if annotation["id"] == "compartment_height" and annotation["kind"] == "dimension")
+        self.assertEqual(compartment_height["basis"], "usable_compartment_height_from_compartment_height")
         back_offset = next(annotation for annotation in annotations if annotation["id"] == "holder_back_offset" and annotation["kind"] == "dimension")
         self.assertEqual(back_offset["basis"], "extra_depth_added_by_holder_back_offset")
         bottom_width = next(annotation for annotation in annotations if annotation["id"] == "compartment_bottom_width" and annotation["kind"] == "dimension")
@@ -674,10 +810,10 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("basis=side_cutout_front_margin_to_visible_cutout_edge", output)
         self.assertIn("basis=side_cutout_top_margin_to_visible_cutout_edge", output)
         self.assertIn("    - item_corner_rounding", output)
-        self.assertIn("    - item_corner_rounding_extent", output)
-        self.assertIn("    - og_standard_thickness", output)
         self.assertIn("    - holder_slot_position", output)
         self.assertIn("    - slot_slide_direction", output)
+        self.assertNotIn("    - og_standard_thickness", output)
+        self.assertNotIn("    - item_corner_rounding_extent", output)
         self.assertNotIn("    - final_slot_h_grids", output)
         self.assertNotIn("    - final_slot_v_grids", output)
         self.assertNotIn("    - holder_width_edge", output)
@@ -695,22 +831,39 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("    - ocvase_linewidth (axis=x", output)
         self.assertIn("    - label_width (axis=x", output)
         self.assertIn("when=label_holder_type != \"None\"", output)
-        self.assertIn("    - vase_tilt_angle_radius", output)
-        self.assertIn("    - vase_tilt_angle_extent", output)
         self.assertIn("    - vase_surface_texture", output)
         self.assertIn("    - label_holder_type", output)
+        self.assertNotIn("    - vase_tilt_angle_radius", output)
+        self.assertNotIn("    - vase_tilt_angle_extent", output)
         self.assertNotIn("    - vase_width (axis=", output)
         self.assertNotIn("    - vase_height (axis=", output)
 
         annotations = discover_scad_source_annotations(Path("openconnect_vasemode_container.scad"), defines={})
         tilt_radius = next(annotation for annotation in annotations if annotation["id"] == "vase_tilt_angle_radius")
         self.assertEqual(tilt_radius["basis"], "vase_tilt_angle_anchor_to_arc_midpoint")
+        self.assertTrue(tilt_radius["internal"])
         label_width = next(
             annotation
             for annotation in annotations
             if annotation["id"] == "label_width" and annotation["kind"] == "dimension"
         )
         self.assertEqual(label_width["conditions"], ['label_holder_type != "None"'])
+
+    def test_sturdy_shelf_discovery_uses_grid_parameter_ids(self) -> None:
+        output = self.run_cli("--discover-annotations", "openconnect_sturdy_shelf.scad")
+
+        self.assertIn("    - horizontal_grids (axis=z", output)
+        self.assertIn("    - depth_grids (axis=x", output)
+        self.assertNotIn("    - shelf_width (axis=", output)
+        self.assertNotIn("    - shelf_depth (axis=", output)
+
+        annotations = discover_scad_source_annotations(Path("openconnect_sturdy_shelf.scad"), defines={})
+        horizontal_grids = next(
+            annotation
+            for annotation in annotations
+            if annotation["id"] == "horizontal_grids" and annotation["kind"] == "dimension"
+        )
+        self.assertEqual(horizontal_grids["basis"], "left_to_right_width_from_horizontal_grids")
 
     def test_discovery_summary_json_is_compact_parameter_data(self) -> None:
         annotation = parse_scad_annotation_line(
@@ -788,6 +941,27 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("line_offset_px=0", annotations)
         self.assertIn("label_offset_px=28", annotations)
 
+    def test_sturdy_hook_default_exposes_circular_corner_radius_callout(self) -> None:
+        annotations = self.run_cli("--list-annotations", "openconnect_sturdy_hook_default")
+
+        self.assertIn("angle_radius: circular_corner_radius_detail", annotations)
+        self.assertIn("radius_label_offset_px=26", annotations)
+
+    def test_new_config_preserves_sturdy_hook_corner_radius_callout(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "sturdy_hook_custom.yaml"
+            self.run_cli("new-config", "openconnect_sturdy_hook", "--out", str(output_path))
+            template = yaml.safe_load(output_path.read_text(encoding="utf-8"))
+
+        callout = template["annotations"]["angle_radius_callouts"][0]
+        self.assertEqual(callout["id"], "circular_corner_radius_detail")
+        self.assertEqual(callout["arc_id"], "circular_corner_radius_extent")
+        self.assertEqual(callout["radius_id"], "circular_corner_radius")
+        self.assertTrue(callout["optional"])
+        self.assertFalse(callout["show_angle_label"])
+        self.assertEqual(callout["radius_label_offset_px"], 26)
+        self.assertEqual(callout["angle_fill_alpha"], 28)
+
     def test_new_config_writes_valid_editable_template(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             output_path = Path(temp_dir) / "holder_custom.json"
@@ -832,7 +1006,6 @@ class AnimationConfigTests(unittest.TestCase):
                         f"  blend_file: {json.dumps(scene_file)}",
                         "  objects:",
                         "  - id: model",
-                        "    target_object: placeholder",
                         "    model:",
                         "      scad_file: openconnect_general_holder.scad",
                         "      defines:",
@@ -870,7 +1043,6 @@ class AnimationConfigTests(unittest.TestCase):
                         f"  blend_file: {json.dumps(scene_file)}",
                         "  objects:",
                         "  - id: model",
-                        "    target_object: placeholder",
                         "    model:",
                         "      $constant: holder_yaml_model",
                         "",
@@ -1095,7 +1267,7 @@ class AnimationConfigTests(unittest.TestCase):
                     {
                         "id": "model",
                         "stl_path": str(stl_file),
-                        "target_object": "placeholder",
+                        "target_object": "model",
                         "transform": {"location": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": [1, 1, 1]},
                     }
                 ],
@@ -1183,7 +1355,7 @@ class AnimationConfigTests(unittest.TestCase):
                 {
                     "id": "model",
                     "stl_path": "model.stl",
-                    "target_object": "placeholder",
+                    "target_object": "model",
                     "replace_target_object": True,
                     "inherit_target_transform": False,
                     "transform": {"location": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": [1, 1, 1]},
@@ -1222,7 +1394,7 @@ class AnimationConfigTests(unittest.TestCase):
                 {
                     "id": "model",
                     "stl_path": "model.stl",
-                    "target_object": "placeholder",
+                    "target_object": "model",
                     "replace_target_object": True,
                     "inherit_target_transform": False,
                     "transform": {"location": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": [1, 1, 1]},
@@ -1277,6 +1449,24 @@ class AnimationConfigTests(unittest.TestCase):
         invalid_group["annotations"] = {"chains": [{"ids": ["span"], "label_font_size_px": 0}]}
         with self.assertRaisesRegex(ConfigError, "annotations.chains\\[0\\].label_font_size_px must be at least 1"):
             validate_config_shape(invalid_group)
+
+        invalid_group_alias = dict(base_config)
+        invalid_group_alias["annotations"] = {"chains": [{"ids": ["span"], "font_size_px": 0}]}
+        with self.assertRaisesRegex(ConfigError, "annotations.chains\\[0\\].font_size_px must be at least 1"):
+            validate_config_shape(invalid_group_alias)
+
+    def test_annotation_font_size_aliases_resolve_to_label_font_size(self) -> None:
+        self.assertEqual(resolve_style({"font_size_px": 34})["label_font_size_px"], 34)
+        self.assertEqual(
+            style_for_group({"label_font_size_px": 20}, {"font_size_px": 35})["label_font_size_px"],
+            35,
+        )
+        self.assertEqual(
+            style_for_group({"label_font_size_px": 20}, {"font_size_px": 35, "label_font_size_px": 28})[
+                "label_font_size_px"
+            ],
+            28,
+        )
 
     def test_dimension_chains_use_each_chain_style_for_label_metadata(self) -> None:
         projection = {
@@ -1410,6 +1600,9 @@ class AnimationConfigTests(unittest.TestCase):
 
         render_properties = schema["$defs"]["renderConfig"]["anyOf"][1]["properties"]
         style_properties = schema["$defs"]["annotationStyle"]["anyOf"][1]["properties"]
+        annotation_group_properties = schema["$defs"]["annotationGroup"]["anyOf"][0]["properties"]
+        angle_radius_properties = schema["$defs"]["angleRadiusCallout"]["anyOf"][0]["properties"]
+        image_label_properties = schema["$defs"]["imageLabel"]["anyOf"][0]["properties"]
         variant_properties = schema["properties"]["variants"]["items"]["properties"]
         scene_default_properties = schema["$defs"]["sceneObjectDefaults"]["anyOf"][0]["properties"]
         scene_object_properties = schema["$defs"]["sceneObject"]["anyOf"][0]["properties"]
@@ -1438,6 +1631,10 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("material_overrides", render_properties)
         self.assertEqual(render_properties["output_mode"]["enum"], ["minimal", "standard", "debug"])
         self.assertIn("auto_adjust_labels", style_properties)
+        self.assertIn("font_size_px", style_properties)
+        self.assertIn("font_size_px", annotation_group_properties)
+        self.assertIn("font_size_px", angle_radius_properties)
+        self.assertIn("label_font_size_px", image_label_properties)
         self.assertIn("cache", render_properties)
         self.assertIn("cache_dir", render_properties)
         self.assertIn("variant_name", schema["properties"])

@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import shutil
+import struct
 import subprocess
 import sys
 from copy import deepcopy
@@ -57,6 +58,7 @@ from annotation_renderer.config_resolution import (
     resolve_constant_references,
     resolve_scene_transform,
     resolve_style,
+    normalize_style_aliases,
     scene_inherits_target_transform,
     vector2,
     vector3,
@@ -105,6 +107,7 @@ DEFAULT_MODEL_CONFIG_PATH = UTILITY_ROOT / "configs" / "model_defaults.yaml"
 DISCOVERY_ACTIONS = ("list_models", "describe", "list_annotations", "new_config")
 COMMANDS = ("render", "doctor", "discover", "new-config", "list-models", "describe", "list-annotations")
 OUTPUT_MODES = ("minimal", "standard", "debug")
+CONFIG_SHORTCUT_SUFFIXES = (".yaml", ".yml", ".json")
 CAMERA_VIEW_PRESETS = {
     "front_left": {"camera_view": "front", "camera_orbit_deg": [-35, 8], "camera_distance_scale": 1.08},
     "front_right": {"camera_view": "front", "camera_orbit_deg": [35, 8], "camera_distance_scale": 1.08},
@@ -309,9 +312,10 @@ def image_label_items_from_config(annotation_config: Mapping[str, object]) -> li
 
 def style_for_group(style_config: Mapping[str, object], group_config: Mapping[str, object]) -> dict[str, object]:
     merged = dict(style_config)
+    normalized_group_config = normalize_style_aliases(group_config)
     for key in GROUP_STYLE_KEYS:
-        if key in group_config:
-            merged[key] = group_config[key]
+        if key in normalized_group_config:
+            merged[key] = normalized_group_config[key]
     return merged
 
 
@@ -379,24 +383,50 @@ def model_name_from_shortcut(raw_name: str) -> str:
     return name
 
 
+def config_name_from_shortcut(raw_name: str) -> str:
+    stripped = raw_name.strip()
+    name = Path(stripped).stem if stripped.lower().endswith(CONFIG_SHORTCUT_SUFFIXES) else stripped
+    name = sanitize_name(name)
+    if not name:
+        raise ConfigError("render requires a config or SCAD model name, for example `render openconnect_general_holder`")
+    return name
+
+
+def named_config_path(shortcut: str) -> Path | None:
+    for suffix in CONFIG_SHORTCUT_SUFFIXES:
+        config_path = UTILITY_ROOT / "configs" / f"{shortcut}{suffix}"
+        if config_path.exists():
+            return config_path.resolve()
+    return None
+
+
 def available_render_shortcuts() -> list[str]:
     shortcuts: list[str] = []
-    for path in sorted((UTILITY_ROOT / "configs").glob("*_default.yaml")):
-        name = path.stem[: -len("_default")]
+    for path in sorted((UTILITY_ROOT / "configs").glob("*.y*ml")) + sorted((UTILITY_ROOT / "configs").glob("*.json")):
+        name = path.stem
+        if name in {"animation_presets", "base_scene", "gallery_defaults"}:
+            continue
+        if name.endswith("_default"):
+            name = name[: -len("_default")]
         if name not in shortcuts:
             shortcuts.append(name)
     return shortcuts
 
 
 def default_config_for_model(model_name: str) -> Path:
+    if not model_name.strip().lower().endswith(".scad"):
+        config_shortcut = config_name_from_shortcut(model_name)
+        config_path = named_config_path(config_shortcut)
+        if config_path is not None:
+            return config_path
     shortcut = model_name_from_shortcut(model_name)
     config_path = UTILITY_ROOT / "configs" / f"{shortcut}_default.yaml"
     if config_path.exists():
         return config_path.resolve()
     available = ", ".join(available_render_shortcuts()) or "none"
     raise ConfigError(
-        f"Unknown render model {model_name!r}. Expected annotation_renderer/configs/{shortcut}_default.yaml. "
-        f"Available models: {available}"
+        f"Unknown render shortcut {model_name!r}. Expected annotation_renderer/configs/{shortcut}.yaml "
+        f"or annotation_renderer/configs/{shortcut}_default.yaml. Available shortcuts: {available}"
     )
 
 
@@ -1003,6 +1033,10 @@ def editable_annotations_template(config: Mapping[str, object]) -> dict[str, obj
                 "radius_label_offset_px",
                 "angle_label_tangent_offset_px",
                 "radius_label_tangent_offset_px",
+                "show_label",
+                "show_angle_label",
+                "show_radius_label",
+                "angle_fill_alpha",
                 "offset_px",
                 "position",
                 "show_value",
@@ -1428,6 +1462,143 @@ def openscad_stage_cache_key(
     )
 
 
+STL_BOUND_AXES = ("x", "y", "z")
+ANNOTATION_BOUNDS_TOLERANCE_MM = 2.0
+
+
+def read_stl_bounds(stl_path: Path) -> dict[str, dict[str, float]] | None:
+    try:
+        data = stl_path.read_bytes()
+    except FileNotFoundError:
+        return None
+
+    vertices: list[tuple[float, float, float]] = []
+    if len(data) >= 84:
+        triangle_count = struct.unpack_from("<I", data, 80)[0]
+        binary_length = 84 + triangle_count * 50
+        if binary_length == len(data):
+            offset = 84
+            for _ in range(triangle_count):
+                offset += 12  # normal
+                for _ in range(3):
+                    vertices.append(struct.unpack_from("<fff", data, offset))
+                    offset += 12
+                offset += 2  # attribute byte count
+
+    if not vertices:
+        text = data.decode("utf-8", errors="ignore")
+        for line in text.splitlines():
+            parts = line.strip().split()
+            if len(parts) != 4 or parts[0].lower() != "vertex":
+                continue
+            try:
+                vertices.append((float(parts[1]), float(parts[2]), float(parts[3])))
+            except ValueError:
+                continue
+
+    if not vertices:
+        return None
+
+    mins = {axis: min(vertex[index] for vertex in vertices) for index, axis in enumerate(STL_BOUND_AXES)}
+    maxs = {axis: max(vertex[index] for vertex in vertices) for index, axis in enumerate(STL_BOUND_AXES)}
+    return {"min": mins, "max": maxs}
+
+
+def annotation_vector_tuple(value: object) -> tuple[float, float, float] | None:
+    if isinstance(value, Mapping):
+        try:
+            return (float(value["x"]), float(value["y"]), float(value["z"]))
+        except (KeyError, TypeError, ValueError):
+            return None
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)) and len(value) == 3:
+        try:
+            return (float(value[0]), float(value[1]), float(value[2]))
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
+def iter_annotation_points(annotation: Mapping[str, object]) -> list[tuple[str, tuple[float, float, float]]]:
+    points: list[tuple[str, tuple[float, float, float]]] = []
+    for field in ("start_mm", "end_mm", "anchor_mm", "center_mm", "edge_mm"):
+        vector = annotation_vector_tuple(annotation.get(field))
+        if vector is not None:
+            points.append((field, vector))
+    point_list = annotation.get("points_mm")
+    if isinstance(point_list, Sequence) and not isinstance(point_list, (str, bytes)):
+        for index, value in enumerate(point_list):
+            vector = annotation_vector_tuple(value)
+            if vector is not None:
+                points.append((f"points_mm[{index}]", vector))
+    return points
+
+
+def point_outside_bounds_mm(point: tuple[float, float, float], bounds: Mapping[str, Mapping[str, float]]) -> float:
+    mins = bounds.get("min", {})
+    maxs = bounds.get("max", {})
+    outside = 0.0
+    for index, axis in enumerate(STL_BOUND_AXES):
+        try:
+            min_value = float(mins[axis])
+            max_value = float(maxs[axis])
+        except (KeyError, TypeError, ValueError):
+            continue
+        coordinate = point[index]
+        if coordinate < min_value:
+            outside = max(outside, min_value - coordinate)
+        elif coordinate > max_value:
+            outside = max(outside, coordinate - max_value)
+    return outside
+
+
+def audit_scad_annotation_bounds(
+    annotations: Sequence[Mapping[str, object]],
+    bounds: Mapping[str, Mapping[str, float]] | None,
+    *,
+    tolerance_mm: float = ANNOTATION_BOUNDS_TOLERANCE_MM,
+    max_outliers: int = 20,
+) -> dict[str, object]:
+    audit: dict[str, object] = {
+        "bounds_mm": bounds,
+        "tolerance_mm": tolerance_mm,
+        "outliers": [],
+        "warnings": [],
+    }
+    if bounds is None:
+        return audit
+
+    outliers: list[dict[str, object]] = []
+    for annotation in annotations:
+        if annotation.get("kind") == "context":
+            continue
+        annotation_id = str(annotation.get("id") or "<unknown>")
+        annotation_kind = str(annotation.get("kind") or "feature")
+        for field, point in iter_annotation_points(annotation):
+            outside_mm = point_outside_bounds_mm(point, bounds)
+            if outside_mm <= tolerance_mm:
+                continue
+            outliers.append(
+                {
+                    "id": annotation_id,
+                    "kind": annotation_kind,
+                    "field": field,
+                    "outside_mm": round(outside_mm, 3),
+                    "point_mm": {axis: point[index] for index, axis in enumerate(STL_BOUND_AXES)},
+                }
+            )
+
+    outliers.sort(key=lambda item: float(item["outside_mm"]), reverse=True)
+    audit["outliers"] = outliers[:max_outliers]
+    audit["warnings"] = [
+        (
+            "annotation anchor outside STL bounds: "
+            f"{outlier['id']}.{outlier['field']} is {outlier['outside_mm']}mm outside"
+        )
+        for outlier in outliers[:max_outliers]
+    ]
+    return audit
+
+
 def export_object_records(
     *,
     object_specs: Sequence[Mapping[str, object]],
@@ -1512,6 +1683,8 @@ def export_object_records(
             if object_transform is None:
                 raise ConfigError(f"scene.objects[{object_id}].transform is required when inherit_target_transform is false")
 
+        stl_bounds = read_stl_bounds(stl_path)
+        annotation_bounds_audit = audit_scad_annotation_bounds(scad_annotations, stl_bounds)
         object_record = dict(object_spec)
         object_record.update(
             {
@@ -1521,6 +1694,8 @@ def export_object_records(
                 "scad_annotations": scad_annotations,
                 "scad_context": scad_context,
                 "scad_value_context": scad_value_context,
+                "stl_bounds_mm": stl_bounds,
+                "annotation_bounds_audit": annotation_bounds_audit,
                 "expression_context": object_context,
                 "transform": object_transform,
                 "cache": cache_info,
@@ -2164,6 +2339,22 @@ def overlay_quality_warnings(overlays: Mapping[str, object], *, max_warnings: in
     return warnings
 
 
+def annotation_bounds_quality_warnings(object_records: Sequence[Mapping[str, object]], *, max_warnings: int = 10) -> list[str]:
+    warnings: list[str] = []
+    for record in object_records:
+        audit = record.get("annotation_bounds_audit")
+        if not isinstance(audit, Mapping):
+            continue
+        audit_warnings = audit.get("warnings")
+        if not isinstance(audit_warnings, Sequence) or isinstance(audit_warnings, (str, bytes)):
+            continue
+        for warning in audit_warnings:
+            warnings.append(f"object {record['id']}: {warning}")
+            if len(warnings) >= max_warnings:
+                return warnings
+    return warnings
+
+
 def build_render_metadata(
     *,
     job_name: str,
@@ -2224,6 +2415,8 @@ def build_render_metadata(
                     "replace_target_object": bool(record["replace_target_object"]),
                     "material_source_object": record.get("material_source_object"),
                     "material": record.get("material"),
+                    "stl_bounds_mm": record.get("stl_bounds_mm"),
+                    "annotation_bounds_audit": record.get("annotation_bounds_audit"),
                     "cache": record.get("cache"),
                 }
                 for record in object_records
@@ -2233,6 +2426,7 @@ def build_render_metadata(
         "style": style_config,
         "annotation_object": annotation_state["annotation_object_id"],
         "scad_annotations": annotation_state["scad_annotations"],
+        "warnings": list(overlays.get("warnings", [])) if isinstance(overlays.get("warnings"), Sequence) else [],
         "chains": [
             [
                 {
@@ -2455,7 +2649,8 @@ def render_config(
         style_config=style_config,
         annotation_state=annotation_state,
     )
-    warnings = overlay_quality_warnings(overlays)
+    warnings = annotation_bounds_quality_warnings(object_records)
+    warnings.extend(overlay_quality_warnings(overlays))
     if warnings:
         overlays["warnings"] = warnings
 

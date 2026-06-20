@@ -3,6 +3,35 @@ function _fmt_annotation_vec_list(points, index=0) =
   index >= len(points) ? "" :
   str(index == 0 ? "" : ";", _fmt_annotation_vec(points[index]), _fmt_annotation_vec_list(points, index + 1));
 
+function annot_translate(point, offset) = [
+  point[0] + offset[0],
+  point[1] + offset[1],
+  point[2] + offset[2],
+];
+function annot_xrot(point, angle) = [
+  point[0],
+  point[1] * cos(angle) - point[2] * sin(angle),
+  point[1] * sin(angle) + point[2] * cos(angle),
+];
+function annot_yrot(point, angle) = [
+  point[0] * cos(angle) + point[2] * sin(angle),
+  point[1],
+  -point[0] * sin(angle) + point[2] * cos(angle),
+];
+function annot_zrot(point, angle) = [
+  point[0] * cos(angle) - point[1] * sin(angle),
+  point[0] * sin(angle) + point[1] * cos(angle),
+  point[2],
+];
+function annot_translate_points(points, offset) = [for (point = points) annot_translate(point, offset)];
+function annot_xrot_points(points, angle) = [for (point = points) annot_xrot(point, angle)];
+function annot_yrot_points(points, angle) = [for (point = points) annot_yrot(point, angle)];
+function annot_zrot_points(points, angle) = [for (point = points) annot_zrot(point, angle)];
+function annot_transform_point(point, translate=[0, 0, 0], rotate=[0, 0, 0]) =
+  annot_translate(annot_zrot(annot_yrot(annot_xrot(point, rotate[0]), rotate[1]), rotate[2]), translate);
+function annot_transform_points(points, translate=[0, 0, 0], rotate=[0, 0, 0]) =
+  [for (point = points) annot_transform_point(point, translate=translate, rotate=rotate)];
+
 function _fmt_context_values(names, values, index=0) =
   index >= len(names) ? "" :
   str(index == 0 ? "" : ";", names[index], "=", values[index], _fmt_context_values(names, values, index + 1));

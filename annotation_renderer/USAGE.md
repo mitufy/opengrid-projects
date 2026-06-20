@@ -29,6 +29,13 @@ The model name maps to the full-name default config:
 openconnect_general_holder -> annotation_renderer\configs\openconnect_general_holder_default.yaml
 ```
 
+`render` also accepts the stem of any config file in `annotation_renderer\configs`,
+so custom configs can be rendered without `--config`:
+
+```powershell
+.\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_sturdy_hook_angle
+```
+
 Validate the resolved config without rendering:
 
 ```powershell
@@ -156,7 +163,6 @@ job_name: my_general_holder
 scene:
   objects:
   - id: model
-    target_object: placeholder
     model:
       scad_file: openconnect_general_holder.scad
       defines:

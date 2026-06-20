@@ -265,7 +265,7 @@ module emit_sturdy_hook_annotations() {
   );
   emit_dimension_annotation(
     id="hook_vertical_grids",
-    label=str("hook_vertical_grids x ", OG_TILE_SIZE, "mm"),
+    label="hook_vertical_grids",
     axis="y",
     value=hook_stem_height,
     start=[0, 0, hook_side_annotation_z],
@@ -302,7 +302,7 @@ module emit_sturdy_hook_annotations() {
   if (truss_vertical_grids > 0) {
     emit_dimension_annotation(
       id="truss_vertical_grids",
-      label=str("truss_vertical_grids x ", OG_TILE_SIZE, "mm"),
+      label="truss_vertical_grids",
       axis="y",
       value=truss_vertical_grids * OG_TILE_SIZE,
       start=[0, -hook_stem_height, hook_side_annotation_z],

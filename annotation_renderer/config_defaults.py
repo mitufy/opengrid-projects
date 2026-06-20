@@ -16,6 +16,7 @@ DEFAULT_LINE_COLORS = {
     "shelf_width": "#6f7f2f",
     "shelf_back_thickness": "#8b6f2f",
     "shelf_bottom_thickness": "#7f4f8f",
+    "compartment_height": "#000000",
     "horizontal_grids": "#2f7f8f",
     "vertical_grids": "#7f4f8f",
     "depth_grids": "#6f7f2f",
@@ -40,11 +41,11 @@ DEFAULT_LINE_COLORS = {
 }
 DEFAULT_TYPE_STYLES: dict[str, dict[str, object]] = {
     "grids": {
-        "line_colors": ["#000000"],
+        "line_colors": ["#2563eb"],
         "font": "sans",
     },
     "mm": {
-        "line_colors": ["#2563eb"],
+        "line_colors": ["#000000"],
         "font": "sans",
     },
     "radius": {
@@ -99,6 +100,7 @@ RENDER_PRESETS: dict[str, dict[str, object]] = {
 STYLE_INTEGER_FIELDS: dict[str, tuple[int | None, int | None]] = {
     "line_alpha": (0, 255),
     "label_font_size_px": (1, None),
+    "font_size_px": (1, None),
     "label_outline_width_px": (0, None),
     "angle_fill_alpha": (0, 255),
     "image_label_title_fill_alpha": (0, 255),

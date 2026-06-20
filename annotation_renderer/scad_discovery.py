@@ -21,6 +21,8 @@ JSON_DISCOVERY_SUFFIXES = {".json"}
 YAML_DISCOVERY_SUFFIXES = {".yaml", ".yml"}
 TEXT_DISCOVERY_SUFFIXES = {".txt", ".text"}
 OBJECT_SELECTOR_DEFINES = {"generate_drawer_shell", "generate_drawer_container"}
+HIDDEN_SECTION_RE = re.compile(r"/\*\s*\[Hidden\]\s*\*/")
+TOP_LEVEL_ASSIGNMENT_RE = re.compile(r"^\s*([A-Za-z_$][A-Za-z0-9_$]*)\s*=")
 PARAMETER_SECTIONS = (
     ("dimension", "dimension parameters", "add to annotations.chains[].ids"),
     (
@@ -270,6 +272,22 @@ def scad_string_literals(value: str) -> list[str]:
     return literals
 
 
+def scad_customizer_parameter_names(source: str) -> frozenset[str] | None:
+    hidden_match = HIDDEN_SECTION_RE.search(source)
+    if hidden_match is None:
+        return None
+    visible_source = strip_scad_comments(source[: hidden_match.start()])
+    names: set[str] = set()
+    for line in visible_source.splitlines():
+        match = TOP_LEVEL_ASSIGNMENT_RE.match(line)
+        if match is None:
+            continue
+        name = match.group(1)
+        if not name.startswith("$"):
+            names.add(name)
+    return frozenset(names)
+
+
 def scad_call_named_arguments(call_body: str) -> dict[str, str]:
     arguments: dict[str, str] = {}
     for part in split_top_level(call_body):
@@ -297,7 +315,9 @@ def scad_boolean_define_allows_condition(condition: str, defines: Mapping[str, o
 
 
 def discover_scad_source_annotations(scad_file: Path, *, defines: Mapping[str, object]) -> tuple[dict[str, object], ...]:
-    source = strip_scad_comments(scad_file.read_text(encoding="utf-8"))
+    raw_source = scad_file.read_text(encoding="utf-8")
+    customizer_parameters = scad_customizer_parameter_names(raw_source)
+    source = strip_scad_comments(raw_source)
     conditional_ranges = scad_conditional_block_ranges(source)
     annotations: list[dict[str, object]] = []
     call_kinds = {
@@ -330,6 +350,8 @@ def discover_scad_source_annotations(scad_file: Path, *, defines: Mapping[str, o
             names = scad_string_literals(positional[1]) if len(positional) > 1 else []
             for name in names:
                 annotation: dict[str, object] = {"id": name, "kind": "context", "source": source_id or "context"}
+                if customizer_parameters is not None and name not in customizer_parameters:
+                    annotation["internal"] = True
                 if conditions:
                     annotation["conditions"] = conditions
                 annotations.append(annotation)
@@ -342,6 +364,8 @@ def discover_scad_source_annotations(scad_file: Path, *, defines: Mapping[str, o
             "id": annotation_id,
             "kind": call_kinds[call_name],
         }
+        if customizer_parameters is not None and annotation_id not in customizer_parameters:
+            annotation["internal"] = True
         if conditions:
             annotation["conditions"] = conditions
         axis = scad_string_literal(arguments.get("axis", ""))
@@ -383,6 +407,8 @@ def context_parameter_entries(annotations: Sequence[Mapping[str, object]]) -> li
     seen: set[str] = set()
     for annotation in annotations:
         if annotation.get("kind") != "context":
+            continue
+        if annotation.get("internal"):
             continue
         source_id = str(annotation.get("id") or "")
         values = annotation.get("values")
@@ -437,6 +463,8 @@ def discovered_parameter_groups(annotations: Sequence[Mapping[str, object]]) -> 
     grouped: dict[str, list[Mapping[str, object]]] = {}
     supported_kinds = {kind for kind, _label, _hint in PARAMETER_SECTIONS}
     for annotation in annotations:
+        if annotation.get("internal"):
+            continue
         kind = str(annotation.get("kind", "feature"))
         if kind == "context":
             continue
