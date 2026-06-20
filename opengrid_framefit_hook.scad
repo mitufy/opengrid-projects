@@ -7,7 +7,6 @@ Inspired by David D's "openGrid - Minimal Hook". https://www.printables.com/mode
 Part of code is based on BlackjackDuck's "openGrid - Tile Generator". https://makerworld.com/en/models/1304337-opengrid-tile-generator
 */
 
-
 /*[Main Settings]*/
 vertical_grids = 1;
 //Recommended width range is 6~20mm. For hooks wider than 20mm, check out openConnect Sturdy Hook Generator.
@@ -137,7 +136,7 @@ tip_inner_fillet_cut_shape = difference(
 );
 
 diff() {
-  cuboid([hook_final_width, hook_final_back_thickness, hook_final_height], anchor=FRONT) {
+  cuboid([hook_final_width, hook_final_back_thickness, hook_final_height], anchor=FRONT + BOTTOM) {
     zcopies(spacing=OG_TILE_SIZE, n=vertical_grids)
       attach(FRONT, BOTTOM)
         frame_snap();
@@ -225,7 +224,7 @@ diff() {
         }
   }
   if (hook_corner_angle != 0)
-    tag("remove") down(hook_final_height / 2) left(hook_final_width / 2) back(hook_final_back_thickness) zrot(90) xrot(90) offset_sweep(mask2d_chamfer(hook_final_length, mask_angle=hook_corner_angle), height=hook_final_width, bottom=hook_side_chamfer_end, top=hook_side_chamfer_end);
+    tag("remove") left(hook_final_width / 2) back(hook_final_back_thickness) zrot(90) xrot(90) offset_sweep(mask2d_chamfer(hook_final_length, mask_angle=hook_corner_angle), height=hook_final_width, bottom=hook_side_chamfer_end, top=hook_side_chamfer_end);
 }
 module frame_snap(anchor = BOTTOM, spin = 0, orient = UP) {
   attachable(anchor, spin, orient, size=[OG_TILE_SIZE, OG_TILE_SIZE, framefit_snap_depth]) {

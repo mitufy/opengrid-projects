@@ -33,7 +33,7 @@ A wall-mounted shelf generator. It is "sturdy" because it is designed to be prin
 Customizable: type (standard/slim), size, thickness, truss length, edge styles, surface textures.
 
 #### openconnect_sturdy_hook [(online)](https://makerworld.com/en/models/2257476-openconnect-sturdy-hook-generator)
-A hook generator for openGrid. Like the sturdy shelf, it is printed on its side for maximum strength. Note its minimum width is 20mm. For thinner hooks, see `opengrid_framefit_hook_new` below.
+A hook generator for openGrid. Like the sturdy shelf, it is printed on its side for maximum strength. Note its minimum width is 20mm. For thinner hooks, see `opengrid_framefit_hook` below.
 Customizable: shape, size, radius, thickness, truss, thickness scaling.
 
 #### openconnect_general_holder
@@ -54,7 +54,7 @@ A generator for openGrid snaps and openConnect connectors. This file includes re
 #### opengrid_expanding_snap [(online)](https://makerworld.com/en/models/1412027-opengrid-self-expanding-snap)
 A simplified version of the parametric snap generator, focused solely on the **self-expanding snap**. Expand distance can be adjusted to suit different filaments.
 
-#### opengrid_framefit_hook_new [(online)](https://makerworld.com/en/models/1586090-opengrid-framefit-hook-generator)
+#### opengrid_framefit_hook [(online)](https://makerworld.com/en/models/1586090-opengrid-framefit-hook-generator)
 A generator for hooks that attach to the frame of an openGrid board, inspired by David’s [minimal hook](https://www.printables.com/model/1217962-opengrid-minimal-hook). Size, fillet, angle are all customizable.
 
 ---
