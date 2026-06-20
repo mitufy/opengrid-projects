@@ -127,7 +127,7 @@ truss_inner_height = truss_is_zero ? 0 : truss_height - ang_adj_to_hyp(truss_ang
 //END shelf parameters
 
 shelf_annotation_y = -bottom_shelf_back_height + final_shelf_bottom_thickness;
-shelf_annotation_z = shelf_width;
+shelf_annotation_z = 0;
 shelf_depth_annotation_y = shelf_annotation_y + OG_TILE_SIZE;
 shelf_width_annotation_x = shelf_back_thickness;
 shelf_width_annotation_y = shelf_annotation_y + OG_TILE_SIZE + shelf_back_thickness;
@@ -181,30 +181,30 @@ module emit_sturdy_shelf_annotations() {
     ]
   );
   emit_dimension_annotation(
-    id="shelf_depth",
-    label=str("depth_grids x ", OG_TILE_SIZE, "mm"),
+    id="depth_grids",
+    label="depth_grids",
     axis="x",
     value=shelf_depth,
     start=[0, shelf_depth_annotation_y, shelf_annotation_z],
     end=[shelf_depth, shelf_depth_annotation_y, shelf_annotation_z],
-    basis="front_to_back_depth"
+    basis="front_to_back_depth_from_depth_grids_or_custom_depth"
   );
   emit_dimension_annotation(
-    id="shelf_width",
-    label=str("horizontal_grids x ", OG_TILE_SIZE, "mm"),
+    id="horizontal_grids",
+    label="horizontal_grids",
     axis="z",
     value=shelf_width,
     start=[shelf_width_annotation_x, shelf_width_annotation_y, 0],
     end=[shelf_width_annotation_x, shelf_width_annotation_y, shelf_width],
-    basis="left_to_right_width"
+    basis="left_to_right_width_from_horizontal_grids"
   );
   emit_dimension_annotation(
     id="shelf_back_thickness",
     label="shelf_back_thickness",
     axis="x",
     value=shelf_back_thickness,
-    start=[0, top_vertical_grids * OG_TILE_SIZE, shelf_width],
-    end=[shelf_back_thickness, top_vertical_grids * OG_TILE_SIZE, shelf_width],
+    start=[0, top_vertical_grids * OG_TILE_SIZE, shelf_annotation_z],
+    end=[shelf_back_thickness, top_vertical_grids * OG_TILE_SIZE, shelf_annotation_z],
     basis="rear_lip_top_depth"
   );
   emit_dimension_annotation(
@@ -212,8 +212,8 @@ module emit_sturdy_shelf_annotations() {
     label="shelf_bottom_thickness",
     axis="y",
     value=final_shelf_bottom_thickness,
-    start=[shelf_depth, 0, shelf_width],
-    end=[shelf_depth, final_shelf_bottom_thickness, shelf_width],
+    start=[shelf_depth, 0, shelf_annotation_z],
+    end=[shelf_depth, final_shelf_bottom_thickness, shelf_annotation_z],
     basis="bottom_plate_thickness"
   );
   if (final_shelf_corner_fillet > EPS) {
@@ -221,8 +221,8 @@ module emit_sturdy_shelf_annotations() {
       id="shelf_corner_fillet",
       label="shelf_corner_fillet",
       value=final_shelf_corner_fillet,
-      center=[shelf_back_thickness + final_shelf_corner_fillet, bottom_shelf_back_height - final_shelf_corner_fillet, shelf_width],
-      edge=[shelf_back_thickness, bottom_shelf_back_height - final_shelf_corner_fillet, shelf_width],
+      center=[shelf_back_thickness + final_shelf_corner_fillet, bottom_shelf_back_height - final_shelf_corner_fillet, shelf_annotation_z],
+      edge=[shelf_back_thickness, bottom_shelf_back_height - final_shelf_corner_fillet, shelf_annotation_z],
       basis="upper_back_shelf_corner_fillet"
     );
   }
@@ -232,8 +232,8 @@ module emit_sturdy_shelf_annotations() {
       label="truss_beam_reach",
       axis="x",
       value=truss_depth,
-      start=[shelf_back_thickness, shelf_annotation_y, shelf_width],
-      end=[shelf_back_thickness + truss_depth, shelf_annotation_y, shelf_width],
+      start=[shelf_back_thickness, shelf_annotation_y, shelf_annotation_z],
+      end=[shelf_back_thickness + truss_depth, shelf_annotation_y, shelf_annotation_z],
       basis="bottom_truss_reach_from_back_wall"
     );
     emit_dimension_annotation(
@@ -241,8 +241,8 @@ module emit_sturdy_shelf_annotations() {
       label="truss_thickness",
       axis="x",
       value=truss_thickness,
-      start=[shelf_back_thickness, final_shelf_bottom_thickness, shelf_width],
-      end=[shelf_back_thickness + truss_thickness, final_shelf_bottom_thickness, shelf_width],
+      start=[shelf_back_thickness, final_shelf_bottom_thickness, shelf_annotation_z],
+      end=[shelf_back_thickness + truss_thickness, final_shelf_bottom_thickness, shelf_annotation_z],
       basis="nominal_truss_member_thickness"
     );
   }
@@ -252,8 +252,8 @@ module emit_sturdy_shelf_annotations() {
       label="truss_strut_interval",
       axis="x",
       value=truss_strut_interval,
-      start=[shelf_back_thickness + truss_strut_interval, final_shelf_bottom_thickness, shelf_width],
-      end=[shelf_back_thickness + truss_strut_interval * 2, final_shelf_bottom_thickness, shelf_width],
+      start=[shelf_back_thickness + truss_strut_interval, final_shelf_bottom_thickness, shelf_annotation_z],
+      end=[shelf_back_thickness + truss_strut_interval * 2, final_shelf_bottom_thickness, shelf_annotation_z],
       basis="nominal_spacing_between_vertical_truss_struts"
     );
   }
@@ -263,8 +263,8 @@ module emit_sturdy_shelf_annotations() {
       label="shelf_side_edge_depth",
       axis="z",
       value=shelf_side_edge_depth,
-      start=[shelf_depth, final_shelf_bottom_thickness, 0],
-      end=[shelf_depth, final_shelf_bottom_thickness, shelf_side_edge_depth],
+      start=[shelf_depth, final_shelf_bottom_thickness, shelf_annotation_z],
+      end=[shelf_depth, final_shelf_bottom_thickness, shelf_annotation_z + shelf_side_edge_depth],
       basis="nominal_side_edge_profile_depth"
     );
   }
@@ -274,8 +274,8 @@ module emit_sturdy_shelf_annotations() {
       label="shelf_front_edge_depth",
       axis="x",
       value=shelf_front_edge_depth,
-      start=[shelf_depth - shelf_front_edge_depth, final_shelf_bottom_thickness, shelf_width],
-      end=[shelf_depth, final_shelf_bottom_thickness, shelf_width],
+      start=[shelf_depth - shelf_front_edge_depth, final_shelf_bottom_thickness, shelf_annotation_z],
+      end=[shelf_depth, final_shelf_bottom_thickness, shelf_annotation_z],
       basis="nominal_front_edge_profile_depth"
     );
   }

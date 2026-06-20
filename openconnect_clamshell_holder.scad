@@ -334,7 +334,8 @@ module emit_horizontal_holder_annotations() {
   }
 }
 
-emit_horizontal_holder_annotations();
+if (generate_holder_part == "Both")
+  emit_horizontal_holder_annotations();
 
 //BEGIN holder generation
 up(generate_holder_part == "Both" ? holder_height / 2 : holder_width / 2)

@@ -42,6 +42,8 @@ constants:
       value: Rectangular
       show_value: true
   sturdy_hook_truss_detail_annotations:
+    aliases:
+      truss_vertical_grids: truss_vgrids x 28mm
     chains:
     - ids: [truss_vertical_grids]
       line_offset_px: 36
@@ -151,7 +153,6 @@ variants:
   scene:
     objects:
     - id: model
-      target_object: placeholder
       model:
         $constant: sturdy_hook_model
   annotations:
@@ -161,7 +162,6 @@ variants:
   scene:
     objects:
     - id: model
-      target_object: placeholder
       model:
         $constant: sturdy_hook_model
         defines:
@@ -173,7 +173,6 @@ variants:
   scene:
     objects:
     - id: model
-      target_object: placeholder
       model:
         $constant: sturdy_hook_model
         defines:
@@ -185,7 +184,6 @@ variants:
   scene:
     objects:
     - id: model
-      target_object: placeholder
       model:
         $constant: sturdy_shelf_model
   annotations:
@@ -195,7 +193,6 @@ variants:
   scene:
     objects:
     - id: model
-      target_object: placeholder
       model:
         $constant: sturdy_shelf_model
         defines:

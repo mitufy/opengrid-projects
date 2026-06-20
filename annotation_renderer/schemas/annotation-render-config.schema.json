@@ -1422,6 +1422,10 @@
               "type": "integer",
               "minimum": 1
             },
+            "font_size_px": {
+              "type": "integer",
+              "minimum": 1
+            },
             "label_color": {
               "type": "string"
             },
@@ -1539,6 +1543,10 @@
               "type": "integer",
               "minimum": 1
             },
+            "font_size_px": {
+              "type": "integer",
+              "minimum": 1
+            },
             "label_color": {
               "type": "string"
             },
@@ -1644,6 +1652,10 @@
             "font_size_px": {
               "type": "integer",
               "minimum": 1
+            },
+            "label_font_size_px": {
+              "type": "integer",
+              "minimum": 1
             }
           }
         },
@@ -1694,6 +1706,10 @@
               "type": "number"
             },
             "label_font_size_px": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "font_size_px": {
               "type": "integer",
               "minimum": 1
             },

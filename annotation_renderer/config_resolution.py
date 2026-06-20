@@ -107,7 +107,14 @@ def resolve_style(style_config: object) -> dict[str, object]:
     preset_name = str(style_config.get("preset", "makerworld_technical_light"))
     if preset_name not in STYLE_PRESETS:
         raise ConfigError(f"Unknown annotation style preset {preset_name!r}")
-    return deep_merge(STYLE_PRESETS[preset_name], style_config)
+    return deep_merge(STYLE_PRESETS[preset_name], normalize_style_aliases(style_config))
+
+
+def normalize_style_aliases(style_config: Mapping[str, object]) -> dict[str, object]:
+    normalized = dict(style_config)
+    if "font_size_px" in normalized and "label_font_size_px" not in normalized:
+        normalized["label_font_size_px"] = normalized["font_size_px"]
+    return normalized
 
 
 def annotation_parameter_type(annotation_id: str, *, kind: str = "dimension") -> str:
