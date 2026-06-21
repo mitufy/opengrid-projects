@@ -127,6 +127,23 @@ shelf_annotation_z = 0;
 shelf_depth_annotation_y = shelf_annotation_y + OG_TILE_SIZE;
 shelf_width_annotation_x = shelf_back_thickness;
 shelf_width_annotation_y = shelf_annotation_y + OG_TILE_SIZE + shelf_back_thickness;
+shelf_corner_fillet_annotation_radius = max(0, final_shelf_corner_fillet - top_sweep_startend_offset - top_sweep_rect_height);
+shelf_corner_fillet_center = [
+  shelf_back_thickness + top_sweep_startend_offset + shelf_corner_fillet_annotation_radius,
+  final_shelf_bottom_thickness + top_sweep_startend_offset + shelf_corner_fillet_annotation_radius,
+  shelf_annotation_z
+];
+shelf_corner_fillet_arc_segments = 12;
+function shelf_corner_fillet_arc_point(angle) = [
+  shelf_corner_fillet_center[0] + cos(angle) * shelf_corner_fillet_annotation_radius,
+  shelf_corner_fillet_center[1] + sin(angle) * shelf_corner_fillet_annotation_radius,
+  shelf_annotation_z
+];
+shelf_corner_fillet_arc_points = [
+  for (i = [0:shelf_corner_fillet_arc_segments])
+    shelf_corner_fillet_arc_point(180 + 90 * i / shelf_corner_fillet_arc_segments)
+];
+shelf_corner_fillet_radius_edge = shelf_corner_fillet_arc_point(225);
 
 module emit_sturdy_shelf_annotations() {
   emit_context_values(
@@ -212,14 +229,21 @@ module emit_sturdy_shelf_annotations() {
     end=[shelf_depth, final_shelf_bottom_thickness, shelf_annotation_z],
     basis="bottom_plate_thickness"
   );
-  if (final_shelf_corner_fillet > EPS) {
+  if (shelf_corner_fillet_annotation_radius > EPS) {
     emit_radius_annotation(
       id="shelf_corner_fillet",
       label="shelf_corner_fillet",
       value=final_shelf_corner_fillet,
-      center=[shelf_back_thickness + final_shelf_corner_fillet, bottom_shelf_back_height - final_shelf_corner_fillet, shelf_annotation_z],
-      edge=[shelf_back_thickness, bottom_shelf_back_height - final_shelf_corner_fillet, shelf_annotation_z],
-      basis="upper_back_shelf_corner_fillet"
+      center=shelf_corner_fillet_center,
+      edge=shelf_corner_fillet_radius_edge,
+      basis="visible_upper_back_shelf_corner_fillet_center_to_arc_midpoint"
+    );
+    emit_arc_annotation(
+      id="shelf_corner_fillet_extent",
+      label="shelf_corner_fillet_extent",
+      value=90,
+      points=shelf_corner_fillet_arc_points,
+      basis="visible_upper_back_shelf_corner_fillet_extent"
     );
   }
   if (truss_beam_reach > EPS && truss_depth > EPS) {

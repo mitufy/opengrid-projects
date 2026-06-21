@@ -1,10 +1,10 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
-variant_name: opengrid_framefit_hook_new_default
+variant_name: opengrid_framefit_hook_default
 job_name: framefit_hook_scene
 constants:
   framefit_hook_model:
-    scad_file: opengrid_framefit_hook_new.scad
+    scad_file: opengrid_framefit_hook.scad
   framefit_hook_annotations:
     style:
       $constant: default_annotation_style
