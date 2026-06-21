@@ -59,6 +59,8 @@ OCHEAD_MIDDLE_TO_BOTTOM = OCHEAD_LARGE_RECT_HEIGHT - OCHEAD_LARGE_RECT_WIDTH / 2
 OCSLOT_MOVE_DISTANCE = 10.6;
 OCSLOT_ONRAMP_CLEARANCE = 0.8;
 
+FOLD_GAP_WIDTH = 0.4;
+FOLD_GAP_HEIGHT = 0.2;
 // ── Configuration Structs ────────────────────────────────────────────────────
 
 // Helper function to safely merge two structs or a struct and a flat override list
@@ -112,22 +114,21 @@ module snap_text(
   attachable(anchor, spin, orient, size=[1, 1, max(_depth, EPS)]) {
     tag_scope() {
       if (_text_count > 0 && _depth > 0)
-        down(_depth / 2)
-          for (i = [0:_text_count - 1]) {
-            if (_texts[i] != "") {
-              _size = len(_sizes) > i ? _sizes[i] : _sizes[0];
-              _font = len(_fonts) > i ? _fonts[i] : _fonts[0];
-              _fill = len(_fills) > i ? _fills[i] : _fills[0];
+        down(_depth / 2)for (i = [0:_text_count - 1]) {
+          if (_texts[i] != "") {
+            _size = len(_sizes) > i ? _sizes[i] : _sizes[0];
+            _font = len(_fonts) > i ? _fonts[i] : _fonts[0];
+            _fill = len(_fills) > i ? _fills[i] : _fills[0];
 
-              _offset = len(_offsets) > i ? _offsets[i] : _offsets[0];
-              right(_offset[0]) back(_offset[1])
-                  linear_extrude(height=_depth + EPS) if (_fill)
-                    fill() text(_texts[i], size=_size, anchor=str("center", CENTER), font=_font);
-                  else
-                    text(_texts[i], size=_size, anchor=str("center", CENTER), font=_font);
-            }
+            _offset = len(_offsets) > i ? _offsets[i] : _offsets[0];
+            right(_offset[0]) back(_offset[1])
+                linear_extrude(height=_depth + EPS) if (_fill)
+                  fill() text(_texts[i], size=_size, anchor=str("center", CENTER), font=_font);
+                else
+                  text(_texts[i], size=_size, anchor=str("center", CENTER), font=_font);
           }
         }
+    }
     children();
   }
 }

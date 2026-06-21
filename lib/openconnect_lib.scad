@@ -493,8 +493,8 @@ module openconnect_screw(threads_height = OG_STANDARD_THICKNESS, text_cfg = [], 
   _middle_to_bot = struct_val(_head_cfg, "middle_to_bottom");
   _slot_cfg = struct_merge(connector_slot_cfg(), connectorslot_cfg);
 
-  ocfold_gap_width = 0.4;
-  ocfold_gap_height = 0.2;
+  ocfold_gap_width = FOLD_GAP_WIDTH;
+  ocfold_gap_height = FOLD_GAP_HEIGHT;
   ocscrew_overhang_cyl_diameter = 15.6;
 
   ocscrew_coin_slot_height = struct_val(_slot_cfg, "coin_slot_height");
