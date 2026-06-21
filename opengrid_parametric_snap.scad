@@ -429,6 +429,11 @@ module opengrid_snap(
           }
       }
     }
+  //fill the snap cuts on first layer for easier printing
+  if (generate_snap == "openConnect (Folded)" && !disable_snap_cuts) {
+    _snap_width = struct_val(snapbody_cfg, "snap_width");
+    fwd(FOLD_GAP_WIDTH / 2) cuboid([_snap_width, _snap_thickness * 2 + FOLD_GAP_WIDTH, FOLD_GAP_HEIGHT], anchor=BOTTOM);
+  }
 }
 
 half_of_anchor =
