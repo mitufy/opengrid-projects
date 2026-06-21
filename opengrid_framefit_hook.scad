@@ -11,7 +11,8 @@ Part of code is based on BlackjackDuck's "openGrid - Tile Generator". https://ma
 vertical_grids = 1;
 //Recommended width range is 6~20mm. For hooks wider than 20mm, check out openConnect Sturdy Hook Generator.
 hook_width = 10;
-hook_length = 16;
+//hook_length + hook_back_thickness adds up to the total outer length of the hook.
+hook_length = 22;
 hook_back_thickness = 4;
 hook_bottom_thickness = 4;
 hook_corner_angle = 0; //[0:Horizontal, 45:Diagonal]
@@ -103,7 +104,10 @@ hook_final_tip_thickness = max(EPS, min(hook_tip_thickness, hook_final_tip_angle
 hook_min_tip_length = hook_final_tip_angle == 90 ? hook_final_bottom_thickness : ang_hyp_to_opp(hook_final_tip_angle, hook_final_bottom_thickness + hook_final_side_chamfer / 2) + EPS;
 hook_final_tip_length = max(EPS, hook_min_tip_length, hook_tip_length);
 hook_final_height = OG_TILE_SIZE * vertical_grids;
-hook_final_length = max(EPS, hook_length);
+hook_has_tip = hook_tip_thickness >= EPS && hook_tip_length >= EPS;
+hook_target_length = max(EPS, hook_length);
+hook_tip_reach = hook_has_tip ? max(0, hook_final_tip_length - hook_final_side_chamfer) * cos(hook_corner_angle + hook_final_tip_angle) : 0;
+hook_final_length = max(EPS, (hook_target_length - hook_tip_reach) / max(EPS, cos(hook_corner_angle)));
 
 large_opp = hook_final_tip_thickness * tan(hook_final_tip_angle);
 large_hyp = hook_final_tip_thickness / cos(hook_final_tip_angle);
@@ -119,7 +123,6 @@ hook_final_tip_fillet = max(hook_min_tip_fillet, min(hook_final_length - hook_fi
 hook_final_tip_fillet_diff = hook_max_tip_fillet - hook_final_tip_fillet;
 hook_tip_point_fillet = max(EPS, min(1, hook_final_tip_thickness / 2 - EPS));
 
-hook_has_tip = hook_tip_thickness >= EPS && hook_tip_length >= EPS;
 hook_flat_top_width = hook_has_tip ? hook_final_length - hook_final_corner_fillet - hook_final_tip_fillet - small_adj - hook_final_bottom_thickness * tan(hook_corner_angle) : hook_final_length - hook_final_corner_fillet - hook_final_bottom_thickness * tan(hook_corner_angle);
 hook_has_flat_top_chamfer = hook_has_side_chamfer && hook_flat_top_width > hook_final_side_chamfer;
 corner_fillet_cut_shape = difference(
