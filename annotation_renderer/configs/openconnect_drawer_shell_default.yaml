@@ -10,4 +10,27 @@ scene:
 render:
   $constant: drawer_fit_render
 annotations:
-  $constant: drawer_grid_annotations
+  object: drawer_shell
+  style:
+    $constant: default_annotation_style
+  aliases:
+    $constant: default_grid_label_aliases
+  chains:
+  - ids: [horizontal_grids]
+    label_offset_px: 42
+  - ids: [vertical_grids]
+    line_offset_px: 30
+    label_offset_px: 30
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
+  - ids: [depth_grids]
+    line_offset_px: 30
+    label_offset_px: 30
+  image_labels:
+  - $constant: bottom_image_label
+    id: shell_slot_position
+    offset_px: [0, -6]
+    show_value: true
+    value_color: '#2563eb'
+    font_size_px:
+      $constant: annotation_aux_label_font_size_px

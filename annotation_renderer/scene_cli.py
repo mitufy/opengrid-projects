@@ -1458,6 +1458,7 @@ def openscad_stage_cache_key(
             "executable": executable,
             "backend": "Manifold",
             "enable_textmetrics": True,
+            "enable_lazy_union": True,
         }
     )
 

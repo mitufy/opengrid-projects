@@ -2,79 +2,19 @@ $schema: ../schemas/annotation-render-config.schema.json
 extends: animation_presets.yaml
 variant_name: openconnect_vasemode_container_default
 job_name: vasemode_container_scene_default
-constants:
-  vasemode_container_model:
-    scad_file: openconnect_vasemode_container.scad
-    defines:
-      vase_surface_texture: checkers
-      horizontal_grids: 2
-      vertical_grids: 2
-      depth_grids: 2
-      vase_tilt_angle: 15
-      label_holder_type: Standard
-      render_vase_print_preview: true
-  vasemode_container_annotations:
-    style:
-      $constant: default_annotation_style
-    aliases:
-      $constant: default_grid_label_aliases
-      vase_surface_texture: surface_texture
-      label_holder_type: label_holder
-      vase_tilt_angle_extent: vase_tilt_angle
-    chains:
-    - ids: [horizontal_grids]
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: 0
-      label_offset_px: 32
-      font_size_px: 26
-    - ids: [vertical_grids]
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: 80
-      label_offset_px: 30
-      font_size_px: 28
-    - ids: [depth_grids]
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: -50
-      label_offset_px: -34
-      font_size_px: 26
-    - ids: [label_width]
-      display_offset_mm: [0, 0, 0]
-      font_size_px: 26
-    # - $constant: small_dimension_chain
-    #   ids: [ocvase_linewidth]
-    #   label_offset_px: 34
-    # - $constant: small_dimension_chain
-    #   ids: [label_width]
-    #   optional: true
-    #   label_offset_px: 30
-    # angle_radius_callouts:
-    # - id: vase_tilt_angle_callout
-    #   arc_id: vase_tilt_angle_extent
-    #   radius_id: vase_tilt_angle_radius
-    #   angle_id: vase_tilt_angle
-    #   optional: true
-    #   show_radius_label: false
-    #   angle_label_offset_px: 34
-    #   angle_fill_alpha: 28
-    # image_labels:
-    # - $constant: bottom_image_label
-    #   id: vase_surface_texture
-    #   show_value: true
-    #   value_color: '#2563eb'
-    #   font_size_px:
-    #     $constant: annotation_title_font_size_px
-    # - id: label_holder_type
-    #   position: top
-    #   offset_px: [0, 28]
-    #   show_value: true
-    #   value_color: '#2563eb'
-    #   font_size_px:
-    #     $constant: annotation_aux_label_font_size_px
 scene:
   objects:
   - id: model
     model:
-      $constant: vasemode_container_model
+      scad_file: openconnect_vasemode_container.scad
+      defines:
+        vase_surface_texture: checkers
+        horizontal_grids: 2
+        vertical_grids: 2
+        depth_grids: 2
+        vase_tilt_angle: 15
+        label_holder_type: Standard
+        render_vase_print_preview: true
   transform:
     location_mm: [0, 0, -56]
     rotation_deg: [vase_tilt_angle, 0, 0]
@@ -83,4 +23,59 @@ scene:
 render:
   fit_margin: 0.15
 annotations:
-  $constant: vasemode_container_annotations
+  style:
+    $constant: default_annotation_style
+  aliases:
+    $constant: default_grid_label_aliases
+    vase_surface_texture: surface_texture
+    label_holder_type: label_holder
+    vase_tilt_angle_extent: vase_tilt_angle
+  chains:
+  - ids: [horizontal_grids]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 0
+    label_offset_px: 32
+    font_size_px: 26
+  - ids: [vertical_grids]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 80
+    label_offset_px: 30
+    font_size_px: 28
+  - ids: [depth_grids]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: -50
+    label_offset_px: -34
+    font_size_px: 26
+  - ids: [label_width]
+    display_offset_mm: [0, 0, 0]
+    font_size_px: 26
+  # - $constant: small_dimension_chain
+  #   ids: [ocvase_linewidth]
+  #   label_offset_px: 34
+  # - $constant: small_dimension_chain
+  #   ids: [label_width]
+  #   optional: true
+  #   label_offset_px: 30
+  # angle_radius_callouts:
+  # - id: vase_tilt_angle_callout
+  #   arc_id: vase_tilt_angle_extent
+  #   radius_id: vase_tilt_angle_radius
+  #   angle_id: vase_tilt_angle
+  #   optional: true
+  #   show_radius_label: false
+  #   angle_label_offset_px: 34
+  #   angle_fill_alpha: 28
+  # image_labels:
+  # - $constant: bottom_image_label
+  #   id: vase_surface_texture
+  #   show_value: true
+  #   value_color: '#2563eb'
+  #   font_size_px:
+  #     $constant: annotation_title_font_size_px
+  # - id: label_holder_type
+  #   position: top
+  #   offset_px: [0, 28]
+  #   show_value: true
+  #   value_color: '#2563eb'
+  #   font_size_px:
+  #     $constant: annotation_aux_label_font_size_px

@@ -52,6 +52,8 @@ thickness_text_mode = "Uncommon"; //[All, Uncommon, None]
 /* [Hidden] */
 $fa = 1;
 $fs = 0.4;
+emit_annotation_metadata = false;
+include <lib/annotation_metadata.scad>
 include <lib/opengrid_base.scad>
 include <BOSL2/threading.scad>
 use <lib/opengrid_threads_lib.scad>
@@ -125,6 +127,130 @@ tip_rounding_radius = max(0, min(clip_thickness * clip_thickness_scale - final_s
 connect_cuboid_height =
   clip_shape == "Circular" || (clip_shape == "Elliptic" && abs(final_clip_entry_tilt_angle) == 90) ? clip_main_width / 2 + clip_thickness
   : clip_main_depth / 2;
+
+annotation_clip_depth = clip_shape == "Circular" ? clip_main_width : clip_main_depth;
+annotation_clip_front_y = -clip_stem_length;
+annotation_clip_center_y = annotation_clip_front_y - annotation_clip_depth / 2;
+annotation_clip_width_y = annotation_clip_center_y;
+annotation_clip_thickness_y = annotation_clip_center_y;
+annotation_clip_z = 0;
+annotation_side_x = -clip_height / 2;
+annotation_stem_x = clip_main_width / 2 + clip_thickness;
+clip_surround_angle_arc_segments = 18;
+clip_surround_angle_applies = clip_shape == "Circular" || clip_shape == "Elliptic";
+clip_surround_angle_radius_x = clip_main_width / 2;
+clip_surround_angle_radius_y = annotation_clip_depth / 2;
+clip_surround_angle_center = [0, annotation_clip_center_y, annotation_clip_z];
+function _clip_surround_angle_arc_point(angle) = [
+  clip_surround_angle_center[0] + cos(angle) * clip_surround_angle_radius_x,
+  clip_surround_angle_center[1] + sin(angle) * clip_surround_angle_radius_y,
+  annotation_clip_z
+];
+clip_surround_angle_radius_edge = _clip_surround_angle_arc_point(90 + clip_surround_angle / 2);
+clip_surround_angle_radius = sqrt(
+  pow(clip_surround_angle_radius_edge[0] - clip_surround_angle_center[0], 2)
+  + pow(clip_surround_angle_radius_edge[1] - clip_surround_angle_center[1], 2)
+);
+clip_surround_angle_arc_points = [
+  for (i = [0:clip_surround_angle_arc_segments])
+    _clip_surround_angle_arc_point(90 + clip_surround_angle * i / clip_surround_angle_arc_segments)
+];
+
+module emit_snap_gadget_clip_annotations() {
+  emit_context_values(
+    "snap_gadget_clip_context",
+    [
+      "snap_thickness",
+      "clip_main_width",
+      "clip_main_depth",
+      "clip_surround_angle",
+      "clip_thickness",
+      "clip_thickness_scale",
+      "clip_height",
+      "clip_stem_length",
+      "tip_diameter"
+    ],
+    [
+      snap_thickness,
+      clip_main_width,
+      clip_main_depth,
+      clip_surround_angle,
+      clip_thickness,
+      clip_thickness_scale,
+      clip_height,
+      clip_stem_length,
+      tip_diameter
+    ]
+  );
+  if (clip_surround_angle_applies) {
+    emit_radius_annotation(
+      id="clip_surround_angle_radius",
+      label="clip_surround_angle_radius",
+      value=clip_surround_angle_radius,
+      center=clip_surround_angle_center,
+      edge=clip_surround_angle_radius_edge,
+      basis="clip_surround_angle_center_to_arc_midpoint"
+    );
+    emit_arc_annotation(
+      id="clip_surround_angle",
+      label="clip_surround_angle",
+      value=clip_surround_angle,
+      points=clip_surround_angle_arc_points,
+      basis="clip_surround_angle_extent_on_inner_opening"
+    );
+  }
+  emit_dimension_annotation(
+    id="clip_main_width",
+    label="clip_main_width",
+    axis="x",
+    value=clip_main_width,
+    start=[-clip_main_width / 2, annotation_clip_width_y, annotation_clip_z],
+    end=[clip_main_width / 2, annotation_clip_width_y, annotation_clip_z],
+    basis="nominal_inner_clip_width"
+  );
+  if (clip_shape != "Circular") {
+    emit_dimension_annotation(
+      id="clip_main_depth",
+      label="clip_main_depth",
+      axis="y",
+      value=clip_main_depth,
+      start=[0, annotation_clip_front_y, annotation_clip_z],
+      end=[0, annotation_clip_front_y - clip_main_depth, annotation_clip_z],
+      basis="nominal_inner_clip_depth"
+    );
+  }
+  emit_dimension_annotation(
+    id="clip_thickness",
+    label="clip_thickness",
+    axis="x",
+    value=clip_thickness,
+    start=[-clip_main_width / 2, annotation_clip_thickness_y, annotation_clip_z],
+    end=[-(clip_main_width / 2 + clip_thickness), annotation_clip_thickness_y, annotation_clip_z],
+    basis="nominal_clip_wall_thickness_at_left_side"
+  );
+  if (clip_stem_length > 0) {
+    emit_dimension_annotation(
+      id="clip_stem_length",
+      label="clip_stem_length",
+      axis="y",
+      value=clip_stem_length,
+      start=[annotation_stem_x, 0, annotation_clip_z],
+      end=[annotation_stem_x, annotation_clip_front_y, annotation_clip_z],
+      basis="clip_offset_from_no_stem_reference"
+    );
+  }
+  emit_dimension_annotation(
+    id="clip_height",
+    label="clip_height",
+    axis="z",
+    value=clip_height,
+    start=[clip_main_width / 2 + clip_thickness, annotation_clip_center_y, 0],
+    end=[clip_main_width / 2 + clip_thickness, annotation_clip_center_y, clip_height],
+    basis="clip_body_extrusion_height"
+  );
+}
+
+emit_snap_gadget_clip_annotations();
 //align to front and bottom
 zrot(180) xrot(90) back(_threads_side_offset)
       //main diff

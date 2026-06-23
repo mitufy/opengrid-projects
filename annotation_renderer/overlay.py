@@ -23,6 +23,19 @@ LABEL_TEXT_COLOR = "#18212b"
 LABEL_OUTLINE_COLOR = "#f8fafc"
 LABEL_OUTLINE_WIDTH = 2
 MIN_LABEL_COLLISION_OVERLAP_AXIS_PX = 0.5
+LABEL_ANGLE_EPSILON_DEG = 1e-4
+
+
+def readable_dimension_label_angle(angle: float) -> float:
+    if abs(angle - 90.0) <= LABEL_ANGLE_EPSILON_DEG:
+        return 90.0
+    if abs(angle + 90.0) <= LABEL_ANGLE_EPSILON_DEG:
+        return -90.0
+    if angle > 90.0:
+        return angle - 180.0
+    if angle < -90.0:
+        return angle + 180.0
+    return angle
 
 
 def clamp_alpha(value: int) -> int:
@@ -552,9 +565,7 @@ def draw_dimension_chains_overlay(
         style_config = spec.style_config
         line_alpha = clamp_alpha(int(style_config.get("line_alpha", DEFAULT_LINE_ALPHA)))
         tick_length_px = float(style_config.get("tick_length_px", 18.0))
-        angle = degrees(atan2(direction[1], direction[0]))
-        if angle > 90.0 or angle < -90.0:
-            angle += 180.0
+        angle = readable_dimension_label_angle(degrees(atan2(direction[1], direction[0])))
 
         prepared_chains.append(
             {
@@ -785,9 +796,7 @@ def draw_radius_callout_overlay(
             fill=color,
         )
 
-        angle = degrees(atan2(direction[1], direction[0]))
-        if angle > 90.0 or angle < -90.0:
-            angle += 180.0
+        angle = readable_dimension_label_angle(degrees(atan2(direction[1], direction[0])))
         label_anchor = (
             center[0] + vector[0] * 0.58,
             center[1] + vector[1] * 0.58,
@@ -933,9 +942,7 @@ def draw_arc_callout_overlay(
             midpoint[0] + normal[0] * label_offset_px,
             midpoint[1] + normal[1] * label_offset_px,
         )
-        angle = degrees(atan2(direction[1], direction[0]))
-        if angle > 90.0 or angle < -90.0:
-            angle += 180.0
+        angle = readable_dimension_label_angle(degrees(atan2(direction[1], direction[0])))
         if show_label:
             label_color = label_color_for_line(style_config, callout.color, callout.parameter_type)
             label_font_key = font_key_for_type(style_config, callout.parameter_type)

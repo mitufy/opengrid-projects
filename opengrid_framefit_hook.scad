@@ -146,7 +146,9 @@ hook_annotation_x_min = -hook_final_width / 2;
 hook_annotation_x_max = hook_final_width / 2;
 hook_annotation_back_y = -hook_final_back_thickness;
 hook_annotation_front_y = 0;
-hook_annotation_length_y = hook_final_length;
+hook_annotation_back_thickness_y = hook_final_back_thickness;
+hook_annotation_length_start_y = hook_annotation_back_thickness_y;
+hook_annotation_length_y = hook_annotation_length_start_y + hook_target_length;
 hook_annotation_z_min = 0;
 hook_annotation_z_max = hook_final_height;
 hook_annotation_truss_z_min = hook_annotation_z_min - truss_vertical_grid * OG_TILE_SIZE;
@@ -156,7 +158,39 @@ hook_annotation_depth_x = hook_annotation_x_min;
 hook_annotation_height_x = hook_annotation_x_min;
 hook_annotation_length_x = hook_annotation_x_min;
 hook_annotation_length_z = hook_annotation_z_min;
-hook_annotation_bottom_thickness_y = min(hook_annotation_length_y, max(EPS, hook_final_length / 2));
+hook_annotation_bottom_thickness_y = hook_annotation_length_start_y + min(hook_final_length, max(EPS, hook_final_length / 2));
+hook_tip_annotation_start = [
+  hook_annotation_length_x,
+  hook_annotation_length_start_y + hook_final_length * cos(hook_corner_angle),
+  hook_final_length * sin(hook_corner_angle)
+];
+hook_tip_annotation_end = [
+  hook_annotation_length_x,
+  hook_tip_annotation_start[1] + hook_final_tip_length * cos(hook_corner_angle + hook_final_tip_angle),
+  hook_tip_annotation_start[2] + hook_final_tip_length * sin(hook_corner_angle + hook_final_tip_angle)
+];
+function _hook_side_profile_point(point) = [
+  hook_annotation_length_x,
+  hook_annotation_length_start_y + point[0] * cos(hook_corner_angle) - point[1] * sin(hook_corner_angle),
+  point[0] * sin(hook_corner_angle) + point[1] * cos(hook_corner_angle)
+];
+hook_corner_fillet_arc_segments = 12;
+hook_corner_fillet_radius = max(0, hook_final_corner_fillet);
+hook_corner_fillet_local_center = [
+  hook_final_corner_fillet + hook_final_bottom_thickness * tan(hook_corner_angle),
+  hook_final_bottom_thickness + hook_final_corner_fillet
+];
+function _hook_corner_fillet_local_arc_point(angle) = [
+  hook_corner_fillet_local_center[0] + cos(angle) * hook_corner_fillet_radius,
+  hook_corner_fillet_local_center[1] + sin(angle) * hook_corner_fillet_radius
+];
+function _hook_corner_fillet_arc_point(angle) = _hook_side_profile_point(_hook_corner_fillet_local_arc_point(angle));
+hook_corner_fillet_center = _hook_side_profile_point(hook_corner_fillet_local_center);
+hook_corner_fillet_radius_edge = _hook_corner_fillet_arc_point(225);
+hook_corner_fillet_arc_points = [
+  for (i = [0:hook_corner_fillet_arc_segments])
+    _hook_corner_fillet_arc_point(180 + 90 * i / hook_corner_fillet_arc_segments)
+];
 
 module emit_framefit_hook_annotations() {
   emit_context_values(
@@ -184,7 +218,9 @@ module emit_framefit_hook_annotations() {
       "hook_side_chamfer",
       "hook_final_width",
       "hook_final_height",
-      "hook_final_length"
+      "hook_final_length",
+      "hook_final_tip_length",
+      "hook_final_corner_fillet"
     ],
     [
       OG_TILE_SIZE,
@@ -209,9 +245,28 @@ module emit_framefit_hook_annotations() {
       hook_side_chamfer,
       hook_final_width,
       hook_final_height,
-      hook_final_length
+      hook_final_length,
+      hook_final_tip_length,
+      hook_final_corner_fillet
     ]
   );
+  if (hook_corner_fillet_radius > EPS) {
+    emit_radius_annotation(
+      id="hook_corner_fillet",
+      label="hook_corner_fillet",
+      value=hook_final_corner_fillet,
+      center=hook_corner_fillet_center,
+      edge=hook_corner_fillet_radius_edge,
+      basis="side_profile_corner_fillet_center_to_arc_midpoint"
+    );
+    emit_arc_annotation(
+      id="hook_corner_fillet_extent",
+      label="hook_corner_fillet_extent",
+      value=hook_final_corner_fillet,
+      points=hook_corner_fillet_arc_points,
+      basis="side_profile_corner_fillet_extent"
+    );
+  }
   emit_dimension_annotation(
     id="hook_width",
     label="hook_width",
@@ -234,19 +289,30 @@ module emit_framefit_hook_annotations() {
     id="hook_length",
     label="hook_length",
     axis="y",
-    value=hook_final_length,
-    start=[hook_annotation_length_x, hook_annotation_front_y, hook_annotation_length_z],
+    value=hook_target_length,
+    start=[hook_annotation_length_x, hook_annotation_length_start_y, hook_annotation_length_z],
     end=[hook_annotation_length_x, hook_annotation_length_y, hook_annotation_length_z],
-    basis="nominal_hook_reach_before_tip"
+    basis="outer_hook_reach_including_tip_projection"
   );
+  if (hook_has_tip) {
+    emit_dimension_annotation(
+      id="hook_tip_length",
+      label="hook_tip_length",
+      axis="z",
+      value=hook_final_tip_length,
+      start=hook_tip_annotation_start,
+      end=hook_tip_annotation_end,
+      basis="rotated_tip_body_length"
+    );
+  }
   emit_dimension_annotation(
     id="hook_back_thickness",
     label="hook_back_thickness",
     axis="y",
     value=hook_final_back_thickness,
-    start=[hook_annotation_depth_x, hook_annotation_back_y, hook_annotation_z_max],
-    end=[hook_annotation_depth_x, hook_annotation_front_y, hook_annotation_z_max],
-    basis="back_wall_thickness"
+    start=[hook_annotation_depth_x, hook_annotation_front_y, hook_annotation_z_min],
+    end=[hook_annotation_depth_x, hook_annotation_back_thickness_y, hook_annotation_z_min],
+    basis="back_wall_thickness_on_lower_side_edge"
   );
   emit_dimension_annotation(
     id="hook_bottom_thickness",

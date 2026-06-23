@@ -45,6 +45,8 @@ custom_shape_commands = "setdir,90,arcright,5,45,move,15,arcleft,5,135,move,30";
 /* [Hidden] */
 $fa = 1;
 $fs = 0.4;
+emit_annotation_metadata = false;
+include <lib/annotation_metadata.scad>
 
 include <lib/opengrid_base.scad>
 use <lib/opengrid_threads_lib.scad>
@@ -124,6 +126,74 @@ fillet_sweep_profile = rect([body_thickness, body_width - artifact_cutoff_depth]
 prism_fillet = max(0, min(final_stem_length, hook_stem_fillet));
 thread_join_overlap = EPS * 2;
 
+
+annotation_side_x = -body_width / 2;
+annotation_hook_y = _threads_side_offset;
+annotation_hook_z = _threads_side_offset;
+
+module emit_snap_gadget_hook_annotations() {
+  emit_context_values(
+    "snap_gadget_hook_context",
+    [
+      "snap_thickness",
+      "body_width",
+      "body_thickness",
+      "hook_main_size",
+      "hook_stem_length",
+      "body_thickness_scale",
+      "hook_tip_angle",
+      "hook_stem_fillet"
+    ],
+    [
+      snap_thickness,
+      body_width,
+      body_thickness,
+      hook_main_size,
+      hook_stem_length,
+      body_thickness_scale,
+      hook_tip_angle,
+      hook_stem_fillet
+    ]
+  );
+  emit_dimension_annotation(
+    id="body_width",
+    label="body_width",
+    axis="x",
+    value=body_width,
+    start=[-body_width / 2, annotation_hook_y, annotation_hook_z],
+    end=[body_width / 2, annotation_hook_y, annotation_hook_z],
+    basis="hook_body_width_near_thread_side"
+  );
+  emit_dimension_annotation(
+    id="body_thickness",
+    label="body_thickness",
+    axis="z",
+    value=body_thickness,
+    start=[annotation_side_x, annotation_hook_y, 0],
+    end=[annotation_side_x, annotation_hook_y, body_thickness],
+    basis="hook_body_thickness_near_side"
+  );
+  emit_dimension_annotation(
+    id="hook_main_size",
+    label="hook_main_size",
+    axis="y",
+    value=hook_main_size,
+    start=[annotation_side_x, annotation_hook_y, annotation_hook_z],
+    end=[annotation_side_x, annotation_hook_y - hook_main_size, annotation_hook_z],
+    basis="nominal_main_hook_size"
+  );
+  emit_dimension_annotation(
+    id="hook_stem_length",
+    label="hook_stem_length",
+    axis="z",
+    value=final_stem_length,
+    start=[annotation_side_x, 0, 0],
+    end=[annotation_side_x, 0, final_stem_length],
+    basis="hook_stem_length_from_thread_connector"
+  );
+}
+
+emit_snap_gadget_hook_annotations();
 zrot(180) up(_threads_side_offset) xrot(90)
       diff() {
         zrot(90)

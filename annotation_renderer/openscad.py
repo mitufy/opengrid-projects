@@ -82,6 +82,7 @@ def build_openscad_command(
     defines: Sequence[str] = (),
     backend: str = "Manifold",
     enable_textmetrics: bool = True,
+    enable_lazy_union: bool = True,
     camera: str | None = None,
     projection: str | None = None,
     imgsize: tuple[int, int] | None = None,
@@ -90,6 +91,8 @@ def build_openscad_command(
     command = [require_openscad_executable(executable)]
     if enable_textmetrics:
         command.extend(["--enable", "textmetrics"])
+    if enable_lazy_union:
+        command.extend(["--enable", "lazy-union"])
     command.append(f"--backend={backend}")
     if imgsize is not None:
         command.append(f"--imgsize={imgsize[0]},{imgsize[1]}")

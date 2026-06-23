@@ -1,8 +1,15 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: model_defaults.yaml
 job_name: opengrid_parameter_details
-constants:
-  sturdy_hook_circular_detail_annotations:
+variants:
+- name: sturdy_hook_circular_details
+  job_name: sturdy_hook_circular_details_45
+  scene:
+    objects:
+    - id: model
+      model:
+        scad_file: openconnect_sturdy_hook.scad
+  annotations:
     aliases:
       circular_corner_radius: corner_radius
       circular_corner_radius_extent: corner_radius
@@ -28,7 +35,16 @@ constants:
       angle_label_offset_px: 34
       radius_label_offset_px: 20
       angle_fill_alpha: 28
-  sturdy_hook_rectangular_detail_annotations:
+- name: sturdy_hook_rectangular_details
+  job_name: sturdy_hook_rectangular_details
+  scene:
+    objects:
+    - id: model
+      model:
+        scad_file: openconnect_sturdy_hook.scad
+        defines:
+          hook_shape_type: Rectangular
+  annotations:
     chains:
     - ids: [hook_width]
       line_offset_px: -34
@@ -41,7 +57,16 @@ constants:
       id: hook_shape_type
       value: Rectangular
       show_value: true
-  sturdy_hook_truss_detail_annotations:
+- name: sturdy_hook_truss_details
+  job_name: sturdy_hook_truss_details
+  scene:
+    objects:
+    - id: model
+      model:
+        scad_file: openconnect_sturdy_hook.scad
+        defines:
+          truss_vertical_grids: 1
+  annotations:
     aliases:
       truss_vertical_grids: truss_vgrids x 28mm
     chains:
@@ -60,7 +85,17 @@ constants:
       angle_fill_alpha: 28
       label_font_size_px:
         $constant: annotation_label_font_size_px
-  sturdy_shelf_truss_detail_annotations:
+- name: sturdy_shelf_truss_details
+  job_name: sturdy_shelf_truss_details
+  scene:
+    objects:
+    - id: model
+      model:
+        scad_file: openconnect_sturdy_shelf.scad
+        defines:
+          shelf_type: Standard
+          add_texture: true
+  annotations:
     aliases:
       shelf_corner_fillet: corner_fillet
     chains:
@@ -76,7 +111,17 @@ constants:
     radius_callouts:
     - ids: [shelf_corner_fillet]
       label_offset_px: 50
-  sturdy_shelf_edge_texture_detail_annotations:
+- name: sturdy_shelf_edge_texture_details
+  job_name: sturdy_shelf_edge_texture_details
+  scene:
+    objects:
+    - id: model
+      model:
+        scad_file: openconnect_sturdy_shelf.scad
+        defines:
+          shelf_type: Standard
+          add_texture: true
+  annotations:
     chains:
     - $constant: small_dimension_chain
       ids: [shelf_side_edge_depth]
@@ -88,7 +133,16 @@ constants:
     - $constant: bottom_image_label
       id: shelf_texture_depth
       show_value: true
-  drawer_shell_detail_annotations:
+- name: drawer_shell_clearance_details
+  job_name: drawer_shell_clearance_details
+  scene:
+    object_defaults:
+      $constant: drawer_object_defaults
+    objects:
+    - $constant: drawer_shell_object
+  render:
+    $constant: drawer_fit_render
+  annotations:
     object: drawer_shell
     chains:
     - $constant: small_dimension_chain
@@ -109,7 +163,17 @@ constants:
     - $constant: bottom_image_label
       id: container_front_back_height_offset
       show_value: true
-  drawer_container_detail_annotations:
+- name: drawer_container_label_handle_details
+  job_name: drawer_container_label_handle_details
+  scene:
+    object_defaults:
+      $constant: drawer_object_defaults
+    objects:
+    - $constant: drawer_shell_object
+    - $constant: drawer_container_object
+  render:
+    $constant: drawer_fit_render
+  annotations:
     object: drawer_container
     image_labels:
     - $constant: bottom_image_label
@@ -147,78 +211,3 @@ constants:
       show_value: true
       font_size_px:
         $constant: annotation_aux_label_font_size_px
-variants:
-- name: sturdy_hook_circular_details
-  job_name: sturdy_hook_circular_details_45
-  scene:
-    objects:
-    - id: model
-      model:
-        $constant: sturdy_hook_model
-  annotations:
-    $constant: sturdy_hook_circular_detail_annotations
-- name: sturdy_hook_rectangular_details
-  job_name: sturdy_hook_rectangular_details
-  scene:
-    objects:
-    - id: model
-      model:
-        $constant: sturdy_hook_model
-        defines:
-          hook_shape_type: Rectangular
-  annotations:
-    $constant: sturdy_hook_rectangular_detail_annotations
-- name: sturdy_hook_truss_details
-  job_name: sturdy_hook_truss_details
-  scene:
-    objects:
-    - id: model
-      model:
-        $constant: sturdy_hook_model
-        defines:
-          truss_vertical_grids: 1
-  annotations:
-    $constant: sturdy_hook_truss_detail_annotations
-- name: sturdy_shelf_truss_details
-  job_name: sturdy_shelf_truss_details
-  scene:
-    objects:
-    - id: model
-      model:
-        $constant: sturdy_shelf_model
-  annotations:
-    $constant: sturdy_shelf_truss_detail_annotations
-- name: sturdy_shelf_edge_texture_details
-  job_name: sturdy_shelf_edge_texture_details
-  scene:
-    objects:
-    - id: model
-      model:
-        $constant: sturdy_shelf_model
-        defines:
-          add_texture: true
-  annotations:
-    $constant: sturdy_shelf_edge_texture_detail_annotations
-- name: drawer_shell_clearance_details
-  job_name: drawer_shell_clearance_details
-  scene:
-    object_defaults:
-      $constant: drawer_object_defaults
-    objects:
-    - $constant: drawer_shell_object
-  render:
-    $constant: drawer_fit_render
-  annotations:
-    $constant: drawer_shell_detail_annotations
-- name: drawer_container_label_handle_details
-  job_name: drawer_container_label_handle_details
-  scene:
-    object_defaults:
-      $constant: drawer_object_defaults
-    objects:
-    - $constant: drawer_shell_object
-    - $constant: drawer_container_object
-  render:
-    $constant: drawer_fit_render
-  annotations:
-    $constant: drawer_container_detail_annotations

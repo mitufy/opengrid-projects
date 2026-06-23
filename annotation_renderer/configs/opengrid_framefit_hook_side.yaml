@@ -1,0 +1,68 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: base_scene.yaml
+variant_name: opengrid_framefit_hook_default
+job_name: framefit_hook_scene
+scene:
+  objects:
+  - id: model
+    model:
+      scad_file: opengrid_framefit_hook.scad
+      defines:
+        hook_length: 28
+        hook_tip_length: 10
+        hook_corner_fillet: 12
+    transform:
+      location_mm: [0, 0, -56]
+      rotation_deg: [0, 0, 180]
+render:
+  fit_margin: 0
+  camera_view: left
+annotations:
+  style:
+    $constant: default_annotation_style
+    auto_adjust_labels: true
+    tick_length_px: 12
+    type_styles:
+      grids:
+        line_colors: ['#2563eb']
+      mm:
+        line_colors: ['#000000']
+  aliases:
+    vertical_grids: vertical_grids x 28mm
+    truss_vertical_grid: truss_vertical_grid x 28mm
+    hook_tip_shape: hook_tip_shape
+  chains:
+  # - ids: [hook_width]
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: 28
+  #   label_offset_px: 28
+  #   label_font_size_px: 24
+  - ids: [hook_length]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: -28
+    label_offset_px: -28
+    label_font_size_px: 24
+  - ids: [hook_back_thickness]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: -28
+    label_offset_px: -28
+    label_font_size_px: 24
+  - ids: [hook_tip_length]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 80
+    label_offset_px: 28
+    label_font_size_px: 24
+  - ids: [vertical_grids, truss_vertical_grid]
+    optional: true
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 0
+    label_offset_px: -28
+    label_font_size_px: 24
+  angle_radius_callouts:
+  - id: hook_corner_fillet_detail
+    arc_id: hook_corner_fillet_extent
+    radius_id: hook_corner_fillet
+    optional: true
+    show_angle_label: false
+    radius_label_offset_px: 26
+    angle_fill_alpha: 28

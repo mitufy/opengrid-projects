@@ -2,51 +2,17 @@ $schema: ../schemas/annotation-render-config.schema.json
 extends: animation_presets.yaml
 variant_name: openconnect_sturdy_shelf_default
 job_name: sturdy_shelf_scene_side
-constants:
-  sturdy_shelf_model:
-    scad_file: openconnect_sturdy_shelf.scad
-    defines:
-      shelf_type: Standard
-      add_texture: false
-      shelf_corner_fillet: 12
-      add_right_edge: false
-      add_front_edge: false
-  sturdy_shelf_annotations:
-    style:
-      $constant: default_annotation_style
-    aliases:
-      $constant: default_grid_label_aliases
-    chains:
-    # - ids: [depth_grids]
-    # - ids: [horizontal_grids]
-    # - $constant: small_dimension_chain
-    - ids: [shelf_back_thickness]
-      line_offset_px: 30
-      label_offset_px: 30
-      label_font_size_px: 20
-      tick_length_px: 12
-    - ids: [shelf_bottom_thickness]
-      line_offset_px: -30
-      label_offset_px: -30
-      label_font_size_px: 20
-      tick_length_px: 12
-    image_labels:
-    - $constant: bottom_image_label
-      id: shelf_type
-      show_value: true
-    angle_radius_callouts:
-    - id: shelf_corner_fillet_detail
-      arc_id: shelf_corner_fillet_extent
-      radius_id: shelf_corner_fillet
-      optional: true
-      show_angle_label: false
-      radius_label_offset_px: 26
-      angle_fill_alpha: 28
 scene:
   objects:
   - id: model
     model:
-      $constant: sturdy_shelf_model
+      scad_file: openconnect_sturdy_shelf.scad
+      defines:
+        shelf_type: Standard
+        add_texture: false
+        shelf_corner_fillet: 12
+        add_right_edge: false
+        add_front_edge: false
     transform:
       location_mm: [56, 0, -28]
   transform:
@@ -57,4 +23,33 @@ render:
   # camera_rotation_offset_deg: [0, 0, 10]
   camera_view: bottom
 annotations:
-  $constant: sturdy_shelf_annotations
+  style:
+    $constant: default_annotation_style
+  aliases:
+    $constant: default_grid_label_aliases
+  chains:
+  # - ids: [depth_grids]
+  # - ids: [horizontal_grids]
+  # - $constant: small_dimension_chain
+  - ids: [shelf_back_thickness]
+    line_offset_px: 30
+    label_offset_px: 30
+    label_font_size_px: 20
+    tick_length_px: 12
+  - ids: [shelf_bottom_thickness]
+    line_offset_px: -30
+    label_offset_px: -30
+    label_font_size_px: 20
+    tick_length_px: 12
+  image_labels:
+  - $constant: bottom_image_label
+    id: shelf_type
+    show_value: true
+  angle_radius_callouts:
+  - id: shelf_corner_fillet_detail
+    arc_id: shelf_corner_fillet_extent
+    radius_id: shelf_corner_fillet
+    optional: true
+    show_angle_label: false
+    radius_label_offset_px: 26
+    angle_fill_alpha: 28
