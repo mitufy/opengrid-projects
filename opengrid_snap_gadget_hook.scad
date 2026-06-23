@@ -71,7 +71,7 @@ _threads_pitch = struct_val(_threads_cfg, "threads_pitch");
 _threads_connect_diameter = _threads_diameter - OG_THREADS_CONNECT_OFFSET;
 _threads_side_offset = _threads_diameter / 2 - OG_SNAP_THREADS_SIDE_OFFSET;
 
-square_corner_radius = 1;
+square_corner_radius = 2;
 min_ang_radius = 1;
 final_tip_size = max(EPS, hook_main_size);
 final_stem_length = max(EPS, hook_stem_length);
@@ -116,9 +116,10 @@ hook_path =
 
 tip_rounding_radius = max(0, min(body_thickness * final_thickness_scale, body_width - final_side_chamfer * 2) / 2 - EPS);
 
-default_sweep_profile = rect([body_thickness, body_width], chamfer=final_side_chamfer);
-final_sweep_profile = default_sweep_profile;
-offset_sweep_profile = scale([final_thickness_scale, 1, 1], final_sweep_profile);
+artifact_cutoff_depth = EPS;
+sweep_profile = rect([body_thickness, body_width], chamfer=final_side_chamfer);
+offset_sweep_profile = scale([final_thickness_scale, 1, 1], sweep_profile);
+fillet_sweep_profile = rect([body_thickness, body_width - artifact_cutoff_depth], chamfer=final_side_chamfer);
 prism_fillet = max(0, min(final_stem_length, hook_stem_fillet));
 thread_join_overlap = EPS * 2;
 
@@ -129,20 +130,23 @@ zrot(180) up(_threads_side_offset) xrot(90)
         up(thread_join_overlap) {
           fwd(_threads_side_offset - body_width / 2)
             down(final_stem_length - EPS) xrot(-90)
-                path_sweep(final_sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[final_thickness_scale, 1])
-                  attach("end", "top")
-                    offset_sweep(offset_sweep_profile, height=tip_rounding_radius + EPS, bottom=os_circle(r=tip_rounding_radius));
+                tag_diff("", remove="rm0") path_sweep(sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[final_thickness_scale, 1]) {
+                    attach("end", "top")
+                      offset_sweep(offset_sweep_profile, height=tip_rounding_radius + EPS, bottom=os_circle(r=tip_rounding_radius));
+                    attach(TOP, BOTTOM, shiftout=-artifact_cutoff_depth)
+                      tag("rm0") cuboid([100, 100, 10]);
+                  }
           diff("rm2") {
             fwd(_threads_side_offset - body_width / 2)
-              zrot(180) xrot(180)
-                  join_prism(final_sweep_profile, base="plane", length=final_stem_length, base_fillet=prism_fillet, overlap=thread_join_overlap) {
-                    up(EPS) tag_diff(tag="rm2", remove="rm1")
-                        cuboid([100, 100, prism_fillet], anchor=TOP) {
-                          tag("rm1") cuboid([body_thickness, body_width, final_stem_length + EPS * 2], chamfer=final_side_chamfer, edges="Z", anchor=TOP);
-                          tag("rm1") back(_threads_side_offset - body_width / 2 + 0.1)
-                              cyl(l=final_stem_length + EPS * 2, d=_threads_connect_diameter, anchor=TOP);
-                        }
-                  }
+              down(artifact_cutoff_depth / 2) zrot(180) xrot(180)
+                    join_prism(fillet_sweep_profile, base="plane", length=final_stem_length, base_fillet=prism_fillet, overlap=thread_join_overlap) {
+                      up(EPS) tag_diff(tag="rm2", remove="rm1")
+                          cuboid([100, 100, prism_fillet], anchor=TOP) {
+                            tag("rm1") cuboid([body_thickness, body_width, final_stem_length + EPS * 2], chamfer=final_side_chamfer, edges="Z", anchor=TOP);
+                            tag("rm1") back(_threads_side_offset - body_width / 2 + 0.1)
+                                cyl(l=final_stem_length + EPS * 2, d=_threads_connect_diameter, anchor=TOP);
+                          }
+                    }
             tag_diff(tag="rm2", remove="rm1") cyl(l=final_stem_length, d=_threads_connect_diameter * 2, anchor=TOP)
                 attach(CENTER, CENTER, inside=true)
                   tag("rm1") cyl(l=final_stem_length + EPS * 2, d=_threads_connect_diameter);
