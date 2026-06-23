@@ -1,0 +1,19 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: base_scene.yaml
+variant_name: opengrid_expanding_snap
+job_name: opengrid_expanding_snap
+scene:
+  objects:
+  - id: snap
+    $constant: expanding_snap_object
+render:
+  fit_margin: 0.3
+  camera_view: bottom
+annotations:
+  style:
+    $constant: default_annotation_style
+    auto_adjust_labels: true
+    tick_length_px: 12
+    type_styles:
+      mm:
+        line_colors: ['#000000']

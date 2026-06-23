@@ -1,0 +1,94 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: base_scene.yaml
+variant_name: opengrid_snap_gadget_clip_default
+job_name: snap_gadget_clip_scene
+scene:
+  objects:
+  - id: circ_clip
+    model:
+      scad_file: opengrid_snap_gadget_clip.scad
+      defines:
+        clip_shape: Elliptic
+        clip_main_depth: 22
+        clip_stem_length: 4
+    transform:
+      location_mm: [14, 0, -20.6]
+      rotation_deg: [0, 0, 0]
+  - id: snapa
+    model:
+      scad_file: opengrid_expanding_snap.scad
+      defines:
+        snap_thickness: 6.8
+        generate_screw: None
+    transform:
+      location_mm: [14, 0, -14]
+      rotation_deg: [-90, 180, 0]
+  # - id: rect_clip
+  #   model:
+  #     $constant: snap_gadget_clip_model
+  #     defines:
+  #       snap_thickness: 6.8
+  #       clip_shape: Rectangular
+  #   transform:
+  #     location_mm: [70, 0, -20.6]
+  #     rotation_deg: [0, 0, 0]
+  # - id: snapb
+  #   model:
+  #     scad_file: opengrid_expanding_snap.scad
+  #     defines:
+  #       snap_thickness: 6.8
+  #       generate_screw: None
+      # transform:
+      #   location_mm: [70, 0, -14]
+      #   rotation_deg: [-90, 180, 0]
+render:
+  fit_margin: 0.1
+  camera_view: bottom
+annotations:
+  style:
+    $constant: default_annotation_style
+    auto_adjust_labels: false
+    tick_length_px: 12
+    type_styles:
+      mm:
+        line_colors: ['#000000']
+  chains:
+  - ids: [clip_main_width]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: -300
+    label_offset_px: -28
+    label_font_size_px: 24
+  - ids: [clip_thickness]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 300
+    label_offset_px: 28
+    label_font_size_px: 24
+  - ids: [clip_main_depth]
+    optional: true
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 300
+    label_offset_px: 28
+    label_font_size_px: 24
+  - ids: [clip_stem_length]
+    optional: true
+    display_offset_mm: ["-(clip_main_width / 2 + clip_thickness)", 0, 0]
+    line_offset_px: 300
+    label_offset_px: 28
+    label_font_size_px: 24
+  # - ids: [clip_height]
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: 28
+  #   label_offset_px: 28
+  #   label_font_size_px: 24
+  angle_radius_callouts:
+  - id: clip_surround_angle_detail
+    arc_id: clip_surround_angle
+    radius_id: clip_surround_angle_radius
+    display_offset_mm: [0, -2.6, 0]
+    optional: true
+    show_radius_label: false
+    angle_label_offset_px: 30
+    angle_label_tangent_offset_px: -10
+    label_font_size_px: 24
+    auto_adjust_labels: false
+    angle_fill_alpha: 28

@@ -36,6 +36,14 @@ constants:
     horizontal_grids: horizontal_grids x 28mm
     vertical_grids: vertical_grids x 28mm
     depth_grids: depth_grids x 28mm
+  expanding_snap_object:
+    model:
+      scad_file: opengrid_expanding_snap.scad
+      defines:
+        generate_screw: None
+    transform:
+      location_mm: [14, 0, -14]
+      rotation_deg: [-90, 180, 0]
   default_annotation_style:
     line_alpha: 255
     line_width_px: 2.3

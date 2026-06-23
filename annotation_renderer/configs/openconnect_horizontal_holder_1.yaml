@@ -2,89 +2,17 @@ $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
 variant_name: openconnect_horizontal_holder_default
 job_name: horizontal_holder_scene_default
-constants:
-  horizontal_holder_model:
-    scad_file: openconnect_horizontal_holder.scad
-    defines:
-      item_width: 190
-      item_height: 60
-      item_depth: 30
-      generate_holder_part: Both
-      holder_slot_position: Top
-  horizontal_holder_annotations:
-    style:
-      $constant: default_annotation_style
-    aliases:
-      holder_slot_position: slot_position
-      item_corner_rounding_extent: item_corner_rounding
-      side_cutout_front_margin: cutout_front_margin
-      side_cutout_back_margin: cutout_back_margin
-      side_cutout_top_margin: cutout_top_margin
-      side_cutout_bottom_margin: cutout_bottom_margin
-    chains:
-    # - ids: [item_width]
-    #   display_offset_mm: [0, 0, 0]
-    #   line_offset_px: 0
-    #   label_offset_px: 30
-    # - ids: [item_height]
-    #   display_offset_mm: [8, 0, 0]
-    #   line_offset_px: 0
-    #   label_offset_px: 28
-    # - ids: [item_depth]
-    #   display_offset_mm: [0, 0, 0]
-    #   line_offset_px: 0
-    #   label_offset_px: 24
-    # - ids: [front_opening_width_margin]
-    #   optional: true
-    #   display_offset_mm: [0, 0, 0]
-    #   line_offset_px: 0
-    #   label_offset_px: 24
-    # - ids: [front_opening_height_margin]
-    #   optional: true
-    #   display_offset_mm: [8, 0, 0]
-    #   line_offset_px: 0
-    #   label_offset_px: 24
-    - ids: [side_cutout_front_margin]
-      optional: true
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: 0
-      label_offset_px: 24
-    - ids: [side_cutout_back_margin]
-      optional: true
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: 0
-      label_offset_px: 24
-    - ids: [side_cutout_top_margin]
-      optional: true
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: 0
-      label_offset_px: 24
-    - ids: [side_cutout_bottom_margin]
-      optional: true
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: 0
-      label_offset_px: 24
-    # angle_radius_callouts:
-    # - id: item_corner_rounding_fillet
-    #   arc_id: item_corner_rounding_extent
-    #   radius_id: item_corner_rounding
-    #   angle_id: item_corner_rounding
-    #   optional: true
-    #   show_angle_label: false
-    #   radius_label_offset_px: 36
-    #   angle_fill_alpha: 28
-    image_labels:
-    - $constant: bottom_image_label
-      id: holder_slot_position
-      show_value: true
-      value_color: '#2563eb'
-      font_size_px:
-        $constant: annotation_title_font_size_px
 scene:
   objects:
   - id: model
     model:
-      $constant: horizontal_holder_model
+      scad_file: openconnect_horizontal_holder.scad
+      defines:
+        item_width: 190
+        item_height: 60
+        item_depth: 30
+        generate_holder_part: Both
+        holder_slot_position: Top
     inherit_target_transform: false
     transform:
       location_mm: [0, "-(item_height / 2 + og_standard_thickness)", 0]
@@ -105,4 +33,71 @@ render:
   fit_margin: 0.16
   camera_location_offset_mm: [100, 0, 0]
 annotations:
-  $constant: horizontal_holder_annotations
+  style:
+    $constant: default_annotation_style
+  aliases:
+    holder_slot_position: slot_position
+    item_corner_rounding_extent: item_corner_rounding
+    side_cutout_front_margin: cutout_front_margin
+    side_cutout_back_margin: cutout_back_margin
+    side_cutout_top_margin: cutout_top_margin
+    side_cutout_bottom_margin: cutout_bottom_margin
+  chains:
+  # - ids: [item_width]
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: 0
+  #   label_offset_px: 30
+  # - ids: [item_height]
+  #   display_offset_mm: [8, 0, 0]
+  #   line_offset_px: 0
+  #   label_offset_px: 28
+  # - ids: [item_depth]
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: 0
+  #   label_offset_px: 24
+  # - ids: [front_opening_width_margin]
+  #   optional: true
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: 0
+  #   label_offset_px: 24
+  # - ids: [front_opening_height_margin]
+  #   optional: true
+  #   display_offset_mm: [8, 0, 0]
+  #   line_offset_px: 0
+  #   label_offset_px: 24
+  - ids: [side_cutout_front_margin]
+    optional: true
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 0
+    label_offset_px: 24
+  - ids: [side_cutout_back_margin]
+    optional: true
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 0
+    label_offset_px: 24
+  - ids: [side_cutout_top_margin]
+    optional: true
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 0
+    label_offset_px: 24
+  - ids: [side_cutout_bottom_margin]
+    optional: true
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 0
+    label_offset_px: 24
+  # angle_radius_callouts:
+  # - id: item_corner_rounding_fillet
+  #   arc_id: item_corner_rounding_extent
+  #   radius_id: item_corner_rounding
+  #   angle_id: item_corner_rounding
+  #   optional: true
+  #   show_angle_label: false
+  #   radius_label_offset_px: 36
+  #   angle_fill_alpha: 28
+  image_labels:
+  - $constant: bottom_image_label
+    id: holder_slot_position
+    show_value: true
+    value_color: '#2563eb'
+    font_size_px:
+      $constant: annotation_title_font_size_px

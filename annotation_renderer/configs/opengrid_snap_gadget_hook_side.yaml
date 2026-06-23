@@ -1,0 +1,49 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: base_scene.yaml
+variant_name: opengrid_snap_gadget_hook_default
+job_name: snap_gadget_hook_scene
+scene:
+  objects:
+  - id: model
+    model:
+      scad_file: opengrid_snap_gadget_hook.scad
+    transform:
+      location_mm: [-14, 0, -20.6]
+      rotation_deg: [0, 0, 0]
+  - id: snap_a
+    $constant: expanding_snap_object
+    transform:
+      location_mm: [-14, 0, -14]
+      rotation_deg: [-90, 180, 0]
+render:
+  fit_margin: 0
+  camera_view: top
+annotations:
+  style:
+    $constant: default_annotation_style
+    auto_adjust_labels: true
+    tick_length_px: 12
+    type_styles:
+      mm:
+        line_colors: ['#000000']
+  chains:
+  - ids: [body_width]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 28
+    label_offset_px: 28
+    label_font_size_px: 24
+  - ids: [body_thickness]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: -28
+    label_offset_px: -28
+    label_font_size_px: 24
+  - ids: [hook_main_size]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: -34
+    label_offset_px: -42
+    label_font_size_px: 24
+  - ids: [hook_stem_length]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 28
+    label_offset_px: 28
+    label_font_size_px: 24

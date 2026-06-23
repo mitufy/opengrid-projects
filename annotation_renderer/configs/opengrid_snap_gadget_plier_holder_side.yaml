@@ -1,0 +1,73 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: base_scene.yaml
+variant_name: opengrid_snap_gadget_plier_holder_default
+job_name: snap_gadget_plier_holder_scene
+scene:
+  objects:
+  - id: model_a
+    model:
+      scad_file: opengrid_snap_gadget_plier_holder.scad
+      defines:
+        stem_height: 12
+        stem_depth: 14
+    transform:
+      location_mm: [-14, 0, -20.6]
+      rotation_deg: [0, 0, 0]
+  - id: snap_a
+    $constant: expanding_snap_object
+    transform:
+      location_mm: [-14, 0, -14]
+      rotation_deg: [-90, 180, 0]
+render:
+  fit_margin: 0
+  camera_view: right
+annotations:
+  style:
+    $constant: default_annotation_style
+    auto_adjust_labels: true
+    tick_length_px: 12
+    type_styles:
+      mm:
+        line_colors: ['#000000']
+    colors:
+      transition_depth_ratio: '#FF0000'
+  chains:
+  # - ids: [stem_bottom_width]
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: 28
+  #   label_offset_px: 28
+  #   label_font_size_px: 24
+  # - ids: [stem_top_width]
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: 28
+  #   label_offset_px: 28
+  #   label_font_size_px: 24
+  - ids: [stem_height]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 0
+    label_offset_px: -28
+    label_font_size_px: 24
+  - ids: [stem_depth]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: -28
+    label_offset_px: -28
+    label_font_size_px: 24
+  # - ids: [transition_depth_ratio]
+  #   optional: true
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: -120
+  #   label_offset_px: -28
+  #   label_font_size_px: 24
+  #   labels:
+  #     transition_depth_ratio: transition_part
+  - ids: [stopper_depth]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: -28
+    label_offset_px: -28
+    label_font_size_px: 24
+  image_labels:
+  - $constant: bottom_image_label
+    id: transition_depth_ratio
+    label: transition_depth_ratio
+    show_value: true
+    value_color: '#FF0000'

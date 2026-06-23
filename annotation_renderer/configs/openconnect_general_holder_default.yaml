@@ -2,68 +2,15 @@ $schema: ../schemas/annotation-render-config.schema.json
 extends: animation_presets.yaml
 variant_name: openconnect_general_holder_default
 job_name: general_holder_scene_default
-constants:
-  general_holder_model:
-    scad_file: openconnect_general_holder.scad
-    defines:
-      compartment_shape: Rectangular
-      compartment_column_count: 2
-      compartment_row_count: 1
-  general_holder_annotations:
-    style:
-      $constant: default_annotation_style
-      colors:
-        compartment_width: '#000000'
-        compartment_depth: '#000000'
-        compartment_height: '#000000'
-    aliases:
-      compartment_shape: holder_shape
-    chains:
-    - ids: [compartment_width]
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: 0
-      label_offset_px: 28
-    - ids: [compartment_depth]
-      optional: true
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: 0
-      label_offset_px: 24
-    - ids: [compartment_height]
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: -12
-      label_offset_px: -24
-    - ids: [front_opening_width]
-      optional: true
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: 0
-      label_offset_px: 24
-    - ids: [front_opening_height]
-      optional: true
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: 0
-      label_offset_px: 24
-    angle_radius_callouts:
-    - id: holder_tilt_angle_callout
-      arc_id: holder_tilt_angle_extent
-      radius_id: holder_tilt_angle_radius
-      angle_id: holder_tilt_angle
-      optional: true
-      show_radius_label: false
-      angle_label_offset_px: 34
-      angle_fill_alpha: 28
-    image_labels:
-    - $constant: bottom_image_label
-      id: compartment_shape
-      offset_px: [0, 0]
-      show_value: true
-      value_color: '#2563eb'
-      font_size_px:
-        $constant: annotation_title_font_size_px
 scene:
   objects:
   - id: model
     model:
-      $constant: general_holder_model
+      scad_file: openconnect_general_holder.scad
+      defines:
+        compartment_shape: Rectangular
+        compartment_column_count: 2
+        compartment_row_count: 1
   transform:
     location_mm: [0, 0, 0]
     rotation_deg: [holder_tilt_angle, 0, 0]
@@ -74,4 +21,52 @@ render:
   camera_location_offset_mm: [0, 0, 100]
   camera_look_at: object_center
 annotations:
-  $constant: general_holder_annotations
+  style:
+    $constant: default_annotation_style
+    colors:
+      compartment_width: '#000000'
+      compartment_depth: '#000000'
+      compartment_height: '#000000'
+  aliases:
+    compartment_shape: holder_shape
+  chains:
+  - ids: [compartment_width]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 0
+    label_offset_px: 28
+  - ids: [compartment_depth]
+    optional: true
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 0
+    label_offset_px: 24
+  - ids: [compartment_height]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: -12
+    label_offset_px: -24
+  - ids: [front_opening_width]
+    optional: true
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 0
+    label_offset_px: 24
+  - ids: [front_opening_height]
+    optional: true
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 0
+    label_offset_px: 24
+  angle_radius_callouts:
+  - id: holder_tilt_angle_callout
+    arc_id: holder_tilt_angle_extent
+    radius_id: holder_tilt_angle_radius
+    angle_id: holder_tilt_angle
+    optional: true
+    show_radius_label: false
+    angle_label_offset_px: 34
+    angle_fill_alpha: 28
+  image_labels:
+  - $constant: bottom_image_label
+    id: compartment_shape
+    offset_px: [0, 0]
+    show_value: true
+    value_color: '#2563eb'
+    font_size_px:
+      $constant: annotation_title_font_size_px

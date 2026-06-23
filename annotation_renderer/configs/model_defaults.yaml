@@ -12,3 +12,6 @@ variant_configs:
 - openconnect_standard_snap_grid_copies.yaml
 - opengrid_expanding_standard_snap_grid_copies.yaml
 - opengrid_framefit_hook_default.yaml
+- opengrid_snap_gadget_hook_default.yaml
+- opengrid_snap_gadget_clip_default.yaml
+- opengrid_snap_gadget_plier_holder_default.yaml

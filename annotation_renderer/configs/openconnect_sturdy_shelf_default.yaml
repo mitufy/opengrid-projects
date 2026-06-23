@@ -2,42 +2,37 @@ $schema: ../schemas/annotation-render-config.schema.json
 extends: animation_presets.yaml
 variant_name: openconnect_sturdy_shelf_default
 job_name: sturdy_shelf_scene_default
-constants:
-  sturdy_shelf_model:
-    scad_file: openconnect_sturdy_shelf.scad
-    defines:
-      shelf_type: Standard
-      add_texture: true
-  sturdy_shelf_annotations:
-    style:
-      $constant: default_annotation_style
-    aliases:
-      $constant: default_grid_label_aliases
-    chains:
-    - ids: [depth_grids]
-      line_offset_px: 0
-      label_offset_px: -30
-      label_font_size_px: 26
-    - ids: [horizontal_grids]
-      line_offset_px: 0
-      label_offset_px: 30
-      label_font_size_px: 26
-    # - $constant: small_dimension_chain
-    #   ids: [shelf_back_thickness]
-    # - $constant: small_dimension_chain
-    #   ids: [shelf_bottom_thickness]
-    # image_labels:
-    # - $constant: bottom_image_label
-    #   id: shelf_type
-    #   show_value: true
 scene:
   objects:
   - id: model
     model:
-      $constant: sturdy_shelf_model
+      scad_file: openconnect_sturdy_shelf.scad
+      defines:
+        shelf_type: Standard
+        add_texture: true
     transform:
       location_mm: [56, 0, -28]
   transform:
     $constant: wall_placeholder_transform
 annotations:
-  $constant: sturdy_shelf_annotations
+  style:
+    $constant: default_annotation_style
+  aliases:
+    $constant: default_grid_label_aliases
+  chains:
+  - ids: [depth_grids]
+    line_offset_px: 0
+    label_offset_px: -30
+    label_font_size_px: 26
+  - ids: [horizontal_grids]
+    line_offset_px: 0
+    label_offset_px: 30
+    label_font_size_px: 26
+  # - $constant: small_dimension_chain
+  #   ids: [shelf_back_thickness]
+  # - $constant: small_dimension_chain
+  #   ids: [shelf_bottom_thickness]
+  # image_labels:
+  # - $constant: bottom_image_label
+  #   id: shelf_type
+  #   show_value: true

@@ -2,59 +2,6 @@ $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
 variant_name: openconnect_sturdy_hook_default
 job_name: sturdy_hook_scene
-constants:
-  sturdy_hook_model:
-    scad_file: openconnect_sturdy_hook.scad
-  sturdy_hook_annotations:
-    style:
-      $constant: default_annotation_style
-      auto_adjust_labels: true
-      tick_length_px: 15
-      type_styles:
-        grids:
-          line_colors: ['#2563eb']
-        mm:
-          line_colors: ['#000000']
-    aliases:
-      hook_vertical_grids: hook_vgrids x 28mm
-      truss_vertical_grids: truss_vgrids x 28mm
-      hook_shape_type: hook_shape
-      circular_corner_radius: corner_radius
-      circular_corner_radius_extent: corner_radius
-      circular_tip_radius: tip_radius
-      circular_tip_radius_extent: tip_radius
-      circular_tip_angle: tip_angle
-    # angle_radius_callouts:
-    # - id: circular_corner_radius_detail
-    #   arc_id: circular_corner_radius_extent
-    #   radius_id: circular_corner_radius
-    #   optional: true
-    #   show_angle_label: false
-    #   radius_label_offset_px: 26
-    #   angle_fill_alpha: 28
-    chains:
-    - ids: [hook_width]
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: 0
-      label_offset_px: 30
-      label_font_size_px: 30
-    - ids: [hook_thickness, hook_length]
-      display_offset_mm: [0, 0, 0]
-      label_offset_px: -30
-      label_font_size_px: 26
-    - ids: [hook_vertical_grids, truss_vertical_grids]
-      optional: true
-      display_offset_mm: [-5, 0, 0]
-      label_offset_px: -30
-      label_font_size_px: 30
-    # image_labels:
-    # - $constant: bottom_image_label
-    #   id: hook_shape_type
-    #   offset_px: [0, -6]
-    #   show_value: true
-    #   value_color: '#2563eb'
-    #   font_size_px:
-    #     $constant: annotation_title_font_size_px
 scene:
   objects:
   # - id: model
@@ -64,7 +11,7 @@ scene:
   #     location_mm: [56, 0, -28]
   - id: large_hook
     model:
-      $constant: sturdy_hook_model
+      scad_file: openconnect_sturdy_hook.scad
       defines:
         hook_length: 56
         hook_vertical_grids: 2
@@ -79,4 +26,52 @@ render:
   # camera_rotation_offset_deg: [0, 0, 10]
   # camera_look_at: object_center
 annotations:
-  $constant: sturdy_hook_annotations
+  style:
+    $constant: default_annotation_style
+    auto_adjust_labels: true
+    tick_length_px: 15
+    type_styles:
+      grids:
+        line_colors: ['#2563eb']
+      mm:
+        line_colors: ['#000000']
+  aliases:
+    hook_vertical_grids: hook_vgrids x 28mm
+    truss_vertical_grids: truss_vgrids x 28mm
+    hook_shape_type: hook_shape
+    circular_corner_radius: corner_radius
+    circular_corner_radius_extent: corner_radius
+    circular_tip_radius: tip_radius
+    circular_tip_radius_extent: tip_radius
+    circular_tip_angle: tip_angle
+  # angle_radius_callouts:
+  # - id: circular_corner_radius_detail
+  #   arc_id: circular_corner_radius_extent
+  #   radius_id: circular_corner_radius
+  #   optional: true
+  #   show_angle_label: false
+  #   radius_label_offset_px: 26
+  #   angle_fill_alpha: 28
+  chains:
+  - ids: [hook_width]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 0
+    label_offset_px: 30
+    label_font_size_px: 30
+  - ids: [hook_thickness, hook_length]
+    display_offset_mm: [0, 0, 0]
+    label_offset_px: -30
+    label_font_size_px: 26
+  - ids: [hook_vertical_grids, truss_vertical_grids]
+    optional: true
+    display_offset_mm: [-5, 0, 0]
+    label_offset_px: -30
+    label_font_size_px: 30
+  # image_labels:
+  # - $constant: bottom_image_label
+  #   id: hook_shape_type
+  #   offset_px: [0, -6]
+  #   show_value: true
+  #   value_color: '#2563eb'
+  #   font_size_px:
+  #     $constant: annotation_title_font_size_px

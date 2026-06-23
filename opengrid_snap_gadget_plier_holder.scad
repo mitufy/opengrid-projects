@@ -36,6 +36,8 @@ spring_hole_position_offset = 0;
 /* [Hidden] */
 $fa = 1;
 $fs = 0.2;
+emit_annotation_metadata = false;
+include <lib/annotation_metadata.scad>
 include <lib/opengrid_base.scad>
 use <lib/opengrid_threads_lib.scad>
 
@@ -90,6 +92,101 @@ plier_prismoid_top_rounding = max(EPS, min(stem_top_rounding, final_stem_top_wid
 plier_prismoid_bottom_rounding = max(EPS, min(stem_bottom_rounding, stem_bottom_width / 2, stem_height / 2));
 plier_prismoid_side_angle = opp_adj_to_ang((stem_bottom_width - final_stem_top_width) / 2, stem_height);
 stopper_side_angle = opp_adj_to_ang((stem_bottom_width - final_stem_top_width) * stopper_width_scale / 2, stem_height * stopper_height_scale);
+
+annotation_side_x = stem_bottom_width / 2;
+annotation_stem_y = _threads_side_offset;
+annotation_stem_back_y = 0;
+annotation_stem_z = 0;
+annotation_transition_start_y = -stem_depth * (1 - transition_depth_ratio);
+annotation_transition_end_y = -stem_depth;
+
+module emit_snap_gadget_plier_holder_annotations() {
+  emit_context_values(
+    "snap_gadget_plier_holder_context",
+    [
+      "snap_thickness",
+      "plier_count",
+      "stem_top_width",
+      "stem_bottom_width",
+      "stem_height",
+      "stem_depth",
+      "transition_depth_ratio",
+      "stopper_width_scale",
+      "stopper_height_scale",
+      "stopper_depth"
+    ],
+    [
+      snap_thickness,
+      plier_count,
+      stem_top_width,
+      stem_bottom_width,
+      stem_height,
+      stem_depth,
+      transition_depth_ratio,
+      stopper_width_scale,
+      stopper_height_scale,
+      stopper_depth
+    ]
+  );
+  emit_dimension_annotation(
+    id="stem_bottom_width",
+    label="stem_bottom_width",
+    axis="x",
+    value=stem_bottom_width,
+    start=[-stem_bottom_width / 2, annotation_stem_y, annotation_stem_z],
+    end=[stem_bottom_width / 2, annotation_stem_y, annotation_stem_z],
+    basis="stem_bottom_width"
+  );
+  emit_dimension_annotation(
+    id="stem_top_width",
+    label="stem_top_width",
+    axis="x",
+    value=final_stem_top_width,
+    start=[-final_stem_top_width / 2, annotation_stem_y, stem_height],
+    end=[final_stem_top_width / 2, annotation_stem_y, stem_height],
+    basis="stem_top_width"
+  );
+  emit_dimension_annotation(
+    id="stem_height",
+    label="stem_height",
+    axis="z",
+    value=stem_height,
+    start=[annotation_side_x, annotation_stem_back_y, 0],
+    end=[annotation_side_x, annotation_stem_back_y, stem_height],
+    basis="stem_height"
+  );
+  emit_dimension_annotation(
+    id="stem_depth",
+    label="stem_depth",
+    axis="y",
+    value=stem_depth,
+    start=[annotation_side_x, 0, annotation_stem_z],
+    end=[annotation_side_x, -stem_depth, annotation_stem_z],
+    basis="stem_depth_including_transition"
+  );
+  if (transition_depth_ratio > 0) {
+    emit_dimension_annotation(
+      id="transition_depth_ratio",
+      label="transition_depth_ratio",
+      axis="y",
+      value=transition_depth_ratio,
+      start=[annotation_side_x, annotation_transition_start_y, annotation_stem_z],
+      end=[annotation_side_x, annotation_transition_end_y, annotation_stem_z],
+      basis="transition_region_from_transition_depth_ratio"
+    );
+  }
+  emit_dimension_annotation(
+    id="stopper_depth",
+    label="stopper_depth",
+    axis="y",
+    value=stopper_depth,
+    start=[annotation_side_x, -stem_depth, annotation_stem_z],
+    end=[annotation_side_x, -(stem_depth + stopper_depth), annotation_stem_z],
+    basis="front_stopper_depth"
+  );
+}
+
+emit_snap_gadget_plier_holder_annotations();
 //align to front and bottom
 up(model_z_offset) zrot(180) up(_threads_side_offset) xrot(90) {
     diff(remove="holder_thread_rm") {
