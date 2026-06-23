@@ -267,7 +267,7 @@ module snap_cut(snapbody_cfg = [], snapcut_cfg = []) {
   _disable_directional_slant = struct_val(_cut_cfg, "disable_directional_slant");
 
   for (i = [FRONT, LEFT, RIGHT, BACK]) {
-    bottom_cut_length = ((i == LEFT || i == RIGHT) ? _snap_height : _snap_width) - _cut_width_inset * 2;
+    bottom_cut_length = ( (i == LEFT || i == RIGHT) ? _snap_height : _snap_width) - _cut_width_inset * 2;
     bottom_cut_rounding = _snap_body_shape == "Directional" && i == FRONT ? 0 : _bottom_cut_thickness / 2;
     if (!_disable_all_bottom_cut && !(_snap_body_shape == "Directional" && i == BACK)) {
       down(_bottom_cut_offset_to_top)
@@ -338,8 +338,8 @@ module snap_nub(snapbody_cfg = [], snapnub_cfg = []) {
 
   diff("nub_remove") {
     for (i = [FRONT, LEFT, RIGHT, BACK]) {
-      basic_nub_width = ((i == LEFT || i == RIGHT) ? _snap_height : _snap_width) - _basic_nub_width_inset * 2;
-      directional_nub_width = ((i == LEFT || i == RIGHT) ? _snap_height : _snap_width) - _directional_nub_width_inset * 2;
+      basic_nub_width = ( (i == LEFT || i == RIGHT) ? _snap_height : _snap_width) - _basic_nub_width_inset * 2;
+      directional_nub_width = ( (i == LEFT || i == RIGHT) ? _snap_height : _snap_width) - _directional_nub_width_inset * 2;
       basic_nub_size1 = [basic_nub_width, _basic_nub_height];
       basic_nub_size2 = [basic_nub_width - _basic_nub_width_tip_taper, undef];
       directional_nub_size1 = [directional_nub_width, _directional_nub_height];
@@ -384,7 +384,7 @@ module snap_uninstall_notch(snapbody_cfg = [], snapnotch_cfg = [], anchor = BOTT
     : _notch_gap_height_lite;
   if (_notch_width > 0 && _notch_surface_inset > 0 && _notch_surface_height > 0)
     cuboid([_notch_width, _notch_surface_inset, _notch_surface_height], anchor=anchor, spin=spin, orient=orient)
-      attach(BOTTOM, TOP, align=FRONT)
+      attach(BOTTOM, TOP, align=FRONT, shiftout=-EPS)
         cuboid([_notch_width, _notch_gap_inset, _notch_gap_height])
           //cut off remaining snap extrusion
           attach(FRONT, BACK, align=TOP)
@@ -554,15 +554,15 @@ module expanding_snap(
             snapcut_cfg=expand_cut_cfg, snapnotch_cfg=snapnotch_cfg, text_cfg=expand_text_cfg
           );
       left(center_position_offset[0]) back(center_position_offset[1]) {
-        down(EPS / 2) tag("remove") expanding_threads(
-              threads_height=_snap_thickness,
-              expand_cfg=expand_cfg, threads_cfg=threads_cfg
-            );
-        zrot(_expand_split_angle)
-          tag("remove") expanding_spring(
-              snapbody_cfg=snapbody_cfg, spring_cfg=spring_cfg, snapcorner_cfg=snapcorner_cfg,
-              snapcut_cfg=snapcut_cfg, threads_cfg=threads_cfg
-            );
-      }
+          down(EPS / 2) tag("remove") expanding_threads(
+                threads_height=_snap_thickness,
+                expand_cfg=expand_cfg, threads_cfg=threads_cfg
+              );
+          zrot(_expand_split_angle)
+            tag("remove") expanding_spring(
+                snapbody_cfg=snapbody_cfg, spring_cfg=spring_cfg, snapcorner_cfg=snapcorner_cfg,
+                snapcut_cfg=snapcut_cfg, threads_cfg=threads_cfg
+              );
+        }
     }
 }
