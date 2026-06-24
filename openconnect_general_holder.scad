@@ -8,31 +8,30 @@ openGrid is created by David D: https://www.printables.com/model/1214361-opengri
 */
 
 /* [Main Settings] */
-//Circular uses compartment_width as the diameter. Elliptic uses both width and depth.
 compartment_shape = "Rectangular"; //[Rectangular,Circular,Elliptic]
-//Inner opening size at the top of each pocket. Use slightly larger values for more wiggle room.
+//The width of each compartment. Use slightly larger values for more wiggle room.
 compartment_width = 40;
-//This value is ignored for circular compartments, as their depth follows the width.
+//The depth of each compartment. Doesn't apply to Circular-shaped compartments, as their depth follows the width.
 compartment_depth = 25;
-//By setting column and row count, you can generate holders that can hold (column x row) objects.
+//The height of each compartment. The minimum value for compartment_height+holder_bottom_thickness is around 18.
+compartment_height = 26;
+//By setting column and row count, you can generate a holder that can hold (column x row) objects.
 compartment_column_count = 2;
 compartment_row_count = 1;
-//This value only applies to Rectangular compartments.
+//This value only applies to Rectangular-shaped compartments.
 compartment_corner_rounding = 3;
 
 /* [Holder Body] */
-//"Tile Multiple" uses more space, but makes the sides of the holder align with openGrid tiles.
-holder_width_mode = "Default"; //["Default", "Tile Multiple"]
-//Requested usable inside height. Body may grow taller for openConnect slots, tilt, and bottom thickness.
-compartment_height = 26;
 //Setting this value to 0 generates a bottomless holder.
 holder_bottom_thickness = 2; //0.1
-//Affects the thickness of the outer side and front walls.
+//The thickness of the outer wall of the holder.
 holder_outer_wall_thickness = 2.4;
-//Increase this value if you want the object to be held farther away from the wall.
-holder_back_offset = 0;
 //Tilt the container forward for easier access of content. Set to 0 for a standard vertical holder.
 holder_tilt_angle = 0; //[0:5:45]
+//Increase this value if you want the object to be held farther away from the wall.
+holder_back_offset = 0;
+//"Tile Multiple" uses more space, but makes the sides of the holder align with openGrid tiles.
+holder_width_mode = "Default"; //["Default", "Tile Multiple"]
 
 /* [Taper Settings] */
 //Enable taper to create a compartment shape that narrows as it goes down.
@@ -108,7 +107,7 @@ final_holder_tilt_angle = min(adj_opp_to_ang(provisional_holder_height, final_ho
 final_holder_height = max(ang_adj_to_hyp(final_holder_tilt_angle, slot_wall_min_height), requested_holder_height);
 
 final_compartment_rounding = min(compartment_corner_rounding, compartment_width / 2, final_compartment_depth / 2);
-final_holder_rounding = compartment_shape == "Rectangular" ? max(EPS, min(final_compartment_depth / 2, compartment_width / 2, final_compartment_rounding)) : min(final_compartment_depth / 2, compartment_width / 2);
+final_holder_rounding = compartment_shape == "Rectangular" ? max(EPS, min(holder_width / 2, final_holder_depth / 2, final_compartment_rounding + holder_outer_wall_thickness)) : min(holder_width / 2, final_holder_depth / 2, final_compartment_depth / 2 + holder_outer_wall_thickness, compartment_width / 2 + holder_outer_wall_thickness);
 holder_shape = rect([holder_width, final_holder_depth], rounding=[final_compartment_rounding, final_compartment_rounding, 0, 0]);
 
 final_compartment_height = max(EPS, final_holder_height - max(0, holder_bottom_thickness));
@@ -138,14 +137,13 @@ slot_flat_region = fwd((slot_face_height - round(slot_face_height / OG_TILE_SIZE
 // xrot(-final_holder_tilt_angle)
 right(holder_width / 2) zrot(180)
     diff() {
-      back(holder_back_offset)
-        back((final_compartment_depth * compartment_row_count + holder_horizontal_divider_thickness * max(0, compartment_row_count - 1)) / 2 + slot_wall_thickness) grid_copies(spacing=[compartment_width + holder_vertical_divider_thickness, final_compartment_depth + holder_horizontal_divider_thickness], n=[compartment_column_count, compartment_row_count])
-            up(holder_bottom_thickness) xrot(180)
-                tag("remove") linear_sweep(region=compartment_sweep_profile, height=final_compartment_height, scale=[compartment_width_scale, compartment_depth_scale], shift=[0, 0], anchor="original_top");
+      back((final_compartment_depth * compartment_row_count) / 2 + (holder_horizontal_divider_thickness * max(0, compartment_row_count - 1)) / 2 + slot_wall_thickness + holder_back_offset)
+        grid_copies(spacing=[compartment_width + holder_vertical_divider_thickness, final_compartment_depth + holder_horizontal_divider_thickness], n=[compartment_column_count, compartment_row_count])
+          up(holder_bottom_thickness) xrot(180)
+              tag("remove") linear_sweep(region=compartment_sweep_profile, height=final_compartment_height, scale=[compartment_width_scale, compartment_depth_scale], shift=[0, 0], anchor="original_top");
       prismoid(size1=[holder_width, final_holder_depth], h=final_holder_height, xang=[90, 90], yang=[90 + final_holder_tilt_angle, 90], rounding=[final_holder_rounding, final_holder_rounding, 0, 0], anchor=FRONT + BOTTOM) {
         attach(FRONT, TOP, align=TOP, inside=true) {
           tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[slot_flat_region]);
-          // openconnect_slot_grid_limit_debug(slot_cfg=_slot_cfg, horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[slot_flat_region]);
         }
         front_opening_depth = holder_outer_wall_thickness + final_compartment_depth / 2 - ang_adj_to_opp(final_depth_taper, final_compartment_height);
         if (front_opening_width > 0 && front_opening_height > 0)
