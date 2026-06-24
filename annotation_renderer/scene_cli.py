@@ -113,8 +113,8 @@ CAMERA_VIEW_PRESETS = {
     "front_right": {"camera_view": "front", "camera_orbit_deg": [35, 8], "camera_distance_scale": 1.08},
     "back_left": {"camera_view": "back", "camera_orbit_deg": [35, 8], "camera_distance_scale": 1.08},
     "back_right": {"camera_view": "back", "camera_orbit_deg": [-35, 8], "camera_distance_scale": 1.08},
-    "top_front": {"camera_view": "top", "camera_orbit_deg": [0, -18], "camera_distance_scale": 1.12},
-    "top_back": {"camera_view": "top", "camera_orbit_deg": [180, -18], "camera_distance_scale": 1.12},
+    "top_front": {"camera_view": "front", "camera_orbit_deg": [0, 72], "camera_distance_scale": 1.12},
+    "top_back": {"camera_view": "back", "camera_orbit_deg": [0, 72], "camera_distance_scale": 1.12},
     "technical_iso": {"camera_view": "front", "camera_orbit_deg": [35, 24], "camera_distance_scale": 1.15},
     "left_side_zoomed": {"camera_view": "left", "camera_distance_scale": 0.88},
     "right_side_zoomed": {"camera_view": "right", "camera_distance_scale": 0.88},
@@ -477,6 +477,13 @@ def output_mode_for(render_config: Mapping[str, object], args: argparse.Namespac
     if mode not in OUTPUT_MODES:
         raise ConfigError(f"render.output_mode must be one of {', '.join(OUTPUT_MODES)}")
     return mode
+
+
+def export_blend_for(render_config: Mapping[str, object], args: argparse.Namespace) -> bool:
+    raw_value = render_config.get("export_blend", False)
+    if not isinstance(raw_value, bool):
+        raise ConfigError("render.export_blend must be a boolean")
+    return bool(raw_value or getattr(args, "export_blend", False))
 
 
 def cache_enabled_for(render_config: Mapping[str, object], args: argparse.Namespace) -> bool:
@@ -1176,6 +1183,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-file", help="Write the final still image to an exact path instead of a timestamped output path.")
     parser.add_argument("--cache-dir", help="Override the render-stage cache directory. Defaults to <output-dir>\\.cache.")
     parser.add_argument("--no-cache", action="store_true", help="Disable OpenSCAD and Blender render-stage cache reuse for this run.")
+    parser.add_argument("--export-blend", action="store_true", help="Save the prepared Blender scene used for rendering next to the final image.")
     parser.add_argument("--openscad", default="openscad", help="OpenSCAD executable.")
     parser.add_argument("--blender", default="blender", help="Blender executable.")
     parser.add_argument("--doctor", action="store_true", help="Check local renderer dependencies and paths.")
@@ -1242,6 +1250,7 @@ def resolved_config_snapshot(
     render_settings = resolve_render(config.get("render", {}))
     render_snapshot = dict(render_settings)
     render_snapshot["output_mode"] = output_mode_for(render_settings, args)
+    render_snapshot["export_blend"] = export_blend_for(render_settings, args)
     annotation_config = require_mapping(config.get("annotations", {}), name="annotations")
     style_config = resolve_style(annotation_config.get("style"))
     expression_context = build_expression_context(config)
@@ -1913,6 +1922,7 @@ def build_blender_config(
     animation_config: Mapping[str, object] | None,
     animation_frame_dir: Path | None,
     expression_context: Mapping[str, float],
+    export_blend_path: Path | None = None,
 ) -> dict[str, object]:
     camera_view_preset = str(render_settings.get("camera_view_preset") or "")
     camera_preset_settings = CAMERA_VIEW_PRESETS.get(camera_view_preset, {})
@@ -2034,6 +2044,8 @@ def build_blender_config(
         "xray": render_settings.get("xray"),
         "mesh_shading": str(render_settings.get("mesh_shading", "flat")),
     }
+    if export_blend_path is not None:
+        blender_config["export_blend_path"] = str(export_blend_path)
     if animation_config:
         assert animation_frame_dir is not None
         animation_frame_dir.mkdir(parents=True, exist_ok=True)
@@ -2046,6 +2058,7 @@ def normalized_blender_cache_config(blender_config: Mapping[str, object]) -> dic
     normalized = deepcopy(dict(blender_config))
     normalized["render_path"] = "<render>"
     normalized["projection_path"] = "<projection>"
+    normalized.pop("export_blend_path", None)
     normalized.pop("animation_frame_path", None)
     objects = normalized.get("objects")
     if isinstance(objects, list):
@@ -2099,6 +2112,8 @@ def run_blender_scene(
     blender_config_path.write_text(json.dumps(blender_config, indent=2) + "\n", encoding="utf-8")
     write_blender_scene_script(blender_script_path)
     blender_command = [blender, "--background", str(blend_file), "--python", str(blender_script_path)]
+    raw_export_blend_path = blender_config.get("export_blend_path")
+    export_blend_path = Path(str(raw_export_blend_path)) if raw_export_blend_path else None
     cache_info: dict[str, object] = {
         "stage": "blender",
         "enabled": cache_root is not None and "animation" not in blender_config,
@@ -2109,6 +2124,7 @@ def run_blender_scene(
     cached_render = None
     cached_projection = None
     cached_log = None
+    cached_blend = None
     if cache_info["enabled"]:
         key = blender_stage_cache_key(
             blender=blender,
@@ -2120,9 +2136,16 @@ def run_blender_scene(
         cached_render = cache_dir / "render.png"
         cached_projection = cache_dir / "projection.json"
         cached_log = cache_dir / "blender.log"
-        if cached_render.exists() and cached_projection.exists():
+        cached_blend = cache_dir / "scene.blend"
+        cache_hit_ready = cached_render.exists() and cached_projection.exists()
+        if export_blend_path is not None:
+            cache_hit_ready = cache_hit_ready and cached_blend.exists()
+        if cache_hit_ready:
             shutil.copy2(cached_render, render_path)
             shutil.copy2(cached_projection, projection_path)
+            if export_blend_path is not None:
+                export_blend_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(cached_blend, export_blend_path)
             if cached_log.exists():
                 shutil.copy2(cached_log, blender_log)
             else:
@@ -2139,10 +2162,14 @@ def run_blender_scene(
         )
     if blender_result.returncode != 0 or not render_path.exists() or not projection_path.exists():
         raise SystemExit(command_failure_message("Blender scene render failed", log_path=blender_log))
+    if export_blend_path is not None and not export_blend_path.exists():
+        raise SystemExit(command_failure_message("Blender scene export failed", log_path=blender_log))
     if cached_render is not None and cached_projection is not None:
         cached_render.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(render_path, cached_render)
         shutil.copy2(projection_path, cached_projection)
+        if export_blend_path is not None and cached_blend is not None:
+            shutil.copy2(export_blend_path, cached_blend)
         if cached_log is not None:
             shutil.copy2(blender_log, cached_log)
     return blender_command, cache_info
@@ -2375,6 +2402,7 @@ def build_render_metadata(
     render_path: Path,
     annotated_path: Path,
     metadata_path: Path,
+    export_blend_path: Path | None,
     animation_path: Path | None,
     animation_frame_dir: Path | None,
     projection_path: Path,
@@ -2511,6 +2539,7 @@ def build_render_metadata(
             "render": project_relative_or_absolute(render_path) if output_mode == "debug" else None,
             "annotated": project_relative_or_absolute(annotated_path),
             "metadata": project_relative_or_absolute(metadata_path) if output_mode != "minimal" else None,
+            "blend": project_relative_or_absolute(export_blend_path) if export_blend_path is not None else None,
             "animation": project_relative_or_absolute(animation_path) if animation_path is not None else None,
             "animation_frames": project_relative_or_absolute(animation_frame_dir) if animation_frame_dir is not None and output_mode == "debug" else None,
             "projection": project_relative_or_absolute(projection_path) if output_mode == "debug" else None,
@@ -2573,6 +2602,7 @@ def render_config(
     blender = require_blender_executable(args.blender)
     job_name = sanitize_name(str(config.get("job_name") or base_job_name(config)))
     output_mode = output_mode_for(render_settings, args)
+    export_blend = export_blend_for(render_settings, args)
     cache_root = cache_root_for(config, render_settings, args)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     run_name = f"{job_name}__{timestamp}"
@@ -2601,6 +2631,7 @@ def render_config(
 
     render_path = run_dir / "render.png"
     annotated_path = exact_output_file or (output_dir / f"{run_name}.png")
+    export_blend_path = annotated_path.with_suffix(".blend") if export_blend else None
     animation_frame_dir = run_dir / "animation_frames" if animation_config else None
     animation_path = (
         output_dir / f"{run_name}.gif"
@@ -2622,6 +2653,7 @@ def render_config(
         animation_config=animation_config,
         animation_frame_dir=animation_frame_dir,
         expression_context=expression_context,
+        export_blend_path=export_blend_path,
     )
     blender_command, blender_cache_info = run_blender_scene(
         blender=blender,
@@ -2678,6 +2710,7 @@ def render_config(
         render_path=render_path,
         annotated_path=annotated_path,
         metadata_path=metadata_path,
+        export_blend_path=export_blend_path,
         animation_path=animation_path,
         animation_frame_dir=animation_frame_dir,
         projection_path=projection_path,
@@ -2711,6 +2744,8 @@ def render_config(
         print(f"Animation:    {project_relative_or_absolute(animation_path)}")
     elif animation_frame_dir is not None and output_mode == "debug":
         print(f"Frames:       {project_relative_or_absolute(animation_frame_dir)}")
+    if export_blend_path is not None:
+        print(f"Blend:        {project_relative_or_absolute(export_blend_path)}")
     if output_mode != "minimal":
         print(f"Metadata:     {project_relative_or_absolute(metadata_path)}")
     if output_mode == "debug":
@@ -2722,6 +2757,7 @@ def render_config(
         "render": render_path if output_mode == "debug" else None,
         "annotated": annotated_path,
         "metadata": metadata_path if output_mode != "minimal" else None,
+        "blend": export_blend_path,
         "output_mode": output_mode,
         "cache": {
             "root": cache_root,

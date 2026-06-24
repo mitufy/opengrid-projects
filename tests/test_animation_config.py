@@ -41,6 +41,7 @@ from annotation_renderer.scene_cli import (
     main,
     output_file_from_args,
     output_mode_for,
+    export_blend_for,
     overlay_quality_warnings,
     parse_args_from,
     scad_output_folder_name,
@@ -1228,6 +1229,17 @@ class AnimationConfigTests(unittest.TestCase):
         with self.assertRaisesRegex(ConfigError, "render.output_mode must be one of debug, minimal, standard"):
             resolve_render({"preset": "cycles_standard_scene", "output_mode": "everything"})
 
+    def test_render_export_blend_is_validated_and_cli_overrides_config(self) -> None:
+        render = resolve_render({"preset": "cycles_standard_scene", "export_blend": True})
+        default_args = parse_args_from(["render", "openconnect_general_holder"])
+        cli_args = parse_args_from(["render", "openconnect_general_holder", "--export-blend"])
+
+        self.assertTrue(export_blend_for(render, default_args))
+        self.assertTrue(export_blend_for({}, cli_args))
+        self.assertFalse(export_blend_for({}, default_args))
+        with self.assertRaisesRegex(ConfigError, "render.export_blend must be a boolean"):
+            resolve_render({"preset": "cycles_standard_scene", "export_blend": "yes"})
+
     def test_render_cache_controls_are_resolved_from_cli_and_config(self) -> None:
         default_args = parse_args_from(["render", "openconnect_general_holder"])
 
@@ -1277,6 +1289,7 @@ class AnimationConfigTests(unittest.TestCase):
             same_inputs_new_output = dict(blender_config)
             same_inputs_new_output["render_path"] = str(temp_path / "run-b" / "render.png")
             same_inputs_new_output["projection_path"] = str(temp_path / "run-b" / "projection.json")
+            same_inputs_new_output["export_blend_path"] = str(temp_path / "run-b" / "scene.blend")
             self.assertEqual(
                 first_key,
                 blender_stage_cache_key(blender="blender", blend_file=blend_file, blender_config=same_inputs_new_output),
@@ -1637,6 +1650,7 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("label_font_size_px", image_label_properties)
         self.assertIn("cache", render_properties)
         self.assertIn("cache_dir", render_properties)
+        self.assertIn("export_blend", render_properties)
         self.assertIn("variant_name", schema["properties"])
         self.assertIn("variant_configs", schema["properties"])
         self.assertNotIn("animation", scene_default_properties)

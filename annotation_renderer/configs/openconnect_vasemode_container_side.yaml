@@ -10,7 +10,7 @@ scene:
       defines:
         vase_surface_texture: checkers
         horizontal_grids: 2
-        vertical_grids: 2
+        vertical_grids: 3
         depth_grids: 2
         vase_tilt_angle: 15
         label_holder_type: Standard
@@ -44,9 +44,9 @@ annotations:
   #   font_size_px: 28
   - ids: [depth_grids]
     display_offset_mm: [0, 0, 0]
-    line_offset_px: 60
+    line_offset_px: 70
     label_offset_px: 20
-    font_size_px: 26
+    font_size_px: 28
   # - $constant: small_dimension_chain
   #   ids: [ocvase_linewidth]
   #   label_offset_px: 34

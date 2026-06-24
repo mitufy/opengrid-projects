@@ -112,6 +112,10 @@ Use `--output-mode debug` when you need Blender logs, temporary STLs, projection
 JSON, or intermediate overlay images. The default `standard` mode keeps the
 final image and metadata.
 
+Use `--export-blend` or `render.export_blend: true` when you want the prepared
+Blender scene that was rendered. The `.blend` sidecar is written next to the
+final still image.
+
 ## More Detail
 
 * [`USAGE.md`](USAGE.md): practical workflows for rendering, customizing,

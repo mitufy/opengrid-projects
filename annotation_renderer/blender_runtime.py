@@ -1210,6 +1210,11 @@ for key, point_config in config["projection_points"].items():
         ],
     }
 
+export_blend_path = config.get("export_blend_path")
+if export_blend_path:
+    Path(export_blend_path).parent.mkdir(parents=True, exist_ok=True)
+    bpy.ops.wm.save_as_mainfile(filepath=str(export_blend_path))
+
 Path(config["projection_path"]).write_text(
     json.dumps(
         {

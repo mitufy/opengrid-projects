@@ -127,9 +127,35 @@ prism_fillet = max(0, min(final_stem_length, hook_stem_fillet));
 thread_join_overlap = EPS * 2;
 
 
-annotation_side_x = -body_width / 2;
-annotation_hook_y = _threads_side_offset;
-annotation_hook_z = _threads_side_offset;
+annotation_body_center_x = 0;
+annotation_body_side_x = body_thickness / 2;
+annotation_body_center_y = -final_stem_length / 2;
+annotation_body_center_z = body_width / 2;
+annotation_body_top_z = body_width;
+annotation_hook_start_y = -final_stem_length;
+annotation_hook_end_y = annotation_hook_start_y - hook_main_size;
+annotation_hook_tip_path_radius = final_tip_size / 2;
+annotation_hook_tip_angle_radius = max(3, annotation_hook_tip_path_radius - body_thickness * final_thickness_scale / 2);
+annotation_hook_tip_angle_segments = 16;
+annotation_hook_tip_angle_center_path =
+  hook_shape_type == "Centered"
+  ? [min_ang_radius, min_ang_radius + annotation_hook_tip_path_radius]
+  : [-annotation_hook_tip_path_radius, 0];
+function annotation_hook_path_point_to_model(point) = [
+  point[0],
+  annotation_hook_start_y - point[1],
+  annotation_body_center_z
+];
+function annotation_hook_tip_angle_path_point(angle) = [
+  annotation_hook_tip_angle_center_path[0] + annotation_hook_tip_angle_radius * cos(angle),
+  annotation_hook_tip_angle_center_path[1] + annotation_hook_tip_angle_radius * sin(angle)
+];
+annotation_hook_tip_angle_center = annotation_hook_path_point_to_model(annotation_hook_tip_angle_center_path);
+annotation_hook_tip_angle_mid = annotation_hook_path_point_to_model(annotation_hook_tip_angle_path_point(hook_tip_angle / 2));
+annotation_hook_tip_angle_points = [
+  for (i = [0:annotation_hook_tip_angle_segments])
+    annotation_hook_path_point_to_model(annotation_hook_tip_angle_path_point(hook_tip_angle * i / annotation_hook_tip_angle_segments))
+];
 
 module emit_snap_gadget_hook_annotations() {
   emit_context_values(
@@ -158,39 +184,56 @@ module emit_snap_gadget_hook_annotations() {
   emit_dimension_annotation(
     id="body_width",
     label="body_width",
-    axis="x",
+    axis="z",
     value=body_width,
-    start=[-body_width / 2, annotation_hook_y, annotation_hook_z],
-    end=[body_width / 2, annotation_hook_y, annotation_hook_z],
-    basis="hook_body_width_near_thread_side"
+    start=[annotation_body_center_x, annotation_body_center_y, 0],
+    end=[annotation_body_center_x, annotation_body_center_y, body_width],
+    basis="hook_body_width_across_body_profile"
   );
   emit_dimension_annotation(
     id="body_thickness",
     label="body_thickness",
-    axis="z",
+    axis="x",
     value=body_thickness,
-    start=[annotation_side_x, annotation_hook_y, 0],
-    end=[annotation_side_x, annotation_hook_y, body_thickness],
-    basis="hook_body_thickness_near_side"
+    start=[-body_thickness / 2, annotation_body_center_y, annotation_body_center_z],
+    end=[body_thickness / 2, annotation_body_center_y, annotation_body_center_z],
+    basis="hook_body_thickness_across_body_profile"
   );
   emit_dimension_annotation(
     id="hook_main_size",
     label="hook_main_size",
     axis="y",
     value=hook_main_size,
-    start=[annotation_side_x, annotation_hook_y, annotation_hook_z],
-    end=[annotation_side_x, annotation_hook_y - hook_main_size, annotation_hook_z],
-    basis="nominal_main_hook_size"
+    start=[annotation_body_side_x, annotation_hook_start_y, annotation_body_center_z],
+    end=[annotation_body_side_x, annotation_hook_end_y, annotation_body_center_z],
+    basis="nominal_main_hook_size_after_stem"
   );
   emit_dimension_annotation(
     id="hook_stem_length",
     label="hook_stem_length",
-    axis="z",
+    axis="y",
     value=final_stem_length,
-    start=[annotation_side_x, 0, 0],
-    end=[annotation_side_x, 0, final_stem_length],
+    start=[annotation_body_side_x, 0, annotation_body_center_z],
+    end=[annotation_body_side_x, annotation_hook_start_y, annotation_body_center_z],
     basis="hook_stem_length_from_thread_connector"
   );
+  if (!use_custom_shape && hook_shape_type != "Loop") {
+    emit_radius_annotation(
+      id="hook_tip_angle_radius",
+      label="hook_tip_angle_radius",
+      value=annotation_hook_tip_angle_radius,
+      center=annotation_hook_tip_angle_center,
+      edge=annotation_hook_tip_angle_mid,
+      basis="hook_tip_angle_radius_centered_on_hook_path"
+    );
+    emit_arc_annotation(
+      id="hook_tip_angle_extent",
+      label="hook_tip_angle_extent",
+      value=hook_tip_angle,
+      points=annotation_hook_tip_angle_points,
+      basis="hook_tip_angle_arc_on_hook_path"
+    );
+  }
 }
 
 emit_snap_gadget_hook_annotations();

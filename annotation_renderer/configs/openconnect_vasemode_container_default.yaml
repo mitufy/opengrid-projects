@@ -10,7 +10,7 @@ scene:
       defines:
         vase_surface_texture: checkers
         horizontal_grids: 2
-        vertical_grids: 2
+        vertical_grids: 3
         depth_grids: 2
         vase_tilt_angle: 15
         label_holder_type: Standard
@@ -34,21 +34,23 @@ annotations:
   - ids: [horizontal_grids]
     display_offset_mm: [0, 0, 0]
     line_offset_px: 0
-    label_offset_px: 32
-    font_size_px: 26
+    label_offset_px: -28
+    font_size_px: 28
   - ids: [vertical_grids]
     display_offset_mm: [0, 0, 0]
-    line_offset_px: 80
-    label_offset_px: 30
+    line_offset_px: 40
+    label_offset_px: 28
     font_size_px: 28
-  - ids: [depth_grids]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: -50
-    label_offset_px: -34
-    font_size_px: 26
-  - ids: [label_width]
-    display_offset_mm: [0, 0, 0]
-    font_size_px: 26
+  # - ids: [depth_grids]
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: -50
+  #   label_offset_px: -34
+    # font_size_px: 26
+  # - ids: [label_width]
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: 0
+  #   label_offset_px: 28
+  #   font_size_px: 28
   # - $constant: small_dimension_chain
   #   ids: [ocvase_linewidth]
   #   label_offset_px: 34
@@ -65,13 +67,13 @@ annotations:
   #   show_radius_label: false
   #   angle_label_offset_px: 34
   #   angle_fill_alpha: 28
-  # image_labels:
-  # - $constant: bottom_image_label
-  #   id: vase_surface_texture
-  #   show_value: true
-  #   value_color: '#2563eb'
-  #   font_size_px:
-  #     $constant: annotation_title_font_size_px
+  image_labels:
+  - $constant: bottom_image_label
+    id: vase_surface_texture
+    show_value: true
+    value_color: '#2563eb'
+    font_size_px:
+      $constant: annotation_title_font_size_px
   # - id: label_holder_type
   #   position: top
   #   offset_px: [0, 28]
