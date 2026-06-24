@@ -658,6 +658,8 @@ def validate_render_config(value: Mapping[str, object]) -> None:
         raise ConfigError("render.cache must be a boolean")
     if "cache_dir" in value and (not isinstance(value["cache_dir"], str) or not str(value["cache_dir"]).strip()):
         raise ConfigError("render.cache_dir must be a non-empty string")
+    if "export_blend" in value and not isinstance(value["export_blend"], bool):
+        raise ConfigError("render.export_blend must be a boolean")
     validate_integer_field(value, "width", name="render", minimum=1)
     validate_integer_field(value, "height", name="render", minimum=1)
     validate_number_field(value, "fit_margin", name="render")

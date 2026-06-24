@@ -8,8 +8,9 @@ scene:
     model:
       scad_file: openconnect_general_holder.scad
       defines:
-        compartment_column_count: 2
+        compartment_column_count: 1
         compartment_row_count: 1
+        compartment_corner_rounding: 8
     transform:
       location_mm: [0, 0, -28]
       rotation_deg: [holder_tilt_angle, 0, 0]
@@ -31,6 +32,7 @@ scene:
   #       $constant: blender_scene_scale_vector
 render:
   fit_margin: 0
+  camera_view: top
   # camera_location_offset_mm: [0, 0, 100]
   # camera_look_at: object_center
   # camera_view_preset: top_front
@@ -44,35 +46,39 @@ annotations:
   chains:
   - ids: [compartment_width]
     display_offset_mm: [0, 0, 0]
-    line_offset_px: 0
+    line_offset_px: 150
     label_offset_px: 28
+    font_size_px: 26
   - ids: [compartment_depth]
     optional: true
     display_offset_mm: [0, 0, 0]
     line_offset_px: 0
-    label_offset_px: 24
+    label_offset_px: -28
+    font_size_px: 26
   - ids: [holder_back_offset]
     optional: true
-    display_offset_mm: [0, 0, 0]
     line_offset_px: 0
     label_offset_px: 60
-  - ids: [compartment_height]
+    font_size_px: 26
+  # - ids: [compartment_height]
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: -12
+  #   label_offset_px: -24
+  - ids: [front_opening_width]
+    optional: true
     display_offset_mm: [0, 0, 0]
-    line_offset_px: -12
-    label_offset_px: -24
+    line_offset_px: 20
+    label_offset_px: 24
+    font_size_px: 26
   radius_callouts:
   - ids: [compartment_corner_rounding]
     optional: true
     label_offset_px: -120
+    font_size_px: 26
   arc_callouts:
   - ids: [compartment_corner_rounding_extent]
     optional: true
     show_label: false
-  # - ids: [front_opening_width]
-  #   optional: true
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 0
-  #   label_offset_px: 24
   # - ids: [front_opening_height]
   #   optional: true
   #   display_offset_mm: [0, 0, 0]

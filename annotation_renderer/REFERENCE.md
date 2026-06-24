@@ -130,6 +130,8 @@ Use `--set path=value` for one-off overrides, `--print-resolved-config` to inspe
 
 OpenSCAD exports and Blender render/projection outputs are cached by default under `build/scene_annotations/.cache`, keyed by source files, resolved render inputs, and generated STL content. This makes iterative annotation offset changes reuse the expensive stages. Use `--no-cache` for a cold run, `--cache-dir path\to\cache` to override the cache directory, or set `render.cache` / `render.cache_dir` in config. Blender stage caching is disabled for animation renders.
 
+Use `--export-blend` or `render.export_blend: true` to save the prepared Blender scene used for the still render. The `.blend` sidecar is written next to the final PNG or exact `--output-file` path. When a Blender render is served from cache, the cache must also contain the prepared `.blend`; otherwise the Blender stage runs once to create it.
+
 Final render images are grouped by SCAD source under `build/scene_annotations/<scad-file-stem>/`, for example `build/scene_annotations/openconnect_general_holder/general_holder_scene_default__20260513-215208.png`. Gallery runs create a timestamped gallery folder and write `gallery.png` plus `gallery_metadata.json`.
 
 Use `--output-mode` or `render.output_mode` to control retained sidecars:

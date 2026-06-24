@@ -2,7 +2,7 @@ $schema: ../schemas/annotation-render-config.schema.json
 job_name: opengrid_annotation_base
 constants:
   annotation_label_font_size_px: 22
-  annotation_title_font_size_px: 34
+  annotation_title_font_size_px: 32
   annotation_aux_label_font_size_px: 24
   annotation_font: sans
   og_tile_size: 28

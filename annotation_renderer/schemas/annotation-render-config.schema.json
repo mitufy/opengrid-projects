@@ -975,6 +975,10 @@
               "type": "string",
               "description": "Optional render-stage cache directory. Defaults to <output_dir>/.cache."
             },
+            "export_blend": {
+              "type": "boolean",
+              "description": "Save the prepared Blender scene used for this render as a .blend sidecar next to the final still image."
+            },
             "mesh_shading": {
               "$ref": "#/$defs/meshShading"
             },
