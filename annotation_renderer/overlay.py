@@ -444,6 +444,7 @@ class DimensionChainOverlaySpec:
     line_offset_px: float
     label_offset_px: float
     style_config: Mapping[str, object]
+    label_along_offset_px: float = 0.0
 
 
 def draw_rotated_label(
@@ -491,6 +492,7 @@ def draw_dimension_chain_overlay(
     line_offset_px: float,
     label_offset_px: float,
     style_config: Mapping[str, object],
+    label_along_offset_px: float = 0.0,
 ) -> dict[str, object]:
     overlays = draw_dimension_chains_overlay(
         render_path=render_path,
@@ -502,6 +504,7 @@ def draw_dimension_chain_overlay(
                 line_offset_px=line_offset_px,
                 label_offset_px=label_offset_px,
                 style_config=style_config,
+                label_along_offset_px=label_along_offset_px,
             )
         ],
     )
@@ -574,6 +577,7 @@ def draw_dimension_chains_overlay(
                 "source_points": source_points,
                 "baseline_points": baseline_points,
                 "normal": normal,
+                "direction": direction,
                 "line_alpha": line_alpha,
                 "line_width_px": float(style_config.get("line_width_px", 3.0)),
                 "extension_width_px": float(style_config.get("extension_width_px", 1.7)),
@@ -587,6 +591,7 @@ def draw_dimension_chains_overlay(
                 "label_outline_color": str(style_config.get("label_outline_color", LABEL_OUTLINE_COLOR)),
                 "label_outline_width_px": int(style_config.get("label_outline_width_px", LABEL_OUTLINE_WIDTH)),
                 "label_offset_px": spec.label_offset_px,
+                "label_along_offset_px": spec.label_along_offset_px,
                 "angle": angle,
                 "style_config": style_config,
             }
@@ -657,7 +662,11 @@ def draw_dimension_chains_overlay(
             (chain["baseline_points"][-1][0] - chain["baseline_points"][0][0]),
             (chain["baseline_points"][-1][1] - chain["baseline_points"][0][1]),
         )
-        text_offset = (normal[0] * float(chain["label_offset_px"]), normal[1] * float(chain["label_offset_px"]))
+        line_direction = chain["direction"]
+        text_offset = (
+            normal[0] * float(chain["label_offset_px"]) + line_direction[0] * float(chain["label_along_offset_px"]),
+            normal[1] * float(chain["label_offset_px"]) + line_direction[1] * float(chain["label_along_offset_px"]),
+        )
         baseline_points = chain["baseline_points"]
         text_metadata = {}
         chain_style_config = chain["style_config"]
@@ -726,6 +735,7 @@ def draw_dimension_chains_overlay(
                     for point in chain["source_points"]
                 ],
                 "extension_visible": bool(chain["extension_visible"]),
+                "label_along_offset_px": round(float(chain["label_along_offset_px"]), 2),
                 "text": text_metadata,
             }
         )

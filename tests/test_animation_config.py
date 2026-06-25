@@ -1506,10 +1506,11 @@ class AnimationConfigTests(unittest.TestCase):
             end_mm=(60.0, 0.0, 0.0),
             color="#2f7f8f",
         )
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-            render_path = temp_path / "render.png"
-            output_path = temp_path / "annotated.png"
+        temp_path = Path("build") / "tmp"
+        temp_path.mkdir(parents=True, exist_ok=True)
+        render_path = temp_path / "chain_style_render.png"
+        output_path = temp_path / "chain_style_annotated.png"
+        try:
             Image.new("RGB", (120, 120), "white").save(render_path)
 
             metadata = draw_dimension_chains_overlay(
@@ -1539,9 +1540,56 @@ class AnimationConfigTests(unittest.TestCase):
                     ),
                 ],
             )
+        finally:
+            render_path.unlink(missing_ok=True)
+            output_path.unlink(missing_ok=True)
 
         self.assertEqual(metadata[0]["text"]["first"]["color"], "#111111")
         self.assertEqual(metadata[1]["text"]["second"]["color"], "#222222")
+
+    def test_dimension_chain_label_along_offset_moves_label_with_line_direction(self) -> None:
+        projection = {
+            "projection": {
+                "span.start": {"px": [20.0, 40.0]},
+                "span.end": {"px": [80.0, 40.0]},
+            }
+        }
+        segment = DimensionSegment(
+            id="span",
+            label="span",
+            value="60",
+            start_mm=(0.0, 0.0, 0.0),
+            end_mm=(60.0, 0.0, 0.0),
+            color="#2f7f8f",
+        )
+        temp_path = Path("build") / "tmp"
+        temp_path.mkdir(parents=True, exist_ok=True)
+        render_path = temp_path / "label_along_render.png"
+        output_path = temp_path / "label_along_annotated.png"
+        try:
+            Image.new("RGB", (120, 120), "white").save(render_path)
+
+            metadata = draw_dimension_chains_overlay(
+                render_path=render_path,
+                output_path=output_path,
+                projection=projection,
+                chains=[
+                    DimensionChainOverlaySpec(
+                        segments=[segment],
+                        line_offset_px=0.0,
+                        label_offset_px=0.0,
+                        style_config={"label_font_size_px": 10, "label_outline_width_px": 0},
+                        label_along_offset_px=15.0,
+                    ),
+                ],
+            )
+        finally:
+            render_path.unlink(missing_ok=True)
+            output_path.unlink(missing_ok=True)
+
+        center = metadata[0]["text"]["span"]["center_px"]
+        self.assertEqual(center, {"x": 65.0, "y": 40.0})
+        self.assertEqual(metadata[0]["label_along_offset_px"], 15.0)
 
     def test_label_auto_adjustment_is_disabled_by_default(self) -> None:
         projection = {
@@ -1570,10 +1618,12 @@ class AnimationConfigTests(unittest.TestCase):
         )
 
         def render_centers(*, auto_adjust_labels: bool) -> tuple[dict[str, object], dict[str, object]]:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                temp_path = Path(temp_dir)
-                render_path = temp_path / "render.png"
-                output_path = temp_path / "annotated.png"
+            temp_path = Path("build") / "tmp"
+            temp_path.mkdir(parents=True, exist_ok=True)
+            suffix = "adjusted" if auto_adjust_labels else "default"
+            render_path = temp_path / f"auto_adjust_{suffix}_render.png"
+            output_path = temp_path / f"auto_adjust_{suffix}_annotated.png"
+            try:
                 Image.new("RGB", (200, 120), "white").save(render_path)
                 style = {
                     "label_font_size_px": 14,
@@ -1599,6 +1649,9 @@ class AnimationConfigTests(unittest.TestCase):
                         ),
                     ],
                 )
+            finally:
+                render_path.unlink(missing_ok=True)
+                output_path.unlink(missing_ok=True)
             return metadata[0]["text"]["first"]["center_px"], metadata[1]["text"]["second"]["center_px"]
 
         default_first, default_second = render_centers(auto_adjust_labels=False)
@@ -1646,6 +1699,7 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("auto_adjust_labels", style_properties)
         self.assertIn("font_size_px", style_properties)
         self.assertIn("font_size_px", annotation_group_properties)
+        self.assertIn("label_along_offset_px", annotation_group_properties)
         self.assertIn("font_size_px", angle_radius_properties)
         self.assertIn("label_font_size_px", image_label_properties)
         self.assertIn("cache", render_properties)
