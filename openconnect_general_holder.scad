@@ -53,14 +53,16 @@ front_opening_rounding = 3;
 slot_lock_distribution = "Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
 //Entry ramp direction can matter in tight spaces.
 slot_entryramp_flip = false;
+//Determine the horizontal position of the slot, when holder width is not a multiple of 28mm.
+slot_horizontal_alignment = "Center"; //["Left", "Center", "Right"]
+//Determine the vertical position of the slot, when holder height is not a multiple of 28mm.
+slot_vertical_alignment = "Top"; //["Top", "Center", "Bottom"]
 
 /* [Advanced Settings] */
 //Affects the thickness of the divider walls between columns.
 holder_vertical_divider_thickness = 2.4; //0.4
 //Affects the thickness of the divider walls between rows.
 holder_horizontal_divider_thickness = 2.4; //0.4
-//A larger value makes a circular compartment smoother, but also takes longer to generate. $fn in openscad.
-compartment_max_facets = 128;
 //Increase clearances if the slots feel too tight. Reduce it if they are too loose.
 slot_side_clearance = 0.1;
 slot_depth_clearance = 0.1;
@@ -76,6 +78,8 @@ $fs = 0.4;
 include <lib/opengrid_base.scad>
 use <lib/openconnect_lib.scad>
 
+//A larger value makes a circular compartment smoother, but also takes longer to generate. $fn in openscad.
+compartment_max_facets = 128;
 slot_edge_feature_widen = "Top";
 //Slide and entry ramp direction can matter in tight spaces.
 slot_slide_direction = "Up";
@@ -134,7 +138,6 @@ final_slot_h_grids = max(1, floor(holder_width / OG_TILE_SIZE));
 final_slot_v_grids = max(1, round(slot_face_height / OG_TILE_SIZE));
 slot_flat_region = fwd((slot_face_height - round(slot_face_height / OG_TILE_SIZE) * OG_TILE_SIZE) / 2, rect([holder_width, slot_face_height]));
 
-// xrot(-final_holder_tilt_angle)
 right(holder_width / 2) zrot(180)
     diff() {
       back((final_compartment_depth * compartment_row_count) / 2 + (holder_horizontal_divider_thickness * max(0, compartment_row_count - 1)) / 2 + slot_wall_thickness + holder_back_offset)
@@ -142,9 +145,10 @@ right(holder_width / 2) zrot(180)
           up(holder_bottom_thickness) xrot(180)
               tag("remove") linear_sweep(region=compartment_sweep_profile, height=final_compartment_height, scale=[compartment_width_scale, compartment_depth_scale], shift=[0, 0], anchor="original_top");
       prismoid(size1=[holder_width, final_holder_depth], h=final_holder_height, xang=[90, 90], yang=[90 + final_holder_tilt_angle, 90], rounding=[final_holder_rounding, final_holder_rounding, 0, 0], anchor=FRONT + BOTTOM) {
-        attach(FRONT, TOP, align=TOP, inside=true) {
-          tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[slot_flat_region]);
-        }
+        h_offset = slot_horizontal_alignment == "Left" ? -(final_slot_h_grids * OG_TILE_SIZE - holder_width) / 2 : slot_horizontal_alignment == "Right" ? (final_slot_h_grids * OG_TILE_SIZE - holder_width) / 2 : 0;
+        valign = slot_vertical_alignment == "Top" ? TOP : slot_vertical_alignment == "Bottom" ? BOTTOM : CENTER;
+        right(h_offset) attach(FRONT, TOP, align=valign, inside=true)
+            tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[slot_flat_region]);
         front_opening_depth = holder_outer_wall_thickness + final_compartment_depth / 2 - ang_adj_to_opp(final_depth_taper, final_compartment_height);
         if (front_opening_width > 0 && front_opening_height > 0)
           tag_diff(tag="remove", remove="rm1")
