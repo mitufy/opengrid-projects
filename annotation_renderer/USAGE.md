@@ -67,7 +67,8 @@ Array indexes are supported, which is useful for annotation tuning:
 
 ```powershell
 .\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder `
-  --set annotations.chains[0].label_offset_px=36
+  --set annotations.chains[0].label_offset_px=36 `
+  --set annotations.chains[0].label_along_offset_px=24
 ```
 
 Render-stage caching is on by default, so annotation-only offset changes should

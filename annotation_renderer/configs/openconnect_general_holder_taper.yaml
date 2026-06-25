@@ -8,11 +8,16 @@ scene:
     model:
       scad_file: openconnect_general_holder.scad
       defines:
-        compartment_shape: Circular
+        # compartment_shape: Circular
         compartment_column_count: 1
         compartment_row_count: 1
+        compartment_corner_rounding: 5
         enable_bottom_taper: true
+        compartment_bottom_width: 20
+        compartment_bottom_depth: 12
+        compartment_height: 28
         front_opening_height: 0
+        holder_bottom_thickness: 0
         compartment_max_facets: 256
     transform:
       location_mm: [0, 0, -28]
@@ -35,37 +40,38 @@ scene:
   #       $constant: blender_scene_scale_vector
 render:
   fit_margin: 0
-  # camera_view: top
+  camera_view: top
   # camera_location_offset_mm: [0, 0, 100]
   # camera_look_at: object_center
-  camera_view_preset: top_front
+  # camera_view_preset: top_front
 annotations:
   style:
     $constant: default_annotation_style
     colors:
       compartment_width: '#000000'
       compartment_depth: '#000000'
-      compartment_height: '#000000'
+      # compartment_bottom_depth: '#ff0000'
+      # compartment_bottom_width: '#ff0000'
   chains:
   - ids: [compartment_width]
     display_offset_mm: [0, 0, 0]
-    line_offset_px: 150
+    line_offset_px: 50
     label_offset_px: 28
     font_size_px: 26
-  # - ids: [compartment_depth]
-  #   optional: true
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 0
-  #   label_offset_px: -28
-  #   font_size_px: 26
-  # - ids: [holder_back_offset]
-  #   line_offset_px: 0
-  #   label_offset_px: 28
-  #   font_size_px: 26
-  # - ids: [compartment_height]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -12
-  #   label_offset_px: -24
+  - ids: [compartment_bottom_width]
+    optional: true
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 50
+    label_offset_px: 28
+    font_size_px: 24
+  - ids: [compartment_depth]
+    line_offset_px: -50
+    label_offset_px: -28
+    font_size_px: 26
+  - ids: [compartment_bottom_depth]
+    line_offset_px: -50
+    label_offset_px: -28
+    font_size_px: 24
   # - ids: [front_opening_width]
   #   optional: true
   #   display_offset_mm: [0, 0, 0]
@@ -95,11 +101,16 @@ annotations:
   #   show_radius_label: false
   #   angle_label_offset_px: 34
   #   angle_fill_alpha: 28
-  # image_labels:
-  # - $constant: bottom_image_label
-  #   id: compartment_shape
-  #   offset_px: [0, 0]
-  #   show_value: true
-  #   value_color: '#2563eb'
-  #   font_size_px:
-  #     $constant: annotation_title_font_size_px
+  image_labels:
+  - $constant: bottom_image_label
+    id: holder_bottom_thickness
+    offset_px: [0, 0]
+    show_value: true
+    value_color: '#ff0000'
+    font_size_px: 30
+  - $constant: bottom_image_label
+    id: enable_bottom_taper
+    offset_px: [0, 40]
+    show_value: true
+    value_color: '#ff0000'
+    font_size_px: 30

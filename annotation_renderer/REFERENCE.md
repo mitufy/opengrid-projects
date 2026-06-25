@@ -667,12 +667,16 @@ aliases:
 
 Dimension `chains` draw straight measured spans from emitted `kind=dimension` metadata. The helper lines between the measured feature and the dimension line are dashed by default and inherit the measured segment color. Hide them for a specific chain with `extension_visible: false`, or tune their pattern with `extension_dash_px` and `extension_gap_px`.
 
-Labels use their projected anchor and configured offsets by default. The renderer still reports final label overlap warnings when labels collide. Set `annotations.style.auto_adjust_labels` to `true` to enable automatic placement; when enabled, the renderer preserves the label angle, clamps labels inside the image, and nudges labels along the annotation direction/normal to reduce overlap with other labels drawn in the same overlay step.
+Labels use their projected anchor and configured offsets by default. For dimension chains, `label_offset_px` moves text perpendicular to the dimension line, and `label_along_offset_px` moves text along the rendered dimension direction from start to end. The renderer still reports final label overlap warnings when labels collide. Set `annotations.style.auto_adjust_labels` to `true` to enable automatic placement; when enabled, the renderer preserves the label angle, clamps labels inside the image, and may further nudge dimension-chain labels along the annotation direction to reduce overlap with other labels drawn in the same overlay step.
 
 ```yaml
 annotations:
   style:
     auto_adjust_labels: true
+  chains:
+  - ids: [compartment_depth]
+    label_offset_px: -28
+    label_along_offset_px: 36
 ```
 
 `radius_callouts` draw dashed radial leaders from emitted `kind=radius` metadata:

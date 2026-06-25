@@ -855,7 +855,7 @@ def validate_annotation_group(value: object, *, name: str) -> None:
             raise ConfigError(f"{name}.labels must be an object")
         if not all(isinstance(key, str) and isinstance(label, str) for key, label in labels.items()):
             raise ConfigError(f"{name}.labels must map annotation IDs to strings")
-    for key in ("line_offset_px", "label_offset_px"):
+    for key in ("line_offset_px", "label_offset_px", "label_along_offset_px"):
         validate_number_field(value, key, name=name)
     validate_style_override_fields(value, name=name)
 

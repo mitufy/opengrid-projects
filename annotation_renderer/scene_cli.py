@@ -871,6 +871,7 @@ def annotation_offset_summary(kind: str, group: Mapping[str, object]) -> str:
             ("display_offset_mm", group.get("display_offset_mm", [0, 0, 0])),
             ("line_offset_px", group.get("line_offset_px", 0)),
             ("label_offset_px", group.get("label_offset_px", 0)),
+            ("label_along_offset_px", group.get("label_along_offset_px", 0)),
         ]
     elif kind == "image_label":
         items = [("offset_px", group.get("offset_px", [0, 0]))]
@@ -1036,6 +1037,7 @@ def editable_annotations_template(config: Mapping[str, object]) -> dict[str, obj
                 "display_offset_mm",
                 "line_offset_px",
                 "label_offset_px",
+                "label_along_offset_px",
                 "angle_label_offset_px",
                 "radius_label_offset_px",
                 "angle_label_tangent_offset_px",
@@ -2242,6 +2244,7 @@ def apply_annotation_overlays(
                     line_offset_px=float(chain_config.get("line_offset_px", 0.0)),
                     label_offset_px=float(chain_config.get("label_offset_px", 40.0)),
                     style_config=style_for_group(style_config, chain_config),
+                    label_along_offset_px=float(chain_config.get("label_along_offset_px", 0.0)),
                 )
                 for chain_config, chain_segments in annotation_state["chain_pairs"]
             ],

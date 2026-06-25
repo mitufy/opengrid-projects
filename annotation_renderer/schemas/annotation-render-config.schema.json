@@ -1399,6 +1399,9 @@
             "label_offset_px": {
               "type": "number"
             },
+            "label_along_offset_px": {
+              "type": "number"
+            },
             "line_alpha": {
               "type": "integer",
               "minimum": 0,
