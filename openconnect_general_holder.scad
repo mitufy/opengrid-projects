@@ -10,7 +10,7 @@ openGrid is created by David D: https://www.printables.com/model/1214361-opengri
 /* [Main Settings] */
 compartment_shape = "Rectangular"; //[Rectangular,Circular,Elliptic]
 //The width of each compartment. Use slightly larger values for more wiggle room.
-compartment_width = 40;
+compartment_width = 38;
 //The depth of each compartment. Doesn't apply to Circular-shaped compartments, as their depth follows the width.
 compartment_depth = 25;
 //The height of each compartment. The minimum value for compartment_height+holder_bottom_thickness is around 18.
@@ -22,16 +22,16 @@ compartment_row_count = 1;
 compartment_corner_rounding = 3;
 
 /* [Holder Body] */
+//"Tile Multiple" makes the sides of the holder align with openGrid tiles, but uses more space.
+holder_width_mode = "Tile Multiple"; //["Minimum", "Tile Multiple"]
 //Setting this value to 0 generates a bottomless holder.
 holder_bottom_thickness = 2; //0.1
 //The thickness of the outer wall of the holder.
-holder_outer_wall_thickness = 2.4;
+holder_outer_wall_thickness = 2;
 //Tilt the container forward for easier access of content. Set to 0 for a standard vertical holder.
 holder_tilt_angle = 0; //[0:5:45]
 //Increase this value if you want the object to be held farther away from the wall.
 holder_back_offset = 0;
-//"Tile Multiple" uses more space, but makes the sides of the holder align with openGrid tiles.
-holder_width_mode = "Default"; //["Default", "Tile Multiple"]
 
 /* [Taper Settings] */
 //Enable taper to create a compartment shape that narrows as it goes down.
@@ -60,9 +60,9 @@ slot_vertical_alignment = "Top"; //["Top", "Center", "Bottom"]
 
 /* [Advanced Settings] */
 //Affects the thickness of the divider walls between columns.
-holder_vertical_divider_thickness = 2.4; //0.4
+holder_vertical_divider_thickness = 2; //0.1
 //Affects the thickness of the divider walls between rows.
-holder_horizontal_divider_thickness = 2.4; //0.4
+holder_horizontal_divider_thickness = 2; //0.1
 //Increase clearances if the slots feel too tight. Reduce it if they are too loose.
 slot_side_clearance = 0.1;
 slot_depth_clearance = 0.1;

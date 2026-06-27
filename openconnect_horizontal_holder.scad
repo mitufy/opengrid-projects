@@ -20,7 +20,7 @@ item_corner_rounding = 5;
 //Generate one part at a time makes it possible to customize each side differently. "Both" requires splitting and orientation adjustment in the slicer.
 generate_holder_part = "Both"; //[Both, Left, Right]
 //Maximum number of slot columns on each holder half. Set to 1 for a minimal length holder.
-holder_slot_column_limit = 2;
+holder_slot_column_limit = 1;
 //"Top" for item facing down, "Front" for item facing its side. When using a large corner_rounding, "Front" may leave too little space for slots.
 holder_slot_position = "Top"; //[Top, Front]
 holder_thickness = 2.4;
@@ -29,15 +29,15 @@ front_opening_side_margin = 8;
 //Alternatively, you can set margins to very large values, thus disable the front opening completely.
 front_opening_end_margin = 6;
 
-/* [Cutout Settings] */
+/* [Side Opening] */
 //Cutting a hole in the side, useful for items such as power strips.
-holder_side_cutout = "Right"; //[None, Left, Right, Both]
-//Using the four margin values below, the size and the position of the side cutout can be freely adjusted.
-side_cutout_front_margin = 15;
-//Margins are from the cutout to the edge of the wall. All 0 means the wall would be completely removed.
-side_cutout_back_margin = 15;
-side_cutout_top_margin = 0;
-side_cutout_bottom_margin = 0;
+holder_side_opening = "Right"; //[None, Left, Right, Both]
+//Using the four margin values below, the size and the position of the side opening can be freely adjusted.
+side_opening_front_margin = 15;
+//Margins are from the edge of the opening to the wall. All 0 means the wall would be completely removed.
+side_opening_back_margin = 15;
+side_opening_top_margin = 0;
+side_opening_bottom_margin = 0;
 
 /* [openConnect Settings] */
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
@@ -125,25 +125,25 @@ up(generate_holder_part == "Both" ? holder_depth / 2 : holder_width / 2) yrot(ge
                         rounding_edge_mask(r=min(max(0, item_width - front_opening_side_margin * 2 - final_corner_rounding * 2), front_opening_end_margin, 2), spin=180);
               }
             }
-          if (holder_side_cutout != "None") {
-            side_cutout_height = item_height - front_opening_end_margin * 2 - side_cutout_front_margin - side_cutout_back_margin;
-            side_cutout_depth = item_depth + holder_thickness - side_cutout_top_margin - side_cutout_bottom_margin;
-            side_cutout_width =
-              side_cutout_back_margin < 0 || side_cutout_front_margin < 0 ? holder_width / 2
-              : (holder_width - (item_width - front_opening_side_margin * 2)) / 2 + max(0, final_corner_rounding - side_cutout_back_margin, final_corner_rounding - side_cutout_front_margin);
-            rounding_edges = side_cutout_bottom_margin > 0 ? "X" : [FRONT + TOP, BACK + TOP];
-            if (side_cutout_height > 0 && side_cutout_depth > 0)
-              back(holder_front_thickness + side_cutout_front_margin + front_opening_end_margin) down(holder_top_thickness + side_cutout_top_margin) {
-                  conditional_flip(axis="X", copy=holder_side_cutout == "Both", condition=(holder_side_cutout == "Both" || holder_side_cutout == "Left"))
+          if (holder_side_opening != "None") {
+            side_opening_height = item_height - front_opening_end_margin * 2 - side_opening_front_margin - side_opening_back_margin;
+            side_opening_depth = item_depth + holder_thickness - side_opening_top_margin - side_opening_bottom_margin;
+            side_opening_width =
+              side_opening_back_margin < 0 || side_opening_front_margin < 0 ? holder_width / 2
+              : (holder_width - (item_width - front_opening_side_margin * 2)) / 2 + max(0, final_corner_rounding - side_opening_back_margin, final_corner_rounding - side_opening_front_margin);
+            rounding_edges = side_opening_bottom_margin > 0 ? "X" : [FRONT + TOP, BACK + TOP];
+            if (side_opening_height > 0 && side_opening_depth > 0)
+              back(holder_front_thickness + side_opening_front_margin + front_opening_end_margin) down(holder_top_thickness + side_opening_top_margin) {
+                  conditional_flip(axis="X", copy=holder_side_opening == "Both", condition=(holder_side_opening == "Both" || holder_side_opening == "Left"))
                     attach(FRONT + TOP, FRONT + TOP, align=RIGHT, inside=true)
-                      cuboid([side_cutout_width, side_cutout_height + EPS, side_cutout_depth + EPS], edges=rounding_edges, rounding=min(side_cutout_height / 2, side_cutout_depth / 2, 2)) {
-                        if (side_cutout_front_margin - final_corner_rounding > EPS && side_cutout_back_margin - final_corner_rounding > EPS && front_opening_side_margin > EPS) {
-                          if (side_cutout_front_margin - final_corner_rounding > EPS)
+                      cuboid([side_opening_width + EPS, side_opening_height + EPS * 2, side_opening_depth + EPS * 2], edges=rounding_edges, rounding=min(side_opening_height / 2, side_opening_depth / 2, 2)) {
+                        if (side_opening_front_margin - final_corner_rounding > EPS && side_opening_back_margin - final_corner_rounding > EPS && front_opening_side_margin > EPS) {
+                          if (side_opening_front_margin - final_corner_rounding > EPS)
                             edge_mask([LEFT + FRONT])
-                              rounding_edge_mask(r=min(side_cutout_front_margin - final_corner_rounding, front_opening_side_margin, 2), spin=-90);
-                          if (side_cutout_back_margin - final_corner_rounding > EPS)
+                              rounding_edge_mask(r=min(side_opening_front_margin - final_corner_rounding, front_opening_side_margin, 2), spin=-90);
+                          if (side_opening_back_margin - final_corner_rounding > EPS)
                             edge_mask([LEFT + BACK])
-                              rounding_edge_mask(r=min(side_cutout_back_margin - final_corner_rounding, front_opening_side_margin, 2), spin=-90);
+                              rounding_edge_mask(r=min(side_opening_back_margin - final_corner_rounding, front_opening_side_margin, 2), spin=-90);
                         }
                       }
                 }
