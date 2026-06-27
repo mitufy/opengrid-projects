@@ -29,11 +29,13 @@ from annotation_renderer.scene_cli import (
     cache_root_for,
     command_failure_message,
     build_blender_config,
+    build_gallery_contact_sheet,
     discover_scad_source_annotations,
     discovery_summary_json,
     default_config_for_model,
     format_annotation_discovery,
     format_doctor_check,
+    gallery_settings,
     apply_animation_preset,
     load_config,
     load_gallery_config,
@@ -438,15 +440,15 @@ class AnimationConfigTests(unittest.TestCase):
         side_margin_chain_ids = [
             chain["ids"]
             for chain in horizontal_holder_config["annotations"]["chains"]
-            if chain["ids"][0].startswith("side_cutout_")
+            if chain["ids"][0].startswith("side_opening_")
         ]
         self.assertEqual(
             side_margin_chain_ids,
             [
-                ["side_cutout_front_margin"],
-                ["side_cutout_back_margin"],
-                ["side_cutout_top_margin"],
-                ["side_cutout_bottom_margin"],
+                ["side_opening_front_margin"],
+                ["side_opening_back_margin"],
+                ["side_opening_top_margin"],
+                ["side_opening_bottom_margin"],
             ],
         )
         self.assertEqual(horizontal_holder_config["annotations"]["image_labels"][0]["id"], "holder_slot_position")
@@ -804,12 +806,12 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("    - item_depth (axis=z", output)
         self.assertIn("    - front_opening_width_margin (axis=x", output)
         self.assertIn("    - front_opening_height_margin (axis=y", output)
-        self.assertIn("    - side_cutout_front_margin (axis=y", output)
-        self.assertIn("    - side_cutout_back_margin (axis=y", output)
-        self.assertIn("    - side_cutout_top_margin (axis=z", output)
-        self.assertIn("    - side_cutout_bottom_margin (axis=z", output)
-        self.assertIn("basis=side_cutout_front_margin_to_visible_cutout_edge", output)
-        self.assertIn("basis=side_cutout_top_margin_to_visible_cutout_edge", output)
+        self.assertIn("    - side_opening_front_margin (axis=y", output)
+        self.assertIn("    - side_opening_back_margin (axis=y", output)
+        self.assertIn("    - side_opening_top_margin (axis=z", output)
+        self.assertIn("    - side_opening_bottom_margin (axis=z", output)
+        self.assertIn("basis=side_opening_front_margin_to_visible_opening_edge", output)
+        self.assertIn("basis=side_opening_top_margin_to_visible_opening_edge", output)
         self.assertIn("    - item_corner_rounding", output)
         self.assertIn("    - holder_slot_position", output)
         self.assertIn("    - slot_slide_direction", output)
@@ -1089,11 +1091,69 @@ class AnimationConfigTests(unittest.TestCase):
     def test_gallery_config_can_be_yaml(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             gallery_path = Path(temp_dir) / "gallery.yaml"
-            gallery_path.write_text("columns: 3\nthumbnail_width: 480\n", encoding="utf-8")
+            gallery_path.write_text(
+                "columns: 3\n"
+                "thumbnail_width: 480\n"
+                "margin_px: 8\n"
+                "gutter_px: 10\n"
+                "title_height_px: 24\n"
+                "title_font_size_px: 18\n",
+                encoding="utf-8",
+            )
             gallery_config, resolved_path = load_gallery_config(str(gallery_path), config_dir=Path.cwd())
 
         self.assertEqual(resolved_path, gallery_path.resolve())
-        self.assertEqual(gallery_config, {"columns": 3, "thumbnail_width": 480})
+        self.assertEqual(
+            gallery_config,
+            {
+                "columns": 3,
+                "thumbnail_width": 480,
+                "margin_px": 8,
+                "gutter_px": 10,
+                "title_height_px": 24,
+                "title_font_size_px": 18,
+            },
+        )
+        settings = gallery_settings(
+            {"gallery": {"thumbnail_width": 360, "gutter_px": 6}},
+            gallery_config=gallery_config,
+        )
+        self.assertEqual(
+            settings,
+            {
+                "columns": 3,
+                "thumbnail_width": 360,
+                "margin_px": 8,
+                "gutter_px": 6,
+                "title_height_px": 24,
+                "title_font_size_px": 18,
+            },
+        )
+
+    def test_gallery_contact_sheet_uses_layout_settings(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            image_a = temp_path / "a.png"
+            image_b = temp_path / "b.png"
+            output_path = temp_path / "gallery.png"
+            Image.new("RGB", (20, 10), (255, 0, 0)).save(image_a)
+            Image.new("RGB", (20, 10), (0, 0, 255)).save(image_b)
+
+            build_gallery_contact_sheet(
+                results=[
+                    {"variant_name": "a", "annotated": image_a},
+                    {"variant_name": "b", "annotated": image_b},
+                ],
+                output_path=output_path,
+                columns=2,
+                thumbnail_width=40,
+                margin_px=3,
+                gutter_px=5,
+                title_height_px=7,
+                title_font_size_px=6,
+            )
+            with Image.open(output_path) as gallery:
+                self.assertEqual(gallery.size, (91, 23))
 
     def test_render_animation_is_validated_during_config_shape_validation(self) -> None:
         config = {

@@ -496,4 +496,30 @@ module emit_general_holder_annotations() {
 
 emit_general_holder_annotations();
 
-// xrot(-final_holder_tilt_angle)
+right(holder_width / 2) zrot(180)
+    diff() {
+      back((final_compartment_depth * compartment_row_count) / 2 + (holder_horizontal_divider_thickness * max(0, compartment_row_count - 1)) / 2 + slot_wall_thickness + holder_back_offset)
+        grid_copies(spacing=[compartment_width + holder_vertical_divider_thickness, final_compartment_depth + holder_horizontal_divider_thickness], n=[compartment_column_count, compartment_row_count])
+          up(holder_bottom_thickness) xrot(180)
+              tag("remove") linear_sweep(region=compartment_sweep_profile, height=final_compartment_height, scale=[compartment_width_scale, compartment_depth_scale], shift=[0, 0], anchor="original_top");
+      prismoid(size1=[holder_width, final_holder_depth], h=final_holder_height, xang=[90, 90], yang=[90 + final_holder_tilt_angle, 90], rounding=[final_holder_rounding, final_holder_rounding, 0, 0], anchor=FRONT + BOTTOM) {
+        h_offset = slot_horizontal_alignment == "Left" ? -(final_slot_h_grids * OG_TILE_SIZE - holder_width) / 2 : slot_horizontal_alignment == "Right" ? (final_slot_h_grids * OG_TILE_SIZE - holder_width) / 2 : 0;
+        valign = slot_vertical_alignment == "Top" ? TOP : slot_vertical_alignment == "Bottom" ? BOTTOM : CENTER;
+        right(h_offset) attach(FRONT, TOP, align=valign, inside=true)
+            tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[slot_flat_region]);
+        front_opening_depth = holder_outer_wall_thickness + final_compartment_depth / 2 - ang_adj_to_opp(final_depth_taper, final_compartment_height);
+        if (front_opening_width > 0 && front_opening_height > 0)
+          tag_diff(tag="remove", remove="rm1")
+            line_copies(spacing=compartment_width + holder_vertical_divider_thickness, n=compartment_column_count)
+              attach(TOP, TOP, align=BACK, inset=-EPS, inside=true)
+                tag("") prismoid(size2=[front_opening_width, front_opening_depth], h=final_front_opening_height, xang=[90, 90], yang=[90 - final_depth_taper, 90]) {
+                    if (front_opening_outer_fillet > 0)
+                      fwd(ang_adj_to_opp(final_depth_taper, front_opening_outer_fillet) / 2)
+                        tag("") edge_mask(holder_bottom_thickness > 0 || final_front_opening_height < final_compartment_height ? [TOP + LEFT, TOP + RIGHT] : [TOP + LEFT, TOP + RIGHT, BOTTOM + LEFT, BOTTOM + RIGHT])
+                            rounding_edge_mask(r=front_opening_outer_fillet, spin=90, l=$edge_length + ang_adj_to_opp(final_depth_taper, front_opening_outer_fillet));
+                    if (front_opening_inner_fillet > 0 && (holder_bottom_thickness > 0 || final_front_opening_height < final_compartment_height))
+                      tag("rm1") edge_mask([BOTTOM + LEFT, BOTTOM + RIGHT])
+                          rounding_edge_mask(r=front_opening_inner_fillet);
+                  }
+      }
+    }

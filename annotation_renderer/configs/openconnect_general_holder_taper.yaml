@@ -65,10 +65,12 @@ annotations:
     label_offset_px: 28
     font_size_px: 24
   - ids: [compartment_depth]
+    optional: true
     line_offset_px: -50
     label_offset_px: -28
     font_size_px: 26
   - ids: [compartment_bottom_depth]
+    optional: true
     line_offset_px: -50
     label_offset_px: -28
     font_size_px: 24

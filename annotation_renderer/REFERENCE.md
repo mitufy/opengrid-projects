@@ -325,6 +325,10 @@ Gallery layout is intentionally separate from model defaults:
 $schema: ../schemas/annotation-render-gallery.schema.json
 columns: 2
 thumbnail_width: 520
+margin_px: 12
+gutter_px: 12
+title_height_px: 22
+title_font_size_px: 22
 ```
 
 Pass it with `--gallery-config`. A model config can still include top-level `gallery` values, and those override the separate gallery config. This keeps reusable model parameter variants separate from one-off contact-sheet layout choices.

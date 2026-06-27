@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from math import degrees, radians
 from pathlib import Path
 
@@ -9,7 +10,24 @@ from bpy_extras.object_utils import world_to_camera_view
 from mathutils import Euler, Matrix, Vector
 
 
-config = json.loads(Path(__file__).with_name("blender_scene_config.json").read_text(encoding="utf-8"))
+def load_runtime_config() -> dict:
+    script_path = Path(__file__)
+    configured = os.environ.get("OPENGRID_BLENDER_CONFIG")
+    candidates = []
+    if configured:
+        configured_path = Path(configured)
+        candidates.append(configured_path if configured_path.is_absolute() else script_path.with_name(configured))
+    candidates.extend([
+        script_path.with_name("cfg.json"),
+        script_path.with_name("blender_scene_config.json"),
+    ])
+    for candidate in candidates:
+        if candidate.exists():
+            return json.loads(candidate.read_text(encoding="utf-8"))
+    raise FileNotFoundError(f"No Blender scene config found next to {script_path}")
+
+
+config = load_runtime_config()
 CAMERA_VIEW_DIRECTIONS = {
     "front": Vector((0.0, -1.0, 0.0)),
     "back": Vector((0.0, 1.0, 0.0)),

@@ -1,0 +1,42 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: openconnect_horizontal_holder_empty.yaml
+job_name: horizontal_holder_parameter_gallery
+
+gallery:
+  columns: 2
+  thumbnail_width: 640
+  margin_px: 0
+  gutter_px: 4
+  title_height_px: 32
+  title_font_size_px: 32
+
+variants:
+- name: width164_height60_column1
+  set:
+    scene.objects[0].model.defines.item_width: 164
+    scene.objects[0].model.defines.item_height: 60
+    scene.objects[0].model.defines.item_corner_rounding: 8
+    scene.objects[0].model.defines.holder_slot_column_limit: 1
+
+- name: width164_height60_column2
+  set:
+    scene.objects[0].model.defines.item_width: 164
+    scene.objects[0].model.defines.item_height: 60
+    scene.objects[0].model.defines.item_corner_rounding: 8
+    scene.objects[0].model.defines.holder_slot_column_limit: 2
+
+- name: width120_height100_rounding20_column1
+  set:
+    scene.objects[0].model.defines.item_width: 120
+    scene.objects[0].model.defines.item_height: 100
+    scene.objects[0].model.defines.item_corner_rounding: 20
+    scene.objects[0].model.defines.holder_slot_column_limit: 1
+    scene.objects[0].transform.location_mm: [0, "-(item_depth + og_standard_thickness)", -14]
+
+- name: width120_height100_rounding20_column2
+  set:
+    scene.objects[0].model.defines.item_width: 120
+    scene.objects[0].model.defines.item_height: 100
+    scene.objects[0].model.defines.item_corner_rounding: 20
+    scene.objects[0].model.defines.holder_slot_column_limit: 2
+    scene.objects[0].transform.location_mm: [0, "-(item_depth + og_standard_thickness)", -14]
