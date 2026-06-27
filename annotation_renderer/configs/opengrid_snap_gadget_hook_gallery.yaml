@@ -1,0 +1,37 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: opengrid_snap_gadget_hook_empty.yaml
+job_name: opengrid_snap_gadget_hook_parameter_gallery
+
+gallery:
+  columns: 2
+  thumbnail_width: 640
+  margin_px: 0
+  gutter_px: 4
+  title_height_px: 32
+  title_font_size_px: 32
+
+variants:
+- name: Centered_Hook
+  set:
+    scene.objects[0].model.defines.hook_shape_type: Centered
+    scene.objects[0].model.defines.hook_tip_angle: 180
+
+- name: Straight_Hook
+  set:
+    scene.objects[0].model.defines.hook_shape_type: Straight
+    scene.objects[0].model.defines.hook_tip_angle: 120
+    scene.objects[0].model.defines.hook_main_size: 40
+    scene.objects[0].model.defines.body_width: 13.2
+    scene.objects[0].model.defines.body_thickness: 8
+    # scene.objects[0].model.defines.threads_offset_angle: 90
+    scene.objects[0].model.defines.hook_stem_length: 20
+    # scene.objects[0].transform.location_mm: [-14, 0, -20.6]
+    # scene.objects[0].transform.rotation_deg: [0, 90, 0]
+- name: Loop_Hook
+  set:
+    scene.objects[0].model.defines.hook_shape_type: Loop
+- name: Centered_Hook_Rectangular
+  set:
+    scene.objects[0].model.defines.hook_shape_type: Centered
+    scene.objects[0].model.defines.corner_type: Rectangular
+    scene.objects[0].model.defines.body_thickness_scale: 1

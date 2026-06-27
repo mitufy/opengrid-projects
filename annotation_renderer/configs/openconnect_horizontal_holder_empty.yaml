@@ -1,42 +1,30 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
-variant_name: openconnect_general_holder_default
-job_name: general_holder_scene_default
+variant_name: openconnect_horizontal_holder_default
+job_name: horizontal_holder_scene_default
 scene:
   objects:
-  - id: model_a
+  - id: model
     model:
-      scad_file: openconnect_general_holder.scad
-      defines:
-        compartment_column_count: 2
-        compartment_row_count: 1
-        compartment_width: 32
-        # front_opening_height: 30
-        front_opening_width: 8
+      scad_file: openconnect_horizontal_holder.scad
+      # defines:
+      #   item_width: 164
+      #   item_height: 60
+      #   item_depth: 30
+      #   item_corner_rounding: 8
+      #   generate_holder_part: Both
+      #   holder_slot_position: Top
+      #   holder_slot_column_limit: 1
     transform:
-      location_mm: [28-15, 0, -28]
-      rotation_deg: [holder_tilt_angle, 0, 0]
-      scale:
-        $constant: blender_scene_scale_vector
-  - id: model_b
-    model:
-      scad_file: openconnect_general_holder.scad
-      defines:
-        compartment_shape: Circular
-        compartment_column_count: 1
-        compartment_width: 36
-        holder_tilt_angle: 20
-        front_opening_width: 0
-    transform:
-      location_mm: [-56, 0, -28]
-      rotation_deg: [holder_tilt_angle, 0, 0]
+      location_mm: [0, "-(item_depth + og_standard_thickness)", 0]
+      rotation_deg: [-90, 0, 0]
       scale:
         $constant: blender_scene_scale_vector
 render:
-  fit_margin: 0.05
+  fit_margin: 0.1
   # camera_location_offset_mm: [0, 0, 100]
   # camera_look_at: object_center
-  # camera_view_preset: top_front
+  # camera_view_preset: technical_iso
 annotations:
   style:
     $constant: default_annotation_style
@@ -102,22 +90,16 @@ annotations:
   #   show_radius_label: false
   #   angle_label_offset_px: 34
   #   angle_fill_alpha: 28
-  image_labels:
-  - $constant: bottom_image_label
-    id: compartment_shape
-    offset_px: [0, -50]
-    show_value: true
-    value_color: '#2563eb'
-    font_size_px: 28
-  - $constant: bottom_image_label
-    id: compartment_column_count
-    offset_px: [0, 0]
-    show_value: true
-    value_color: '#2563eb'
-    font_size_px: 28
-  - $constant: bottom_image_label
-    id: compartment_row_count
-    offset_px: [0, 70]
-    show_value: true
-    value_color: '#2563eb'
-    font_size_px: 28
+  # image_labels:
+  # - $constant: bottom_image_label
+  #   id: compartment_column_count
+  #   offset_px: [0, 0]
+  #   show_value: true
+  #   value_color: '#2563eb'
+  #   font_size_px: 50
+  # - $constant: bottom_image_label
+  #   id: compartment_row_count
+  #   offset_px: [0, 50]
+  #   show_value: true
+  #   value_color: '#2563eb'
+  #   font_size_px: 50

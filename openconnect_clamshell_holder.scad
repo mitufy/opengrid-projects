@@ -133,7 +133,7 @@ item_min_y = item_center_y - item_height / 2;
 item_max_y = item_center_y + item_height / 2;
 item_min_z = holder_thickness;
 item_max_z = holder_thickness + item_depth;
-item_corner_rounding_center = [item_min_x + final_corner_rounding, item_min_y + final_corner_rounding, bottom_annotation_z];
+item_corner_rounding_center = [item_max_x - final_corner_rounding, item_max_y - final_corner_rounding, bottom_annotation_z];
 item_corner_rounding_arc_segments = 12;
 function item_corner_rounding_arc_point(angle) = [
   item_corner_rounding_center[0] + cos(angle) * final_corner_rounding,
@@ -142,9 +142,9 @@ function item_corner_rounding_arc_point(angle) = [
 ];
 item_corner_rounding_arc_points = [
   for (i = [0:item_corner_rounding_arc_segments])
-    item_corner_rounding_arc_point(180 + 90 * i / item_corner_rounding_arc_segments)
+    item_corner_rounding_arc_point(0 + 90 * i / item_corner_rounding_arc_segments)
 ];
-item_corner_rounding_radius_edge = item_corner_rounding_arc_point(225);
+item_corner_rounding_radius_edge = item_corner_rounding_arc_point(45);
 side_cutout_height = item_height - final_front_opening_top_bottom_margin * 2 - effective_side_cutout_top_margin - effective_side_cutout_bottom_margin;
 side_cutout_depth = item_depth + holder_thickness - effective_side_cutout_back_margin - effective_side_cutout_front_margin;
 side_cutout_width =
@@ -270,8 +270,8 @@ module emit_horizontal_holder_annotations() {
       label="front_opening_left_right_margin",
       axis="x",
       value=effective_front_opening_left_right_margin,
-      start=[item_min_x, item_min_y, holder_min_z],
-      end=[item_min_x + final_front_opening_left_right_margin, item_min_y, holder_min_z],
+      start=[item_min_x, item_max_y, holder_min_z],
+      end=[item_min_x + final_front_opening_left_right_margin, item_max_y, holder_min_z],
       basis="left_front_opening_left_right_margin"
     );
   }
@@ -281,8 +281,8 @@ module emit_horizontal_holder_annotations() {
       label="front_opening_top_bottom_margin",
       axis="y",
       value=effective_front_opening_top_bottom_margin,
-      start=[item_min_x, item_min_y, holder_min_z],
-      end=[item_min_x, item_min_y + final_front_opening_top_bottom_margin, holder_min_z],
+      start=[item_max_x, item_min_y, holder_min_z],
+      end=[item_max_x, item_min_y + final_front_opening_top_bottom_margin, holder_min_z],
       basis="front_opening_top_bottom_margin"
     );
   }

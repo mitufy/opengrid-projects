@@ -15,6 +15,22 @@
     "thumbnail_width": {
       "type": "integer",
       "minimum": 1
+    },
+    "margin_px": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "gutter_px": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "title_height_px": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "title_font_size_px": {
+      "type": "integer",
+      "minimum": 1
     }
   }
 }

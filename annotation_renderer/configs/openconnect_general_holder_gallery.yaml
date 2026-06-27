@@ -1,0 +1,49 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: openconnect_general_holder_empty.yaml
+job_name: general_holder_parameter_gallery
+
+gallery:
+  columns: 2
+  thumbnail_width: 640
+  margin_px: 0
+  gutter_px: 12
+  title_height_px: 22
+  title_font_size_px: 22
+
+variants:
+- name: Rectangular_Tilted
+  set:
+    scene.objects[0].model.defines.compartment_shape: Rectangular
+    scene.objects[0].model.defines.compartment_column_count: 1
+    scene.objects[0].model.defines.compartment_row_count: 1
+    scene.objects[0].model.defines.compartment_width: 52
+    scene.objects[0].model.defines.compartment_depth: 25
+    scene.objects[0].model.defines.holder_tilt_angle: 20
+
+- name: Elliptic_Tapered_Bottomless
+  set:
+    scene.objects[0].model.defines.compartment_shape: Elliptic
+    scene.objects[0].model.defines.enable_bottom_taper: true
+    scene.objects[0].model.defines.compartment_height: 28
+    scene.objects[0].model.defines.compartment_bottom_width: 30
+    scene.objects[0].model.defines.compartment_bottom_depth: 12
+    scene.objects[0].model.defines.holder_bottom_thickness: 0
+    scene.objects[0].model.defines.front_opening_height: 50
+    scene.objects[0].model.defines.compartment_column_count: 1
+    scene.objects[0].model.defines.compartment_row_count: 1
+
+- name: Rectangular_2x1
+  set:
+    scene.objects[0].model.defines.compartment_shape: Rectangular
+    scene.objects[0].model.defines.compartment_column_count: 2
+    scene.objects[0].model.defines.compartment_row_count: 1
+    scene.objects[0].model.defines.compartment_width: 40
+    scene.objects[0].model.defines.compartment_depth: 25
+
+- name: Circular_3x2
+  set:
+    scene.objects[0].model.defines.compartment_shape: Circular
+    scene.objects[0].model.defines.compartment_column_count: 3
+    scene.objects[0].model.defines.compartment_row_count: 2
+    scene.objects[0].model.defines.compartment_width: 35
+    scene.objects[0].model.defines.front_opening_width: 0

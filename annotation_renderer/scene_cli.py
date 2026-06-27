@@ -108,6 +108,14 @@ DISCOVERY_ACTIONS = ("list_models", "describe", "list_annotations", "new_config"
 COMMANDS = ("render", "doctor", "discover", "new-config", "list-models", "describe", "list-annotations")
 OUTPUT_MODES = ("minimal", "standard", "debug")
 CONFIG_SHORTCUT_SUFFIXES = (".yaml", ".yml", ".json")
+GALLERY_SETTING_DEFAULTS = {
+    "columns": 2,
+    "thumbnail_width": 520,
+    "margin_px": 12,
+    "gutter_px": 12,
+    "title_height_px": 22,
+    "title_font_size_px": 22,
+}
 CAMERA_VIEW_PRESETS = {
     "front_left": {"camera_view": "front", "camera_orbit_deg": [-35, 8], "camera_distance_scale": 1.08},
     "front_right": {"camera_view": "front", "camera_orbit_deg": [35, 8], "camera_distance_scale": 1.08},
@@ -546,6 +554,11 @@ def apply_animation_preset(config: Mapping[str, object], preset_name: str) -> di
         resolved["job_name"] = f"{sanitize_name(str(resolved['job_name']))}__{sanitize_name(preset_name)}"
     validate_config_shape(resolved)
     return resolved
+
+
+def work_dir_name(*, job_name: str, timestamp: str) -> str:
+    digest = hashlib.sha1(job_name.encode("utf-8")).hexdigest()[:8]
+    return f"work__{timestamp}__{digest}"
 
 
 def scad_output_folder_name(object_specs: Sequence[Mapping[str, object]]) -> str:
@@ -1671,6 +1684,13 @@ def export_object_records(
                             log_path=openscad_log,
                         )
                     )
+                if not stl_path.exists():
+                    raise SystemExit(
+                        command_failure_message(
+                            f"OpenSCAD export did not create STL for object {object_id}",
+                            log_path=openscad_log,
+                        )
+                    )
                 if cached_stl is not None and cached_log is not None:
                     cached_stl.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(stl_path, cached_stl)
@@ -2611,7 +2631,7 @@ def render_config(
     run_name = f"{job_name}__{timestamp}"
     output_parent = run_dir if run_dir is not None else output_root_for(config, args)
     output_dir = output_parent / scad_output_folder_name(object_specs)
-    debug_dir = output_dir / "debug" / run_name
+    debug_dir = output_dir / "debug" / work_dir_name(job_name=job_name, timestamp=timestamp)
     output_dir.mkdir(parents=True, exist_ok=True)
     debug_dir.mkdir(parents=True, exist_ok=True)
     run_dir = debug_dir
@@ -2641,9 +2661,9 @@ def render_config(
         if animation_config and str(animation_config.get("output_format")) == "gif"
         else None
     )
-    projection_path = run_dir / "projection.json"
-    blender_config_path = run_dir / "blender_scene_config.json"
-    blender_script_path = run_dir / "blender_scene_render.py"
+    projection_path = run_dir / "proj.json"
+    blender_config_path = run_dir / "cfg.json"
+    blender_script_path = run_dir / "run.py"
     blender_log = run_dir / "blender.log"
 
     blender_config = build_blender_config(
@@ -2795,13 +2815,17 @@ def gallery_settings(
     merged_gallery = compact_gallery_config(gallery_config or {}, name="gallery config")
     raw_gallery = config.get("gallery", {})
     merged_gallery.update(compact_gallery_config(raw_gallery, name="gallery"))
-    columns = int(merged_gallery.get("columns", 2))
-    thumbnail_width = int(merged_gallery.get("thumbnail_width", 520))
-    if columns < 1:
-        raise ConfigError("gallery.columns must be at least 1")
-    if thumbnail_width < 1:
-        raise ConfigError("gallery.thumbnail_width must be at least 1")
-    return {"columns": columns, "thumbnail_width": thumbnail_width}
+    settings = {
+        key: int(merged_gallery.get(key, default))
+        for key, default in GALLERY_SETTING_DEFAULTS.items()
+    }
+    for key in ("columns", "thumbnail_width", "title_font_size_px"):
+        if settings[key] < 1:
+            raise ConfigError(f"gallery.{key} must be at least 1")
+    for key in ("margin_px", "gutter_px", "title_height_px"):
+        if settings[key] < 0:
+            raise ConfigError(f"gallery.{key} must be at least 0")
+    return settings
 
 
 def build_gallery_contact_sheet(
@@ -2810,6 +2834,10 @@ def build_gallery_contact_sheet(
     output_path: Path,
     columns: int,
     thumbnail_width: int,
+    margin_px: int,
+    gutter_px: int,
+    title_height_px: int,
+    title_font_size_px: int,
 ) -> None:
     if not results:
         raise ConfigError("Gallery requires at least one render result")
@@ -2819,9 +2847,9 @@ def build_gallery_contact_sheet(
         image.thumbnail((thumbnail_width, thumbnail_width * 2), resample=Image.Resampling.LANCZOS)
         cells.append((str(result["variant_name"]), image.copy()))
 
-    title_height = 42
-    margin = 24
-    gutter = 20
+    title_height = title_height_px
+    margin = margin_px
+    gutter = gutter_px
     cell_width = thumbnail_width
     cell_height = max(image.height for _, image in cells) + title_height
     rows = (len(cells) + columns - 1) // columns
@@ -2829,7 +2857,7 @@ def build_gallery_contact_sheet(
     sheet_height = margin * 2 + rows * cell_height + (rows - 1) * gutter
     sheet = Image.new("RGB", (sheet_width, sheet_height), (248, 250, 252))
     draw = ImageDraw.Draw(sheet)
-    font = load_font(22)
+    font = load_font(title_font_size_px)
 
     for index, (name, image) in enumerate(cells):
         row = index // columns
@@ -2910,6 +2938,10 @@ def run_gallery(
         output_path=contact_sheet,
         columns=settings["columns"],
         thumbnail_width=settings["thumbnail_width"],
+        margin_px=settings["margin_px"],
+        gutter_px=settings["gutter_px"],
+        title_height_px=settings["title_height_px"],
+        title_font_size_px=settings["title_font_size_px"],
     )
     metadata = {
         "config": project_relative_or_absolute(config_path),
