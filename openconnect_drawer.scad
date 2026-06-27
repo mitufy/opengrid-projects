@@ -74,9 +74,10 @@ handle_depth = 12;
 //Simple drawer stoppers, preventing the container from sliding all the way out.
 generate_drawer_stopper_clips = false;
 add_stopper_holes = true;
+//Increase this value if the clips are meant for walls in a vertically divided drawer shell.
 stopper_clips_length = 6;
-//Distance the container pulls out before the stoppers engage.
-stopper_to_front_offset = 3; //0.1
+//Determine how much the container pulls out before the stoppers engage.
+stopper_edge_distance = 3; //0.1
 
 /*[Magnet Settings]*/
 //Back magnets hold the container securely when it's pushed in.
@@ -323,7 +324,7 @@ module drawer_shell() {
                 tag("keep") hex_panel([shell_hexwall_depth, shell_hexwall_width, shell_thickness], strut=honeycomb_strut_adj, spacing=honeycomb_unit_space_hyp, frame=shell_hex_frame_thickness);
             if (add_stopper_holes)
              attach(BACK, BACK, align=TOP, inside=true)
-                tag("keep") cuboid([shell_inner_width, shell_thickness, stopper_to_front_offset + stopper_height + hex_hole_fill_edge]);
+                tag("keep") cuboid([shell_inner_width, shell_thickness, stopper_edge_distance + stopper_height + hex_hole_fill_edge]);
             attach(TOP, TOP, align=BACK, inside=true)
               tag(top_hc ? "remove" : "keep") cuboid([shell_inner_width - shell_inner_chamfer * 2, shell_thickness + (top_hc ? EPS : 0), shell_inner_depth]);
             //bottom wall
@@ -383,7 +384,7 @@ module drawer_shell() {
                 left(shell_width / 2 - OG_TILE_SIZE / 2) right(i == 0 ? 0 : shell_width_divide_cumnums[i - 1] * OG_TILE_SIZE) {
                     for (j = [0:shell_horizontal_compartments[i] == 1 ? 0 : 1])
                       left(shell_horizontal_compartments[i] == 1 ? 0 : j == 0 ? stopper_to_edge_offset : -stopper_to_edge_offset) right(j * (shell_horizontal_compartments[i] - 1) * OG_TILE_SIZE) {
-                          tag("rm_outer") attach(BACK, TOP, align=TOP, inset=stopper_to_front_offset, inside=true)
+                          tag("rm_outer") attach(BACK, TOP, align=TOP, inset=stopper_edge_distance, inside=true)
                               drawer_stopper(hole=true, hole_excess=shell_slot_position == "Top" ? shell_ocslot_part_thickness - shell_thickness : 0);
                         }
                   }
@@ -555,7 +556,7 @@ module drawer_divider(is_shell, by_width) {
                     left(shell_width / 2 - OG_TILE_SIZE / 2) right(in_i == 0 ? 0 : shell_width_divide_cumnums[in_i - 1] * OG_TILE_SIZE) {
                         for (in_j = [0:shell_horizontal_compartments[in_i] == 1 ? 0 : 1]) {
                           left(shell_horizontal_compartments[in_i] == 1 ? 0 : in_j == 0 ? stopper_to_edge_offset : -stopper_to_edge_offset) right(in_j * (shell_horizontal_compartments[in_i] - 1) * OG_TILE_SIZE)
-                              tag("rm1") attach(BACK, TOP, align=TOP, inset=stopper_to_front_offset, inside=true)
+                              tag("rm1") attach(BACK, TOP, align=TOP, inset=stopper_edge_distance, inside=true)
                                   drawer_stopper(hole=true, hole_excess=shell_thickness);
                         }
                       }
@@ -581,7 +582,7 @@ module drawer_divider(is_shell, by_width) {
                 if (is_shell) {
                   if (!by_width && add_stopper_holes)
                     attach(RIGHT, TOP, inside=true)
-                      tag("") cuboid([shell_width, divider_wall_thickness, stopper_to_front_offset + stopper_height + hex_hole_fill_edge]);
+                      tag("") cuboid([shell_width, divider_wall_thickness, stopper_edge_distance + stopper_height + hex_hole_fill_edge]);
                   if (by_width && add_side_magnet_holes)
                     attach(RIGHT, TOP, inside=true)
                       tag("") cuboid([shell_height, divider_wall_thickness, side_magnet_hole_diameter + hex_hole_fill_edge]);
