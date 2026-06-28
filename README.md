@@ -40,9 +40,9 @@ Customizable: shape, size, radius, thickness, truss, thickness scaling.
 A general-purpose openConnect holder generator for rectangular, circular, or elliptic compartments.
 Customizable: compartment shape and count, holder size, tilt angle, front opening, taper, and slot settings.
 
-#### openconnect_horizontal_holder
-A horizontal holder generator for larger items such as power strips or small devices. Usually used with Underware.
-Customizable: item size, slot placement, front opening, side cutouts, and generated holder half.
+#### openconnect_clamshell_holder
+A clamshell holder generator for larger items such as power strips or small devices. Usually used with Underware.
+Customizable: item size, slot placement, front opening, side openings, and generated holder half.
 
 ---
 ## openGrid Snaps and Framefit
