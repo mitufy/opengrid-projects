@@ -33,6 +33,7 @@ from annotation_renderer.config_defaults import (
     STYLE_OVERRIDE_KEYS,
     STYLE_PRESETS,
     STYLE_STRING_FIELDS,
+    STYLE_STRING_LIST_FIELDS,
     VISIBILITY_KEYFRAME_KEYS,
 )
 from annotation_renderer.config_resolution import deep_merge, resolve_preset_mapping
@@ -716,6 +717,18 @@ def validate_style_override_fields(value: Mapping[str, object], *, name: str) ->
     for key in STYLE_STRING_FIELDS:
         if key in value and not isinstance(value[key], str):
             raise ConfigError(f"{name}.{key} must be a string")
+    for key, allowed_values in STYLE_STRING_LIST_FIELDS.items():
+        if key not in value:
+            continue
+        field_value = value[key]
+        if (
+            not isinstance(field_value, Sequence)
+            or isinstance(field_value, (str, bytes))
+            or not field_value
+            or not all(isinstance(item, str) and item in allowed_values for item in field_value)
+        ):
+            allowed = ", ".join(sorted(allowed_values))
+            raise ConfigError(f"{name}.{key} must be a non-empty array containing only {allowed}")
 
 
 def validate_string_mapping(value: object, *, name: str) -> None:

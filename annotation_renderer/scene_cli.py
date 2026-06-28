@@ -2361,7 +2361,7 @@ def iter_overlay_label_bboxes(value: object, *, path: str = "overlay") -> list[t
         bboxes.append((path, bbox))
     if isinstance(value, Mapping):
         for key, item in value.items():
-            if key in {"bbox_px", "title_area"}:
+            if key in {"bbox_px", "title_area", "title_areas"}:
                 continue
             bboxes.extend(iter_overlay_label_bboxes(item, path=f"{path}.{key}"))
     elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):

@@ -1773,6 +1773,18 @@
             "image_label_title_area": {
               "type": "boolean"
             },
+            "image_label_title_positions": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "top",
+                  "bottom"
+                ]
+              }
+            },
             "image_label_title_padding_x_px": {
               "type": "number",
               "minimum": 0
@@ -1806,6 +1818,10 @@
               "minimum": 0
             },
             "image_label_title_min_width_px": {
+              "type": "number",
+              "minimum": 0
+            },
+            "image_label_title_top_margin_px": {
               "type": "number",
               "minimum": 0
             },

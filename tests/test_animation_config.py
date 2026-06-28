@@ -13,13 +13,14 @@ import yaml
 
 from annotation_renderer.animation import resolve_animation_config
 from annotation_renderer.annotation_config import (
+    ImageLabel,
     collect_angle_radius_callouts,
     collect_dimension_chain,
     collect_image_labels,
 )
 from annotation_renderer.config import ConfigError, DimensionSegment, resolve_render, validate_config_shape
 from annotation_renderer.config_resolution import build_expression_context, resolve_style
-from annotation_renderer.overlay import DimensionChainOverlaySpec, draw_dimension_chains_overlay
+from annotation_renderer.overlay import DimensionChainOverlaySpec, draw_dimension_chains_overlay, draw_image_label_overlay
 from annotation_renderer.scad_annotations import parse_scad_annotation_line, value_context_from_scad_annotations
 from annotation_renderer.scene_cli import (
     annotation_bounds_quality_warnings,
@@ -566,6 +567,62 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(len(warnings), 1)
         self.assertIn("label overlap", warnings[0])
 
+    def test_image_label_title_area_supports_top_and_bottom_positions(self) -> None:
+        labels = [
+            ImageLabel(
+                id="top_label",
+                label="top_label = Top",
+                value_text="Top",
+                position="top",
+                offset_px=(0.0, 0.0),
+                angle_deg=0.0,
+                color=None,
+                value_color="#2563eb",
+                font_size_px=24,
+            ),
+            ImageLabel(
+                id="bottom_label",
+                label="bottom_label = Bottom",
+                value_text="Bottom",
+                position="bottom",
+                offset_px=(0.0, 0.0),
+                angle_deg=0.0,
+                color=None,
+                value_color="#2563eb",
+                font_size_px=24,
+            ),
+        ]
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            render_path = tmp_path / "render.png"
+            output_path = tmp_path / "annotated.png"
+            Image.new("RGB", (500, 320), "#ffffff").save(render_path)
+
+            metadata = draw_image_label_overlay(
+                render_path=render_path,
+                output_path=output_path,
+                labels=labels,
+                style_config={
+                    "image_label_title_area": True,
+                    "image_label_title_positions": ["top", "bottom"],
+                    "image_label_margin_px": 20,
+                    "image_label_title_padding_x_px": 12,
+                    "image_label_title_padding_y_px": 8,
+                    "image_label_title_radius_px": 6,
+                    "image_label_title_outline_width_px": 1,
+                    "image_label_title_min_width_px": 160,
+                    "image_label_title_top_margin_px": 24,
+                    "image_label_title_bottom_margin_px": 30,
+                },
+            )
+
+        title_areas = metadata["title_areas"]
+        top_bbox = title_areas["top"]["bbox_px"]
+        bottom_bbox = title_areas["bottom"]["bbox_px"]
+        self.assertGreaterEqual(top_bbox["top"], 24)
+        self.assertLessEqual(bottom_bbox["bottom"], 320 - 30)
+        self.assertEqual(metadata["title_area"], title_areas["bottom"])
+
     def test_annotation_bounds_audit_reports_far_outside_anchor_points(self) -> None:
         annotation = parse_scad_annotation_line(
             'ECHO: "OPENGRID_ANNOTATION_V1|id=depth_grids|kind=dimension|label=depth_grids|axis=y|value=56|start=10,10,10|end=10,-40,10|basis=test"'
@@ -753,6 +810,14 @@ class AnimationConfigTests(unittest.TestCase):
     def test_discover_annotations_rejects_config_model_names(self) -> None:
         with self.assertRaisesRegex(SystemExit, "expects a \\.scad file path"):
             main(["--discover-annotations", "openconnect_drawer_shell_container_default"])
+
+    def test_drawer_discovery_exposes_container_compartment_lists(self) -> None:
+        output = self.run_cli("--discover-annotations", "openconnect_drawer.scad")
+
+        self.assertIn("    - container_width_grid_count", output)
+        self.assertIn("    - container_width_compartment_list", output)
+        self.assertIn("    - container_depth_grid_count", output)
+        self.assertIn("    - container_depth_compartment_list", output)
 
     def test_general_holder_discovery_uses_customizer_parameter_ids(self) -> None:
         output = self.run_cli("--discover-annotations", "openconnect_general_holder.scad")
@@ -1517,6 +1582,25 @@ class AnimationConfigTests(unittest.TestCase):
         invalid_style["annotations"] = {"style": {"label_font_size_px": "large"}}
         with self.assertRaisesRegex(ConfigError, "annotations.style.label_font_size_px must be an integer"):
             validate_config_shape(invalid_style)
+
+        validate_config_shape(
+            {
+                **base_config,
+                "annotations": {
+                    "style": {
+                        "image_label_title_positions": ["top", "bottom"],
+                        "image_label_title_top_margin_px": 24,
+                    }
+                },
+            }
+        )
+        invalid_title_position = dict(base_config)
+        invalid_title_position["annotations"] = {"style": {"image_label_title_positions": ["center"]}}
+        with self.assertRaisesRegex(
+            ConfigError,
+            "annotations.style.image_label_title_positions must be a non-empty array containing only bottom, top",
+        ):
+            validate_config_shape(invalid_title_position)
 
         invalid_group = dict(base_config)
         invalid_group["annotations"] = {"chains": [{"ids": ["span"], "label_font_size_px": 0}]}
