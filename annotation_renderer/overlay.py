@@ -1296,6 +1296,20 @@ def image_label_center(image: Image.Image, *, position: str, offset_px: Sequence
     return (base[0] + float(offset_px[0]), base[1] + float(offset_px[1]))
 
 
+def image_label_title_positions(style_config: Mapping[str, object]) -> tuple[str, ...]:
+    raw_positions = style_config.get("image_label_title_positions")
+    if raw_positions is None:
+        return ("bottom",)
+    if not isinstance(raw_positions, Sequence) or isinstance(raw_positions, (str, bytes)):
+        return ("bottom",)
+    positions: list[str] = []
+    for raw_position in raw_positions:
+        position = str(raw_position)
+        if position in {"top", "bottom"} and position not in positions:
+            positions.append(position)
+    return tuple(positions)
+
+
 def draw_image_label_overlay(
     *,
     render_path: Path,
@@ -1322,6 +1336,7 @@ def draw_image_label_overlay(
     title_outline_width_px = int(style_config.get("image_label_title_outline_width_px", 4))
     title_min_width_px = float(style_config.get("image_label_title_min_width_px", 620))
     title_bottom_margin_px = float(style_config.get("image_label_title_bottom_margin_px", 18))
+    title_top_margin_px = float(style_config.get("image_label_title_top_margin_px", title_bottom_margin_px))
     auto_adjust_labels = auto_adjust_labels_enabled(style_config)
 
     metadata = {}
@@ -1369,10 +1384,19 @@ def draw_image_label_overlay(
             },
         }
 
-    title_area_metadata = None
+    title_area_metadata_by_position: dict[str, object] = {}
     if title_area_enabled:
-        title_bboxes = [bbox for label, _label_image, _center, bbox in prepared_labels if label.position.startswith("bottom")]
-        if title_bboxes:
+        background = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        background_draw = ImageDraw.Draw(background)
+        for title_position in image_label_title_positions(style_config):
+            title_bboxes = [
+                bbox
+                for label, _label_image, _center, bbox in prepared_labels
+                if label.position.startswith(title_position)
+            ]
+            if not title_bboxes:
+                continue
+            edge_margin_px = title_top_margin_px if title_position == "top" else title_bottom_margin_px
             label_union = union_bboxes(title_bboxes)
             title_left = label_union[0] - title_padding_x_px
             title_top = label_union[1] - title_padding_y_px
@@ -1391,16 +1415,28 @@ def draw_image_label_overlay(
                 shift = image.width - side_margin - title_right
                 title_left += shift
                 title_right += shift
-            max_bottom = image.height - title_bottom_margin_px
-            if title_bottom > max_bottom:
-                shift = max_bottom - title_bottom
-                title_top += shift
-                title_bottom += shift
-            min_top = title_bottom_margin_px
-            if title_top < min_top:
-                shift = min_top - title_top
-                title_top += shift
-                title_bottom += shift
+            if title_position == "top":
+                min_top = edge_margin_px
+                if title_top < min_top:
+                    shift = min_top - title_top
+                    title_top += shift
+                    title_bottom += shift
+                max_bottom = image.height - edge_margin_px
+                if title_bottom > max_bottom:
+                    shift = max_bottom - title_bottom
+                    title_top += shift
+                    title_bottom += shift
+            else:
+                max_bottom = image.height - edge_margin_px
+                if title_bottom > max_bottom:
+                    shift = max_bottom - title_bottom
+                    title_top += shift
+                    title_bottom += shift
+                min_top = edge_margin_px
+                if title_top < min_top:
+                    shift = min_top - title_top
+                    title_top += shift
+                    title_bottom += shift
 
             title_center = ((title_left + title_right) / 2.0, (title_top + title_bottom) / 2.0)
             label_center = ((label_union[0] + label_union[2]) / 2.0, (label_union[1] + label_union[3]) / 2.0)
@@ -1408,7 +1444,7 @@ def draw_image_label_overlay(
             if abs(label_shift[0]) > 0.01 or abs(label_shift[1]) > 0.01:
                 shifted_labels = []
                 for label, label_image, center, bbox in prepared_labels:
-                    if label.position.startswith("bottom"):
+                    if label.position.startswith(title_position):
                         center = (center[0] + label_shift[0], center[1] + label_shift[1])
                         bbox = (
                             bbox[0] + label_shift[0],
@@ -1426,8 +1462,6 @@ def draw_image_label_overlay(
                     shifted_labels.append((label, label_image, center, bbox))
                 prepared_labels = shifted_labels
 
-            background = Image.new("RGBA", image.size, (0, 0, 0, 0))
-            background_draw = ImageDraw.Draw(background)
             title_bbox = (title_left, title_top, title_right, title_bottom)
             background_draw.rounded_rectangle(
                 title_bbox,
@@ -1436,8 +1470,7 @@ def draw_image_label_overlay(
                 outline=color_with_alpha(title_outline_color, title_outline_alpha),
                 width=title_outline_width_px,
             )
-            image.alpha_composite(background)
-            title_area_metadata = {
+            title_area_metadata_by_position[title_position] = {
                 "bbox_px": {
                     "left": round(title_left, 2),
                     "top": round(title_top, 2),
@@ -1446,6 +1479,7 @@ def draw_image_label_overlay(
                 },
                 "radius_px": title_radius_px,
             }
+        image.alpha_composite(background)
 
     for _label, label_image, center, _bbox in prepared_labels:
         draw_rotated_label_image(
@@ -1457,6 +1491,10 @@ def draw_image_label_overlay(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     image.convert("RGB").save(output_path)
     result: dict[str, object] = {"image_labels": metadata}
-    if title_area_metadata is not None:
-        result["title_area"] = title_area_metadata
+    if title_area_metadata_by_position:
+        result["title_areas"] = title_area_metadata_by_position
+        if "bottom" in title_area_metadata_by_position:
+            result["title_area"] = title_area_metadata_by_position["bottom"]
+        elif len(title_area_metadata_by_position) == 1:
+            result["title_area"] = next(iter(title_area_metadata_by_position.values()))
     return result

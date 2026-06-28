@@ -121,6 +121,7 @@ STYLE_NUMBER_FIELDS: dict[str, tuple[float | None, float | None]] = {
     "image_label_title_radius_px": (0.0, None),
     "image_label_title_outline_width_px": (0.0, None),
     "image_label_title_min_width_px": (0.0, None),
+    "image_label_title_top_margin_px": (0.0, None),
     "image_label_title_bottom_margin_px": (0.0, None),
 }
 STYLE_BOOLEAN_FIELDS = {
@@ -140,11 +141,15 @@ STYLE_STRING_FIELDS = {
     "image_label_title_fill_color",
     "image_label_title_outline_color",
 }
+STYLE_STRING_LIST_FIELDS: dict[str, set[str]] = {
+    "image_label_title_positions": {"top", "bottom"},
+}
 STYLE_OVERRIDE_KEYS = (
     set(STYLE_INTEGER_FIELDS)
     | set(STYLE_NUMBER_FIELDS)
     | STYLE_BOOLEAN_FIELDS
     | STYLE_STRING_FIELDS
+    | set(STYLE_STRING_LIST_FIELDS)
 )
 INTERPOLATION_NAMES = schema_property_enum("animationConfig", "interpolation")
 OUTPUT_FORMATS = schema_property_enum("animationConfig", "output_format")

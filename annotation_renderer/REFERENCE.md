@@ -736,6 +736,8 @@ image_labels:
 
 When `show_value` is true, image labels first use an explicit `value`, then the annotated object's `scene.objects[*].model.defines`, then SCAD context metadata from that same object. That lets labels such as `shell_thickness`, `handle_depth`, or `shelf_texture_depth` show the actual value used by OpenSCAD without repeating it in config.
 
+Bottom image labels are boxed by default through `annotations.style.image_label_title_area`. The boxed edges are controlled by `image_label_title_positions`; use `[top, bottom]` to draw matching boxes around top and bottom labels. `image_label_title_top_margin_px` and `image_label_title_bottom_margin_px` control each box's distance from the corresponding image edge.
+
 Image labels accept `font_size_px`; `label_font_size_px` is also accepted as an alias.
 
 Annotation groups can override label and line sizing when a parameter span is physically small:
