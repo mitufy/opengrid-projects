@@ -16,14 +16,14 @@ hook_length = 30;
 hook_width = 28;
 hook_thickness = 7;
 hook_shape_type = "Circular"; //[Circular,Rectangular,Flat]
-//Radius of the hook Corner for circular hooks. This is capped by hook_length and hook_height (hook_vertical_grids x 28).
-circular_corner_radius = 15;
+//Fillet of the hook corner. This value is capped by hook_length and hook_height (hook_vertical_grids x 28).
+hook_corner_fillet = 15;
 
 /* [Tip Settings] */
 //Radius of the hook tip for circular hooks.
 circular_tip_radius = 15;
 //Angle of the hook tip for circular hooks.
-circular_tip_angle = 165; //[90:15:210]
+circular_tip_angle = 75; //[0:15:120]
 //Thickness scale of the hook tip for circular hooks. 0.8 means the thickness at the tip is 80% of that at the start.
 circular_tip_thickness_scale = 0.8; //[0.5:0.1:1]
 //Extra tip length for rectangular hooks.
@@ -80,7 +80,8 @@ vertical_grids = hook_grid_height + truss_vertical_grids;
 horizontal_grids = max(1, floor(hook_width / OG_TILE_SIZE));
 hook_stem_height = use_custom_height ? custom_hook_height : hook_grid_height * OG_TILE_SIZE;
 
-final_corner_radius = hook_shape_type == "Circular" ? max(hook_thickness / 2, min(circular_corner_radius, hook_stem_height - hook_thickness / 2 - hook_side_rounding, hook_length)) : hook_thickness / 2;
+final_corner_radius = max(hook_thickness / 2, min(hook_corner_fillet, hook_stem_height - hook_thickness / 2 - hook_side_rounding, hook_length));
+// final_corner_radius = hook_shape_type == "Circular" ? max(hook_thickness / 2, min(hook_corner_fillet, hook_stem_height - hook_thickness / 2 - hook_side_rounding, hook_length)) : hook_thickness / 2;
 final_tip_radius = hook_shape_type == "Circular" ? max(0, min(circular_tip_radius, hook_length - final_corner_radius)) : hook_thickness;
 stem_first_height = max(EPS, hook_stem_height - final_corner_radius);
 available_truss_depth = hook_shape_type == "Circular" ? max(EPS, hook_length - final_tip_radius - hook_thickness / 2) : max(EPS, hook_length - final_tip_radius + hook_thickness);
@@ -95,7 +96,7 @@ function hook_one_side_offset_at(ratio) = (hook_thickness - hook_thickness_at(ra
 hook_path_base = ["setdir", -90, "arcleft", final_corner_radius];
 hook_path_flat = ["setdir", -90, "arcleft", final_corner_radius, "move", max(EPS, hook_length - final_corner_radius)];
 hook_path_pre_tip = ["setdir", -90, "arcleft", final_corner_radius, "move", max(EPS, hook_length - final_corner_radius - final_tip_radius)];
-hook_path_circ = ["setdir", -90, "arcleft", final_corner_radius, "move", max(EPS, hook_length - final_corner_radius - final_tip_radius), "arcleft", final_tip_radius, max(1, circular_tip_angle - 90)];
+hook_path_circ = ["setdir", -90, "arcleft", final_corner_radius, "move", max(EPS, hook_length - final_corner_radius - final_tip_radius), "arcleft", final_tip_radius, max(1, circular_tip_angle)];
 hook_path_rect = ["setdir", -90, "arcleft", final_corner_radius, "move", max(EPS, hook_length - final_corner_radius - final_tip_radius), "arcleft", final_tip_radius, 90, "move", rectangular_tip_extra_length];
 hook_path =
   hook_shape_type == "Flat" ? hook_path_flat
@@ -105,7 +106,7 @@ hook_path =
 truss_touch_path =
   hook_shape_type == "Flat" ? hook_path_flat
   : hook_shape_type == "Rectangular" ? hook_path_pre_tip
-  : final_tip_radius <= 0 || circular_tip_angle <= 90 ? hook_path
+  : final_tip_radius <= 0 || circular_tip_angle <= 0 ? hook_path
   : hook_path_pre_tip;
 
 tip_length = max(0, min(hook_thickness_at(1), hook_width - final_side_chamfer * 2) / 2 - EPS);

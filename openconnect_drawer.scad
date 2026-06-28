@@ -50,7 +50,7 @@ shell_width_compartment_list = "3,3";
 add_container_divider = "None"; //["None","Width","Depth","Both"]
 container_divider_wall_thickness = 1.2;
 //Difference between the height of divider walls and side walls. Increase this value to make the dividers shorter.
-container_divider_wall_height_offset = 0;
+container_divider_wall_height_offset = 10;
 //Container compartment's unit size is its inner space divided by grid_count.
 container_width_grid_count = 3;
 //Compartment sizes separated by commas.

@@ -8,38 +8,39 @@ Part of code is based on BlackjackDuck's "openGrid - Tile Generator". https://ma
 */
 
 /*[Main Settings]*/
-vertical_grids = 1;
+//The height of the hook is hook_vertical_grids x 28mm, as the height of each opengrid tile is 28mm.
+hook_vertical_grids = 1;
 //Recommended width range is 6~20mm. For hooks wider than 20mm, check out openConnect Sturdy Hook Generator.
 hook_width = 10;
 //hook_length + hook_back_thickness adds up to the total outer length of the hook.
 hook_length = 22;
 hook_back_thickness = 4;
 hook_bottom_thickness = 4;
+//"Horizontal" for a standard hook, "Diagonal" for a hook body that angles upward from the frame.
 hook_corner_angle = 0; //[0:Horizontal, 45:Diagonal]
-//Increace this value to make the corner of the hook sturdier.
-hook_corner_fillet = 6;
+//Increace this value to make the corner of the hook thicker and sturdier.
+hook_corner_fillet = 10;
 
 /*[Hook Tip]*/
 hook_tip_length = 8;
 hook_tip_angle = 45; //[45:5:90]
-hook_tip_thickness = 3;
 hook_tip_shape = "Rectangular"; //[Round, Rectangular]
 hook_tip_corner_fillet = 6;
 
 /*[Hook Truss]*/
-//Add a truss for more strength. Thanks to @agentharm for the idea!
+//Add a truss at the bottom of the hook to increase strength. Thanks to @agentharm for the idea!
 truss_vertical_grid = 0;
 truss_thickness = 3;
 truss_rounding = 3;
-//Keeping this value to 45 ensures that the truss can be printed without support.
+//A truss with max_angle set to 45 can be printed without support.
 truss_max_angle = 45; //[45:5:75]
 
 /*[Advanced Settings]*/
-//Increase this value if you find the snap fit too tight.
+//Increase this value if you find the frame fit too tight.
 framefit_snap_clearance = 0.1; //0.01
-//3.4mm version can be installed simultaneously on both side of openGrid Standard board (6.8mm thick). Choose 4mm if there is no such need.
-framefit_snap_depth = 4; //[4:"Lite - 4mm", 3.4:"Lite Basic - 3.4mm"]
 hook_side_chamfer = 0.8;
+//Changing this value may feel unresponsive, as it's clamped to a small range by other geometric constraints.
+hook_tip_thickness = 3;
 
 /*[Hidden]*/
 $fa = 1;
@@ -47,6 +48,8 @@ $fs = 0.2;
 include <BOSL2/std.scad>
 include <lib/opengrid_base.scad>
 
+//3.4mm version can be installed simultaneously on both side of openGrid Standard board (6.8mm thick). Choose 4mm if there is no such need.
+framefit_snap_depth = 4; //[4:"Lite - 4mm", 3.4:"Lite Basic - 3.4mm"]
 //0.42 is a common line width for 0.4mm nozzles.
 framesnap_thickness = 0.84; // 0.42
 
@@ -103,11 +106,10 @@ hook_final_tip_angle = max(3, hook_tip_angle - hook_corner_angle);
 hook_final_tip_thickness = max(EPS, min(hook_tip_thickness, hook_final_tip_angle == 90 ? 1000 : ang_adj_to_hyp(hook_final_tip_angle, hook_final_bottom_thickness)), hook_final_tip_angle == 90 ? EPS : ang_hyp_to_adj(hook_final_tip_angle, hook_final_bottom_thickness));
 hook_min_tip_length = hook_final_tip_angle == 90 ? hook_final_bottom_thickness : ang_hyp_to_opp(hook_final_tip_angle, hook_final_bottom_thickness + hook_final_side_chamfer / 2) + EPS;
 hook_final_tip_length = max(EPS, hook_min_tip_length, hook_tip_length);
-hook_final_height = OG_TILE_SIZE * vertical_grids;
+hook_height = OG_TILE_SIZE * hook_vertical_grids;
 hook_has_tip = hook_tip_thickness >= EPS && hook_tip_length >= EPS;
-hook_target_length = max(EPS, hook_length);
 hook_tip_reach = hook_has_tip ? max(0, hook_final_tip_length - hook_final_side_chamfer) * cos(hook_corner_angle + hook_final_tip_angle) : 0;
-hook_final_length = max(EPS, (hook_target_length - hook_tip_reach) / max(EPS, cos(hook_corner_angle)));
+hook_final_length = max(EPS, (hook_length - hook_tip_reach) / max(EPS, cos(hook_corner_angle)));
 
 large_opp = hook_final_tip_thickness * tan(hook_final_tip_angle);
 large_hyp = hook_final_tip_thickness / cos(hook_final_tip_angle);
@@ -116,7 +118,7 @@ small_hyp = small_opp / sin(hook_final_tip_angle);
 small_adj = hook_final_tip_angle == 90 ? hook_final_tip_thickness : small_opp / tan(hook_final_tip_angle);
 
 hook_min_tip_fillet = max(EPS, min(1, hook_final_tip_length - hook_min_tip_length));
-hook_final_corner_fillet = max(min(1, hook_final_bottom_thickness, hook_final_length, hook_final_back_thickness), min(hook_corner_fillet, hook_final_length - hook_min_tip_fillet - hook_final_bottom_thickness * tan(hook_corner_angle) - small_adj, hook_final_height - hook_final_bottom_thickness / cos(hook_corner_angle)));
+hook_final_corner_fillet = max(min(1, hook_final_bottom_thickness, hook_final_length, hook_final_back_thickness), min(hook_corner_fillet, hook_final_length - hook_min_tip_fillet - hook_final_bottom_thickness * tan(hook_corner_angle) - small_adj, hook_height - hook_final_bottom_thickness / cos(hook_corner_angle)));
 hook_final_tip_fillet_pos_offset = hook_final_tip_angle == 90 ? hook_final_bottom_thickness : large_opp - small_hyp;
 hook_max_tip_fillet = hook_final_tip_length - hook_final_tip_fillet_pos_offset;
 hook_final_tip_fillet = max(hook_min_tip_fillet, min(hook_final_length - hook_final_corner_fillet - hook_final_bottom_thickness * tan(hook_corner_angle) - small_adj, hook_max_tip_fillet, hook_tip_corner_fillet));
@@ -139,8 +141,8 @@ tip_inner_fillet_cut_shape = difference(
 );
 
 diff() {
-  cuboid([hook_final_width, hook_final_back_thickness, hook_final_height], anchor=FRONT + BOTTOM) {
-    zcopies(spacing=OG_TILE_SIZE, n=vertical_grids)
+  cuboid([hook_final_width, hook_final_back_thickness, hook_height], anchor=FRONT + BOTTOM) {
+    zcopies(spacing=OG_TILE_SIZE, n=hook_vertical_grids)
       attach(FRONT, BOTTOM)
         frame_snap();
     //bottom truss
@@ -159,8 +161,6 @@ diff() {
     if (hook_has_side_chamfer)
       edge_mask([TOP + BACK])
         chamfer_edge_mask(chamfer=hook_final_side_chamfer);
-    // corner_mask([TOP + BACK])
-    // chamfer_corner_mask(chamfer=hook_final_side_chamfer);
     //applying bottom chamfer to diagonal hooks may make print surface too small.
     if (hook_has_side_chamfer && hook_corner_angle == 0 && truss_vertical_grid <= 0)
       edge_mask([BOTTOM + FRONT])
@@ -172,7 +172,7 @@ diff() {
     //hook height front chamfer
     if (hook_has_flat_top_chamfer)
       attach(BACK, FRONT, align=TOP, spin=90)
-        tag("remove") offset_sweep(rect([max(EPS, hook_final_height - hook_final_corner_fillet - hook_final_bottom_thickness / cos(hook_corner_angle)), 1]), height=hook_final_width, bottom=hook_side_chamfer_end, top=hook_side_chamfer_end);
+        tag("remove") offset_sweep(rect([max(EPS, hook_height - hook_final_corner_fillet - hook_final_bottom_thickness / cos(hook_corner_angle)), 1]), height=hook_final_width, bottom=hook_side_chamfer_end, top=hook_side_chamfer_end);
     position(BACK + BOTTOM)
       xrot(hook_corner_angle) cuboid([hook_final_width, hook_final_length, hook_final_bottom_thickness], anchor=FRONT + BOTTOM) {
           //hook flat top chamfer
