@@ -7,7 +7,7 @@ Recommended to use with openGrid - Self-Expanding Snap. https://www.printables.c
 The openGrid system is created by David D. https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem
 */
 
-snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm, 3.4:Lite Basic - 3.4mm]
+snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm]
 //Blunt threads help prevent cross-threading and overtightening. Models with blunt threads have a decorative 'lock' symbol.
 threads_type = "Blunt"; //["Blunt", "Basic"]
 hook_shape_type = "Centered"; //["Straight", "Centered", "Loop"]
@@ -73,10 +73,12 @@ _threads_side_offset = _threads_diameter / 2 - OG_SNAP_THREADS_SIDE_OFFSET;
 
 square_corner_radius = 2;
 min_ang_radius = 1;
+//The minimum chamfer to make the threads_connect_diameter cutoff and a thick hook stem consistent.
+overlap_chamfer = calculate_overlap_chamfer(body_width, body_thickness, _threads_connect_diameter);
 final_tip_size = max(EPS, hook_main_size);
 final_stem_length = max(EPS, hook_stem_length);
 final_thickness_scale = !use_custom_shape && hook_shape_type == "Loop" ? 1 : body_thickness_scale;
-final_side_chamfer = max(0, min(body_thickness / 2 * final_thickness_scale - OG_MIN_WALL_WIDTH, body_width / 2 - OG_MIN_WALL_WIDTH, body_max_chamfer));
+final_side_chamfer = max(0, min((body_thickness * final_thickness_scale - OG_MIN_WALL_WIDTH) / 2, (body_width - OG_MIN_WALL_WIDTH) / 2, max(overlap_chamfer, body_max_chamfer)));
 
 circular_straight_hook_path = ["setdir", 90, "arcleft", final_tip_size / 2, hook_tip_angle];
 circular_center_hook_path = ["setdir", 90, "arcright", min_ang_radius, 90, "arcleft", final_tip_size / 2, hook_tip_angle + 90];
@@ -115,7 +117,6 @@ hook_path =
   : rect_hook_path;
 
 tip_rounding_radius = max(0, min(body_thickness * final_thickness_scale, body_width - final_side_chamfer * 2) / 2 - EPS);
-
 artifact_cutoff_depth = EPS;
 sweep_profile = rect([body_thickness, body_width], chamfer=final_side_chamfer);
 offset_sweep_profile = scale([final_thickness_scale, 1, 1], sweep_profile);
@@ -132,7 +133,7 @@ zrot(180) up(_threads_side_offset) xrot(90)
             down(final_stem_length - EPS) xrot(-90)
                 tag_diff("", remove="rm0") path_sweep(sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[final_thickness_scale, 1]) {
                     attach("end", "top")
-                      offset_sweep(offset_sweep_profile, height=tip_rounding_radius + EPS, bottom=os_circle(r=tip_rounding_radius));
+                      offset_sweep(offset_sweep_profile, height=tip_rounding_radius + EPS, bottom=os_circle(r=tip_rounding_radius), quality=256);
                     attach(TOP, BOTTOM, shiftout=-artifact_cutoff_depth)
                       tag("rm0") cuboid([100, 100, 10]);
                   }
@@ -147,10 +148,19 @@ zrot(180) up(_threads_side_offset) xrot(90)
                                 cyl(l=final_stem_length + EPS * 2, d=_threads_connect_diameter, anchor=TOP);
                           }
                     }
-            tag_diff(tag="rm2", remove="rm1") cyl(l=final_stem_length, d=_threads_connect_diameter * 2, anchor=TOP)
+            tag_diff(tag="rm2", remove="rm1")
+              cyl(l=hook_stem_length, d=max(body_thickness, body_width, _threads_connect_diameter) * 2, anchor=TOP)
                 attach(CENTER, CENTER, inside=true)
-                  tag("rm1") cyl(l=final_stem_length + EPS * 2, d=_threads_connect_diameter);
+                  tag("rm1") cyl(l=hook_stem_length + EPS * 2, d=_threads_connect_diameter);
           }
         }
         tag("remove") fwd(_threads_side_offset - EPS) cuboid([500, 500, 500], anchor=BACK);
       }
+
+function calculate_overlap_chamfer(rect_width, rect_height, circ_diameter) =
+  let (
+    arg1 = max(0, circ_diameter ^ 2 / 4 - rect_width ^ 2 / 4),
+    arg2 = max(0, circ_diameter ^ 2 / 4 - rect_height ^ 2 / 4),
+    chamf1 = rect_height / 2 - sqrt(arg1),
+    chamf2 = rect_width / 2 - sqrt(arg2),
+  ) max(0, chamf1, chamf2);

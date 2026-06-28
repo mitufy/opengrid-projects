@@ -7,7 +7,7 @@ Recommended to use with openGrid - Self-Expanding Snap. https://www.printables.c
 The openGrid system is created by David D. https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem
 */
 
-snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm, 3.4:Lite Basic - 3.4mm]
+snap_thickness = 6.8; //[6.8:Standard - 6.8mm, 4:Lite - 4mm]
 //Blunt threads help prevent cross-threading and overtightening. Models with blunt threads have a decorative 'lock' symbol.
 threads_type = "Blunt"; //["Blunt", "Basic"]
 clip_shape = "Circular"; //["Circular", "Rectangular","Elliptic"]
