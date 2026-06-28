@@ -161,9 +161,9 @@ side_opening_wall_bottom_z = side_opening_bottom_z - effective_side_opening_bott
 side_opening_mid_y = (side_opening_front_y + side_opening_back_y) / 2;
 side_opening_mid_z = (side_opening_bottom_z + side_opening_top_z) / 2;
 
-module emit_horizontal_holder_annotations() {
+module emit_clamshell_holder_annotations() {
   emit_context_values(
-    "horizontal_holder_context",
+    "clamshell_holder_context",
     [
       "OG_TILE_SIZE",
       "og_tile_size",
@@ -336,7 +336,7 @@ module emit_horizontal_holder_annotations() {
 }
 
 if (generate_holder_part == "Both")
-  emit_horizontal_holder_annotations();
+  emit_clamshell_holder_annotations();
 
 //BEGIN holder generation
 up(generate_holder_part == "Both" ? holder_depth / 2 : holder_width / 2) yrot(generate_holder_part == "Left" ? -90 : generate_holder_part == "Right" ? 90 : 0)
