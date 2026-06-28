@@ -40,6 +40,8 @@ side_opening_top_margin = 0;
 side_opening_bottom_margin = 0;
 
 /* [openConnect Settings] */
+//Usually, "Left" and "Right" are used when mounting underdesk, "Up" and "Down" are used when mounting on a wall.
+slot_slide_direction = "Left"; //[Left,Right,Up,Down]
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
 slot_lock_distribution = "Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
 //Entry ramp direction can matter when installing in tight spaces.
@@ -48,8 +50,6 @@ slot_entryramp_flip = false;
 front_slot_position_offset = 0;
 
 /* [Advanced Settings] */
-//Slide direction can matter when installing in tight spaces.
-slot_slide_direction = "Left"; //[Left,Right]
 //Increase clearances if the slots feel too tight. Reduce it if they are too loose.
 slot_side_clearance = 0.1; //0.01
 slot_depth_clearance = 0.1; //0.01
@@ -96,7 +96,9 @@ final_slot_h_grids =
 final_slot_v_grids =
   holder_slot_position == "Top" ? max(1, floor(holder_height / OG_TILE_SIZE))
   : max(1, floor(holder_depth / OG_TILE_SIZE));
-final_front_slot_position_offset = holder_slot_position == "Top" ? 0 : slot_slide_direction == "Right" ? -front_slot_position_offset : front_slot_position_offset;
+final_front_slot_position_offset =
+  holder_slot_position == "Front" && slot_slide_direction == "Right" ? -front_slot_position_offset
+  : holder_slot_position == "Front" && slot_slide_direction == "Left" ? front_slot_position_offset : 0;
 //cut off the bridge part of the upper most slot
 middle_cutoff_size_base = max(0.8, slot_edge_wall_min_width) * 2 + EPS;
 holder_middle_cutoff_tiles = max(0, final_slot_h_grids - max(1, holder_slot_column_limit) * 2);
