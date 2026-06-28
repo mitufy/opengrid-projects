@@ -371,7 +371,7 @@ class AnimationConfigTests(unittest.TestCase):
                 "openconnect_sturdy_shelf_default",
                 "openconnect_general_holder_default",
                 "openconnect_vasemode_container_default",
-                "openconnect_horizontal_holder_default",
+                "openconnect_clamshell_holder_default",
                 "openconnect_drawer_shell_default",
                 "openconnect_drawer_shell_container_default",
                 "openconnect_standard_snap_grid_copies",
@@ -419,28 +419,28 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(shelf_config["annotations"]["chains"][1]["ids"], ["horizontal_grids"])
         self.assertEqual(shelf_config["annotations"]["aliases"]["horizontal_grids"], "horizontal_grids x 28mm")
 
-        horizontal_holder_variant = selected_variants(config, "openconnect_horizontal_holder_default")[0]
-        horizontal_holder_config = variant_config(config, horizontal_holder_variant)
-        self.assertEqual(self.first_model_config(horizontal_holder_config)["scad_file"], "openconnect_horizontal_holder.scad")
-        horizontal_holder_objects = horizontal_holder_config["scene"]["objects"]
-        self.assertEqual(horizontal_holder_objects[0]["model"]["scad_file"], "openconnect_horizontal_holder.scad")
-        self.assertEqual(horizontal_holder_objects[0]["transform"]["rotation_deg"], [-90, 0, 0])
+        clamshell_holder_variant = selected_variants(config, "openconnect_clamshell_holder_default")[0]
+        clamshell_holder_config = variant_config(config, clamshell_holder_variant)
+        self.assertEqual(self.first_model_config(clamshell_holder_config)["scad_file"], "openconnect_clamshell_holder.scad")
+        clamshell_holder_objects = clamshell_holder_config["scene"]["objects"]
+        self.assertEqual(clamshell_holder_objects[0]["model"]["scad_file"], "openconnect_clamshell_holder.scad")
+        self.assertEqual(clamshell_holder_objects[0]["transform"]["rotation_deg"], [-90, 0, 0])
         self.assertEqual(
-            horizontal_holder_objects[0]["transform"]["location_mm"],
+            clamshell_holder_objects[0]["transform"]["location_mm"],
             [0, "-(item_height / 2 + og_standard_thickness)", 0],
         )
-        self.assertEqual(horizontal_holder_objects[1]["id"], "openconnect_standard_snap")
-        self.assertEqual(horizontal_holder_objects[1]["stl_file"], "../assets/openconnect_standard_snap.stl")
-        self.assertEqual(horizontal_holder_objects[1]["transform"]["rotation_deg"], [90, 0, 0])
+        self.assertEqual(clamshell_holder_objects[1]["id"], "openconnect_standard_snap")
+        self.assertEqual(clamshell_holder_objects[1]["stl_file"], "../assets/openconnect_standard_snap.stl")
+        self.assertEqual(clamshell_holder_objects[1]["transform"]["rotation_deg"], [90, 0, 0])
         self.assertEqual(
-            horizontal_holder_objects[1]["transform"]["location_mm"],
+            clamshell_holder_objects[1]["transform"]["location_mm"],
             ["-(og_tile_size / 2)", "og_standard_thickness", "-(og_tile_size / 2)"],
         )
-        self.assertNotIn("camera_rotation_deg", horizontal_holder_config["render"])
-        self.assertEqual(horizontal_holder_config["annotations"]["chains"][0]["ids"], ["item_width"])
+        self.assertNotIn("camera_rotation_deg", clamshell_holder_config["render"])
+        self.assertEqual(clamshell_holder_config["annotations"]["chains"][0]["ids"], ["item_width"])
         side_margin_chain_ids = [
             chain["ids"]
-            for chain in horizontal_holder_config["annotations"]["chains"]
+            for chain in clamshell_holder_config["annotations"]["chains"]
             if chain["ids"][0].startswith("side_opening_")
         ]
         self.assertEqual(
@@ -452,7 +452,7 @@ class AnimationConfigTests(unittest.TestCase):
                 ["side_opening_bottom_margin"],
             ],
         )
-        self.assertEqual(horizontal_holder_config["annotations"]["image_labels"][0]["id"], "holder_slot_position")
+        self.assertEqual(clamshell_holder_config["annotations"]["image_labels"][0]["id"], "holder_slot_position")
 
     def test_per_model_default_config_is_directly_renderable(self) -> None:
         config = load_config(Path("annotation_renderer/configs/openconnect_general_holder_default.yaml"), [])
@@ -479,8 +479,8 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("openconnect_general_holder_default", output)
         self.assertIn("annotation_renderer/configs/openconnect_general_holder_default.yaml", output)
         self.assertIn("model: openconnect_general_holder.scad", output)
-        self.assertIn("openconnect_horizontal_holder_default", output)
-        self.assertIn("model: openconnect_horizontal_holder.scad", output)
+        self.assertIn("openconnect_clamshell_holder_default", output)
+        self.assertIn("model: openconnect_clamshell_holder.scad", output)
         self.assertIn("openconnect_vasemode_container_default", output)
         self.assertIn("model: openconnect_vasemode_container.scad", output)
         self.assertIn("openconnect_standard_snap_grid_copies", output)
@@ -863,20 +863,20 @@ class AnimationConfigTests(unittest.TestCase):
         horizontal_divider = next(annotation for annotation in annotations if annotation["id"] == "holder_horizontal_divider_thickness" and annotation["kind"] == "dimension")
         self.assertEqual(horizontal_divider["basis"], "divider_between_first_two_compartment_rows")
 
-    def test_horizontal_holder_discovery_uses_customizer_parameter_ids(self) -> None:
-        output = self.run_cli("--discover-annotations", "openconnect_horizontal_holder.scad")
+    def test_clamshell_holder_discovery_uses_customizer_parameter_ids(self) -> None:
+        output = self.run_cli("--discover-annotations", "openconnect_clamshell_holder.scad")
 
         self.assertIn("    - item_width (axis=x", output)
         self.assertIn("    - item_height (axis=y", output)
         self.assertIn("    - item_depth (axis=z", output)
-        self.assertIn("    - front_opening_width_margin (axis=x", output)
-        self.assertIn("    - front_opening_height_margin (axis=y", output)
+        self.assertIn("    - front_opening_side_margin (axis=x", output)
+        self.assertIn("    - front_opening_end_margin (axis=y", output)
         self.assertIn("    - side_opening_front_margin (axis=y", output)
         self.assertIn("    - side_opening_back_margin (axis=y", output)
         self.assertIn("    - side_opening_top_margin (axis=z", output)
         self.assertIn("    - side_opening_bottom_margin (axis=z", output)
-        self.assertIn("basis=side_opening_front_margin_to_visible_opening_edge", output)
-        self.assertIn("basis=side_opening_top_margin_to_visible_opening_edge", output)
+        self.assertIn("basis=side_opening_front_margin_to_visible_cutout_edge", output)
+        self.assertIn("basis=side_opening_top_margin_to_visible_cutout_edge", output)
         self.assertIn("    - item_corner_rounding", output)
         self.assertIn("    - holder_slot_position", output)
         self.assertIn("    - slot_slide_direction", output)

@@ -6,7 +6,7 @@ variant_configs:
 - openconnect_sturdy_shelf_default.yaml
 - openconnect_general_holder_default.yaml
 - openconnect_vasemode_container_default.yaml
-- openconnect_horizontal_holder_default.yaml
+- openconnect_clamshell_holder_default.yaml
 - openconnect_drawer_shell_default.yaml
 - openconnect_drawer_shell_container_default.yaml
 - openconnect_standard_snap_grid_copies.yaml

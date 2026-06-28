@@ -162,9 +162,9 @@ side_cutout_wall_front_z = side_cutout_front_z - effective_side_cutout_front_mar
 side_cutout_mid_y = (side_cutout_top_y + side_cutout_bottom_y) / 2;
 side_cutout_mid_z = (side_cutout_front_z + side_cutout_back_z) / 2;
 
-module emit_horizontal_holder_annotations() {
+module emit_clamshell_holder_annotations() {
   emit_context_values(
-    "horizontal_holder_context",
+    "clamshell_holder_context",
     [
       "OG_TILE_SIZE",
       "og_tile_size",
@@ -335,7 +335,7 @@ module emit_horizontal_holder_annotations() {
 }
 
 if (generate_holder_part == "Both")
-  emit_horizontal_holder_annotations();
+  emit_clamshell_holder_annotations();
 
 //BEGIN holder generation
 up(generate_holder_part == "Both" ? holder_height / 2 : holder_width / 2)

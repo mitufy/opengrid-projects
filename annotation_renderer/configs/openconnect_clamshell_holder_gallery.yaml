@@ -1,6 +1,6 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: openconnect_horizontal_holder_empty.yaml
-job_name: horizontal_holder_parameter_gallery
+extends: openconnect_clamshell_holder_empty.yaml
+job_name: clamshell_holder_parameter_gallery
 
 gallery:
   columns: 2

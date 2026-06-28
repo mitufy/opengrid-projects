@@ -1,12 +1,12 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
-variant_name: openconnect_horizontal_holder_default
-job_name: horizontal_holder_scene_default
+variant_name: openconnect_clamshell_holder_default
+job_name: clamshell_holder_scene_default
 scene:
   objects:
   - id: model
     model:
-      scad_file: openconnect_horizontal_holder.scad
+      scad_file: openconnect_clamshell_holder.scad
       # defines:
       #   item_width: 164
       #   item_height: 60
