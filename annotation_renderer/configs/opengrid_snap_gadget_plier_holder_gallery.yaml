@@ -1,0 +1,64 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: opengrid_snap_gadget_plier_holder_empty.yaml
+job_name: plier_holder_parameter_gallery
+
+gallery:
+  columns: 2
+  thumbnail_width: 640
+  margin_px: 0
+  gutter_px: 12
+  title_height_px: 22
+  title_font_size_px: 22
+
+variants:
+- name: Transition_Ratio_0.2
+  set:
+    annotations:
+      image_labels:
+      - $constant: bottom_image_label
+        id: transition_depth_ratio
+        label: transition_depth_ratio
+        show_value: true
+        value_color: '#FF0000'
+        font_size_px: 36
+    render.camera_view: right
+    scene.objects[0].model.defines.transition_depth_ratio: 0.2
+- name: Transition_Ratio_1
+  set:
+    annotations:
+      image_labels:
+      - $constant: bottom_image_label
+        id: transition_depth_ratio
+        label: transition_depth_ratio
+        show_value: true
+        value_color: '#FF0000'
+        font_size_px: 36
+    render.camera_view: right
+    scene.objects[0].model.defines.transition_depth_ratio: 1
+- name: Width_Scale_1
+  set:
+    render.camera_view_preset: top_front
+    # scene.objects[0].model.defines.stopper_height_scale: 1.4
+    annotations:
+      image_labels:
+      - $constant: bottom_image_label
+        id: stopper_width_scale
+        label: stopper_width_scale
+        show_value: true
+        value_color: '#FF0000'
+        font_size_px: 36
+    # scene.objects[0].model.defines.stem_height: 12
+- name: Width_Scale_1.4
+  set:
+    render.camera_view_preset: top_front
+    scene.objects[0].model.defines.stopper_width_scale: 1.4
+    annotations:
+      image_labels:
+      - $constant: bottom_image_label
+        id: stopper_width_scale
+        label: stopper_width_scale
+        show_value: true
+        value_color: '#FF0000'
+        font_size_px: 36
+    # scene.objects[0].model.defines.transition_depth_ratio: 0.2
+    # scene.objects[0].model.defines.stem_height: 18

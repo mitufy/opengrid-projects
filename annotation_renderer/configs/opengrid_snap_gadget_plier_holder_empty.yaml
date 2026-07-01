@@ -7,10 +7,6 @@ scene:
   - id: model_a
     model:
       scad_file: opengrid_snap_gadget_plier_holder.scad
-      defines:
-        stem_height: 12
-        stem_depth: 14
-        transition_depth_ratio: 1
     transform:
       location_mm: [-14, 0, -20.6]
       rotation_deg: [0, 0, 0]
@@ -21,7 +17,6 @@ scene:
       rotation_deg: [-90, 180, 0]
 render:
   fit_margin: 0
-  camera_view: right
 annotations:
   style:
     $constant: default_annotation_style
@@ -72,3 +67,4 @@ annotations:
     label: transition_depth_ratio
     show_value: true
     value_color: '#FF0000'
+    font_size_px: 36
