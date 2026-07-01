@@ -143,7 +143,13 @@ gridfinity_width_span = final_gridfinity_width_grids * GF_PITCH;
 gridfinity_depth_span = final_gridfinity_depth_grids * GF_PITCH;
 
 function gridfinity_shelf_annot_point(point) =
-  annot_xrot(annot_translate(point, [0, 0, final_shelf_bottom_tilt_height]), -print_bottom_angle);
+  annot_translate(
+    annot_zrot(
+      annot_xrot(annot_translate(point, [0, 0, final_shelf_bottom_tilt_height]), -print_bottom_angle),
+      180
+    ),
+    [shelf_width, 0, 0]
+  );
 
 module emit_gridfinity_shelf_annotations() {
   emit_context_values(
@@ -171,6 +177,7 @@ module emit_gridfinity_shelf_annotations() {
       "shelf_depth",
       "shelf_deck_height",
       "final_shelf_bottom_tilt_height",
+      "print_bottom_angle",
       "slot_h_grids",
       "slot_lock_distribution",
       "slot_entryramp_flip",
@@ -199,6 +206,7 @@ module emit_gridfinity_shelf_annotations() {
       shelf_depth,
       shelf_deck_height,
       final_shelf_bottom_tilt_height,
+      print_bottom_angle,
       slot_h_grids,
       slot_lock_distribution,
       slot_entryramp_flip,
@@ -219,8 +227,8 @@ module emit_gridfinity_shelf_annotations() {
     label="gridfinity_depth_grids",
     axis="y",
     value=gridfinity_depth_span,
-    start=gridfinity_shelf_annot_point([shelf_width, final_shelf_front_rim, gridfinity_shelf_body_top_z]),
-    end=gridfinity_shelf_annot_point([shelf_width, final_shelf_front_rim + gridfinity_depth_span, gridfinity_shelf_body_top_z]),
+    start=gridfinity_shelf_annot_point([0, final_shelf_front_rim, gridfinity_shelf_body_top_z]),
+    end=gridfinity_shelf_annot_point([0, final_shelf_front_rim + gridfinity_depth_span, gridfinity_shelf_body_top_z]),
     basis="gridfinity_cell_depth_span_from_grid_count"
   );
   if (final_shelf_side_rim > EPS) {
@@ -240,9 +248,9 @@ module emit_gridfinity_shelf_annotations() {
       label="shelf_front_rim",
       axis="y",
       value=final_shelf_front_rim,
-      start=gridfinity_shelf_annot_point([shelf_width, 0, gridfinity_shelf_body_top_z]),
-      end=gridfinity_shelf_annot_point([shelf_width, final_shelf_front_rim, gridfinity_shelf_body_top_z]),
-      basis="front_extra_rim_depth"
+      start=gridfinity_shelf_annot_point([0, 0, gridfinity_shelf_body_top_z]),
+      end=gridfinity_shelf_annot_point([0, final_shelf_front_rim, gridfinity_shelf_body_top_z]),
+      basis="front_extra_rim_depth_on_right_edge"
     );
   }
   if ((has_side_lips || has_front_lip) && final_shelf_rim_lip_height > EPS) {
@@ -251,9 +259,13 @@ module emit_gridfinity_shelf_annotations() {
       label="shelf_rim_lip_height",
       axis="z",
       value=final_shelf_rim_lip_height,
-      start=gridfinity_shelf_annot_point([shelf_width, 0, shelf_deck_height]),
-      end=gridfinity_shelf_annot_point([shelf_width, 0, gridfinity_shelf_body_top_z]),
-      basis="raised_rim_lip_height"
+      start=gridfinity_shelf_annot_point(
+        has_side_lips ? [0, shelf_depth / 2, shelf_deck_height] : [shelf_width / 2, 0, shelf_deck_height]
+      ),
+      end=gridfinity_shelf_annot_point(
+        has_side_lips ? [0, shelf_depth / 2, gridfinity_shelf_body_top_z] : [shelf_width / 2, 0, gridfinity_shelf_body_top_z]
+      ),
+      basis="raised_rim_lip_height_on_visible_edge"
     );
   }
 }

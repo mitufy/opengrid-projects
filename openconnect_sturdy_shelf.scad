@@ -250,7 +250,7 @@ module emit_sturdy_shelf_annotations() {
       basis="visible_upper_back_shelf_corner_fillet_extent"
     );
   }
-  if (truss_beam_reach > EPS && truss_depth > EPS) {
+  if (shelf_type != "Slim" && truss_beam_reach > EPS && truss_depth > EPS) {
     emit_dimension_annotation(
       id="truss_beam_reach",
       label="truss_beam_reach",
@@ -270,7 +270,7 @@ module emit_sturdy_shelf_annotations() {
       basis="nominal_truss_member_thickness"
     );
   }
-  if (truss_strut_interval > EPS && truss_depth > truss_strut_interval * 2) {
+  if (shelf_type != "Slim" && truss_strut_interval > EPS && truss_depth > truss_strut_interval * 2) {
     emit_dimension_annotation(
       id="truss_strut_interval",
       label="truss_strut_interval",
