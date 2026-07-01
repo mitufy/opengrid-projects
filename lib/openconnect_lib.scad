@@ -310,7 +310,7 @@ module openconnect_lock(bottom_height, middle_height, nub_depth = OCHEAD_NUB_DEP
           trapezoid(h=nub_depth, w2=nub_tip_height, ang=[nub_flattop ? 90 : 45, 45], rounding=[nub_fillet, nub_flattop ? 0 : nub_fillet, nub_flattop ? 0 : -nub_fillet, -nub_fillet], anchor=BACK, $fn=64);
     }
 }
-module openconnect_slot(slot_type = "slot", slot_cfg = [], add_nubs = "Left", slot_entryramp_flip = false, excess_thickness = EPS, anchor = BOTTOM, spin = 0, orient = UP) {
+module openconnect_slot(slot_type = "slot", slot_cfg = [], add_nubs = "Left", slot_entryramp_flip = false, excess_thickness = EPS, excess_length = 0, anchor = BOTTOM, spin = 0, orient = UP) {
   cfg = struct_merge(ocslot_cfg(), slot_cfg);
 
   ocslot_edge_wall_min_width = struct_val(cfg, "edge_wall_min_w");
@@ -334,7 +334,7 @@ module openconnect_slot(slot_type = "slot", slot_cfg = [], add_nubs = "Left", sl
 
   attachable(anchor, spin, orient, size=[OG_TILE_SIZE, OG_TILE_SIZE, ocslot_total_height]) {
     tag_scope() down(ocslot_total_height / 2) if (slot_type == "slot")
-        conditional_flip(axis="X", condition=slot_entryramp_flip) ocslot_body(excess_thickness);
+        conditional_flip(axis="X", condition=slot_entryramp_flip) ocslot_body(excess_thickness=excess_thickness, excess_length=excess_length);
       else if (slot_type == "vase")
         ocvase_body();
     children();
@@ -370,7 +370,7 @@ module openconnect_slot(slot_type = "slot", slot_cfg = [], add_nubs = "Left", sl
         xrot(90 - ocvase_overhang_angle) tag("remove") cuboid([OG_TILE_SIZE, 60, ocslot_total_height * 2], anchor=BOTTOM + FRONT);
       }
   }
-  module ocslot_body(excess_thickness = 0) {
+  module ocslot_body(excess_thickness = 0, excess_length = 0) {
     _slot_head_cfg = struct_val(cfg, "head_cfg", ochead_cfg());
     _middle_height = struct_val(_slot_head_cfg, "middle_height");
     _back_pos_offset = struct_val(_slot_head_cfg, "back_pos_offset");
@@ -389,30 +389,31 @@ module openconnect_slot(slot_type = "slot", slot_cfg = [], add_nubs = "Left", sl
     difference() {
       union() {
         openconnect_head(head_type="slot", slot_cfg=cfg, add_nubs=add_nubs, excess_thickness=excess_thickness);
-        back(_back_pos_offset) xrot(90) up(ocslot_middle_to_bottom) linear_extrude(_slot_move_distance + _slot_onramp_clearance + _back_pos_offset) xflip_copy() polygon(ocslot_side_excess_profile);
+        back(_back_pos_offset) xrot(90) up(ocslot_middle_to_bottom) linear_extrude(_slot_move_distance + _slot_onramp_clearance + _back_pos_offset + excess_length) xflip_copy() polygon(ocslot_side_excess_profile);
         up(ocslot_bottom_height) linear_extrude(ocslot_top_height + _middle_height + EPS) polygon(ocslot_bridge_offset_profile);
         fwd(_slot_move_distance) {
-          linear_extrude(ocslot_bottom_height) onramp_2d();
+          linear_extrude(ocslot_bottom_height + EPS) onramp_2d(excess_length=excess_length);
           up(ocslot_bottom_height)
-            linear_extrude(_middle_height * sqrt(2), v=[-1, 0, 1]) onramp_2d();
+            linear_extrude(_middle_height * sqrt(2) + EPS, v=[-1, 0, 1]) onramp_2d(excess_length=excess_length);
           left(_middle_height) up(ocslot_bottom_height + _middle_height)
-              linear_extrude(ocslot_top_height + excess_thickness) onramp_2d();
+              linear_extrude(ocslot_top_height + excess_thickness) onramp_2d(excess_length=excess_length);
         }
         if (excess_thickness > 0)
           fwd(ocslot_small_rect_chamfer) cuboid([ocslot_small_rect_width, ocslot_small_rect_height, ocslot_total_height + excess_thickness], anchor=BOTTOM);
       }
-      fwd(OG_TILE_SIZE / 2)
-        cuboid([OG_TILE_SIZE, ocslot_edge_wall_min_width, ocslot_bottom_height + _middle_height + ocslot_top_height + excess_thickness + EPS], anchor=FRONT + BOTTOM);
+      if (ocslot_edge_wall_min_width - excess_length > 0)
+        fwd(OG_TILE_SIZE / 2)
+          cuboid([OG_TILE_SIZE, ocslot_edge_wall_min_width, ocslot_bottom_height + _middle_height + ocslot_top_height + excess_thickness + EPS], anchor=FRONT + BOTTOM);
     }
   }
-  module onramp_2d() {
+  module onramp_2d(excess_length = 0) {
     _slot_head_cfg = struct_val(cfg, "head_cfg", ochead_cfg());
     _middle_height = struct_val(_slot_head_cfg, "middle_height");
     _back_pos_offset = struct_val(_slot_head_cfg, "back_pos_offset");
     _slot_onramp_clearance = struct_val(_slot_head_cfg, "slot_onramp_clearance", OCSLOT_ONRAMP_CLEARANCE);
     offset(delta=_slot_onramp_clearance)
       left(_slot_onramp_clearance + _middle_height) back(ocslot_large_rect_width / 2 + _back_pos_offset) {
-          rect([ocslot_large_rect_width, ocslot_large_rect_height], chamfer=[ocslot_large_rect_chamfer, ocslot_large_rect_chamfer, 0, 0], anchor=TOP);
+          rect([ocslot_large_rect_width, ocslot_large_rect_height + excess_length], chamfer=[ocslot_large_rect_chamfer, ocslot_large_rect_chamfer, 0, 0], anchor=TOP);
           trapezoid(h=4, w1=ocslot_large_rect_width - ocslot_large_rect_chamfer * 2, ang=[45, 45], anchor=BOTTOM);
         }
   }
@@ -424,7 +425,7 @@ function _openconnect_slot_footprint_rotate(slot_slide_direction) =
   : slot_slide_direction == "Down" ? 180
   : 0;
 
-module openconnect_slot_grid_limit_debug(slot_cfg = [], horizontal_grids = 1, vertical_grids = 1, slot_slide_direction = "Up", excess_thickness = EPS, limit_region = [], anchor = BOTTOM, spin = 0, orient = UP) {
+module openconnect_slot_grid_limit_debug(slot_cfg = [], horizontal_grids = 1, vertical_grids = 1, slot_slide_direction = "Up", excess_thickness = EPS, excess_length = 0, limit_region = [], anchor = BOTTOM, spin = 0, orient = UP) {
   cfg = struct_merge(ocslot_cfg(), slot_cfg);
   ocslot_total_height = struct_val(cfg, "total_height");
   ocslot_footprint = struct_val(cfg, "footprint");
@@ -456,7 +457,7 @@ module openconnect_slot_grid_limit_debug(slot_cfg = [], horizontal_grids = 1, ve
   }
 }
 
-module openconnect_slot_grid(slot_cfg = [], slot_type = "slot", horizontal_grids = 1, vertical_grids = 1, slot_slide_direction = "Up", slot_position = "All", slot_lock_distribution = "None", slot_lock_side = "Left", slot_entryramp_flip = false, excess_thickness = EPS, except_slot_pos = [], chamfer = 0, rounding = 0, limit_region = [], anchor = BOTTOM, spin = 0, orient = UP) {
+module openconnect_slot_grid(slot_cfg = [], slot_type = "slot", horizontal_grids = 1, vertical_grids = 1, slot_slide_direction = "Up", slot_position = "All", slot_lock_distribution = "None", slot_lock_side = "Left", slot_entryramp_flip = false, excess_thickness = EPS, excess_length = 0, except_slot_pos = [], chamfer = 0, rounding = 0, limit_region = [], anchor = BOTTOM, spin = 0, orient = UP) {
   cfg = struct_merge(ocslot_cfg(), slot_cfg);
   // Slot dimensions needed for grid sizing/placement
   ocslot_total_height = struct_val(cfg, "total_height");
@@ -466,8 +467,12 @@ module openconnect_slot_grid(slot_cfg = [], slot_type = "slot", horizontal_grids
     grid_slot_spin = slot_slide_direction == "Left" ? -90 : slot_slide_direction == "Right" ? 90 : slot_slide_direction == "Down" ? 180 : 0;
     grid_slot_flip = slot_slide_direction == "Right" || slot_slide_direction == "Down" ? !slot_entryramp_flip : slot_entryramp_flip;
     footprint_rotate = _openconnect_slot_footprint_rotate(slot_slide_direction);
-    tag_scope() down(ocslot_total_height / 2) intersect() {
+    down(ocslot_total_height / 2) tag_scope()
+        intersect() {
           cuboid([horizontal_grids * OG_TILE_SIZE, vertical_grids * OG_TILE_SIZE, ocslot_total_height + excess_thickness], edges="Z", chamfer=chamfer, rounding=rounding, anchor=BOTTOM) {
+            if (excess_length > 0)
+              attach(FRONT, BACK)
+                cuboid([horizontal_grids * OG_TILE_SIZE, excess_length, ocslot_total_height + excess_thickness], anchor=BOTTOM);
             for (i = [0:horizontal_grids - 1])
               for (j = [0:vertical_grids - 1]) {
                 x_offset = -(horizontal_grids - i * 2 - 1) * OG_TILE_SIZE / 2;
@@ -477,7 +482,7 @@ module openconnect_slot_grid(slot_cfg = [], slot_type = "slot", horizontal_grids
                   if (is_grid_pos_described(i, j, horizontal_grids, vertical_grids, slot_position, except_slot_pos))
                     right(x_offset) back(y_offset)
                         attach(BOTTOM, BOTTOM, inside=true, spin=grid_slot_spin)
-                          tag("intersect") openconnect_slot(slot_type=slot_type, slot_cfg=slot_cfg, add_nubs=is_grid_pos_described(i, j, horizontal_grids, vertical_grids, slot_lock_distribution) ? slot_lock_side : "", slot_entryramp_flip=grid_slot_flip, excess_thickness=excess_thickness);
+                          tag("intersect") openconnect_slot(slot_type=slot_type, slot_cfg=slot_cfg, add_nubs=is_grid_pos_described(i, j, horizontal_grids, vertical_grids, slot_lock_distribution) ? slot_lock_side : "", slot_entryramp_flip=grid_slot_flip, excess_thickness=excess_thickness, excess_length=excess_length);
               }
           }
         }
