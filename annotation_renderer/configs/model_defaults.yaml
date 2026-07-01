@@ -4,6 +4,7 @@ job_name: opengrid_annotation_models
 variant_configs:
 - openconnect_sturdy_hook_default.yaml
 - openconnect_sturdy_shelf_default.yaml
+- openconnect_gridfinity_shelf_default.yaml
 - openconnect_general_holder_default.yaml
 - openconnect_vasemode_container_default.yaml
 - openconnect_clamshell_holder_default.yaml

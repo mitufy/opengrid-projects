@@ -369,6 +369,7 @@ class AnimationConfigTests(unittest.TestCase):
             [
                 "openconnect_sturdy_hook_default",
                 "openconnect_sturdy_shelf_default",
+                "openconnect_gridfinity_shelf_default",
                 "openconnect_general_holder_default",
                 "openconnect_vasemode_container_default",
                 "openconnect_clamshell_holder_default",
@@ -376,6 +377,10 @@ class AnimationConfigTests(unittest.TestCase):
                 "openconnect_drawer_shell_container_default",
                 "openconnect_standard_snap_grid_copies",
                 "opengrid_expanding_standard_snap_grid_copies",
+                "opengrid_framefit_hook_default",
+                "opengrid_snap_gadget_hook_default",
+                "opengrid_snap_gadget_clip_default",
+                "opengrid_snap_gadget_plier_holder_default",
             ],
         )
 
@@ -418,6 +423,15 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(shelf_config["annotations"]["chains"][0]["ids"], ["depth_grids"])
         self.assertEqual(shelf_config["annotations"]["chains"][1]["ids"], ["horizontal_grids"])
         self.assertEqual(shelf_config["annotations"]["aliases"]["horizontal_grids"], "horizontal_grids x 28mm")
+
+        gridfinity_shelf_variant = selected_variants(config, "openconnect_gridfinity_shelf_default")[0]
+        gridfinity_shelf_config = variant_config(config, gridfinity_shelf_variant)
+        self.assertEqual(self.first_model_config(gridfinity_shelf_config)["scad_file"], "openconnect_gridfinity_shelf.scad")
+        self.assertEqual(gridfinity_shelf_config["annotations"]["chains"][0]["ids"], ["gridfinity_width_grids"])
+        self.assertEqual(
+            gridfinity_shelf_config["annotations"]["aliases"]["gridfinity_width_grids"],
+            "gridfinity_width_grids x 42mm",
+        )
 
         clamshell_holder_variant = selected_variants(config, "openconnect_clamshell_holder_default")[0]
         clamshell_holder_config = variant_config(config, clamshell_holder_variant)
@@ -932,6 +946,29 @@ class AnimationConfigTests(unittest.TestCase):
             if annotation["id"] == "horizontal_grids" and annotation["kind"] == "dimension"
         )
         self.assertEqual(horizontal_grids["basis"], "left_to_right_width_from_horizontal_grids")
+
+    def test_gridfinity_shelf_discovery_uses_customizer_parameter_ids(self) -> None:
+        output = self.run_cli("--discover-annotations", "openconnect_gridfinity_shelf.scad")
+
+        self.assertIn("    - gridfinity_width_grids (axis=x", output)
+        self.assertIn("    - gridfinity_depth_grids (axis=y", output)
+        self.assertIn("    - shelf_side_rim (axis=x", output)
+        self.assertIn("    - shelf_front_rim (axis=y", output)
+        self.assertIn("    - shelf_rim_lip_height (axis=z", output)
+        self.assertIn("    - magnet_position", output)
+        self.assertIn("    - gridfinity_socket_clearance", output)
+        self.assertNotIn("    - shelf_width (axis=", output)
+        self.assertNotIn("    - final_shelf_bottom_tilt_height", output)
+
+        annotations = discover_scad_source_annotations(Path("openconnect_gridfinity_shelf.scad"), defines={})
+        width_grids = next(
+            annotation
+            for annotation in annotations
+            if annotation["id"] == "gridfinity_width_grids" and annotation["kind"] == "dimension"
+        )
+        self.assertEqual(width_grids["basis"], "gridfinity_cell_width_span_from_grid_count")
+        bottom_tilt = next(annotation for annotation in annotations if annotation["id"] == "final_shelf_bottom_tilt_height")
+        self.assertTrue(bottom_tilt["internal"])
 
     def test_discovery_summary_json_is_compact_parameter_data(self) -> None:
         annotation = parse_scad_annotation_line(
