@@ -123,25 +123,26 @@ print_bottom_angle = final_shelf_bottom_tilt_height <= 0 ? 0 : atan(final_shelf_
 //END shelf parameters
 
 //BEGIN generation
-difference() {
-  xrot(-print_bottom_angle) up(final_shelf_bottom_tilt_height)
-      tag_diff(tag="", remove="rm1")
-        cuboid([shelf_width, shelf_depth, shelf_deck_height], rounding=GF_TOP_CORNER_RADIUS, edges=[BACK + LEFT, BACK + RIGHT], anchor=FRONT + LEFT + BOTTOM) {
-          fwd(final_shelf_front_rim / 2) down(shelf_deck_height / 2 - final_shelf_base_extra_thickness)
-              force_tag("rm1") gridfinity_baseplate_cutouts();
-          if (has_side_lips || has_front_lip)
-            tag_diff(tag="", remove="rm0") {
-              attach(TOP, BOTTOM)
-                cuboid([shelf_width, shelf_depth, final_shelf_rim_lip_height], rounding=GF_TOP_CORNER_RADIUS, edges=[BACK + LEFT, BACK + RIGHT])
-                  fwd(final_shelf_front_rim / 2) attach(TOP, TOP, inside=true)
-                      tag("rm0") cuboid([inner_width, inner_depth, final_shelf_rim_lip_height + EPS], rounding=GF_TOP_CORNER_RADIUS, edges=has_side_lips && has_front_lip ? "Z" : has_front_lip ? [BACK + LEFT, BACK + RIGHT] : []);
+right(shelf_width) zrot(180)
+    difference() {
+      xrot(-print_bottom_angle) up(final_shelf_bottom_tilt_height)
+          tag_diff(tag="", remove="rm1")
+            cuboid([shelf_width, shelf_depth, shelf_deck_height], rounding=GF_TOP_CORNER_RADIUS, edges=[BACK + LEFT, BACK + RIGHT], anchor=FRONT + LEFT + BOTTOM) {
+              fwd(final_shelf_front_rim / 2) down(shelf_deck_height / 2 - final_shelf_base_extra_thickness)
+                  force_tag("rm1") gridfinity_baseplate_cutouts();
+              if (has_side_lips || has_front_lip)
+                tag_diff(tag="", remove="rm0") {
+                  attach(TOP, BOTTOM)
+                    cuboid([shelf_width, shelf_depth, final_shelf_rim_lip_height], rounding=GF_TOP_CORNER_RADIUS, edges=[BACK + LEFT, BACK + RIGHT])
+                      fwd(final_shelf_front_rim / 2) attach(TOP, TOP, inside=true)
+                          tag("rm0") cuboid([inner_width, inner_depth, final_shelf_rim_lip_height + EPS], rounding=GF_TOP_CORNER_RADIUS, edges=has_side_lips && has_front_lip ? "Z" : has_front_lip ? [BACK + LEFT, BACK + RIGHT] : []);
+                }
+              if (final_shelf_bottom_tilt_height > 0)
+                shelf_tilted_bottom();
             }
-          if (final_shelf_bottom_tilt_height > 0)
-            shelf_tilted_bottom();
-        }
-  xrot(90 - print_bottom_angle)
-    openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=slot_h_grids, vertical_grids=1, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, excess_length=4, anchor=TOP + FRONT + LEFT);
-}
+      xrot(90 - print_bottom_angle)
+        openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=slot_h_grids, vertical_grids=1, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, excess_length=4, anchor=TOP + FRONT + LEFT);
+    }
 
 //END generation
 module shelf_tilted_bottom() {
