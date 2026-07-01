@@ -17,6 +17,8 @@ magnet_diameter = 6.4; //0.1
 magnet_thickness = 2.4; //0.1
 
 /* [Shelf Rim] */
+// Adds space between the back wall and the Gridfinity bin area.
+shelf_back_offset = 0; //0.1
 // Adds extra material to the left and right edges. The shelf width will no longer be an exact 42mm multiple.
 shelf_side_rim = 0; //0.1
 // Adds extra material to the front edge.
@@ -101,11 +103,13 @@ final_magnet_thickness = max(0, magnet_thickness);
 magnet_holes_enabled = final_magnet_position != "None" && final_magnet_diameter > 0 && final_magnet_thickness > 0;
 final_shelf_base_extra_thickness = magnet_holes_enabled && final_magnet_thickness > 2.4 ? final_magnet_thickness : 2.4;
 final_socket_clearance = max(0, gridfinity_socket_clearance);
+//clamp to 0.2 so the back to the slot wall is at least 0.85 thick.
+final_shelf_back_offset = max(0.2, shelf_back_offset);
 final_shelf_side_rim = max(0, shelf_side_rim);
 final_shelf_front_rim = max(0, shelf_front_rim);
 
 shelf_width = final_gridfinity_width_grids * GF_PITCH + final_shelf_side_rim * 2;
-shelf_depth = final_gridfinity_depth_grids * GF_PITCH + final_shelf_front_rim;
+shelf_depth = final_shelf_back_offset + final_gridfinity_depth_grids * GF_PITCH + final_shelf_front_rim;
 shelf_deck_height = final_shelf_base_extra_thickness + GF_BASEPLATE_PROFILE_HEIGHT;
 final_shelf_bottom_tilt_height = max(0, OG_TILE_SIZE - shelf_deck_height);
 
@@ -128,7 +132,7 @@ right(shelf_width) zrot(180)
       xrot(-print_bottom_angle) up(final_shelf_bottom_tilt_height)
           tag_diff(tag="", remove="rm1")
             cuboid([shelf_width, shelf_depth, shelf_deck_height], rounding=GF_TOP_CORNER_RADIUS, edges=[BACK + LEFT, BACK + RIGHT], anchor=FRONT + LEFT + BOTTOM) {
-              fwd(final_shelf_front_rim / 2) down(shelf_deck_height / 2 - final_shelf_base_extra_thickness)
+              back((final_shelf_back_offset - final_shelf_front_rim) / 2) down(shelf_deck_height / 2 - final_shelf_base_extra_thickness)
                   force_tag("rm1") gridfinity_baseplate_cutouts();
               if (has_side_lips || has_front_lip)
                 tag_diff(tag="", remove="rm0") {
