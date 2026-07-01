@@ -32,6 +32,10 @@ Customizable: style (Emboss/Flush/Deboss), text, and fonts (including emojis).
 A wall-mounted shelf generator. It is "sturdy" because it is designed to be printed on its side, which eliminates the most common failure point in 3D prints: layer line separation.
 Customizable: type (standard/slim), size, thickness, truss length, edge styles, surface textures.
 
+#### openconnect_gridfinity_shelf
+A wall-mounted openConnect shelf with an integrated lightweight Gridfinity-compatible baseplate.
+Customizable: Gridfinity unit count, baseplate style, side/front rim and lip, magnet layout.
+
 #### openconnect_sturdy_hook [(online)](https://makerworld.com/en/models/2257476-openconnect-sturdy-hook-generator)
 A hook generator for openGrid. Like the sturdy shelf, it is printed on its side for maximum strength. Note its minimum width is 20mm. For thinner hooks, see `opengrid_framefit_hook` below.
 Customizable: shape, size, radius, thickness, truss, thickness scaling.
