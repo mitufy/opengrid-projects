@@ -46,7 +46,7 @@ compartment_bottom_depth = 10;
 front_opening_width = 12;
 //Set this value equal to compartment_height to cut the front opening down to the bottom.
 front_opening_height = 20;
-front_opening_rounding = 3;
+front_opening_rounding = 3; //0.1
 
 /* [openConnect Settings] */
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
@@ -57,13 +57,19 @@ slot_entryramp_flip = false;
 slot_horizontal_alignment = "Center"; //["Left", "Center", "Right"]
 //Determine the vertical position of the slot, when holder height is not a multiple of 28mm.
 slot_vertical_alignment = "Top"; //["Top", "Center", "Bottom"]
+//Wall-mounted holders use direction "Up", while underdesk holders usually use "Left" or "Right".
+slot_slide_direction = "Up"; //[Left,Right,Up,Down]
+//Manually offset the horizontal position of the slots. Use this if you want more precise control than offered by slot_horizontal_alignment.
+slot_horizontal_offset = 0; //0.1
+//Manually offset the vertical position of the slots. Use this if you want more precise control than offered by slot_vertical_alignment.
+slot_vertical_offset = 0; //0.1
 
 /* [Advanced Settings] */
 //Affects the thickness of the divider walls between columns.
 holder_vertical_divider_thickness = 2; //0.1
 //Affects the thickness of the divider walls between rows.
 holder_horizontal_divider_thickness = 2; //0.1
-//Increase clearances if the slots feel too tight. Reduce it if they are too loose.
+//Increase clearances if the slots feel too tight.
 slot_side_clearance = 0.1;
 slot_depth_clearance = 0.1;
 //Minimum width for bridges. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
@@ -80,9 +86,7 @@ use <lib/openconnect_lib.scad>
 
 //A larger value makes a circular compartment smoother, but also takes longer to generate. $fn in openscad.
 compartment_max_facets = 128;
-slot_edge_feature_widen = "Top";
-//Slide and entry ramp direction can matter in tight spaces.
-slot_slide_direction = "Up";
+slot_edge_feature_widen = "Both";
 //A slot is generated for every tile by default.
 slot_position = "All"; //["All", "Staggered", "Edge Rows", "Edge Columns", "Corners"]
 //Double Lock can be very difficult to install. They are intended for small models that only use one or two slots.
@@ -147,8 +151,10 @@ right(holder_width / 2) zrot(180)
       prismoid(size1=[holder_width, final_holder_depth], h=final_holder_height, xang=[90, 90], yang=[90 + final_holder_tilt_angle, 90], rounding=[final_holder_rounding, final_holder_rounding, 0, 0], anchor=FRONT + BOTTOM) {
         h_offset = slot_horizontal_alignment == "Left" ? -(final_slot_h_grids * OG_TILE_SIZE - holder_width) / 2 : slot_horizontal_alignment == "Right" ? (final_slot_h_grids * OG_TILE_SIZE - holder_width) / 2 : 0;
         valign = slot_vertical_alignment == "Top" ? TOP : slot_vertical_alignment == "Bottom" ? BOTTOM : CENTER;
-        right(h_offset) attach(FRONT, TOP, align=valign, inside=true)
-            tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[slot_flat_region]);
+
+        right(slot_horizontal_offset) up(slot_vertical_offset)
+            right(h_offset) attach(FRONT, TOP, align=valign, inside=true)
+                tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[slot_flat_region]);
         front_opening_depth = holder_outer_wall_thickness + final_compartment_depth / 2 - ang_adj_to_opp(final_depth_taper, final_compartment_height);
         if (front_opening_width > 0 && front_opening_height > 0)
           tag_diff(tag="remove", remove="rm1")

@@ -14,30 +14,31 @@ item_width = 170;
 item_height = 60;
 item_depth = 30;
 //By increasing corner_rounding, it's possible to generate holders that are nearly circular.
-item_corner_rounding = 5;
+item_corner_rounding = 5; //0.1
 
 /* [Holder Settings] */
 //Generate one part at a time makes it possible to customize each side differently. "Both" requires splitting and orientation adjustment in the slicer.
 generate_holder_part = "Both"; //[Both, Left, Right]
 //Maximum number of slot columns on each holder half. Set to 1 for a minimal length holder.
 holder_slot_column_limit = 1;
-//"Top" for item facing down, "Front" for item facing its side. When using a large corner_rounding, "Front" may leave too little space for slots.
+//"Top" for item facing down, "Front" for item facing its side. If item_depth is too small or corner_rounding is too large, "Front" may leave too little space for slots.
 holder_slot_position = "Top"; //[Top, Front]
 holder_thickness = 2.4;
 //Margins around the front opening. At least one margin should be greater than 0 to prevent the item from falling out.
-front_opening_side_margin = 8;
+front_opening_side_margin = 8; //0.1
 //Alternatively, you can set margins to very large values, thus disable the front opening completely.
-front_opening_end_margin = 6;
+front_opening_end_margin = 6; //0.1
 
 /* [Side Opening] */
 //Cutting a hole in the side, useful for items such as power strips.
 holder_side_opening = "Right"; //[None, Left, Right, Both]
 //Using the four margin values below, the size and the position of the side opening can be freely adjusted.
-side_opening_front_margin = 15;
+side_opening_front_margin = 15; //0.1
 //Margins are from the edge of the opening to the wall. All 0 means the wall would be completely removed.
-side_opening_back_margin = 15;
-side_opening_top_margin = 0;
-side_opening_bottom_margin = 0;
+side_opening_back_margin = 15; //0.1
+side_opening_top_margin = 0; //0.1
+side_opening_bottom_margin = 0; //0.1
+side_opening_rounding = 2; //0.1
 
 /* [openConnect Settings] */
 //Usually, "Left" and "Right" are used when mounting underdesk, "Up" and "Down" are used when mounting on a wall.
@@ -46,11 +47,13 @@ slot_slide_direction = "Left"; //[Left,Right,Up,Down]
 slot_lock_distribution = "Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
 //Entry ramp direction can matter when installing in tight spaces.
 slot_entryramp_flip = false;
-//Only applies when holder_slot_position is "Front". Adjusting the offset may help if a large corner_rounding is cutting into the slot area.
-front_slot_position_offset = 0;
+//Manually offset the horizontal position of the slots.
+slot_horizontal_offset = 0; //0.1
+//Manually offset the vertical position of the slots.
+slot_vertical_offset = 0; //0.1
 
 /* [Advanced Settings] */
-//Increase clearances if the slots feel too tight. Reduce it if they are too loose.
+//Increase clearances if the slots feel too tight.
 slot_side_clearance = 0.1; //0.01
 slot_depth_clearance = 0.1; //0.01
 //Minimum width for bridges. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
@@ -96,9 +99,6 @@ final_slot_h_grids =
 final_slot_v_grids =
   holder_slot_position == "Top" ? max(1, floor(holder_height / OG_TILE_SIZE))
   : max(1, floor(holder_depth / OG_TILE_SIZE));
-final_front_slot_position_offset =
-  holder_slot_position == "Front" && slot_slide_direction == "Right" ? -front_slot_position_offset
-  : holder_slot_position == "Front" && slot_slide_direction == "Left" ? front_slot_position_offset : 0;
 //cut off the bridge part of the upper most slot
 middle_cutoff_size_base = max(0.8, slot_edge_wall_min_width) * 2 + EPS;
 holder_middle_cutoff_tiles = max(0, final_slot_h_grids - max(1, holder_slot_column_limit) * 2);
@@ -108,7 +108,7 @@ middle_cutoff_offset = final_slot_h_grids % 2 != holder_middle_cutoff_tiles % 2 
 
 //BEGIN holder generation
 up(generate_holder_part == "Both" ? holder_depth / 2 : holder_width / 2) yrot(generate_holder_part == "Left" ? -90 : generate_holder_part == "Right" ? 90 : 0)
-    conditional_half(v=generate_holder_part == "Left" ? LEFT : RIGHT, pos_offset=middle_cutoff_offset + final_front_slot_position_offset, condition=generate_holder_part != "Both", mask_size=max(holder_width, holder_height) + 10)
+    conditional_half(v=generate_holder_part == "Left" ? LEFT : RIGHT, pos_offset=middle_cutoff_offset, condition=generate_holder_part != "Both", mask_size=max(holder_width, holder_height) + 10)
       diff() cuboid([holder_width, holder_height, holder_depth], edges=BOTTOM, rounding=0.8) {
           down(EPS) back((holder_front_thickness - holder_thickness) / 2) {
               down((holder_top_thickness - holder_thickness) / 2)
@@ -117,7 +117,7 @@ up(generate_holder_part == "Both" ? holder_depth / 2 : holder_width / 2) yrot(ge
               if (item_width - front_opening_side_margin * 2 > 0 && item_height - front_opening_end_margin * 2 > 0)
                 attach(BOTTOM, BOTTOM, inside=true)
                   cuboid([item_width - front_opening_side_margin * 2, item_height - front_opening_end_margin * 2, holder_thickness + EPS * 2], edges="Z", rounding=min((item_width - front_opening_side_margin * 2) / 2, (item_height - front_opening_end_margin * 2) / 2, final_corner_rounding));
-              right(middle_cutoff_offset + final_front_slot_position_offset) {
+              right(middle_cutoff_offset) {
                 attach(CENTER, CENTER, inside=true)
                   cuboid([middle_cutoff_size, holder_height + 10, holder_depth + 10]);
                 if (front_opening_end_margin > 0 && item_height - front_opening_end_margin * 2 > 0)
@@ -138,7 +138,7 @@ up(generate_holder_part == "Both" ? holder_depth / 2 : holder_width / 2) yrot(ge
               back(holder_front_thickness + side_opening_front_margin + front_opening_end_margin) down(holder_top_thickness + side_opening_top_margin) {
                   conditional_flip(axis="X", copy=holder_side_opening == "Both", condition=(holder_side_opening == "Both" || holder_side_opening == "Left"))
                     attach(FRONT + TOP, FRONT + TOP, align=RIGHT, inside=true)
-                      cuboid([side_opening_width + EPS, side_opening_height + EPS * 2, side_opening_depth + EPS * 2], edges=rounding_edges, rounding=min(side_opening_height / 2, side_opening_depth / 2, 2)) {
+                      cuboid([side_opening_width + EPS, side_opening_height + EPS * 2, side_opening_depth + EPS * 2], edges=rounding_edges, rounding=max(0, min(side_opening_height / 2, side_opening_depth / 2, side_opening_rounding))) {
                         if (side_opening_front_margin - final_corner_rounding > EPS && side_opening_back_margin - final_corner_rounding > EPS && front_opening_side_margin > EPS) {
                           if (side_opening_front_margin - final_corner_rounding > EPS)
                             edge_mask([LEFT + FRONT])
@@ -151,10 +151,10 @@ up(generate_holder_part == "Both" ? holder_depth / 2 : holder_width / 2) yrot(ge
                 }
           }
           attach_anchor = holder_slot_position == "Top" ? TOP : FRONT;
-          flat_region = holder_slot_position == "Top" ? left(final_front_slot_position_offset, rect([holder_width, holder_height], rounding=final_corner_rounding)) : left(final_front_slot_position_offset, rect([holder_width - final_corner_rounding * 2, holder_depth]));
-          right(final_front_slot_position_offset)
+          flat_region = holder_slot_position == "Top" ? left(slot_horizontal_offset, fwd(slot_vertical_offset, rect([holder_width, holder_height], rounding=final_corner_rounding))) : left(slot_horizontal_offset, fwd(slot_vertical_offset, rect([holder_width - final_corner_rounding * 2, holder_depth])));
             attach(attach_anchor, TOP, inside=true) {
-              openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[flat_region]);
+              right(slot_horizontal_offset) back(slot_vertical_offset)
+                  openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[flat_region]);
               // openconnect_slot_grid_limit_debug(slot_cfg=_slot_cfg, horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[flat_region]);
             }
           if (final_corner_rounding > 0)

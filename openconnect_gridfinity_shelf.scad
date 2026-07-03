@@ -37,7 +37,11 @@ slot_horizontal_alignment = "Center"; //["Center", "Left", "Right"]
 /* [Advanced Settings] */
 // Increase this if Gridfinity bins fit too tightly.
 gridfinity_socket_clearance = 0; //0.01
-//Increase clearances if the slots feel too tight. Reduce it if they are too loose.
+//Manually offset the horizontal position of the slots.
+slot_horizontal_offset = 0; //0.1
+//Manually offset the vertical position of the slots.
+slot_vertical_offset = 0; //0.1
+//Increase clearances if the slots feel too tight.
 slot_side_clearance = 0.1; //0.01
 slot_depth_clearance = 0.1; //0.01
 //Minimum width for bridges. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
@@ -114,6 +118,11 @@ shelf_deck_height = final_shelf_base_extra_thickness + GF_BASEPLATE_PROFILE_HEIG
 final_shelf_bottom_tilt_height = max(0, OG_TILE_SIZE - shelf_deck_height);
 
 slot_h_grids = max(1, floor(shelf_width / OG_TILE_SIZE));
+slot_grid_width = slot_h_grids * OG_TILE_SIZE;
+slot_horizontal_alignment_offset =
+  slot_horizontal_alignment == "Left" ? shelf_width - slot_grid_width
+  : slot_horizontal_alignment == "Right" ? 0
+  : (shelf_width - slot_grid_width) / 2;
 
 final_shelf_rim_lip_height = max(0, shelf_rim_lip_height);
 has_side_lips = final_shelf_rim_lip_height > 0 && final_shelf_side_rim > 0;
@@ -144,7 +153,7 @@ right(shelf_width) zrot(180)
               if (final_shelf_bottom_tilt_height > 0)
                 shelf_tilted_bottom();
             }
-      xrot(90 - print_bottom_angle)
+      xrot(90 - print_bottom_angle) right(slot_horizontal_alignment_offset + slot_horizontal_offset) back(slot_vertical_offset)
         openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=slot_h_grids, vertical_grids=1, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, excess_length=4, anchor=TOP + FRONT + LEFT);
     }
 

@@ -52,6 +52,10 @@ slot_position = "All"; //["All", "Staggered", "Edge Rows", "Edge Columns", "Corn
 slot_lock_distribution = "Top Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
 //Entry ramp direction can matter in tight spaces. When printing on the side, place the locking mechanism side closer to the print bed.
 slot_entryramp_flip = false;
+//Manually offset the horizontal position of the slots.
+slot_horizontal_offset = 0; //0.1
+//Manually offset the vertical position of the slots.
+slot_vertical_offset = 0; //0.1
 
 /* [Advanced Settings] */
 use_custom_depth = false;
@@ -59,7 +63,7 @@ custom_depth = 80;
 truss_rounding = 3; //0.2
 shelf_side_edge_thickness = 1;
 shelf_front_edge_thickness = 1;
-//Increase clearances if the slots feel too tight. Reduce it if they are too loose.
+//Increase clearances if the slots feel too tight.
 slot_side_clearance = 0.1; //0.01
 slot_depth_clearance = 0.1; //0.01
 //Minimum width for bridges. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
@@ -217,14 +221,16 @@ diff(remove="outer_rm")
                       tag("") path_sweep(top_sweep_profile, path=path_merge_collinear(turtle(top_sweep_path)), scale=[1, 1], $fn=128);
           if (shelf_type == "Slim")
             attach(LEFT, TOP, inside=true, spin=90)
-              tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=final_horizontal_grids, vertical_grids=top_vertical_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=EPS);
+              left(slot_horizontal_offset) back(slot_vertical_offset)
+                tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=final_horizontal_grids, vertical_grids=top_vertical_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=EPS);
         }
     //bottom back and slots
     fwd(shelf_type == "Slim" ? 0 : OG_TILE_SIZE)
       attach(FRONT + LEFT, FRONT + LEFT, inside=true)
         cuboid([shelf_back_thickness, shelf_type == "Slim" ? OG_TILE_SIZE : OG_TILE_SIZE * 2, shelf_width])
           attach(LEFT, TOP, align=BACK, inside=true, spin=90)
-            tag("outer_rm") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=final_horizontal_grids, vertical_grids=shelf_type == "Standard" ? top_vertical_grids + bottom_vertical_grids : top_vertical_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=EPS);
+            left(slot_horizontal_offset) back(slot_vertical_offset)
+              tag("outer_rm") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=final_horizontal_grids, vertical_grids=shelf_type == "Standard" ? top_vertical_grids + bottom_vertical_grids : top_vertical_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=EPS);
   }
 //END generation
 

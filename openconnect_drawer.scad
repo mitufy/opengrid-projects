@@ -114,7 +114,11 @@ shell_to_slot_wall_thickness = 0.9; //0.1
 honeycomb_strut_hyp = 5; //0.1
 
 /*[Advanced openConnect Settings]*/
-//Increase clearances if the slots feel too tight. Reduce it if they are too loose.
+//Manually offset the horizontal position of the slots.
+slot_horizontal_offset = 0; //0.1
+//Manually offset the vertical position of the slots.
+slot_vertical_offset = 0; //0.1
+//Increase clearances if the slots feel too tight.
 slot_side_clearance = 0.1; //0.01
 slot_depth_clearance = 0.1; //0.01
 //Minimum width for bridges. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
@@ -347,7 +351,8 @@ module drawer_shell() {
             slot_slide_direction = shell_slot_position == "Top" || shell_slot_position == "Bottom" ? "Left" : "Up";
             slot_chamfer = shell_slot_position == "Back" ? min(4, max(0.8, slot_edge_wall_min_width) + OCHEAD_MIDDLE_HEIGHT + 1) : 0;
             attach(slot_parent_anchor, TOP, inside=true)
-              tag("rm_outer") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=slot_hgrids, vertical_grids=slot_vgrids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, except_slot_pos=except_slot_pos, chamfer=slot_chamfer);
+              right(slot_horizontal_offset) back(slot_vertical_offset)
+                tag("rm_outer") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=slot_hgrids, vertical_grids=slot_vgrids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, except_slot_pos=except_slot_pos, chamfer=slot_chamfer);
             if (add_side_magnet_holes) {
               if (left_hc)
                 attach(LEFT + FRONT, LEFT + FRONT, align=TOP, inside=true)

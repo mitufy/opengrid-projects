@@ -34,7 +34,11 @@ label_depth = 1;
 slot_position = "All"; //["All", "Staggered", "Edge Rows", "Edge Columns", "Corners"]
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
 slot_lock_distribution = "Top Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
-//Increase clearances if the slots feel too tight. Reduce it if they are too loose.
+//Manually offset the horizontal position of the slots.
+slot_horizontal_offset = 0; //0.1
+//Manually offset the vertical position of the slots.
+slot_vertical_offset = 0; //0.1
+//Increase clearances if the slots feel too tight.
 slot_side_clearance = 0.1; //0.01
 slot_depth_clearance = 0.1; //0.01
 use_custom_depth = false;
@@ -96,7 +100,8 @@ right(vase_width/2)zrot(180)fwd(vase_bottom_edge_back_offset)
       diff(remove="root_rm") diff(remove="remove", keep="keep root_rm")
           prismoid(size1=[vase_width, vase_depth], h=vase_height, xang=[90, 90], yang=[90 - final_vase_front_inset_angle, 90 - final_vase_tilt_angle], chamfer=0, orient=FRONT, anchor=BACK) {
             attach(BACK, BOTTOM, spin=180)
-              openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="vase", horizontal_grids=final_horizontal_grids, vertical_grids=final_vertical_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution);
+              right(slot_horizontal_offset) back(slot_vertical_offset)
+                openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="vase", horizontal_grids=final_horizontal_grids, vertical_grids=final_vertical_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution);
             if (vase_surface_texture != "") {
               frontwall_height = ang_adj_to_hyp(final_vase_front_inset_angle, vase_height) + ang_adj_to_opp(final_vase_front_inset_angle, final_surface_texture_depth);
               quant_texture_size = vase_surface_texture == "cubes" ? sqrt(3) * final_surface_texture_size : final_surface_texture_size;

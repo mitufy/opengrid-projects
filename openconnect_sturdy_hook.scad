@@ -45,13 +45,17 @@ truss_max_angle = 60; //[30:5:90]
 slot_lock_distribution = "Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
 //Entry ramp direction can matter in tight spaces. When printing on the side, place the locking mechanism side closer to the print bed. This option is overwritten when "hook_tip_sliceoff_side" is enabled.
 slot_entryramp_flip = false;
+//Manually offset the horizontal position of the slots.
+slot_horizontal_offset = 0; //0.1
+//Manually offset the vertical position of the slots.
+slot_vertical_offset = 0; //0.1
 
 /* [Advanced Settings] */
 use_custom_height = false;
 custom_hook_height = 70;
 hook_side_rounding = 2.4; //0.2
 hook_tip_rounding = 5; //0.2
-//Increase clearances if the slots feel too tight. Reduce it if they are too loose.
+//Increase clearances if the slots feel too tight.
 slot_side_clearance = 0.1; //0.01
 slot_depth_clearance = 0.1; //0.01
 //Minimum width for bridges. Default is suitable for 0.4mm nozzles, consider increasing when using a larger nozzle.
@@ -136,7 +140,8 @@ up(hook_tip_sliceoff_side == "Right" ? hook_width : 0) yrot(hook_tip_sliceoff_si
             attach(RIGHT + (hook_tip_sliceoff_side == "Left" ? TOP : BOTTOM), LEFT + (hook_tip_sliceoff_side == "Left" ? BOTTOM : TOP), align=BACK) yrot(sliceoff_angle)
                 tag("rm0") cuboid([hook_length * 2, (hook_stem_height + truss_vertical_grids * OG_TILE_SIZE) * 2, hook_width * 2]);
           attach(LEFT, TOP, align=BACK, inside=true, spin=90)
-            tag("rm0") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=horizontal_grids, vertical_grids=vertical_grids, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=final_slot_entryramp_flip, excess_thickness=EPS);
+            left(slot_horizontal_offset) back(slot_vertical_offset)
+              tag("rm0") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=horizontal_grids, vertical_grids=vertical_grids, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=final_slot_entryramp_flip, excess_thickness=EPS);
           if (has_side_chamfer) {
             tag("rm1") edge_profile([TOP + RIGHT, BOTTOM + RIGHT, BACK + TOP, BACK + BOTTOM], excess=0)
                 mask2d_teardrop(r=final_side_chamfer, $fn=64);
