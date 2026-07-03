@@ -218,11 +218,11 @@ diff(remove="outer_rm")
           if (final_shelf_corner_fillet > EPS)
             right(max(0, shelf_back_thickness - final_shelf_bottom_thickness)) back(max(0, final_shelf_bottom_thickness - shelf_back_thickness)) fwd(final_shelf_bottom_thickness) fwd(top_shelf_back_height - final_shelf_corner_fillet - top_sweep_startend_offset)
                     attach(BACK + LEFT, BACK + LEFT, inside=true)
-                      tag("") path_sweep(top_sweep_profile, path=path_merge_collinear(turtle(top_sweep_path)), scale=[1, 1], $fn=128);
+                      tag("") path_sweep(top_sweep_profile, path=path_merge_collinear(turtle(top_sweep_path)), scale=[1, 1]);
           if (shelf_type == "Slim")
             attach(LEFT, TOP, inside=true, spin=90)
               left(slot_horizontal_offset) back(slot_vertical_offset)
-                tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=final_horizontal_grids, vertical_grids=top_vertical_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=EPS);
+                  tag("remove") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=final_horizontal_grids, vertical_grids=top_vertical_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=EPS);
         }
     //bottom back and slots
     fwd(shelf_type == "Slim" ? 0 : OG_TILE_SIZE)
@@ -230,7 +230,7 @@ diff(remove="outer_rm")
         cuboid([shelf_back_thickness, shelf_type == "Slim" ? OG_TILE_SIZE : OG_TILE_SIZE * 2, shelf_width])
           attach(LEFT, TOP, align=BACK, inside=true, spin=90)
             left(slot_horizontal_offset) back(slot_vertical_offset)
-              tag("outer_rm") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=final_horizontal_grids, vertical_grids=shelf_type == "Standard" ? top_vertical_grids + bottom_vertical_grids : top_vertical_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=EPS);
+                tag("outer_rm") openconnect_slot_grid(slot_cfg=_slot_cfg, horizontal_grids=final_horizontal_grids, vertical_grids=shelf_type == "Standard" ? top_vertical_grids + bottom_vertical_grids : top_vertical_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=EPS);
   }
 //END generation
 

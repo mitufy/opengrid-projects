@@ -23,7 +23,7 @@ compartment_corner_rounding = 3;
 
 /* [Holder Body] */
 //"Tile Multiple" makes the sides of the holder align with openGrid tiles, but uses more space.
-holder_width_mode = "Tile Multiple"; //["Minimum", "Tile Multiple"]
+holder_width_mode = "Minimum"; //["Minimum", "Tile Multiple"]
 //Setting this value to 0 generates a bottomless holder.
 holder_bottom_thickness = 2; //0.1
 //The thickness of the outer wall of the holder.
@@ -84,8 +84,6 @@ $fs = 0.4;
 include <lib/opengrid_base.scad>
 use <lib/openconnect_lib.scad>
 
-//A larger value makes a circular compartment smoother, but also takes longer to generate. $fn in openscad.
-compartment_max_facets = 128;
 slot_edge_feature_widen = "Both";
 //A slot is generated for every tile by default.
 slot_position = "All"; //["All", "Staggered", "Edge Rows", "Edge Columns", "Corners"]
@@ -132,8 +130,8 @@ final_compartment_taper_depth =
 final_depth_taper = adj_opp_to_ang(final_compartment_height, (final_compartment_depth - final_compartment_taper_depth) / 2);
 final_width_taper = adj_opp_to_ang(final_compartment_height, (compartment_width - final_compartment_taper_width) / 2);
 compartment_sweep_profile =
-  compartment_shape == "Rectangular" ? rect([compartment_width, final_compartment_depth], rounding=final_compartment_rounding, $fn=compartment_max_facets)
-  : compartment_shape == "Circular" ? circle(d=compartment_width, $fn=compartment_max_facets) : ellipse(d=[compartment_width, final_compartment_depth], $fn=compartment_max_facets);
+  compartment_shape == "Rectangular" ? rect([compartment_width, final_compartment_depth], rounding=final_compartment_rounding)
+  : compartment_shape == "Circular" ? circle(d=compartment_width) : ellipse(d=[compartment_width, final_compartment_depth]);
 compartment_width_scale = final_compartment_taper_width / compartment_width;
 compartment_depth_scale = final_compartment_taper_depth / final_compartment_depth;
 
