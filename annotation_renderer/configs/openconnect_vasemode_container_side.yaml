@@ -46,7 +46,8 @@ annotations:
     display_offset_mm: [0, 0, 0]
     line_offset_px: 70
     label_offset_px: 20
-    font_size_px: 28
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   # - $constant: small_dimension_chain
   #   ids: [ocvase_linewidth]
   #   label_offset_px: 34
@@ -67,13 +68,13 @@ annotations:
   # - $constant: bottom_image_label
   #   id: vase_surface_texture
   #   show_value: true
-  #   value_color: '#2563eb'
+  #   value_color: '#0000FF'
   #   font_size_px:
   #     $constant: annotation_title_font_size_px
   # - id: label_holder_type
   #   position: top
   #   offset_px: [0, 28]
   #   show_value: true
-  #   value_color: '#2563eb'
+  #   value_color: '#0000FF'
   #   font_size_px:
   #     $constant: annotation_aux_label_font_size_px

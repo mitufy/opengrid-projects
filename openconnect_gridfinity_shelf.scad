@@ -165,6 +165,8 @@ module emit_gridfinity_shelf_annotations() {
       "final_magnet_diameter",
       "magnet_thickness",
       "final_magnet_thickness",
+      "shelf_back_offset",
+      "final_shelf_back_offset",
       "shelf_side_rim",
       "final_shelf_side_rim",
       "shelf_front_rim",
@@ -194,6 +196,8 @@ module emit_gridfinity_shelf_annotations() {
       final_magnet_diameter,
       magnet_thickness,
       final_magnet_thickness,
+      shelf_back_offset,
+      final_shelf_back_offset,
       shelf_side_rim,
       final_shelf_side_rim,
       shelf_front_rim,
@@ -227,10 +231,21 @@ module emit_gridfinity_shelf_annotations() {
     label="gridfinity_depth_grids",
     axis="y",
     value=gridfinity_depth_span,
-    start=gridfinity_shelf_annot_point([0, final_shelf_front_rim, gridfinity_shelf_body_top_z]),
-    end=gridfinity_shelf_annot_point([0, final_shelf_front_rim + gridfinity_depth_span, gridfinity_shelf_body_top_z]),
+    start=gridfinity_shelf_annot_point([0, final_shelf_back_offset, gridfinity_shelf_body_top_z]),
+    end=gridfinity_shelf_annot_point([0, final_shelf_back_offset + gridfinity_depth_span, gridfinity_shelf_body_top_z]),
     basis="gridfinity_cell_depth_span_from_grid_count"
   );
+  if (shelf_back_offset > EPS) {
+    emit_dimension_annotation(
+      id="shelf_back_offset",
+      label="shelf_back_offset",
+      axis="y",
+      value=final_shelf_back_offset,
+      start=gridfinity_shelf_annot_point([0, 0, gridfinity_shelf_body_top_z]),
+      end=gridfinity_shelf_annot_point([0, final_shelf_back_offset, gridfinity_shelf_body_top_z]),
+      basis="back_space_between_gridfinity_cells_and_wall_from_shelf_back_offset"
+    );
+  }
   if (final_shelf_side_rim > EPS) {
     emit_dimension_annotation(
       id="shelf_side_rim",
@@ -248,8 +263,8 @@ module emit_gridfinity_shelf_annotations() {
       label="shelf_front_rim",
       axis="y",
       value=final_shelf_front_rim,
-      start=gridfinity_shelf_annot_point([0, 0, gridfinity_shelf_body_top_z]),
-      end=gridfinity_shelf_annot_point([0, final_shelf_front_rim, gridfinity_shelf_body_top_z]),
+      start=gridfinity_shelf_annot_point([0, final_shelf_back_offset + gridfinity_depth_span, gridfinity_shelf_body_top_z]),
+      end=gridfinity_shelf_annot_point([0, shelf_depth, gridfinity_shelf_body_top_z]),
       basis="front_extra_rim_depth_on_right_edge"
     );
   }

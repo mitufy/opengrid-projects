@@ -31,6 +31,7 @@ annotations:
     id: shell_slot_position
     offset_px: [0, -6]
     show_value: true
-    value_color: '#2563eb'
+    value_color:
+      $constant: annotation_color_blue
     font_size_px:
       $constant: annotation_aux_label_font_size_px

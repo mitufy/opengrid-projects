@@ -46,7 +46,8 @@ annotations:
     tick_length_px: 12
     type_styles:
       mm:
-        line_colors: ['#000000']
+        line_colors:
+        - $constant: annotation_color_black
   angle_radius_callouts:
   - id: hook_tip_angle_detail
     arc_id: hook_tip_angle_extent
@@ -62,19 +63,23 @@ annotations:
     display_offset_mm: [0, 0, 0]
     line_offset_px: 28
     label_offset_px: 28
-    label_font_size_px: 24
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   - ids: [body_thickness]
     display_offset_mm: [0, 0, 0]
     line_offset_px: -76
     label_offset_px: -76
-    label_font_size_px: 24
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   - ids: [hook_main_size]
     display_offset_mm: [0, 0, 0]
     line_offset_px: -34
     label_offset_px: -42
-    label_font_size_px: 24
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   - ids: [hook_stem_length]
     display_offset_mm: [0, 0, 0]
     line_offset_px: 28
     label_offset_px: 28
-    label_font_size_px: 24
+    label_font_size_px:
+      $constant: annotation_label_font_size_px

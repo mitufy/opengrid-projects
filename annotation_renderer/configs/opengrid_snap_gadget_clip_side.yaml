@@ -51,30 +51,35 @@ annotations:
     tick_length_px: 12
     type_styles:
       mm:
-        line_colors: ['#000000']
+        line_colors:
+        - $constant: annotation_color_black
   chains:
   - ids: [clip_main_width]
     display_offset_mm: [0, 0, 0]
     line_offset_px: -300
     label_offset_px: -28
-    label_font_size_px: 24
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   - ids: [clip_thickness]
     display_offset_mm: [0, 0, 0]
     line_offset_px: 300
     label_offset_px: 28
-    label_font_size_px: 24
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   - ids: [clip_main_depth]
     optional: true
     display_offset_mm: [0, 0, 0]
     line_offset_px: 300
     label_offset_px: 28
-    label_font_size_px: 24
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   - ids: [clip_stem_length]
     optional: true
     display_offset_mm: ["-(clip_main_width / 2 + clip_thickness)", 0, 0]
     line_offset_px: 300
     label_offset_px: 28
-    label_font_size_px: 24
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   # - ids: [clip_height]
   #   display_offset_mm: [0, 0, 0]
   #   line_offset_px: 28
@@ -89,6 +94,7 @@ annotations:
     show_radius_label: false
     angle_label_offset_px: 30
     angle_label_tangent_offset_px: -10
-    label_font_size_px: 24
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
     auto_adjust_labels: false
     angle_fill_alpha: 28

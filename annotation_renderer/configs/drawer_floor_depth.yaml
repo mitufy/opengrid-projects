@@ -47,17 +47,23 @@ annotations:
     id: container_depth_grid_count
     offset_px: [0, 0]
     show_value: true
-    value_color: '#ff0000'
-    font_size_px: 30
+    value_color:
+      $constant: annotation_color_red
+    font_size_px:
+      $constant: annotation_title_font_size_px
   - $constant: bottom_image_label
     id: container_depth_compartment_list
     offset_px: [0, 30]
     show_value: true
-    value_color: '#ff0000'
-    font_size_px: 30
+    value_color:
+      $constant: annotation_color_red
+    font_size_px:
+      $constant: annotation_title_font_size_px
   - id: add_container_divider
     position: top
     offset_px: [0, 0]
     show_value: true
-    value_color: '#2563eb'
-    font_size_px: 36
+    value_color:
+      $constant: annotation_color_blue
+    font_size_px:
+      $constant: annotation_title_font_size_px

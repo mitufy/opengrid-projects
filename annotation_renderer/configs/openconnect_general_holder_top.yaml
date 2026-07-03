@@ -42,32 +42,39 @@ annotations:
     auto_adjust_labels: true
     $constant: default_annotation_style
     colors:
-      compartment_width: '#000000'
-      compartment_depth: '#000000'
-      compartment_height: '#000000'
+      compartment_width:
+        $constant: annotation_color_black
+      compartment_depth:
+        $constant: annotation_color_black
+      compartment_height:
+        $constant: annotation_color_black
   aliases:
     holder_outer_wall_thickness: outer_wall_thickness
   chains:
   - ids: [compartment_width]
     line_offset_px: 50
     label_offset_px: 28
-    font_size_px: 26
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   - ids: [compartment_depth]
     optional: true
     line_offset_px: -50
     label_offset_px: -28
-    font_size_px: 26
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   - ids: [holder_back_offset]
     optional: true
     line_offset_px: -40
     label_offset_px: -28
-    font_size_px: 26
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   - ids: [holder_outer_wall_thickness]
     optional: true
     display_offset_mm: [0, 0, 0]
     line_offset_px: -50
     label_offset_px: -28
-    font_size_px: 26
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   # - ids: [front_opening_width]
   #   optional: true
   #   display_offset_mm: [0, 0, 0]
@@ -78,7 +85,8 @@ annotations:
   - ids: [compartment_corner_rounding]
     optional: true
     label_offset_px: -120
-    font_size_px: 26
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   arc_callouts:
   - ids: [compartment_corner_rounding_extent]
     optional: true
@@ -102,6 +110,6 @@ annotations:
   #   id: compartment_shape
   #   offset_px: [0, 0]
   #   show_value: true
-  #   value_color: '#2563eb'
+  #   value_color: '#0000FF'
   #   font_size_px:
   #     $constant: annotation_title_font_size_px

@@ -35,12 +35,14 @@ annotations:
     display_offset_mm: [0, 0, 0]
     line_offset_px: 0
     label_offset_px: -28
-    font_size_px: 28
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   - ids: [vertical_grids]
     display_offset_mm: [0, 0, 0]
     line_offset_px: 40
     label_offset_px: 28
-    font_size_px: 28
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   # - ids: [depth_grids]
   #   display_offset_mm: [0, 0, 0]
   #   line_offset_px: -50
@@ -71,13 +73,14 @@ annotations:
   - $constant: bottom_image_label
     id: vase_surface_texture
     show_value: true
-    value_color: '#2563eb'
+    value_color:
+      $constant: annotation_color_blue
     font_size_px:
       $constant: annotation_title_font_size_px
   # - id: label_holder_type
   #   position: top
   #   offset_px: [0, 28]
   #   show_value: true
-  #   value_color: '#2563eb'
+  #   value_color: '#0000FF'
   #   font_size_px:
   #     $constant: annotation_aux_label_font_size_px

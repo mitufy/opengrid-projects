@@ -41,7 +41,7 @@ DEFAULT_LINE_COLORS = {
 }
 DEFAULT_TYPE_STYLES: dict[str, dict[str, object]] = {
     "grids": {
-        "line_colors": ["#2563eb"],
+        "line_colors": ["#0000FF"],
         "font": "sans",
     },
     "mm": {
@@ -49,11 +49,11 @@ DEFAULT_TYPE_STYLES: dict[str, dict[str, object]] = {
         "font": "sans",
     },
     "radius": {
-        "line_colors": ["#dc2626"],
+        "line_colors": ["#FF0000"],
         "font": "sans",
     },
     "angle": {
-        "line_colors": ["#dc2626"],
+        "line_colors": ["#FF0000"],
         "font": "sans",
     },
 }

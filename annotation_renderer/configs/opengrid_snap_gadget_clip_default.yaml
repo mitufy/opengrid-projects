@@ -65,13 +65,15 @@ annotations:
     tick_length_px: 12
     type_styles:
       mm:
-        line_colors: ['#000000']
+        line_colors:
+        - $constant: annotation_color_black
   chains:
   - ids: [clip_main_width]
     display_offset_mm: [0, 0, 0]
     line_offset_px: 0
     label_offset_px: 28
-    label_font_size_px: 24
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   # - ids: [clip_main_depth]
   #   display_offset_mm: [0, 0, 0]
   #   line_offset_px: -0
@@ -86,7 +88,8 @@ annotations:
     display_offset_mm: [0, 0, 0]
     line_offset_px: 28
     label_offset_px: 28
-    label_font_size_px: 24
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   # angle_radius_callouts:
   # - id: clip_surround_angle_detail
   #   arc_id: clip_surround_angle

@@ -214,10 +214,7 @@ rectangular_tip_start_anchor = _hook_path_point_to_model_annotation_side(_path_l
   "arcleft", final_tip_radius, 90
 ])));
 rectangular_tip_end_anchor = _hook_path_point_to_model_annotation_side(_path_last(turtle(hook_path_rect)));
-hook_length_end_anchor =
-  hook_shape_type == "Circular"
-  ? hook_tip_radius_end_anchor
-  : [hook_thickness + hook_length, hook_length_annotation_y, hook_side_annotation_z];
+hook_length_end_anchor = [hook_thickness + hook_length, hook_length_annotation_y, hook_side_annotation_z];
 
 module emit_sturdy_hook_annotations() {
   emit_context_values(

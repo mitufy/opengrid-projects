@@ -24,9 +24,11 @@ annotations:
     tick_length_px: 12
     type_styles:
       mm:
-        line_colors: ['#000000']
+        line_colors:
+        - $constant: annotation_color_black
     colors:
-      transition_depth_ratio: '#FF0000'
+      transition_depth_ratio:
+        $constant: annotation_color_red
   chains:
   # - ids: [stem_bottom_width]
   #   display_offset_mm: [0, 0, 0]
@@ -42,12 +44,14 @@ annotations:
     display_offset_mm: [0, 0, 0]
     line_offset_px: 0
     label_offset_px: -28
-    label_font_size_px: 24
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   - ids: [stem_depth]
     display_offset_mm: [0, 0, 0]
     line_offset_px: -28
     label_offset_px: -28
-    label_font_size_px: 24
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   # - ids: [transition_depth_ratio]
   #   optional: true
   #   display_offset_mm: [0, 0, 0]
@@ -60,11 +64,14 @@ annotations:
     display_offset_mm: [0, 0, 0]
     line_offset_px: -28
     label_offset_px: -28
-    label_font_size_px: 24
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   image_labels:
   - $constant: bottom_image_label
     id: transition_depth_ratio
     label: transition_depth_ratio
     show_value: true
-    value_color: '#FF0000'
-    font_size_px: 36
+    value_color:
+      $constant: annotation_color_red
+    font_size_px:
+      $constant: annotation_title_font_size_px

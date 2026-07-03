@@ -148,9 +148,9 @@ hook_annotation_back_y = -hook_final_back_thickness;
 hook_annotation_front_y = 0;
 hook_annotation_back_thickness_y = hook_final_back_thickness;
 hook_annotation_length_start_y = hook_annotation_back_thickness_y;
-hook_annotation_length_y = hook_annotation_length_start_y + hook_target_length;
+hook_annotation_length_y = hook_annotation_length_start_y + hook_length;
 hook_annotation_z_min = 0;
-hook_annotation_z_max = hook_final_height;
+hook_annotation_z_max = hook_height;
 hook_annotation_truss_z_min = hook_annotation_z_min - truss_vertical_grid * OG_TILE_SIZE;
 hook_annotation_width_y = hook_annotation_front_y;
 hook_annotation_width_z = hook_annotation_z_max;
@@ -197,7 +197,7 @@ module emit_framefit_hook_annotations() {
     "framefit_hook_context",
     [
       "OG_TILE_SIZE",
-      "vertical_grids",
+      "hook_vertical_grids",
       "hook_width",
       "hook_length",
       "hook_back_thickness",
@@ -217,14 +217,14 @@ module emit_framefit_hook_annotations() {
       "framefit_snap_depth",
       "hook_side_chamfer",
       "hook_final_width",
-      "hook_final_height",
+      "hook_height",
       "hook_final_length",
       "hook_final_tip_length",
       "hook_final_corner_fillet"
     ],
     [
       OG_TILE_SIZE,
-      vertical_grids,
+      hook_vertical_grids,
       hook_width,
       hook_length,
       hook_back_thickness,
@@ -244,7 +244,7 @@ module emit_framefit_hook_annotations() {
       framefit_snap_depth,
       hook_side_chamfer,
       hook_final_width,
-      hook_final_height,
+      hook_height,
       hook_final_length,
       hook_final_tip_length,
       hook_final_corner_fillet
@@ -277,19 +277,19 @@ module emit_framefit_hook_annotations() {
     basis="side_to_side_hook_width"
   );
   emit_dimension_annotation(
-    id="vertical_grids",
-    label="vertical_grids",
+    id="hook_vertical_grids",
+    label="hook_vertical_grids",
     axis="z",
-    value=hook_final_height,
+    value=hook_height,
     start=[hook_annotation_height_x, hook_annotation_back_y, hook_annotation_z_min],
     end=[hook_annotation_height_x, hook_annotation_back_y, hook_annotation_z_max],
-    basis="framefit_hook_height_from_vertical_grids"
+    basis="framefit_hook_height_from_hook_vertical_grids"
   );
   emit_dimension_annotation(
     id="hook_length",
     label="hook_length",
     axis="y",
-    value=hook_target_length,
+    value=hook_length,
     start=[hook_annotation_length_x, hook_annotation_length_start_y, hook_annotation_length_z],
     end=[hook_annotation_length_x, hook_annotation_length_y, hook_annotation_length_z],
     basis="outer_hook_reach_including_tip_projection"

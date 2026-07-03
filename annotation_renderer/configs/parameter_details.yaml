@@ -122,17 +122,27 @@ variants:
           shelf_type: Standard
           add_texture: true
   annotations:
+    style:
+      $constant: default_annotation_style
+      image_label_title_positions: [top]
     chains:
     - $constant: small_dimension_chain
       ids: [shelf_side_edge_depth]
+      line_offset_px: 46
+      label_offset_px: 42
+      label_along_offset_px: -20
     - $constant: small_dimension_chain
       ids: [shelf_front_edge_depth]
-      line_offset_px: 34
-      label_offset_px: 34
+      line_offset_px: -42
+      label_offset_px: -46
+      label_along_offset_px: -70
     image_labels:
-    - $constant: bottom_image_label
-      id: shelf_texture_depth
+    - id: shelf_texture_depth
+      position: top
+      offset_px: [0, 18]
       show_value: true
+      font_size_px:
+        $constant: annotation_title_font_size_px
 - name: drawer_shell_clearance_details
   job_name: drawer_shell_clearance_details
   scene:

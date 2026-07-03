@@ -29,7 +29,8 @@ annotations:
     tick_length_px: 12
     type_styles:
       mm:
-        line_colors: ['#000000']
+        line_colors:
+        - $constant: annotation_color_black
   # angle_radius_callouts:
   # - id: hook_tip_angle_detail
   #   arc_id: hook_tip_angle_extent

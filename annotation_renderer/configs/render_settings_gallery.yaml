@@ -16,7 +16,8 @@ variants:
     render.outline:
       enabled: true
       line_width_px: 2.2
-      line_color: '#111827'
+      line_color:
+        $constant: gallery_outline_color
     render.material_overrides:
       model:
         color: '#cbd5e1'
@@ -33,7 +34,8 @@ variants:
     render.outline:
       enabled: true
       line_width_px: 2.2
-      line_color: '#111827'
+      line_color:
+        $constant: gallery_outline_color
     render.material_overrides:
       model:
         color: '#7f8f9f'
@@ -54,10 +56,12 @@ variants:
     render.outline:
       enabled: true
       line_width_px: 2.3
-      line_color: '#111827'
+      line_color:
+        $constant: gallery_outline_color
     render.material_overrides:
       model:
-        color: '#8fa1b3'
+        color:
+          $constant: gallery_neutral_material_color
         roughness: 0.68
 - name: lens_roll_composed
   set:
@@ -72,7 +76,8 @@ variants:
     render.outline:
       enabled: true
       line_width_px: 2.1
-      line_color: '#111827'
+      line_color:
+        $constant: gallery_outline_color
     render.material_overrides:
       model:
         color: '#b9c4d0'
@@ -91,7 +96,8 @@ variants:
     render.outline:
       enabled: true
       line_width_px: 2.3
-      line_color: '#111827'
+      line_color:
+        $constant: gallery_outline_color
     render.cutaway:
       enabled: true
       axis: x
@@ -105,7 +111,8 @@ variants:
         offset_mm: 0.1
     render.material_overrides:
       model:
-        color: '#8fa1b3'
+        color:
+          $constant: gallery_neutral_material_color
         roughness: 0.7
 - name: dramatic_product_view
   set:
@@ -122,7 +129,8 @@ variants:
     render.outline:
       enabled: true
       line_width_px: 1.8
-      line_color: '#111827'
+      line_color:
+        $constant: gallery_outline_color
     render.material_overrides:
       model:
         color: '#adb8c3'

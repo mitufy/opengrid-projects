@@ -1,10 +1,16 @@
 $schema: ../schemas/annotation-render-config.schema.json
 job_name: opengrid_annotation_base
 constants:
-  annotation_label_font_size_px: 22
-  annotation_title_font_size_px: 32
-  annotation_aux_label_font_size_px: 24
+  annotation_label_font_size_px: 38
+  annotation_title_font_size_px: 40
+  annotation_aux_label_font_size_px: 30
   annotation_font: sans
+  annotation_color_black: '#000000'
+  annotation_color_blue: '#4169E1'
+  annotation_color_red: '#FF0000'
+  annotation_color_white: '#ffffff'
+  gallery_outline_color: '#111827'
+  gallery_neutral_material_color: '#8fa1b3'
   og_tile_size: 28
   og_standard_thickness: 6.8
   blender_scene_scale: 0.001
@@ -52,16 +58,19 @@ constants:
     radial_line_width_px: 2.1
     label_font_size_px:
       $constant: annotation_label_font_size_px
-    angle_fill_color: '#dc2626'
+    angle_fill_color:
+      $constant: annotation_color_red
     image_label_margin_px: 32
     image_label_title_area: true
     image_label_title_positions: [bottom]
     image_label_title_padding_x_px: 34
     image_label_title_padding_y_px: 12
     image_label_title_radius_px: 18
-    image_label_title_fill_color: '#ffffff'
+    image_label_title_fill_color:
+      $constant: annotation_color_white
     image_label_title_fill_alpha: 224
-    image_label_title_outline_color: '#000000'
+    image_label_title_outline_color:
+      $constant: annotation_color_black
     image_label_title_outline_alpha: 255
     image_label_title_outline_width_px: 4
     image_label_title_min_width_px: 620
@@ -69,22 +78,26 @@ constants:
     image_label_title_bottom_margin_px: 18
     type_styles:
       grids:
-        line_colors: ['#000000']
+        line_colors:
+        - $constant: annotation_color_blue
         font:
           $constant: annotation_font
         text_shade: 1.0
       mm:
-        line_colors: ['#2563eb']
+        line_colors:
+        - $constant: annotation_color_black
         font:
           $constant: annotation_font
         text_shade: 1.0
       radius:
-        line_colors: ['#dc2626']
+        line_colors:
+        - $constant: annotation_color_red
         font:
           $constant: annotation_font
         text_shade: 1.0
       angle:
-        line_colors: ['#dc2626']
+        line_colors:
+        - $constant: annotation_color_red
         font:
           $constant: annotation_font
         text_shade: 1.0

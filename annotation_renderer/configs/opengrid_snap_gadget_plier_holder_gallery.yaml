@@ -19,8 +19,10 @@ variants:
         id: transition_depth_ratio
         label: transition_depth_ratio
         show_value: true
-        value_color: '#FF0000'
-        font_size_px: 36
+        value_color:
+          $constant: annotation_color_red
+        font_size_px:
+          $constant: annotation_title_font_size_px
     render.camera_view: right
     scene.objects[0].model.defines.transition_depth_ratio: 0.2
 - name: Transition_Ratio_1
@@ -31,8 +33,10 @@ variants:
         id: transition_depth_ratio
         label: transition_depth_ratio
         show_value: true
-        value_color: '#FF0000'
-        font_size_px: 36
+        value_color:
+          $constant: annotation_color_red
+        font_size_px:
+          $constant: annotation_title_font_size_px
     render.camera_view: right
     scene.objects[0].model.defines.transition_depth_ratio: 1
 - name: Width_Scale_1
@@ -45,8 +49,10 @@ variants:
         id: stopper_width_scale
         label: stopper_width_scale
         show_value: true
-        value_color: '#FF0000'
-        font_size_px: 36
+        value_color:
+          $constant: annotation_color_red
+        font_size_px:
+          $constant: annotation_title_font_size_px
     # scene.objects[0].model.defines.stem_height: 12
 - name: Width_Scale_1.4
   set:
@@ -58,7 +64,9 @@ variants:
         id: stopper_width_scale
         label: stopper_width_scale
         show_value: true
-        value_color: '#FF0000'
-        font_size_px: 36
+        value_color:
+          $constant: annotation_color_red
+        font_size_px:
+          $constant: annotation_title_font_size_px
     # scene.objects[0].model.defines.transition_depth_ratio: 0.2
     # scene.objects[0].model.defines.stem_height: 18

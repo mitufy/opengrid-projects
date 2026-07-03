@@ -43,9 +43,12 @@ annotations:
     # auto_adjust_labels: true
     $constant: default_annotation_style
     colors:
-      compartment_width: '#000000'
-      compartment_depth: '#000000'
-      compartment_height: '#000000'
+      compartment_width:
+        $constant: annotation_color_black
+      compartment_depth:
+        $constant: annotation_color_black
+      compartment_height:
+        $constant: annotation_color_black
   chains:
   # - ids: [holder_back_offset]
   #   optional: true
@@ -69,14 +72,16 @@ annotations:
     line_offset_px: -10
     label_offset_px: -24
     label_along_offset_px: 50
-    font_size_px: 24
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   - ids: [holder_bottom_thickness]
     optional: true
     display_offset_mm: [0, 0, 0]
     line_offset_px: -10
     label_offset_px: -24
     label_along_offset_px: -50
-    font_size_px: 24
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   angle_radius_callouts:
   - id: holder_tilt_angle_callout
     arc_id: holder_tilt_angle_extent
@@ -91,6 +96,6 @@ annotations:
   #   id: compartment_shape
   #   offset_px: [0, 0]
   #   show_value: true
-  #   value_color: '#2563eb'
+  #   value_color: '#0000FF'
   #   font_size_px:
   #     $constant: annotation_title_font_size_px

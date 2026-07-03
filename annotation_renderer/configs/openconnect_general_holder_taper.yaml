@@ -48,32 +48,38 @@ annotations:
   style:
     $constant: default_annotation_style
     colors:
-      compartment_width: '#000000'
-      compartment_depth: '#000000'
-      # compartment_bottom_depth: '#ff0000'
-      # compartment_bottom_width: '#ff0000'
+      compartment_width:
+        $constant: annotation_color_black
+      compartment_depth:
+        $constant: annotation_color_black
+      # compartment_bottom_depth: '#FF0000'
+      # compartment_bottom_width: '#FF0000'
   chains:
   - ids: [compartment_width]
     display_offset_mm: [0, 0, 0]
     line_offset_px: 50
     label_offset_px: 28
-    font_size_px: 26
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   - ids: [compartment_bottom_width]
     optional: true
     display_offset_mm: [0, 0, 0]
     line_offset_px: 50
     label_offset_px: 28
-    font_size_px: 24
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   - ids: [compartment_depth]
     optional: true
     line_offset_px: -50
     label_offset_px: -28
-    font_size_px: 26
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   - ids: [compartment_bottom_depth]
     optional: true
     line_offset_px: -50
     label_offset_px: -28
-    font_size_px: 24
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   # - ids: [front_opening_width]
   #   optional: true
   #   display_offset_mm: [0, 0, 0]
@@ -108,11 +114,15 @@ annotations:
     id: holder_bottom_thickness
     offset_px: [0, 0]
     show_value: true
-    value_color: '#ff0000'
-    font_size_px: 30
+    value_color:
+      $constant: annotation_color_red
+    font_size_px:
+      $constant: annotation_title_font_size_px
   - $constant: bottom_image_label
     id: enable_bottom_taper
     offset_px: [0, 40]
     show_value: true
-    value_color: '#ff0000'
-    font_size_px: 30
+    value_color:
+      $constant: annotation_color_red
+    font_size_px:
+      $constant: annotation_title_font_size_px

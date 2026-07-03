@@ -339,8 +339,8 @@ class AnimationConfigTests(unittest.TestCase):
                         "tip_radius": "#654321",
                     },
                     "type_styles": {
-                        "angle": {"line_colors": ["#dc2626"]},
-                        "radius": {"line_colors": ["#dc2626"]},
+                        "angle": {"line_colors": ["#FF0000"]},
+                        "radius": {"line_colors": ["#FF0000"]},
                     },
                 }
             ),
@@ -591,7 +591,7 @@ class AnimationConfigTests(unittest.TestCase):
                 offset_px=(0.0, 0.0),
                 angle_deg=0.0,
                 color=None,
-                value_color="#2563eb",
+                value_color="#0000FF",
                 font_size_px=24,
             ),
             ImageLabel(
@@ -602,7 +602,7 @@ class AnimationConfigTests(unittest.TestCase):
                 offset_px=(0.0, 0.0),
                 angle_deg=0.0,
                 color=None,
-                value_color="#2563eb",
+                value_color="#0000FF",
                 font_size_px=24,
             ),
         ]
@@ -952,6 +952,7 @@ class AnimationConfigTests(unittest.TestCase):
 
         self.assertIn("    - gridfinity_width_grids (axis=x", output)
         self.assertIn("    - gridfinity_depth_grids (axis=y", output)
+        self.assertIn("    - shelf_back_offset (axis=y", output)
         self.assertIn("    - shelf_side_rim (axis=x", output)
         self.assertIn("    - shelf_front_rim (axis=y", output)
         self.assertIn("    - shelf_rim_lip_height (axis=z", output)
@@ -967,6 +968,12 @@ class AnimationConfigTests(unittest.TestCase):
             if annotation["id"] == "gridfinity_width_grids" and annotation["kind"] == "dimension"
         )
         self.assertEqual(width_grids["basis"], "gridfinity_cell_width_span_from_grid_count")
+        back_offset = next(
+            annotation
+            for annotation in annotations
+            if annotation["id"] == "shelf_back_offset" and annotation["kind"] == "dimension"
+        )
+        self.assertEqual(back_offset["basis"], "back_space_between_gridfinity_cells_and_wall_from_shelf_back_offset")
         bottom_tilt = next(annotation for annotation in annotations if annotation["id"] == "final_shelf_bottom_tilt_height")
         self.assertTrue(bottom_tilt["internal"])
 
@@ -1494,7 +1501,7 @@ class AnimationConfigTests(unittest.TestCase):
                     },
                 },
                 "xray": {"enabled": True, "objects": ["model"], "alpha": 0.3},
-                "material_overrides": {"model": {"color": "#ff0000", "alpha": 0.5}},
+                "material_overrides": {"model": {"color": "#FF0000", "alpha": 0.5}},
             }
         )
         self.assertEqual(render["camera_view"], "left")
@@ -1560,7 +1567,7 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(blender_config["cutaway"]["position_fraction"], 0.35)
         self.assertEqual(blender_config["cutaway"]["section_plane"]["padding_mm"], 2.8)
         self.assertEqual(blender_config["cutaway"]["section_plane"]["offset_mm"], 0.2)
-        self.assertEqual(blender_config["objects"][0]["material"], {"roughness": 0.4, "color": "#ff0000", "alpha": 0.5})
+        self.assertEqual(blender_config["objects"][0]["material"], {"roughness": 0.4, "color": "#FF0000", "alpha": 0.5})
 
         preset_config = build_blender_config(
             scene_config={"camera": "Camera"},

@@ -16,66 +16,88 @@ scene:
   transform:
     $constant: wall_placeholder_transform
 render:
-  fit_margin: 0.05
+  fit_margin: 0
   # camera_location_offset_mm: [30, 0, 0]
   # camera_rotation_offset_deg: [0, 0, 10]
   camera_view: bottom
 annotations:
   style:
+    auto_adjust_labels: false
     line_alpha: 255
     line_width_px: 2.3
     extension_width_px: 1.1
     tick_length_px: 15
     radial_line_width_px: 2.1
-    label_font_size_px: 24
-    angle_fill_color: '#dc2626'
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
+    angle_fill_color:
+      $constant: annotation_color_red
     image_label_margin_px: 32
     image_label_title_area: true
     image_label_title_padding_x_px: 34
     image_label_title_padding_y_px: 12
     image_label_title_radius_px: 18
-    image_label_title_fill_color: '#ffffff'
+    image_label_title_fill_color:
+      $constant: annotation_color_white
     image_label_title_fill_alpha: 224
-    image_label_title_outline_color: '#000000'
+    image_label_title_outline_color:
+      $constant: annotation_color_black
     image_label_title_outline_alpha: 255
     image_label_title_outline_width_px: 4
     image_label_title_min_width_px: 620
     image_label_title_bottom_margin_px: 18
     type_styles:
       grids:
-        line_colors: ['#2563eb']
+        line_colors:
+        - $constant: annotation_color_blue
         font:
           $constant: annotation_font
         text_shade: 1.0
       mm:
-        line_colors: ['#000000']
+        line_colors:
+        - $constant: annotation_color_black
         font:
           $constant: annotation_font
         text_shade: 1.0
       radius:
-        line_colors: ['#dc2626']
+        line_colors:
+        - $constant: annotation_color_red
         font:
           $constant: annotation_font
         text_shade: 1.0
       angle:
-        line_colors: ['#dc2626']
+        line_colors:
+        - $constant: annotation_color_red
         font:
           $constant: annotation_font
         text_shade: 1.0
     colors:
-      hook_width: '#000000'
-      hook_thickness: '#000000'
-      hook_length: '#000000'
-      hook_vertical_grids: '#000000'
-      truss_vertical_grids: '#000000'
-      circular_tip_radius: '#dc2626'
-      circular_tip_radius_extent: '#dc2626'
-      circular_tip_angle: '#dc2626'
-      truss_angle_radius: '#dc2626'
-      truss_angle_extent: '#dc2626'
-      truss_max_angle: '#dc2626'
-      circular_corner_radius: '#dc2626'
-      circular_corner_radius_extent: '#dc2626'
+      hook_width:
+        $constant: annotation_color_black
+      hook_thickness:
+        $constant: annotation_color_black
+      hook_length:
+        $constant: annotation_color_black
+      hook_vertical_grids:
+        $constant: annotation_color_black
+      truss_vertical_grids:
+        $constant: annotation_color_black
+      circular_tip_radius:
+        $constant: annotation_color_red
+      circular_tip_radius_extent:
+        $constant: annotation_color_red
+      circular_tip_angle:
+        $constant: annotation_color_red
+      truss_angle_radius:
+        $constant: annotation_color_red
+      truss_angle_extent:
+        $constant: annotation_color_red
+      truss_max_angle:
+        $constant: annotation_color_red
+      circular_corner_radius:
+        $constant: annotation_color_red
+      circular_corner_radius_extent:
+        $constant: annotation_color_red
   aliases:
     hook_vertical_grids: hook_vgrids x 28mm
     truss_vertical_grids: truss_vgrids x 28mm
@@ -96,6 +118,7 @@ annotations:
     radius_label_offset_px: 20
     radius_label_tangent_offset_px: -10
     angle_fill_alpha: 28
+    font_size_px: 32
   - id: circular_corner_radius_detail
     arc_id: circular_corner_radius_extent
     radius_id: circular_corner_radius
@@ -103,6 +126,7 @@ annotations:
     show_angle_label: false
     radius_label_offset_px: 26
     angle_fill_alpha: 28
+    font_size_px: 32
   - id: truss_angle_detail
     arc_id: truss_angle_extent
     radius_id: truss_angle_radius
@@ -111,16 +135,19 @@ annotations:
     show_radius_label: false
     angle_label_offset_px: 34
     angle_fill_alpha: 28
+    font_size_px: 32
   chains:
   - ids: [hook_thickness, hook_length]
     display_offset_mm: [0, 0, 0]
-    label_offset_px: -30
-    label_font_size_px: 26
-  image_labels:
-  - $constant: bottom_image_label
-    id: hook_shape_type
-    offset_px: [0, -6]
-    show_value: true
-    value_color: '#2563eb'
-    font_size_px:
-      $constant: annotation_title_font_size_px
+    label_offset_px: -100
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
+  # image_labels:
+  # - $constant: bottom_image_label
+  #   id: hook_shape_type
+  #   offset_px: [0, -6]
+  #   show_value: true
+  #   value_color:
+  #     $constant: annotation_color_blue
+  #   font_size_px:
+  #     $constant: annotation_title_font_size_px
