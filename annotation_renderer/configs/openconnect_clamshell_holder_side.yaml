@@ -29,21 +29,6 @@ render:
 annotations:
   style:
     $constant: default_annotation_style
-    colors:
-      item_width:
-        $constant: annotation_color_black
-      item_height:
-        $constant: annotation_color_black
-      item_depth:
-        $constant: annotation_color_black
-      side_opening_front_margin:
-        $constant: annotation_color_blue
-      side_opening_back_margin:
-        $constant: annotation_color_blue
-      side_opening_top_margin:
-        $constant: annotation_color_red
-      side_opening_bottom_margin:
-        $constant: annotation_color_red
   aliases:
     holder_slot_position: slot_position
     item_corner_rounding_extent: item_corner_rounding
@@ -59,6 +44,8 @@ annotations:
   #   label_offset_px: 28
   #   font_size_px: 26
   - ids: [item_depth]
+    color:
+      $constant: annotation_color_black
     display_offset_mm: [0, 0, 0]
     line_offset_px: 56
     label_offset_px: 28
@@ -78,6 +65,8 @@ annotations:
   #   font_size_px: 24
   - ids: [side_opening_front_margin]
     optional: true
+    color:
+      $constant: annotation_color_blue
     display_offset_mm: [0, 0, 0]
     line_offset_px: 200
     label_offset_px: 28
@@ -86,6 +75,8 @@ annotations:
       $constant: annotation_label_font_size_px
   - ids: [side_opening_back_margin]
     optional: true
+    color:
+      $constant: annotation_color_blue
     display_offset_mm: [0, 0, 0]
     line_offset_px: -200
     label_offset_px: -28
@@ -94,6 +85,8 @@ annotations:
       $constant: annotation_label_font_size_px
   - ids: [side_opening_top_margin]
     optional: true
+    color:
+      $constant: annotation_color_red
     display_offset_mm: [0, 0, 0]
     line_offset_px: -60
     label_offset_px: -28
@@ -101,6 +94,8 @@ annotations:
       $constant: annotation_label_font_size_px
   - ids: [side_opening_bottom_margin]
     optional: true
+    color:
+      $constant: annotation_color_red
     display_offset_mm: [0, 0, 0]
     line_offset_px: 60
     label_offset_px: 28

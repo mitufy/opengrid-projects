@@ -48,35 +48,28 @@ annotations:
   style:
     $constant: default_annotation_style
     auto_adjust_labels: true
-    colors:
-      gridfinity_width_grids:
-        $constant: annotation_color_black
-      gridfinity_depth_grids:
-        $constant: annotation_color_black
-      shelf_back_offset:
-        $constant: annotation_color_red
-      shelf_side_rim:
-        $constant: annotation_color_red
-      shelf_front_rim:
-        $constant: annotation_color_red
-      shelf_rim_lip_height:
-        $constant: annotation_color_red
   aliases:
     gridfinity_width_grids: gridfinity_width_grids x 42mm
     gridfinity_depth_grids: gridfinity_depth_grids x 42mm
   chains:
   - ids: [gridfinity_width_grids]
+    color:
+      $constant: annotation_color_black
     line_offset_px: -50
     label_offset_px: -28
     label_font_size_px:
       $constant: annotation_label_font_size_px
   - ids: [gridfinity_depth_grids]
+    color:
+      $constant: annotation_color_black
     line_offset_px: -50
     label_offset_px: -28
     label_font_size_px:
       $constant: annotation_label_font_size_px
   - ids: [shelf_back_offset]
     optional: true
+    color:
+      $constant: annotation_color_red
     line_offset_px: -86
     label_offset_px: -78
     label_along_offset_px: 72

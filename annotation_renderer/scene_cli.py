@@ -46,7 +46,16 @@ from annotation_renderer.annotation_config import (
     projection_points_for_radius_callouts,
     projection_points_for_segments,
 )
-from annotation_renderer.config_defaults import DEFAULT_OUTPUT_DIR
+from annotation_renderer.config_defaults import (
+    CAMERA_VIEW_PRESETS,
+    DEFAULT_OUTPUT_DIR,
+    DEFAULT_OUTPUT_MODE,
+    DEFAULT_RENDER_MESH_SHADING,
+    DEFAULT_RENDER_PRESET_NAME,
+    GALLERY_SETTING_DEFAULTS,
+    RENDER_OUTPUT_MODES,
+    RENDER_PRESETS,
+)
 from annotation_renderer.config_resolution import (
     aliases_from_config,
     build_expression_context,
@@ -106,31 +115,17 @@ PROJECT_ROOT = UTILITY_ROOT.parent
 DEFAULT_MODEL_CONFIG_PATH = UTILITY_ROOT / "configs" / "model_defaults.yaml"
 DISCOVERY_ACTIONS = ("list_models", "describe", "list_annotations", "new_config")
 COMMANDS = ("render", "doctor", "discover", "new-config", "list-models", "describe", "list-annotations")
-OUTPUT_MODES = ("minimal", "standard", "debug")
+OUTPUT_MODES = RENDER_OUTPUT_MODES
 CONFIG_SHORTCUT_SUFFIXES = (".yaml", ".yml", ".json")
-GALLERY_SETTING_DEFAULTS = {
-    "columns": 2,
-    "thumbnail_width": 520,
-    "margin_px": 12,
-    "gutter_px": 12,
-    "title_height_px": 22,
-    "title_font_size_px": 22,
-}
-CAMERA_VIEW_PRESETS = {
-    "front_left": {"camera_view": "front", "camera_orbit_deg": [-35, 8], "camera_distance_scale": 1.08},
-    "front_right": {"camera_view": "front", "camera_orbit_deg": [35, 8], "camera_distance_scale": 1.08},
-    "back_left": {"camera_view": "back", "camera_orbit_deg": [35, 8], "camera_distance_scale": 1.08},
-    "back_right": {"camera_view": "back", "camera_orbit_deg": [-35, 8], "camera_distance_scale": 1.08},
-    "top_front": {"camera_view": "front", "camera_orbit_deg": [0, 72], "camera_distance_scale": 1.12},
-    "top_back": {"camera_view": "back", "camera_orbit_deg": [0, 72], "camera_distance_scale": 1.12},
-    "technical_iso": {"camera_view": "front", "camera_orbit_deg": [35, 24], "camera_distance_scale": 1.15},
-    "left_side_zoomed": {"camera_view": "left", "camera_distance_scale": 0.88},
-    "right_side_zoomed": {"camera_view": "right", "camera_distance_scale": 0.88},
-}
 GROUP_STYLE_KEYS = {
     "line_alpha",
     "line_width_px",
+    "line_outline_color",
+    "line_outline_alpha",
+    "angle_radius_outline_alpha",
+    "line_outline_width_px",
     "extension_width_px",
+    "extension_outline_width_px",
     "extension_visible",
     "extension_dash_px",
     "extension_gap_px",
@@ -141,10 +136,14 @@ GROUP_STYLE_KEYS = {
     "label_outline_color",
     "label_outline_width_px",
     "radial_line_width_px",
+    "radial_line_outline_width_px",
     "radial_dash_px",
     "radial_gap_px",
+    "arc_line_outline_width_px",
+    "angle_radius_arc_outline_width_px",
     "angle_fill_color",
     "angle_fill_alpha",
+    "label_avoidance_padding_px",
     "type_styles",
 }
 
@@ -480,7 +479,7 @@ def output_file_from_args(args: argparse.Namespace) -> Path | None:
 
 
 def output_mode_for(render_config: Mapping[str, object], args: argparse.Namespace) -> str:
-    raw_mode = getattr(args, "output_mode", None) or render_config.get("output_mode") or "standard"
+    raw_mode = getattr(args, "output_mode", None) or render_config.get("output_mode") or DEFAULT_OUTPUT_MODE
     mode = str(raw_mode)
     if mode not in OUTPUT_MODES:
         raise ConfigError(f"render.output_mode must be one of {', '.join(OUTPUT_MODES)}")
@@ -1048,9 +1047,34 @@ def editable_annotations_template(config: Mapping[str, object]) -> dict[str, obj
                 "angle_id",
                 "optional",
                 "display_offset_mm",
+                "color",
+                "colors",
                 "line_offset_px",
                 "label_offset_px",
                 "label_along_offset_px",
+                "line_alpha",
+                "line_width_px",
+                "line_outline_color",
+                "line_outline_alpha",
+                "angle_radius_outline_alpha",
+                "line_outline_width_px",
+                "extension_width_px",
+                "extension_outline_width_px",
+                "extension_visible",
+                "extension_dash_px",
+                "extension_gap_px",
+                "tick_length_px",
+                "radial_line_width_px",
+                "radial_line_outline_width_px",
+                "radial_dash_px",
+                "radial_gap_px",
+                "arc_line_outline_width_px",
+                "angle_radius_arc_outline_width_px",
+                "label_font_size_px",
+                "label_color",
+                "label_color_by_segment",
+                "label_outline_color",
+                "label_outline_width_px",
                 "angle_label_offset_px",
                 "radius_label_offset_px",
                 "angle_label_tangent_offset_px",
@@ -1059,6 +1083,7 @@ def editable_annotations_template(config: Mapping[str, object]) -> dict[str, obj
                 "show_angle_label",
                 "show_radius_label",
                 "angle_fill_alpha",
+                "label_avoidance_padding_px",
                 "offset_px",
                 "position",
                 "show_value",
@@ -1321,7 +1346,8 @@ def resolved_config_snapshot(
                     "replace_target_object": bool(object_spec["replace_target_object"]),
                     "material_source_object": object_spec.get("material_source_object"),
                     "material": object_spec.get("material"),
-                    "mesh_shading": object_spec.get("mesh_shading") or render_settings.get("mesh_shading", "flat"),
+                    "mesh_shading": object_spec.get("mesh_shading")
+                    or render_settings.get("mesh_shading", DEFAULT_RENDER_MESH_SHADING),
                 }
                 for object_spec in object_specs
             ],
@@ -1953,6 +1979,7 @@ def build_blender_config(
         if "camera_lens_mm" in render_settings
         else render_settings.get("camera_focal_length_mm")
     )
+    default_render_settings = RENDER_PRESETS[DEFAULT_RENDER_PRESET_NAME]
     blender_config: dict[str, object] = {
         "objects": [
             {
@@ -1964,7 +1991,9 @@ def build_blender_config(
                 "object_transform": record["transform"],
                 "material_source_object": record.get("material_source_object"),
                 "material": material_for_object(record, render_settings),
-                "mesh_shading": str(record.get("mesh_shading") or render_settings.get("mesh_shading", "flat")),
+                "mesh_shading": str(
+                    record.get("mesh_shading") or render_settings.get("mesh_shading", default_render_settings["mesh_shading"])
+                ),
             }
             for record in object_records
         ],
@@ -1972,12 +2001,13 @@ def build_blender_config(
         "render_path": str(render_path),
         "projection_path": str(projection_path),
         "projection_points": projection_points,
-        "width": int(render_settings.get("width", 1200)),
-        "height": int(render_settings.get("height", 900)),
-        "render_engine": str(render_settings.get("engine", "cycles")),
-        "quality": str(render_settings.get("quality", "standard")),
-        "fit_camera": bool(render_settings.get("fit_camera", False)),
-        "fit_margin": float(render_settings.get("fit_margin", 0.08)),
+        "render_defaults": dict(default_render_settings),
+        "width": int(render_settings.get("width", default_render_settings["width"])),
+        "height": int(render_settings.get("height", default_render_settings["height"])),
+        "render_engine": str(render_settings.get("engine", default_render_settings["engine"])),
+        "quality": str(render_settings.get("quality", default_render_settings["quality"])),
+        "fit_camera": bool(render_settings.get("fit_camera", default_render_settings["fit_camera"])),
+        "fit_margin": float(render_settings.get("fit_margin", default_render_settings["fit_margin"])),
         "camera_location_offset": [
             value / 1000.0
             for value in vector3(
@@ -2064,7 +2094,7 @@ def build_blender_config(
             name="render.cutaway",
         ),
         "xray": render_settings.get("xray"),
-        "mesh_shading": str(render_settings.get("mesh_shading", "flat")),
+        "mesh_shading": str(render_settings.get("mesh_shading", default_render_settings["mesh_shading"])),
     }
     if export_blend_path is not None:
         blender_config["export_blend_path"] = str(export_blend_path)

@@ -11,8 +11,8 @@ variants:
         scad_file: openconnect_sturdy_hook.scad
   annotations:
     aliases:
-      circular_corner_radius: corner_radius
-      circular_corner_radius_extent: corner_radius
+      hook_corner_fillet: corner_fillet
+      hook_corner_fillet_extent: corner_fillet
       circular_tip_radius: tip_radius
       circular_tip_radius_extent: tip_radius
       circular_tip_angle: tip_angle
@@ -23,17 +23,17 @@ variants:
     radius_callouts: []
     arc_callouts: []
     angle_radius_callouts:
-    - id: circular_corner_radius_detail
-      arc_id: circular_corner_radius_extent
-      radius_id: circular_corner_radius
+    - id: hook_corner_fillet_detail
+      arc_id: hook_corner_fillet_extent
+      radius_id: hook_corner_fillet
       show_angle_label: false
       radius_label_offset_px: 26
     - id: circular_tip_angle_radius
-      arc_id: circular_tip_radius_extent
-      radius_id: circular_tip_radius
+      arc_id: circular_tip_angle_extent
+      radius_id: circular_tip_angle_radius
       angle_id: circular_tip_angle
+      show_radius_label: false
       angle_label_offset_px: 34
-      radius_label_offset_px: 20
       angle_fill_alpha: 28
 - name: sturdy_hook_rectangular_details
   job_name: sturdy_hook_rectangular_details

@@ -194,6 +194,14 @@ hook_tip_radius_start_anchor = _hook_path_point_to_model_annotation_side(_path_l
 hook_tip_radius_mid_anchor = _hook_path_point_to_model_annotation_side(_path_last(turtle(_hook_tip_radius_path_at(hook_tip_radius_arc_angle / 2))));
 hook_tip_radius_end_anchor = _hook_path_point_to_model_annotation_side(_path_last(turtle(hook_path_circ)));
 hook_tip_radius_center_anchor = _circumcenter_xy(hook_tip_radius_start_anchor, hook_tip_radius_mid_anchor, hook_tip_radius_end_anchor);
+hook_tip_angle_arc_segments = 18;
+function _hook_tip_angle_arc_point(angle) =
+  _hook_path_point_to_model_annotation_side(_path_last(turtle(_hook_tip_radius_path_at(angle))));
+hook_tip_angle_arc_points = [
+  for (i = [0:hook_tip_angle_arc_segments])
+    _hook_tip_angle_arc_point(max(1, circular_tip_angle) * i / hook_tip_angle_arc_segments)
+];
+hook_tip_angle_mid_anchor = _hook_tip_angle_arc_point(max(1, circular_tip_angle) / 2);
 hook_corner_radius_arc_segments = 12;
 function _hook_corner_radius_path_at(angle) = [
   "setdir", -90,
@@ -232,7 +240,7 @@ module emit_sturdy_hook_annotations() {
       "hook_thickness",
       "hook_width",
       "hook_shape_type",
-      "circular_corner_radius",
+      "hook_corner_fillet",
       "circular_tip_radius",
       "circular_tip_angle",
       "circular_tip_thickness_scale",
@@ -254,7 +262,7 @@ module emit_sturdy_hook_annotations() {
       hook_thickness,
       hook_width,
       hook_shape_type,
-      circular_corner_radius,
+      hook_corner_fillet,
       circular_tip_radius,
       circular_tip_angle,
       circular_tip_thickness_scale,
@@ -339,30 +347,30 @@ module emit_sturdy_hook_annotations() {
   }
   if (hook_shape_type == "Circular" && final_corner_radius > EPS) {
     emit_radius_annotation(
-      id="circular_corner_radius",
-      label="circular_corner_radius",
+      id="hook_corner_fillet",
+      label="hook_corner_fillet",
       value=final_corner_radius,
       center=hook_corner_radius_center_anchor,
       edge=hook_corner_radius_mid_anchor,
       basis="corner_radius_center_to_midpoint_from_turtle_path"
     );
     emit_arc_annotation(
-      id="circular_corner_radius_extent",
-      label="circular_corner_radius_extent",
+      id="hook_corner_fillet_extent",
+      label="hook_corner_fillet_extent",
       value=final_corner_radius,
       points=hook_corner_radius_arc_points,
       basis="corner_radius_arc_from_turtle_path"
     );
     emit_feature_annotation(
-      id="circular_corner_radius_start",
-      label="circular_corner_radius_start",
+      id="hook_corner_fillet_start",
+      label="hook_corner_fillet_start",
       value=final_corner_radius,
       anchor=hook_corner_radius_start_anchor,
       basis="start_of_corner_radius_arc_from_turtle_path"
     );
     emit_feature_annotation(
-      id="circular_corner_radius_end",
-      label="circular_corner_radius_end",
+      id="hook_corner_fillet_end",
+      label="hook_corner_fillet_end",
       value=final_corner_radius,
       anchor=hook_corner_radius_end_anchor,
       basis="end_of_corner_radius_arc_from_turtle_path"
@@ -397,6 +405,21 @@ module emit_sturdy_hook_annotations() {
       value=final_tip_radius,
       anchor=hook_tip_radius_end_anchor,
       basis="end_of_tip_radius_arc_from_turtle_path"
+    );
+    emit_radius_annotation(
+      id="circular_tip_angle_radius",
+      label="circular_tip_angle_radius",
+      value=final_tip_radius,
+      center=hook_tip_radius_center_anchor,
+      edge=hook_tip_angle_mid_anchor,
+      basis="tip_angle_radius_center_to_midpoint_from_turtle_path"
+    );
+    emit_arc_annotation(
+      id="circular_tip_angle_extent",
+      label="circular_tip_angle_extent",
+      value=circular_tip_angle,
+      points=hook_tip_angle_arc_points,
+      basis="tip_angle_arc_from_turtle_path"
     );
   }
 }

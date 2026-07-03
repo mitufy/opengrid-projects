@@ -25,11 +25,6 @@ render:
 annotations:
   style:
     $constant: default_annotation_style
-    colors:
-      item_width:
-        $constant: annotation_color_black
-      item_height:
-        $constant: annotation_color_black
   aliases:
     holder_slot_position: slot_position
     item_corner_rounding_extent: item_corner_rounding

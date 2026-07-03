@@ -10,7 +10,7 @@ scene:
       defines:
         shelf_type: Standard
         add_texture: false
-        shelf_corner_fillet: 12
+        shelf_corner_fillet: 15
         add_right_edge: false
         add_front_edge: false
     transform:
@@ -32,26 +32,35 @@ annotations:
   # - ids: [horizontal_grids]
   # - $constant: small_dimension_chain
   - ids: [shelf_back_thickness]
-    line_offset_px: 30
-    label_offset_px: 30
+    line_offset_px: 50
+    label_offset_px: 50
     label_font_size_px:
       $constant: annotation_label_font_size_px
+    color:
+      $constant: annotation_color_blue
     tick_length_px: 12
   - ids: [shelf_bottom_thickness]
-    line_offset_px: -30
-    label_offset_px: -30
+    line_offset_px: -50
+    label_offset_px: -50
     label_font_size_px:
       $constant: annotation_label_font_size_px
     tick_length_px: 12
-  # image_labels:
-  # - $constant: bottom_image_label
-  #   id: shelf_type
-  #   show_value: true
+    color:
+      $constant: annotation_color_blue
+  image_labels:
+  - $constant: bottom_image_label
+    id: shelf_type
+    show_value: true
+    color:
+      $constant: annotation_color_black
+    value_color:
+      $constant: annotation_color_blue
   angle_radius_callouts:
   - id: shelf_corner_fillet_detail
     arc_id: shelf_corner_fillet_extent
     radius_id: shelf_corner_fillet
     optional: true
     show_angle_label: false
-    radius_label_offset_px: 26
+    radius_label_offset_px: 120
+    radius_label_tangent_offset_px: 20
     angle_fill_alpha: 28

@@ -26,9 +26,6 @@ annotations:
       mm:
         line_colors:
         - $constant: annotation_color_black
-    colors:
-      transition_depth_ratio:
-        $constant: annotation_color_red
   chains:
   # - ids: [stem_bottom_width]
   #   display_offset_mm: [0, 0, 0]

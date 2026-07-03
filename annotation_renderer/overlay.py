@@ -16,12 +16,21 @@ from annotation_renderer.annotation_config import (
     ImageLabel,
     RadiusCallout,
 )
-from annotation_renderer.config_defaults import DEFAULT_LINE_ALPHA, DEFAULT_TYPE_STYLES
+from annotation_renderer.config_defaults import DEFAULT_STYLE_PRESET_NAME, DEFAULT_TYPE_STYLES, STYLE_PRESETS
 
 
-LABEL_TEXT_COLOR = "#18212b"
-LABEL_OUTLINE_COLOR = "#f8fafc"
-LABEL_OUTLINE_WIDTH = 2
+DEFAULT_STYLE_CONFIG = STYLE_PRESETS[DEFAULT_STYLE_PRESET_NAME]
+LABEL_TEXT_COLOR = str(DEFAULT_STYLE_CONFIG["label_color"])
+LABEL_OUTLINE_COLOR = str(DEFAULT_STYLE_CONFIG["label_outline_color"])
+LABEL_OUTLINE_WIDTH = int(DEFAULT_STYLE_CONFIG["label_outline_width_px"])
+LINE_OUTLINE_COLOR = str(DEFAULT_STYLE_CONFIG["line_outline_color"])
+LINE_OUTLINE_ALPHA = int(DEFAULT_STYLE_CONFIG["line_outline_alpha"])
+ANGLE_RADIUS_OUTLINE_ALPHA = int(DEFAULT_STYLE_CONFIG["angle_radius_outline_alpha"])
+LINE_OUTLINE_WIDTH_PX = float(DEFAULT_STYLE_CONFIG["line_outline_width_px"])
+EXTENSION_OUTLINE_WIDTH_PX = float(DEFAULT_STYLE_CONFIG["extension_outline_width_px"])
+RADIAL_LINE_OUTLINE_WIDTH_PX = float(DEFAULT_STYLE_CONFIG["radial_line_outline_width_px"])
+ARC_LINE_OUTLINE_WIDTH_PX = float(DEFAULT_STYLE_CONFIG["arc_line_outline_width_px"])
+ANGLE_RADIUS_ARC_OUTLINE_WIDTH_PX = float(DEFAULT_STYLE_CONFIG["angle_radius_arc_outline_width_px"])
 MIN_LABEL_COLLISION_OVERLAP_AXIS_PX = 0.5
 LABEL_ANGLE_EPSILON_DEG = 1e-4
 
@@ -108,6 +117,17 @@ def label_color_for_line(style_config: Mapping[str, object], line_color: str, pa
     return shade_hex_color(line_color, max(0.0, min(1.0, factor)))
 
 
+def line_outline_rgba(
+    style_config: Mapping[str, object],
+    *,
+    alpha_key: str = "line_outline_alpha",
+    fallback_alpha: int = LINE_OUTLINE_ALPHA,
+) -> tuple[int, int, int, int]:
+    color = str(style_config.get("line_outline_color", LINE_OUTLINE_COLOR))
+    alpha = clamp_alpha(int(style_config.get(alpha_key, style_config.get("line_outline_alpha", fallback_alpha))))
+    return (*ImageColor.getrgb(color)[:3], alpha)
+
+
 def rotated_label_image(
     *,
     text: str,
@@ -174,7 +194,7 @@ def label_bbox(center: tuple[float, float], size: tuple[int, int]) -> tuple[floa
 
 
 def auto_adjust_labels_enabled(style_config: Mapping[str, object]) -> bool:
-    return bool(style_config.get("auto_adjust_labels", False))
+    return bool(style_config.get("auto_adjust_labels", DEFAULT_STYLE_CONFIG["auto_adjust_labels"]))
 
 
 def expanded_bbox(bbox: tuple[float, float, float, float], padding: float) -> tuple[float, float, float, float]:
@@ -566,9 +586,10 @@ def draw_dimension_chains_overlay(
         baseline_points = [(point[0] + offset[0], point[1] + offset[1]) for point in points]
 
         style_config = spec.style_config
-        line_alpha = clamp_alpha(int(style_config.get("line_alpha", DEFAULT_LINE_ALPHA)))
-        tick_length_px = float(style_config.get("tick_length_px", 18.0))
+        line_alpha = clamp_alpha(int(style_config.get("line_alpha", DEFAULT_STYLE_CONFIG["line_alpha"])))
+        tick_length_px = float(style_config.get("tick_length_px", DEFAULT_STYLE_CONFIG["tick_length_px"]))
         angle = readable_dimension_label_angle(degrees(atan2(direction[1], direction[0])))
+        line_outline = line_outline_rgba(style_config)
 
         prepared_chains.append(
             {
@@ -579,15 +600,20 @@ def draw_dimension_chains_overlay(
                 "normal": normal,
                 "direction": direction,
                 "line_alpha": line_alpha,
-                "line_width_px": float(style_config.get("line_width_px", 3.0)),
-                "extension_width_px": float(style_config.get("extension_width_px", 1.7)),
-                "extension_visible": bool(style_config.get("extension_visible", True)),
-                "extension_dash_px": float(style_config.get("extension_dash_px", 6.0)),
-                "extension_gap_px": float(style_config.get("extension_gap_px", 4.0)),
+                "line_width_px": float(style_config.get("line_width_px", DEFAULT_STYLE_CONFIG["line_width_px"])),
+                "line_outline": line_outline,
+                "line_outline_width_px": float(style_config.get("line_outline_width_px", LINE_OUTLINE_WIDTH_PX)),
+                "extension_width_px": float(style_config.get("extension_width_px", DEFAULT_STYLE_CONFIG["extension_width_px"])),
+                "extension_outline_width_px": float(style_config.get("extension_outline_width_px", EXTENSION_OUTLINE_WIDTH_PX)),
+                "extension_visible": bool(style_config.get("extension_visible", DEFAULT_STYLE_CONFIG["extension_visible"])),
+                "extension_dash_px": float(style_config.get("extension_dash_px", DEFAULT_STYLE_CONFIG["extension_dash_px"])),
+                "extension_gap_px": float(style_config.get("extension_gap_px", DEFAULT_STYLE_CONFIG["extension_gap_px"])),
                 "tick": (normal[0] * tick_length_px, normal[1] * tick_length_px),
-                "label_font_size_px": int(style_config.get("label_font_size_px", 28)),
+                "label_font_size_px": int(style_config.get("label_font_size_px", DEFAULT_STYLE_CONFIG["label_font_size_px"])),
                 "label_color": str(style_config.get("label_color", LABEL_TEXT_COLOR)),
-                "label_color_by_segment": bool(style_config.get("label_color_by_segment", True)),
+                "label_color_by_segment": bool(
+                    style_config.get("label_color_by_segment", DEFAULT_STYLE_CONFIG["label_color_by_segment"])
+                ),
                 "label_outline_color": str(style_config.get("label_outline_color", LABEL_OUTLINE_COLOR)),
                 "label_outline_width_px": int(style_config.get("label_outline_width_px", LABEL_OUTLINE_WIDTH)),
                 "label_offset_px": spec.label_offset_px,
@@ -600,12 +626,16 @@ def draw_dimension_chains_overlay(
     for chain in prepared_chains:
         if not chain["extension_visible"]:
             continue
+        outline_width = float(chain["extension_outline_width_px"])
+        outline = chain["line_outline"]
+        if outline_width <= 0 or outline[3] <= 0:
+            continue
         for point, baseline_point in zip(chain["source_points"], chain["baseline_points"]):
             canvas.dashed_line(
                 point,
                 baseline_point,
-                width=5.0,
-                fill=(255, 255, 255, clamp_alpha(min(190, max(130, int(chain["line_alpha"]) + 26)))),
+                width=outline_width,
+                fill=outline,
                 dash_px=float(chain["extension_dash_px"]),
                 gap_px=float(chain["extension_gap_px"]),
             )
@@ -627,15 +657,18 @@ def draw_dimension_chains_overlay(
             )
 
     for chain in prepared_chains:
-        halo = (255, 255, 255, clamp_alpha(min(190, max(130, int(chain["line_alpha"]) + 26))))
+        halo = chain["line_outline"]
+        outline_width = float(chain["line_outline_width_px"])
+        if outline_width <= 0 or halo[3] <= 0:
+            continue
         baseline_points = chain["baseline_points"]
         source_points = chain["source_points"]
         tick = chain["tick"]
         for start, end in zip(baseline_points, baseline_points[1:]):
-            canvas.line(start, end, width=6.5, fill=halo)
+            canvas.line(start, end, width=outline_width, fill=halo)
         for point, source_point in zip(baseline_points, source_points):
             tick_start, tick_end = one_sided_tick(point, source_point, tick)
-            canvas.line(tick_start, tick_end, width=6.5, fill=halo)
+            canvas.line(tick_start, tick_end, width=outline_width, fill=halo)
 
     for chain in prepared_chains:
         segments = chain["segments"]
@@ -760,15 +793,18 @@ def draw_radius_callout_overlay(
     projected = projection["projection"]
     canvas = OverlayCanvas(image)
 
-    line_alpha = clamp_alpha(int(style_config.get("line_alpha", DEFAULT_LINE_ALPHA)))
-    line_width_px = float(style_config.get("line_width_px", 3.0))
-    tick_length_px = float(style_config.get("tick_length_px", 18.0))
-    label_font_size_px = int(style_config.get("label_font_size_px", 28))
+    line_alpha = clamp_alpha(int(style_config.get("line_alpha", DEFAULT_STYLE_CONFIG["line_alpha"])))
+    line_width_px = float(style_config.get("line_width_px", DEFAULT_STYLE_CONFIG["line_width_px"]))
+    radial_dash_px = float(style_config.get("radial_dash_px", DEFAULT_STYLE_CONFIG["radial_dash_px"]))
+    radial_gap_px = float(style_config.get("radial_gap_px", DEFAULT_STYLE_CONFIG["radial_gap_px"]))
+    tick_length_px = float(style_config.get("tick_length_px", DEFAULT_STYLE_CONFIG["tick_length_px"]))
+    label_font_size_px = int(style_config.get("label_font_size_px", DEFAULT_STYLE_CONFIG["label_font_size_px"]))
     label_outline_color = str(style_config.get("label_outline_color", LABEL_OUTLINE_COLOR))
     label_outline_width_px = int(style_config.get("label_outline_width_px", LABEL_OUTLINE_WIDTH))
     auto_adjust_labels = auto_adjust_labels_enabled(style_config)
+    radial_outline_width_px = float(style_config.get("radial_line_outline_width_px", RADIAL_LINE_OUTLINE_WIDTH_PX))
 
-    halo = (255, 255, 255, clamp_alpha(min(190, max(130, line_alpha + 26))))
+    halo = line_outline_rgba(style_config)
     text_metadata = {}
     callout_metadata = {}
     occupied_labels: list[tuple[float, float, float, float]] = []
@@ -788,12 +824,18 @@ def draw_radius_callout_overlay(
             edge[1] - direction[1] * arc_gap,
         )
 
-        dash_px = max(line_width_px * 5.0, 14.0)
-        gap_px = max(line_width_px * 3.2, 9.0)
-        canvas.dashed_line(center, leader_end, width=line_width_px + 3.5, fill=halo, dash_px=dash_px, gap_px=gap_px)
+        if radial_outline_width_px > 0 and halo[3] > 0:
+            canvas.dashed_line(
+                center,
+                leader_end,
+                width=radial_outline_width_px,
+                fill=halo,
+                dash_px=radial_dash_px,
+                gap_px=radial_gap_px,
+            )
 
         color = (*ImageColor.getrgb(callout.color)[:3], line_alpha)
-        canvas.dashed_line(center, leader_end, width=line_width_px, fill=color, dash_px=dash_px, gap_px=gap_px)
+        canvas.dashed_line(center, leader_end, width=line_width_px, fill=color, dash_px=radial_dash_px, gap_px=radial_gap_px)
         center_radius = max(2, round(line_width_px * 1.15 * canvas.scale))
         scaled_center = canvas.scaled_point(center)
         canvas.draw.ellipse(
@@ -894,15 +936,16 @@ def draw_arc_callout_overlay(
     projected = projection["projection"]
     canvas = OverlayCanvas(image)
 
-    line_alpha = clamp_alpha(int(style_config.get("line_alpha", DEFAULT_LINE_ALPHA)))
-    line_width_px = float(style_config.get("line_width_px", 3.0))
-    tick_length_px = float(style_config.get("tick_length_px", 18.0))
-    label_font_size_px = int(style_config.get("label_font_size_px", 28))
+    line_alpha = clamp_alpha(int(style_config.get("line_alpha", DEFAULT_STYLE_CONFIG["line_alpha"])))
+    line_width_px = float(style_config.get("line_width_px", DEFAULT_STYLE_CONFIG["line_width_px"]))
+    tick_length_px = float(style_config.get("tick_length_px", DEFAULT_STYLE_CONFIG["tick_length_px"]))
+    label_font_size_px = int(style_config.get("label_font_size_px", DEFAULT_STYLE_CONFIG["label_font_size_px"]))
     label_outline_color = str(style_config.get("label_outline_color", LABEL_OUTLINE_COLOR))
     label_outline_width_px = int(style_config.get("label_outline_width_px", LABEL_OUTLINE_WIDTH))
     auto_adjust_labels = auto_adjust_labels_enabled(style_config)
+    arc_outline_width_px = float(style_config.get("arc_line_outline_width_px", ARC_LINE_OUTLINE_WIDTH_PX))
 
-    halo = (255, 255, 255, clamp_alpha(min(190, max(130, line_alpha + 26))))
+    halo = line_outline_rgba(style_config)
     text_metadata = {}
     callout_metadata = {}
     occupied_labels: list[tuple[float, float, float, float]] = []
@@ -915,7 +958,8 @@ def draw_arc_callout_overlay(
         if len(points) < 2:
             raise ValueError(f"Projected arc callout {callout.id!r} needs at least two points")
         color = (*ImageColor.getrgb(callout.color)[:3], line_alpha)
-        canvas.polyline(points, width=line_width_px + 3.5, fill=halo)
+        if arc_outline_width_px > 0 and halo[3] > 0:
+            canvas.polyline(points, width=arc_outline_width_px, fill=halo)
         canvas.polyline(points, width=line_width_px, fill=color)
 
         for endpoint, neighbor in ((points[0], points[1]), (points[-1], points[-2])):
@@ -925,12 +969,13 @@ def draw_arc_callout_overlay(
                 continue
             normal = (-tangent[1] / length, tangent[0] / length)
             tick = (normal[0] * tick_length_px * 0.35, normal[1] * tick_length_px * 0.35)
-            canvas.line(
-                (endpoint[0] - tick[0], endpoint[1] - tick[1]),
-                (endpoint[0] + tick[0], endpoint[1] + tick[1]),
-                width=line_width_px + 3.5,
-                fill=halo,
-            )
+            if arc_outline_width_px > 0 and halo[3] > 0:
+                canvas.line(
+                    (endpoint[0] - tick[0], endpoint[1] - tick[1]),
+                    (endpoint[0] + tick[0], endpoint[1] + tick[1]),
+                    width=arc_outline_width_px,
+                    fill=halo,
+                )
             canvas.line(
                 (endpoint[0] - tick[0], endpoint[1] - tick[1]),
                 (endpoint[0] + tick[0], endpoint[1] + tick[1]),
@@ -1033,17 +1078,21 @@ def draw_angle_radius_callout_overlay(
     projected = projection["projection"]
     canvas = OverlayCanvas(image)
 
-    line_alpha = clamp_alpha(int(style_config.get("line_alpha", DEFAULT_LINE_ALPHA)))
-    line_width_px = float(style_config.get("line_width_px", 3.0))
+    line_alpha = clamp_alpha(int(style_config.get("line_alpha", DEFAULT_STYLE_CONFIG["line_alpha"])))
+    line_width_px = float(style_config.get("line_width_px", DEFAULT_STYLE_CONFIG["line_width_px"]))
     radial_width_px = float(style_config.get("radial_line_width_px", line_width_px))
-    radial_dash_px = float(style_config.get("radial_dash_px", max(line_width_px * 5.0, 14.0)))
-    radial_gap_px = float(style_config.get("radial_gap_px", max(line_width_px * 3.2, 9.0)))
-    label_font_size_px = int(style_config.get("label_font_size_px", 28))
+    radial_dash_px = float(style_config.get("radial_dash_px", DEFAULT_STYLE_CONFIG["radial_dash_px"]))
+    radial_gap_px = float(style_config.get("radial_gap_px", DEFAULT_STYLE_CONFIG["radial_gap_px"]))
+    radial_outline_width_px = float(style_config.get("radial_line_outline_width_px", RADIAL_LINE_OUTLINE_WIDTH_PX))
+    angle_arc_outline_width_px = float(style_config.get("angle_radius_arc_outline_width_px", ANGLE_RADIUS_ARC_OUTLINE_WIDTH_PX))
+    label_font_size_px = int(style_config.get("label_font_size_px", DEFAULT_STYLE_CONFIG["label_font_size_px"]))
     label_outline_color = str(style_config.get("label_outline_color", LABEL_OUTLINE_COLOR))
     label_outline_width_px = int(style_config.get("label_outline_width_px", LABEL_OUTLINE_WIDTH))
-    angle_fill_alpha = clamp_alpha(int(style_config.get("angle_fill_alpha", 30)))
-    angle_fill_color = str(style_config.get("angle_fill_color", "#d9ead3"))
-    label_avoidance_padding_px = float(style_config.get("label_avoidance_padding_px", 3.0))
+    angle_fill_alpha = clamp_alpha(int(style_config.get("angle_fill_alpha", DEFAULT_STYLE_CONFIG["angle_fill_alpha"])))
+    angle_fill_color = str(style_config.get("angle_fill_color", DEFAULT_STYLE_CONFIG["angle_fill_color"]))
+    label_avoidance_padding_px = float(
+        style_config.get("label_avoidance_padding_px", DEFAULT_STYLE_CONFIG["label_avoidance_padding_px"])
+    )
     auto_adjust_labels = auto_adjust_labels_enabled(style_config)
     text_metadata = {}
     callout_metadata = {}
@@ -1063,7 +1112,7 @@ def draw_angle_radius_callout_overlay(
         end = points[-1]
         arc_color = (*ImageColor.getrgb(callout.arc_color)[:3], line_alpha)
         radial_color = (*ImageColor.getrgb(callout.radius_color)[:3], line_alpha)
-        halo = (255, 255, 255, clamp_alpha(min(180, max(120, line_alpha + 18))))
+        halo = line_outline_rgba(style_config, alpha_key="angle_radius_outline_alpha", fallback_alpha=ANGLE_RADIUS_OUTLINE_ALPHA)
         radius_vector = (radius_edge[0] - center[0], radius_edge[1] - center[1])
         radius_length = (radius_vector[0] ** 2 + radius_vector[1] ** 2) ** 0.5
         if radius_length <= 1e-6:
@@ -1086,14 +1135,15 @@ def draw_angle_radius_callout_overlay(
                 fill=(*ImageColor.getrgb(angle_fill_color)[:3], angle_fill_alpha),
             )
 
-        canvas.dashed_line(
-            center,
-            radius_leader_end,
-            width=line_width_px + 3.5,
-            fill=halo,
-            dash_px=radial_dash_px,
-            gap_px=radial_gap_px,
-        )
+        if radial_outline_width_px > 0 and halo[3] > 0:
+            canvas.dashed_line(
+                center,
+                radius_leader_end,
+                width=radial_outline_width_px,
+                fill=halo,
+                dash_px=radial_dash_px,
+                gap_px=radial_gap_px,
+            )
         canvas.dashed_line(
             center,
             radius_leader_end,
@@ -1103,7 +1153,8 @@ def draw_angle_radius_callout_overlay(
             gap_px=radial_gap_px,
         )
 
-        canvas.polyline(points, width=line_width_px + 3.2, fill=halo)
+        if angle_arc_outline_width_px > 0 and halo[3] > 0:
+            canvas.polyline(points, width=angle_arc_outline_width_px, fill=halo)
         canvas.polyline(points, width=line_width_px, fill=arc_color)
 
         dot_radius = max(2, round((line_width_px * 1.05) * canvas.scale))
@@ -1299,9 +1350,9 @@ def image_label_center(image: Image.Image, *, position: str, offset_px: Sequence
 def image_label_title_positions(style_config: Mapping[str, object]) -> tuple[str, ...]:
     raw_positions = style_config.get("image_label_title_positions")
     if raw_positions is None:
-        return ("bottom",)
+        raw_positions = DEFAULT_STYLE_CONFIG["image_label_title_positions"]
     if not isinstance(raw_positions, Sequence) or isinstance(raw_positions, (str, bytes)):
-        return ("bottom",)
+        raw_positions = DEFAULT_STYLE_CONFIG["image_label_title_positions"]
     positions: list[str] = []
     for raw_position in raw_positions:
         position = str(raw_position)
@@ -1323,20 +1374,40 @@ def draw_image_label_overlay(
     label_color = str(style_config.get("label_color", LABEL_TEXT_COLOR))
     label_outline_color = str(style_config.get("label_outline_color", LABEL_OUTLINE_COLOR))
     label_outline_width_px = int(style_config.get("label_outline_width_px", LABEL_OUTLINE_WIDTH))
-    label_font_size_px = int(style_config.get("label_font_size_px", 28))
-    margin_px = float(style_config.get("image_label_margin_px", 42))
-    title_area_enabled = bool(style_config.get("image_label_title_area", True))
-    title_padding_x_px = float(style_config.get("image_label_title_padding_x_px", 34))
-    title_padding_y_px = float(style_config.get("image_label_title_padding_y_px", 12))
-    title_radius_px = int(style_config.get("image_label_title_radius_px", 18))
-    title_fill_color = str(style_config.get("image_label_title_fill_color", "#ffffff"))
-    title_fill_alpha = int(style_config.get("image_label_title_fill_alpha", 224))
-    title_outline_color = str(style_config.get("image_label_title_outline_color", "#000000"))
-    title_outline_alpha = int(style_config.get("image_label_title_outline_alpha", 255))
-    title_outline_width_px = int(style_config.get("image_label_title_outline_width_px", 4))
-    title_min_width_px = float(style_config.get("image_label_title_min_width_px", 620))
-    title_bottom_margin_px = float(style_config.get("image_label_title_bottom_margin_px", 18))
-    title_top_margin_px = float(style_config.get("image_label_title_top_margin_px", title_bottom_margin_px))
+    label_font_size_px = int(style_config.get("label_font_size_px", DEFAULT_STYLE_CONFIG["label_font_size_px"]))
+    margin_px = float(style_config.get("image_label_margin_px", DEFAULT_STYLE_CONFIG["image_label_margin_px"]))
+    title_area_enabled = bool(style_config.get("image_label_title_area", DEFAULT_STYLE_CONFIG["image_label_title_area"]))
+    title_padding_x_px = float(
+        style_config.get("image_label_title_padding_x_px", DEFAULT_STYLE_CONFIG["image_label_title_padding_x_px"])
+    )
+    title_padding_y_px = float(
+        style_config.get("image_label_title_padding_y_px", DEFAULT_STYLE_CONFIG["image_label_title_padding_y_px"])
+    )
+    title_radius_px = int(style_config.get("image_label_title_radius_px", DEFAULT_STYLE_CONFIG["image_label_title_radius_px"]))
+    title_fill_color = str(
+        style_config.get("image_label_title_fill_color", DEFAULT_STYLE_CONFIG["image_label_title_fill_color"])
+    )
+    title_fill_alpha = int(
+        style_config.get("image_label_title_fill_alpha", DEFAULT_STYLE_CONFIG["image_label_title_fill_alpha"])
+    )
+    title_outline_color = str(
+        style_config.get("image_label_title_outline_color", DEFAULT_STYLE_CONFIG["image_label_title_outline_color"])
+    )
+    title_outline_alpha = int(
+        style_config.get("image_label_title_outline_alpha", DEFAULT_STYLE_CONFIG["image_label_title_outline_alpha"])
+    )
+    title_outline_width_px = int(
+        style_config.get("image_label_title_outline_width_px", DEFAULT_STYLE_CONFIG["image_label_title_outline_width_px"])
+    )
+    title_min_width_px = float(
+        style_config.get("image_label_title_min_width_px", DEFAULT_STYLE_CONFIG["image_label_title_min_width_px"])
+    )
+    title_bottom_margin_px = float(
+        style_config.get("image_label_title_bottom_margin_px", DEFAULT_STYLE_CONFIG["image_label_title_bottom_margin_px"])
+    )
+    title_top_margin_px = float(
+        style_config.get("image_label_title_top_margin_px", DEFAULT_STYLE_CONFIG["image_label_title_top_margin_px"])
+    )
     auto_adjust_labels = auto_adjust_labels_enabled(style_config)
 
     metadata = {}

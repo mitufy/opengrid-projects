@@ -42,13 +42,6 @@ annotations:
   style:
     # auto_adjust_labels: true
     $constant: default_annotation_style
-    colors:
-      compartment_width:
-        $constant: annotation_color_black
-      compartment_depth:
-        $constant: annotation_color_black
-      compartment_height:
-        $constant: annotation_color_black
   chains:
   # - ids: [holder_back_offset]
   #   optional: true
@@ -68,6 +61,8 @@ annotations:
   #   label_offset_px: -28
   #   font_size_px: 26
   - ids: [compartment_height]
+    color:
+      $constant: annotation_color_black
     display_offset_mm: [0, 0, 0]
     line_offset_px: -10
     label_offset_px: -24

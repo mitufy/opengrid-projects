@@ -97,30 +97,35 @@ def annotation_group_is_optional(config: Mapping[str, object]) -> bool:
 @dataclass(frozen=True)
 class AnnotationGroupContext:
     offset: tuple[float, float, float]
+    color: str | None
     colors: Mapping[str, object]
     show_values: bool
     label_overrides: Mapping[str, object]
     optional: bool
 
 
-def color_override(colors: Mapping[str, object], annotation_id: str) -> str | None:
-    color = colors.get(annotation_id)
-    if color is None:
+def color_text(value: object) -> str | None:
+    if not isinstance(value, str):
         return None
-    color_text = str(color).strip()
-    return color_text or None
+    text = value.strip()
+    return text or None
+
+
+def color_override(colors: Mapping[str, object], annotation_id: str) -> str | None:
+    return color_text(colors.get(annotation_id))
 
 
 def annotation_line_color(
     *,
     style_config: Mapping[str, object],
     colors: Mapping[str, object],
+    color: str | None,
     annotation_id: str,
     parameter_type: str,
     index: int = 0,
     fallback: str,
 ) -> str:
-    return color_override(colors, annotation_id) or type_line_color(
+    return color_override(colors, annotation_id) or color or type_line_color(
         style_config,
         parameter_type,
         index=index,
@@ -142,7 +147,7 @@ def annotation_group_context(
     expression_context: Mapping[str, float] | None,
     aliases: Mapping[str, object] | None,
 ) -> AnnotationGroupContext:
-    colors = style_config.get("colors", {})
+    colors = group_config.get("colors", {})
     if not isinstance(colors, Mapping):
         colors = {}
     return AnnotationGroupContext(
@@ -152,6 +157,7 @@ def annotation_group_context(
             name="display_offset_mm",
             context=expression_context,
         ),
+        color=color_text(group_config.get("color")),
         colors=colors,
         show_values=bool(style_config.get("show_values", False)),
         label_overrides=label_overrides_from_config(group_config, aliases),
@@ -192,6 +198,7 @@ def collect_dimension_chain(
         color = annotation_line_color(
             style_config=style_config,
             colors=context.colors,
+            color=context.color,
             annotation_id=annotation_key,
             parameter_type=parameter_type,
             index=index if aligned else 0,
@@ -247,6 +254,7 @@ def collect_radius_callouts(
         color = annotation_line_color(
             style_config=style_config,
             colors=context.colors,
+            color=context.color,
             annotation_id=annotation_key,
             parameter_type=parameter_type,
             fallback=DEFAULT_LINE_COLORS.get(annotation_key, "#8b6f2f"),
@@ -297,6 +305,7 @@ def collect_arc_callouts(
         color = annotation_line_color(
             style_config=style_config,
             colors=context.colors,
+            color=context.color,
             annotation_id=annotation_key,
             parameter_type=parameter_type,
             fallback=DEFAULT_LINE_COLORS.get(annotation_key, "#8b6f2f"),
@@ -368,6 +377,7 @@ def collect_angle_radius_callouts(
     arc_color = (
         color_override(context.colors, angle_id)
         or color_override(context.colors, arc_id)
+        or context.color
         or type_line_color(
             style_config,
             angle_type,
@@ -377,6 +387,7 @@ def collect_angle_radius_callouts(
     radius_color = annotation_line_color(
         style_config=style_config,
         colors=context.colors,
+        color=context.color,
         annotation_id=radius_id,
         parameter_type=radius_type,
         fallback=DEFAULT_LINE_COLORS.get(radius_id, "#8b6f2f"),

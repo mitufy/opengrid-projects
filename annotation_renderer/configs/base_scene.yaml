@@ -1,9 +1,9 @@
 $schema: ../schemas/annotation-render-config.schema.json
 job_name: opengrid_annotation_base
 constants:
-  annotation_label_font_size_px: 38
-  annotation_title_font_size_px: 40
-  annotation_aux_label_font_size_px: 30
+  annotation_label_font_size_px: 58
+  annotation_title_font_size_px: 68
+  annotation_aux_label_font_size_px: 60
   annotation_font: sans
   annotation_color_black: '#000000'
   annotation_color_blue: '#4169E1'
@@ -51,31 +51,19 @@ constants:
       location_mm: [14, 0, -14]
       rotation_deg: [-90, 180, 0]
   default_annotation_style:
-    line_alpha: 255
-    line_width_px: 2.3
-    extension_width_px: 1.1
+    preset: makerworld_technical_light
+    extension_width_px: 2
     tick_length_px: 14
-    radial_line_width_px: 2.1
+    radial_line_width_px: 2.5
     label_font_size_px:
       $constant: annotation_label_font_size_px
+    label_color:
+      $constant: annotation_color_black
+    label_outline_color:
+      $constant: annotation_color_white
     angle_fill_color:
       $constant: annotation_color_red
     image_label_margin_px: 32
-    image_label_title_area: true
-    image_label_title_positions: [bottom]
-    image_label_title_padding_x_px: 34
-    image_label_title_padding_y_px: 12
-    image_label_title_radius_px: 18
-    image_label_title_fill_color:
-      $constant: annotation_color_white
-    image_label_title_fill_alpha: 224
-    image_label_title_outline_color:
-      $constant: annotation_color_black
-    image_label_title_outline_alpha: 255
-    image_label_title_outline_width_px: 4
-    image_label_title_min_width_px: 620
-    image_label_title_top_margin_px: 18
-    image_label_title_bottom_margin_px: 18
     type_styles:
       grids:
         line_colors:

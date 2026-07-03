@@ -51,16 +51,24 @@ def schema_object_property(definition_name: str, property_name: str) -> Mapping[
 
 
 def schema_property_enum(definition_name: str, property_name: str) -> set[str]:
+    return set(schema_property_enum_values(definition_name, property_name))
+
+
+def schema_property_enum_values(definition_name: str, property_name: str) -> tuple[str, ...]:
     property_schema = schema_object_property(definition_name, property_name)
     values = property_schema.get("enum")
     if not isinstance(values, list) or not all(isinstance(item, str) for item in values):
         raise ConfigError(f"Schema property {definition_name}.{property_name} does not expose a string enum")
-    return set(values)
+    return tuple(values)
 
 
 def schema_definition_enum(definition_name: str) -> set[str]:
+    return set(schema_definition_enum_values(definition_name))
+
+
+def schema_definition_enum_values(definition_name: str) -> tuple[str, ...]:
     definition = schema_definition(definition_name)
     values = definition.get("enum")
     if not isinstance(values, list) or not all(isinstance(item, str) for item in values):
         raise ConfigError(f"Schema definition {definition_name!r} does not expose a string enum")
-    return set(values)
+    return tuple(values)

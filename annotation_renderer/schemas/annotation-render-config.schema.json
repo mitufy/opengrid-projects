@@ -1371,6 +1371,26 @@
         }
       ]
     },
+    "colorMap": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/constantRef"
+              }
+            ]
+          }
+        },
+        {
+          "$ref": "#/$defs/constantRef"
+        }
+      ]
+    },
     "annotationGroup": {
       "anyOf": [
         {
@@ -1409,6 +1429,19 @@
             "labels": {
               "$ref": "#/$defs/labelsMap"
             },
+            "color": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/$defs/constantRef"
+                }
+              ]
+            },
+            "colors": {
+              "$ref": "#/$defs/colorMap"
+            },
             "line_offset_px": {
               "type": "number"
             },
@@ -1426,8 +1459,29 @@
             "line_width_px": {
               "type": "number"
             },
+            "line_outline_color": {
+              "type": "string"
+            },
+            "line_outline_alpha": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "angle_radius_outline_alpha": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "line_outline_width_px": {
+              "type": "number",
+              "minimum": 0
+            },
             "extension_width_px": {
               "type": "number"
+            },
+            "extension_outline_width_px": {
+              "type": "number",
+              "minimum": 0
             },
             "extension_visible": {
               "type": "boolean"
@@ -1465,11 +1519,23 @@
             "radial_line_width_px": {
               "type": "number"
             },
+            "radial_line_outline_width_px": {
+              "type": "number",
+              "minimum": 0
+            },
             "radial_dash_px": {
               "type": "number"
             },
             "radial_gap_px": {
               "type": "number"
+            },
+            "arc_line_outline_width_px": {
+              "type": "number",
+              "minimum": 0
+            },
+            "angle_radius_arc_outline_width_px": {
+              "type": "number",
+              "minimum": 0
             },
             "angle_fill_color": {
               "type": "string"
@@ -1478,6 +1544,10 @@
               "type": "integer",
               "minimum": 0,
               "maximum": 255
+            },
+            "label_avoidance_padding_px": {
+              "type": "number",
+              "minimum": 0
             },
             "show_label": {
               "type": "boolean"
@@ -1533,6 +1603,19 @@
             "labels": {
               "$ref": "#/$defs/labelsMap"
             },
+            "color": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/$defs/constantRef"
+                }
+              ]
+            },
+            "colors": {
+              "$ref": "#/$defs/colorMap"
+            },
             "angle_label_offset_px": {
               "type": "number"
             },
@@ -1553,14 +1636,43 @@
             "line_width_px": {
               "type": "number"
             },
+            "line_outline_color": {
+              "type": "string"
+            },
+            "line_outline_alpha": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "angle_radius_outline_alpha": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "line_outline_width_px": {
+              "type": "number",
+              "minimum": 0
+            },
             "radial_line_width_px": {
               "type": "number"
+            },
+            "radial_line_outline_width_px": {
+              "type": "number",
+              "minimum": 0
             },
             "radial_dash_px": {
               "type": "number"
             },
             "radial_gap_px": {
               "type": "number"
+            },
+            "arc_line_outline_width_px": {
+              "type": "number",
+              "minimum": 0
+            },
+            "angle_radius_arc_outline_width_px": {
+              "type": "number",
+              "minimum": 0
             },
             "label_font_size_px": {
               "type": "integer",
@@ -1590,6 +1702,10 @@
               "type": "integer",
               "minimum": 0,
               "maximum": 255
+            },
+            "label_avoidance_padding_px": {
+              "type": "number",
+              "minimum": 0
             },
             "show_angle_label": {
               "type": "boolean"
@@ -1713,8 +1829,29 @@
             "line_width_px": {
               "type": "number"
             },
+            "line_outline_color": {
+              "type": "string"
+            },
+            "line_outline_alpha": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "angle_radius_outline_alpha": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "line_outline_width_px": {
+              "type": "number",
+              "minimum": 0
+            },
             "extension_width_px": {
               "type": "number"
+            },
+            "extension_outline_width_px": {
+              "type": "number",
+              "minimum": 0
             },
             "extension_visible": {
               "type": "boolean"
@@ -1752,11 +1889,23 @@
             "radial_line_width_px": {
               "type": "number"
             },
+            "radial_line_outline_width_px": {
+              "type": "number",
+              "minimum": 0
+            },
             "radial_dash_px": {
               "type": "number"
             },
             "radial_gap_px": {
               "type": "number"
+            },
+            "arc_line_outline_width_px": {
+              "type": "number",
+              "minimum": 0
+            },
+            "angle_radius_arc_outline_width_px": {
+              "type": "number",
+              "minimum": 0
             },
             "angle_fill_color": {
               "type": "string"
@@ -1765,6 +1914,10 @@
               "type": "integer",
               "minimum": 0,
               "maximum": 255
+            },
+            "label_avoidance_padding_px": {
+              "type": "number",
+              "minimum": 0
             },
             "image_label_margin_px": {
               "type": "number",
@@ -1834,9 +1987,6 @@
             },
             "auto_adjust_labels": {
               "type": "boolean"
-            },
-            "colors": {
-              "$ref": "#/$defs/labelsMap"
             },
             "type_styles": {
               "type": "object",

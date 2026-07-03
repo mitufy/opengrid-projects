@@ -9,6 +9,8 @@ from annotation_renderer.config_defaults import (
     ANIMATION_CONFIG_KEYS,
     AXES,
     CONSTANT_REF_KEY,
+    DEFAULT_RENDER_PRESET_NAME,
+    DEFAULT_STYLE_PRESET_NAME,
     INTERPOLATION_NAMES,
     LOCATION_OFFSET_KEYFRAME_KEYS,
     MESH_SHADING_VALUES,
@@ -20,6 +22,7 @@ from annotation_renderer.config_defaults import (
     RENDER_CAMERA_VIEW_PRESET_VALUES,
     RENDER_CONFIG_KEYS,
     RENDER_ENGINE_VALUES,
+    RENDER_LIGHTING_PRESETS,
     RENDER_LIGHTING_PRESET_VALUES,
     RENDER_OUTPUT_MODE_VALUES,
     RENDER_PRESETS,
@@ -187,7 +190,7 @@ def validate_scene_object_defaults(defaults: object) -> None:
         raise ConfigError("scene.object_defaults.replace_target_object must be a boolean")
     if "inherit_target_transform" in defaults and not isinstance(defaults["inherit_target_transform"], bool):
         raise ConfigError("scene.object_defaults.inherit_target_transform must be a boolean")
-    if "mesh_shading" in defaults and defaults["mesh_shading"] not in {"flat", "smooth", "weighted_normals", "auto_smooth"}:
+    if "mesh_shading" in defaults and defaults["mesh_shading"] not in MESH_SHADING_VALUES:
         raise ConfigError("scene.object_defaults.mesh_shading is not supported")
     validate_material_config(defaults.get("material"), name="scene.object_defaults.material")
     validate_partial_scene_transform(defaults.get("transform"), name="scene.object_defaults.transform")
@@ -297,7 +300,7 @@ def validate_lighting_config(value: object, *, name: str = "render.lighting") ->
         return
     if isinstance(value, str):
         if value not in RENDER_LIGHTING_PRESET_VALUES:
-            choices = ", ".join(sorted(RENDER_LIGHTING_PRESET_VALUES))
+            choices = ", ".join(RENDER_LIGHTING_PRESETS)
             raise ConfigError(f"{name} must be one of {choices}")
         return
     if not isinstance(value, Mapping):
@@ -428,7 +431,7 @@ def resolve_render(render_config: object) -> dict[str, object]:
         render_config,
         presets=RENDER_PRESETS,
         name="render",
-        default_preset="cycles_standard_scene",
+        default_preset=DEFAULT_RENDER_PRESET_NAME,
     )
     validate_render_config(render)
     return render
@@ -738,6 +741,34 @@ def validate_string_mapping(value: object, *, name: str) -> None:
         raise ConfigError(f"{name} must map strings to strings")
 
 
+def is_constant_ref(value: object) -> bool:
+    return (
+        isinstance(value, Mapping)
+        and set(value.keys()) == {CONSTANT_REF_KEY}
+        and isinstance(value.get(CONSTANT_REF_KEY), str)
+        and bool(str(value.get(CONSTANT_REF_KEY)).strip())
+    )
+
+
+def validate_color_mapping(value: object, *, name: str) -> None:
+    if is_constant_ref(value):
+        return
+    if not isinstance(value, Mapping):
+        raise ConfigError(f"{name} must be an object")
+    for key, item in value.items():
+        if not isinstance(key, str) or not key.strip():
+            raise ConfigError(f"{name} keys must be non-empty strings")
+        if isinstance(item, str) or is_constant_ref(item):
+            continue
+        raise ConfigError(f"{name}.{key} must be a string or constant reference")
+
+
+def validate_color_value(value: object, *, name: str) -> None:
+    if isinstance(value, str) or is_constant_ref(value):
+        return
+    raise ConfigError(f"{name} must be a string or constant reference")
+
+
 def validate_type_styles(value: object, *, name: str) -> None:
     if not isinstance(value, Mapping):
         raise ConfigError(f"{name} must be an object")
@@ -776,16 +807,14 @@ def validate_annotation_style(value: object, *, name: str = "annotations.style")
         return
     if not isinstance(value, Mapping):
         raise ConfigError(f"{name} must be an object or preset name")
-    if CONSTANT_REF_KEY in value:
+    if set(value.keys()) == {CONSTANT_REF_KEY}:
         return
     global_style_keys = STYLE_OVERRIDE_KEYS - {"show_label", "show_angle_label", "show_radius_label"}
-    validate_allowed_keys(value, allowed=global_style_keys | {"preset", "colors", "type_styles"}, name=name)
-    preset = str(value.get("preset", "makerworld_technical_light"))
+    validate_allowed_keys(value, allowed=global_style_keys | {CONSTANT_REF_KEY, "preset", "type_styles"}, name=name)
+    preset = str(value.get("preset", DEFAULT_STYLE_PRESET_NAME))
     if preset not in STYLE_PRESETS:
         raise ConfigError(f"Unknown annotation style preset {preset!r}")
     validate_style_override_fields(value, name=name)
-    if "colors" in value:
-        validate_string_mapping(value["colors"], name=f"{name}.colors")
     if "type_styles" in value:
         validate_type_styles(value["type_styles"], name=f"{name}.type_styles")
 
@@ -868,6 +897,11 @@ def validate_annotation_group(value: object, *, name: str) -> None:
             raise ConfigError(f"{name}.labels must be an object")
         if not all(isinstance(key, str) and isinstance(label, str) for key, label in labels.items()):
             raise ConfigError(f"{name}.labels must map annotation IDs to strings")
+    colors = value.get("colors", {})
+    if colors is not None:
+        validate_color_mapping(colors, name=f"{name}.colors")
+    if "color" in value:
+        validate_color_value(value["color"], name=f"{name}.color")
     for key in ("line_offset_px", "label_offset_px", "label_along_offset_px"):
         validate_number_field(value, key, name=name)
     validate_style_override_fields(value, name=name)
@@ -891,6 +925,11 @@ def validate_angle_radius_group(value: object, *, name: str) -> None:
             raise ConfigError(f"{name}.labels must be an object")
         if not all(isinstance(key, str) and isinstance(label, str) for key, label in labels.items()):
             raise ConfigError(f"{name}.labels must map annotation IDs to strings")
+    colors = value.get("colors", {})
+    if colors is not None:
+        validate_color_mapping(colors, name=f"{name}.colors")
+    if "color" in value:
+        validate_color_value(value["color"], name=f"{name}.color")
     for key in ("show_angle_label", "show_radius_label"):
         if key in value and not isinstance(value[key], bool):
             raise ConfigError(f"{name}.{key} must be a boolean")

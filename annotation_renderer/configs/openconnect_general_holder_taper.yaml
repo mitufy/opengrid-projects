@@ -47,15 +47,10 @@ render:
 annotations:
   style:
     $constant: default_annotation_style
-    colors:
-      compartment_width:
-        $constant: annotation_color_black
-      compartment_depth:
-        $constant: annotation_color_black
-      # compartment_bottom_depth: '#FF0000'
-      # compartment_bottom_width: '#FF0000'
   chains:
   - ids: [compartment_width]
+    color:
+      $constant: annotation_color_black
     display_offset_mm: [0, 0, 0]
     line_offset_px: 50
     label_offset_px: 28
@@ -70,6 +65,8 @@ annotations:
       $constant: annotation_label_font_size_px
   - ids: [compartment_depth]
     optional: true
+    color:
+      $constant: annotation_color_black
     line_offset_px: -50
     label_offset_px: -28
     label_font_size_px:

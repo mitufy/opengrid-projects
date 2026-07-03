@@ -40,13 +40,6 @@ render:
 annotations:
   style:
     $constant: default_annotation_style
-    colors:
-      compartment_width:
-        $constant: annotation_color_black
-      compartment_depth:
-        $constant: annotation_color_black
-      compartment_height:
-        $constant: annotation_color_black
   # chains:
   # - ids: [compartment_width]
   #   display_offset_mm: [0, 0, 0]

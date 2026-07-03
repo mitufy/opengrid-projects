@@ -14,6 +14,9 @@ scene:
       location_mm: [56, 0, -28]
   transform:
     $constant: wall_placeholder_transform
+render:
+  fit_margin: 0
+  # camera_view: right
 annotations:
   style:
     $constant: default_annotation_style
@@ -22,14 +25,18 @@ annotations:
   chains:
   - ids: [depth_grids]
     line_offset_px: 0
-    label_offset_px: -30
+    label_offset_px: -50
     label_font_size_px:
       $constant: annotation_label_font_size_px
+    color:
+      $constant: annotation_color_black
   - ids: [horizontal_grids]
     line_offset_px: 0
-    label_offset_px: 30
+    label_offset_px: 50
     label_font_size_px:
       $constant: annotation_label_font_size_px
+    color:
+      $constant: annotation_color_black
   # - $constant: small_dimension_chain
   #   ids: [shelf_back_thickness]
   # - $constant: small_dimension_chain

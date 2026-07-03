@@ -11,9 +11,9 @@ from typing import Mapping, Sequence
 from annotation_renderer.config_defaults import (
     AXES,
     CONSTANT_REF_KEY,
+    DEFAULT_STYLE_PRESET_NAME,
     DEFAULT_LINE_COLORS,
     DEFAULT_TYPE_STYLES,
-    RENDER_PRESETS,
     STYLE_PRESETS,
 )
 from annotation_renderer.config_schema import ConfigError
@@ -97,14 +97,14 @@ def resolve_config_constants(config: Mapping[str, object], *, include_variants: 
 
 def resolve_style(style_config: object) -> dict[str, object]:
     if style_config is None:
-        return dict(STYLE_PRESETS["makerworld_technical_light"])
+        return dict(STYLE_PRESETS[DEFAULT_STYLE_PRESET_NAME])
     if isinstance(style_config, str):
         if style_config not in STYLE_PRESETS:
             raise ConfigError(f"Unknown annotation style preset {style_config!r}")
         return dict(STYLE_PRESETS[style_config])
     if not isinstance(style_config, Mapping):
         raise ConfigError("annotations.style must be an object or preset name")
-    preset_name = str(style_config.get("preset", "makerworld_technical_light"))
+    preset_name = str(style_config.get("preset", DEFAULT_STYLE_PRESET_NAME))
     if preset_name not in STYLE_PRESETS:
         raise ConfigError(f"Unknown annotation style preset {preset_name!r}")
     return deep_merge(STYLE_PRESETS[preset_name], normalize_style_aliases(style_config))
@@ -194,17 +194,6 @@ def resolve_scene_transform(
         "rotation_deg": list(rotation_deg),
         "scale": list(scale),
     }
-
-
-def resolve_render(render_config: object) -> dict[str, object]:
-    render = resolve_preset_mapping(
-        render_config,
-        presets=RENDER_PRESETS,
-        name="render",
-        default_preset="cycles_standard_scene",
-    )
-    validate_render_config(render)
-    return render
 
 
 def format_scad_define(name: str, value: object) -> str:

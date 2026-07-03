@@ -28,6 +28,21 @@ def load_runtime_config() -> dict:
 
 
 config = load_runtime_config()
+
+
+def render_default(key: str):
+    defaults = config.get("render_defaults", {})
+    if isinstance(defaults, dict) and key in defaults:
+        return defaults[key]
+    raise KeyError(f"Blender config missing render setting {key!r} and render_defaults.{key}")
+
+
+def render_setting(config_key: str, default_key: str | None = None):
+    if config_key in config:
+        return config[config_key]
+    return render_default(default_key or config_key)
+
+
 CAMERA_VIEW_DIRECTIONS = {
     "front": Vector((0.0, -1.0, 0.0)),
     "back": Vector((0.0, 1.0, 0.0)),
@@ -267,9 +282,9 @@ def animation_fit_points(objects, objects_by_id, animation_config):
 
 
 def fit_camera_to_objects(scene, camera, objects, fit_points=None):
-    if not config.get("fit_camera", False):
+    if not render_setting("fit_camera"):
         return None
-    margin = float(config.get("fit_margin", 0.08))
+    margin = float(render_setting("fit_margin"))
     mins, maxs, corners = bbox_from_points(fit_points) if fit_points is not None else combined_world_bbox(objects)
     target = (mins + maxs) / 2
     if camera.data.type == "ORTHO":
@@ -543,7 +558,7 @@ def apply_camera_view(camera, objects, fit_points=None):
 
 
 def configure_render(scene):
-    engine = config.get("render_engine", "cycles")
+    engine = render_setting("render_engine", "engine")
     if engine == "cycles":
         try:
             scene.render.engine = "CYCLES"
@@ -557,10 +572,10 @@ def configure_render(scene):
                 scene.render.engine = "BLENDER_EEVEE"
             except Exception:
                 scene.render.engine = "CYCLES"
-    scene.render.resolution_x = int(config.get("width", 1200))
-    scene.render.resolution_y = int(config.get("height", 900))
+    scene.render.resolution_x = int(render_setting("width"))
+    scene.render.resolution_y = int(render_setting("height"))
     scene.render.resolution_percentage = 100
-    quality = config.get("quality", "standard")
+    quality = render_setting("quality")
     sample_count = 32 if quality == "draft" else 192 if quality == "high" else 96
     try_set(getattr(scene, "cycles", None), "samples", sample_count)
     try_set(getattr(scene, "cycles", None), "use_denoising", True)
@@ -1143,7 +1158,7 @@ if not object_configs:
             "replace_target_object": config.get("replace_target_object", True),
             "inherit_target_transform": config.get("inherit_target_transform", True),
             "object_transform": config.get("object_transform"),
-            "mesh_shading": config.get("mesh_shading", "flat"),
+            "mesh_shading": render_setting("mesh_shading"),
         }
     ]
 
@@ -1151,7 +1166,7 @@ objects_by_id = {}
 rendered_objects = []
 for object_config in object_configs:
     obj = replace_or_import_object(object_config)
-    configure_shading(obj, object_config.get("mesh_shading", config.get("mesh_shading", "flat")))
+    configure_shading(obj, object_config.get("mesh_shading", render_setting("mesh_shading")))
     objects_by_id[object_config["id"]] = obj
     rendered_objects.append(obj)
 if not rendered_objects:

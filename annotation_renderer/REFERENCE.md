@@ -227,7 +227,7 @@ annotations:
 
 Keep using the existing `extends` and `$constant` composition features instead of YAML anchors or merge keys. That keeps configs portable between YAML and JSON.
 
-Checked-in model configs use `constants.default_annotation_style` from `configs/base_scene.yaml` for shared annotation line, font, color-type, and image-title defaults. Use `style.type_styles` for broad parameter categories such as `mm`, `grids`, `radius`, and `angle`. Use `style.colors` only as a per-parameter escape hatch; explicit entries there win over type styles. Keep model-specific offsets local, and override only the style keys that differ:
+Checked-in model configs use `constants.default_annotation_style` from `configs/base_scene.yaml` for shared annotation line, font, color-type, and image-title defaults. That constant inherits the `makerworld_technical_light` style preset and only keeps project-specific overrides. Use `style.type_styles` for broad parameter categories such as `mm`, `grids`, `radius`, and `angle`. Put color overrides on the chain or callout that uses them with `color`; use `colors` only when one group needs per-ID exceptions. Keep model-specific offsets local, and override only the style keys that differ:
 
 ```yaml
 constants:
@@ -679,6 +679,7 @@ annotations:
     auto_adjust_labels: true
   chains:
   - ids: [compartment_depth]
+    color: "#000000"
     label_offset_px: -28
     label_along_offset_px: 36
 ```
@@ -687,14 +688,15 @@ annotations:
 
 ```yaml
 radius_callouts:
-  - ids: [circular_corner_radius]
+  - ids: [hook_corner_fillet]
     display_offset_mm: [0, 0, 0]
     labels:
-      circular_corner_radius: hook_radius
+      hook_corner_fillet: corner_fillet
+    color: "#dc2626"
     label_offset_px: 54
 ```
 
-Use the optional `labels` mapping on a chain, radius callout, arc callout, or angle/radius callout to keep the SCAD metadata ID stable while shortening the text for a documentation image.
+Use the optional `labels` mapping on a chain, radius callout, arc callout, or angle/radius callout to keep the SCAD metadata ID stable while shortening the text for a documentation image. Use `color` on those same groups to override their type style color. If a multi-ID group needs mixed colors, add `colors` entries for the IDs that should differ from the group `color`.
 
 For radius parameters, prefer `radius_callouts` so the label is attached to a center-to-edge radius leader. Set `label_offset_px` to `0` to align the text directly with the radius line; non-zero values move the label perpendicular to that leader. `arc_callouts` are advanced: they draw a projected curve from emitted `kind=arc` helper metadata, which is usually internal and hidden from discovery:
 
@@ -752,6 +754,24 @@ extension_visible: false
 
 For annotation groups, `label_font_size_px` is the canonical label size field. `font_size_px` is accepted as an alias for consistency with image labels.
 
+Line outlines are controlled through `annotations.style` or the same keys on an individual annotation group:
+
+```yaml
+annotations:
+  style:
+    line_width_px: 4
+    line_outline_color: "#ffffff"
+    line_outline_alpha: 190
+    line_outline_width_px: 6.5
+    extension_outline_width_px: 5.0
+    radial_line_outline_width_px: 7.5
+    arc_line_outline_width_px: 7.5
+    angle_radius_outline_alpha: 180
+    angle_radius_arc_outline_width_px: 7.2
+```
+
+Set an outline width or alpha to `0` to disable that halo. `line_outline_width_px` applies to normal dimension lines and ticks, `extension_outline_width_px` applies to dashed extension lines, `radial_line_outline_width_px` applies to radius leaders, `arc_line_outline_width_px` applies to standalone arc callouts, and `angle_radius_arc_outline_width_px` applies to the arc portion of combined angle/radius callouts.
+
 ## Variants
 
 Use top-level `variants` when several images share most of the same scene and render settings. Each variant has a `name` and can either set complete sections or use a `set` object whose keys are dotted config paths:
@@ -786,7 +806,7 @@ Imported config paths are resolved relative to the importing config. The importe
 
 Current parameter-detail variants:
 
-* `sturdy_hook_circular_details`: `hook_width`, `circular_corner_radius`, `circular_tip_radius`, `circular_tip_angle`
+* `sturdy_hook_circular_details`: `hook_width`, `hook_corner_fillet`, `circular_tip_radius`, `circular_tip_angle`
 * `sturdy_hook_rectangular_details`: `hook_width`, `rectangular_tip_extra_length`, `hook_shape_type`
 * `sturdy_hook_truss_details`: `truss_vertical_grids`, `truss_thickness`, `truss_max_angle`
 * `sturdy_shelf_truss_details`: `truss_beam_reach`, `truss_thickness`, `truss_strut_interval`, `shelf_corner_fillet`
@@ -819,7 +839,7 @@ OPENGRID_ANNOTATION_V1|id=horizontal_grids|kind=dimension|label=horizontal_grids
 Radius callouts use `center` and `edge` instead of `start` and `end`:
 
 ```text
-OPENGRID_ANNOTATION_V1|id=circular_corner_radius|kind=radius|label=circular_corner_radius|value=15|center=18.5,-13,28|edge=7.89,-23.61,28|basis=first_circular_corner_radius
+OPENGRID_ANNOTATION_V1|id=hook_corner_fillet|kind=radius|label=hook_corner_fillet|value=15|center=18.5,-13,28|edge=7.89,-23.61,28|basis=first_hook_corner_fillet
 ```
 
 Feature markers use a single `anchor`. They are useful for machine-readable landmarks such as the start and end of a curved region, and they do not require visible marker geometry in the exported model:

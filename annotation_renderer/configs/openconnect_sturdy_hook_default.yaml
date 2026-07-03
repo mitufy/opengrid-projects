@@ -16,7 +16,7 @@ scene:
         hook_length: 56
         hook_vertical_grids: 2
         circular_tip_radius: 28
-        circular_corner_radius: 28
+        hook_corner_fillet: 28
   transform:
     $constant: wall_placeholder_transform
 
@@ -44,15 +44,15 @@ annotations:
     hook_vertical_grids: hook_vertical_grids x 28mm
     truss_vertical_grids: truss_vertical_grids x 28mm
     hook_shape_type: hook_shape
-    circular_corner_radius: corner_radius
-    circular_corner_radius_extent: corner_radius
+    hook_corner_fillet: corner_fillet
+    hook_corner_fillet_extent: corner_fillet
     circular_tip_radius: tip_radius
     circular_tip_radius_extent: tip_radius
     circular_tip_angle: tip_angle
   # angle_radius_callouts:
-  # - id: circular_corner_radius_detail
-  #   arc_id: circular_corner_radius_extent
-  #   radius_id: circular_corner_radius
+  # - id: hook_corner_fillet_detail
+  #   arc_id: hook_corner_fillet_extent
+  #   radius_id: hook_corner_fillet
   #   optional: true
   #   show_angle_label: false
   #   radius_label_offset_px: 26

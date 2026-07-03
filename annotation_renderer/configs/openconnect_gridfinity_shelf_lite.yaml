@@ -10,12 +10,13 @@ scene:
       defines:
         gridfinity_width_grids: 2
         gridfinity_depth_grids: 2
-        # magnet_position: All
-        shelf_back_offset: 5
-        shelf_side_rim: 4
-        shelf_front_rim: 4
+        magnet_position: None
+        # shelf_back_offset: 4
+        # shelf_side_rim: 4
+        # shelf_side_rim: 4
+        # shelf_front_rim: 4
         # shelf_rim_lip_height: 3
-        magnet_position: Corners Only
+        # magnet_position: Corners Only
     transform:
       location_mm: [-28, 0, -28]
       rotation_deg: [-print_bottom_angle, 0, 0]
@@ -36,7 +37,7 @@ scene:
   #     rotation_deg: [-print_bottom_angle, 0, 0]
 render:
   fit_margin: 0
-  camera_view_preset: top_front
+  camera_view_preset: front_right
   # camera_view_preset: technical_iso
   # lighting:
     # preset: technical
@@ -51,41 +52,44 @@ annotations:
     gridfinity_width_grids: gridfinity_width_grids x 42mm
     gridfinity_depth_grids: gridfinity_depth_grids x 42mm
   chains:
-  # - ids: [gridfinity_width_grids]
-  #   color:
-  #     $constant: annotation_color_black
-  #   line_offset_px: -50
-  #   label_offset_px: -28
-  #   label_font_size_px:
-  #     $constant: annotation_label_font_size_px
-  # - ids: [gridfinity_depth_grids]
-  #   color:
-  #     $constant: annotation_color_black
-  #   line_offset_px: -50
-  #   label_offset_px: -28
-  #   label_font_size_px:
-  #     $constant: annotation_label_font_size_px
+  - ids: [gridfinity_width_grids]
+    color:
+      $constant: annotation_color_black
+    line_offset_px: -50
+    label_offset_px: -50
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
+  - ids: [gridfinity_depth_grids]
+    color:
+      $constant: annotation_color_black
+    line_offset_px: -150
+    label_offset_px: -50
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
   - ids: [shelf_back_offset]
     optional: true
-    line_offset_px: -30
-    label_offset_px: -28
-    # label_along_offset_px: 72
-    label_font_size_px: 26
+    color:
+      $constant: annotation_color_red
+    line_offset_px: -86
+    label_offset_px: -78
+    label_along_offset_px: 72
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
     tick_length_px: 12
-  - ids: [shelf_side_rim]
-    optional: true
-    line_offset_px: -50
-    label_offset_px: -28
-    label_along_offset_px: 52
-    label_font_size_px: 26
-    tick_length_px: 12
-  - ids: [shelf_front_rim]
-    optional: true
-    line_offset_px: -30
-    label_offset_px: -28
-    label_along_offset_px: -42
-    label_font_size_px: 26
-    tick_length_px: 12
+  # - ids: [shelf_side_rim]
+  #   optional: true
+  #   line_offset_px: 70
+  #   label_offset_px: 46
+  #   label_along_offset_px: -52
+  #   label_font_size_px: 22
+  #   tick_length_px: 12
+  # - ids: [shelf_front_rim]
+  #   optional: true
+  #   line_offset_px: -88
+  #   label_offset_px: -54
+  #   label_along_offset_px: 42
+  #   label_font_size_px: 22
+  #   tick_length_px: 12
   # - ids: [shelf_rim_lip_height]
   #   optional: true
   #   line_offset_px: 46
@@ -94,12 +98,6 @@ annotations:
   #   label_font_size_px: 22
   #   tick_length_px: 12
   image_labels:
-  # - $constant: bottom_image_label
-  #   id: magnet_position
-  #   show_value: true
-  #   value_color: '#0000FF'
-  #   font_size_px:
-  #     $constant: annotation_aux_label_font_size_px
   - $constant: bottom_image_label
     id: magnet_position
     offset_px: [0, 0]
