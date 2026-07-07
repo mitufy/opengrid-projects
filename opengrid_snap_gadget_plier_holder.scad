@@ -58,8 +58,8 @@ _text_cfg = text_cfg(
   pos_offsets=(_add_blunt_text && _add_thickness_text) ? OG_GADGET_TEXT_POSITIONS : [[0, 0], [0, 0]]
 );
 
-_threads_cfg = struct_merge(
-  threads_cfg(), threads_cfg(
+_threads_cfg = positive_threads_cfg(
+  threads_cfg(
     threads_type=threads_type
   )
 );
@@ -137,7 +137,7 @@ up(model_z_offset) zrot(180) up(_threads_side_offset) xrot(90) {
 
       diff() {
         fwd(thread_clearance_offset)
-          snap_threads(threads_height=snap_thickness, threads_cfg=_threads_cfg, text_cfg=_text_cfg);
+          positive_snap_threads(threads_height=snap_thickness, threads_cfg=_threads_cfg, text_cfg=_text_cfg);
         tag("remove") fwd(thread_cutoff_offset - EPS) cuboid([500, 500, 500], anchor=BACK);
       }
     }

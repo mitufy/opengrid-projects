@@ -395,7 +395,7 @@ module expanding_spring(snapbody_cfg = [], spring_cfg = [], snapcorner_cfg = [],
   _spring_cfg = struct_merge(snap_spring_cfg(), spring_cfg);
   _corner_cfg = struct_merge(snap_corner_cfg(), snapcorner_cfg);
   _cut_cfg = struct_merge(snap_cut_cfg(), snapcut_cfg);
-  _threads_cfg = struct_merge(threads_cfg(), threads_cfg);
+  _threads_cfg = negative_threads_cfg(threads_cfg);
 
   _snap_thickness = struct_val(_body_cfg, "snap_thickness");
   _snap_body_shape = struct_val(_body_cfg, "snap_body_shape");
@@ -526,6 +526,7 @@ module expanding_snap(
   _snap_width = struct_val(snapbody_cfg, "snap_width", OG_SNAP_WIDTH);
   expand_cut_cfg = struct_set(snapcut_cfg, ["disable_all_side_cut", true, "disable_all_bottom_cut", true]);
   _expand_cfg = struct_merge(snap_expand_cfg(), expand_cfg);
+  _negative_threads_cfg = negative_threads_cfg(threads_cfg);
   _expand_distance = _snap_thickness >= OG_STANDARD_THICKNESS ? struct_val(_expand_cfg, "expand_distance_standard") : struct_val(_expand_cfg, "expand_distance_lite");
   _expand_split_angle = struct_val(_expand_cfg, "expand_split_angle");
   _texts = struct_val(text_cfg, "texts", []);
@@ -556,12 +557,12 @@ module expanding_snap(
       left(center_position_offset[0]) back(center_position_offset[1]) {
           down(EPS / 2) tag("remove") expanding_threads(
                 threads_height=_snap_thickness,
-                expand_cfg=expand_cfg, threads_cfg=threads_cfg
+                expand_cfg=expand_cfg, threads_cfg=_negative_threads_cfg
               );
           zrot(_expand_split_angle)
             tag("remove") expanding_spring(
                 snapbody_cfg=snapbody_cfg, spring_cfg=spring_cfg, snapcorner_cfg=snapcorner_cfg,
-                snapcut_cfg=snapcut_cfg, threads_cfg=threads_cfg
+                snapcut_cfg=snapcut_cfg, threads_cfg=_negative_threads_cfg
               );
         }
     }

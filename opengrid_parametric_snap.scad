@@ -69,7 +69,7 @@ side_cut_depth = 0.8; //0.1
 side_cut_offset_to_top = 0.8; //0.1
 
 /* [Thread Settings] */
-//openGrid snap threads are designed to have 16mm diameter and 0.5mm clearance, 16.5mm is the offical diameter for negative parts.
+//openGrid positive threads are 16mm. Negative snap thread cuts add clearance, so 16.5mm is the official negative diameter.
 threads_diameter = 16; //0.1
 threads_clearance = 0.5;
 threads_pitch = 3;
@@ -359,7 +359,7 @@ module multiconnect_screw(threads_height = OG_STANDARD_THICKNESS, connectorslot_
   tag_scope() {
     multiconnect_head(connectorslot_cfg=connectorslot_cfg, top_pattern="coin_slot", anchor=BOTTOM)
       attach(TOP, BOTTOM)
-        snap_threads(threads_height=threads_height, text_cfg=text_cfg, threads_cfg=struct_set(threads_cfg, ["threads_clearance", 0]));
+        positive_snap_threads(threads_height=threads_height, text_cfg=text_cfg, threads_cfg=threads_cfg);
   }
 }
 
@@ -418,7 +418,7 @@ module opengrid_snap(
                 if (generate_snap == "Basic Threads" && !disable_snap_threads)
                   up(reverse_threads_entryside ? _snap_thickness : 0) yrot(reverse_threads_entryside ? 180 : 0)
                       attach(TOP, BOTTOM, inside=true, shiftout=EPS / 2)
-                        snap_threads(threads_height=_snap_thickness + EPS, text_cfg=text_cfg, threads_cfg=threads_cfg);
+                        negative_snap_threads(threads_height=_snap_thickness + EPS, text_cfg=text_cfg, threads_cfg=threads_cfg);
                 if (generate_snap == "openConnect" || generate_snap == "openConnect (Folded)")
                   attach(TOP, TOP)
                     openconnect_head(add_nubs="Both", head_cfg=_ochead_cfg);

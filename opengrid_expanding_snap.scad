@@ -129,7 +129,7 @@ module multiconnect_screw(connectorslot_cfg = [], text_cfg = [], threads_cfg = [
   tag_scope() {
     multiconnect_head(connectorslot_cfg=connectorslot_cfg, top_pattern="coin_slot", anchor=BOTTOM)
       attach(TOP, BOTTOM)
-        snap_threads(threads_height=_snap_thickness, text_cfg=text_cfg, threads_cfg=struct_set(threads_cfg, ["threads_clearance", 0]));
+        positive_snap_threads(threads_height=_snap_thickness, text_cfg=text_cfg, threads_cfg=threads_cfg);
   }
 }
 

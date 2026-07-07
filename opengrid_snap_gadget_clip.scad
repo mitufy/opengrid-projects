@@ -71,9 +71,11 @@ _text_cfg = text_cfg(
   text_depth=final_text_depth
 );
 
-_threads_cfg = threads_cfg(
-  threads_type=threads_type,
-  threads_offset_angle=threads_offset_angle
+_threads_cfg = positive_threads_cfg(
+  threads_cfg(
+    threads_type=threads_type,
+    threads_offset_angle=threads_offset_angle
+  )
 );
 _threads_side_offset = struct_val(_threads_cfg, "threads_diameter") / 2 - OG_SNAP_THREADS_SIDE_OFFSET;
 thread_join_overlap = EPS * 2;
@@ -129,7 +131,7 @@ connect_cuboid_height =
 zrot(180) xrot(90) back(_threads_side_offset)
       //main diff
       diff() {
-        snap_threads(threads_height=snap_thickness, threads_cfg=_threads_cfg, text_cfg=_text_cfg);
+        positive_snap_threads(threads_height=snap_thickness, threads_cfg=_threads_cfg, text_cfg=_text_cfg);
         up(thread_join_overlap) diff(remove="rm1") {
           fwd(_threads_side_offset - clip_height / 2) {
             //second inner diff

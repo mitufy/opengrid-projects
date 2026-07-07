@@ -43,6 +43,12 @@ function threads_cfg(
     ]
   );
 
+// Positive threads are printed protrusions; negative threads are snap cut tools.
+// Clearance belongs to negative snap threads only.
+function negative_threads_cfg(threads_cfg = []) = struct_merge(threads_cfg(), threads_cfg);
+function positive_threads_cfg(threads_cfg = []) =
+  struct_set(negative_threads_cfg(threads_cfg), ["threads_clearance", 0]);
+
 function snap_expand_cfg(
   expand_distance_standard = 0.6,
   expand_distance_lite = 0.4,
@@ -143,11 +149,34 @@ module snap_threads(threads_height = OG_STANDARD_THICKNESS, threads_cfg = [], te
     children();
   }
 }
+
+module positive_snap_threads(threads_height = OG_STANDARD_THICKNESS, threads_cfg = [], text_cfg = [], anchor = BOTTOM, spin = 0, orient = UP) {
+  snap_threads(
+    threads_height=threads_height,
+    threads_cfg=positive_threads_cfg(threads_cfg),
+    text_cfg=text_cfg,
+    anchor=anchor,
+    spin=spin,
+    orient=orient
+  ) children();
+}
+
+module negative_snap_threads(threads_height = OG_STANDARD_THICKNESS, threads_cfg = [], text_cfg = [], anchor = BOTTOM, spin = 0, orient = UP) {
+  snap_threads(
+    threads_height=threads_height,
+    threads_cfg=negative_threads_cfg(threads_cfg),
+    text_cfg=text_cfg,
+    anchor=anchor,
+    spin=spin,
+    orient=orient
+  ) children();
+}
+
 module expanding_threads(threads_height = OG_STANDARD_THICKNESS, threads_cfg = [], text_cfg = [], expand_cfg = [], anchor = BOTTOM, spin = 0, orient = UP) {
   _expand_cfg = struct_merge(snap_expand_cfg(), expand_cfg);
   _is_standard = threads_height >= OG_STANDARD_THICKNESS;
 
-  _threads_cfg = struct_merge(threads_cfg(), threads_cfg);
+  _threads_cfg = negative_threads_cfg(threads_cfg);
   _threads_type = struct_val(_threads_cfg, "threads_type");
   _threads_pitch = struct_val(_threads_cfg, "threads_pitch");
 
@@ -174,7 +203,7 @@ module expanding_threads(threads_height = OG_STANDARD_THICKNESS, threads_cfg = [
     attachable(anchor, spin, orient, d=_diameter, h=threads_height) {
       tag_scope() down(threads_height / 2) {
           if (_entry_height > 0)
-            snap_threads(threads_height=_entry_height + EPS, text_cfg=_no_text_cfg, threads_cfg=struct_merge(_threads_cfg, concat(_no_cutoff_cfg, _no_top_bevel_cfg, _no_bottom_bevel_cfg)));
+            negative_snap_threads(threads_height=_entry_height + EPS, text_cfg=_no_text_cfg, threads_cfg=struct_merge(_threads_cfg, concat(_no_cutoff_cfg, _no_top_bevel_cfg, _no_bottom_bevel_cfg)));
           if (expand_segment_count > 0) {
             for (a = [0:expand_segment_count - 1]) {
               aseg_position = _entry_height + expand_height_step * a;
@@ -182,21 +211,21 @@ module expanding_threads(threads_height = OG_STANDARD_THICKNESS, threads_cfg = [
               zrot(-_expand_split_angle)
                 partition(spread=-aseg_expansion_distance - EPS, cutpath="flat", $slop=aseg_expansion_distance / 2)
                   zrot(_expand_split_angle) up(aseg_position) zrot(aseg_position * thread_degrees_per_mm)
-                        snap_threads(threads_height=expand_height_step + EPS, text_cfg=_no_text_cfg, threads_cfg=struct_merge(_threads_cfg, concat(_no_cutoff_cfg, _no_top_bevel_cfg, _no_bottom_bevel_cfg)));
+                        negative_snap_threads(threads_height=expand_height_step + EPS, text_cfg=_no_text_cfg, threads_cfg=struct_merge(_threads_cfg, concat(_no_cutoff_cfg, _no_top_bevel_cfg, _no_bottom_bevel_cfg)));
             }
           }
           else if (transition_height > 0)
             up(_entry_height) zrot(_entry_height * thread_degrees_per_mm)
-              snap_threads(threads_height=transition_height + EPS, text_cfg=_no_text_cfg, threads_cfg=struct_merge(_threads_cfg, concat(_no_cutoff_cfg, _no_top_bevel_cfg, _no_bottom_bevel_cfg)));
+              negative_snap_threads(threads_height=transition_height + EPS, text_cfg=_no_text_cfg, threads_cfg=struct_merge(_threads_cfg, concat(_no_cutoff_cfg, _no_top_bevel_cfg, _no_bottom_bevel_cfg)));
           if (_end_height > 0) {
             if (_expand_distance > 0)
               zrot(-_expand_split_angle)
                 partition(spread=-_expand_distance - EPS, cutpath="flat", $slop=_expand_distance / 2)
                   zrot(_expand_split_angle) up(_entry_height + transition_height) zrot((_entry_height + transition_height) * thread_degrees_per_mm)
-                        snap_threads(threads_height=max(_end_height, 0) + EPS, text_cfg=_no_text_cfg, threads_cfg=struct_merge(_threads_cfg, concat(_no_cutoff_cfg, _no_top_bevel_cfg)));
+                        negative_snap_threads(threads_height=max(_end_height, 0) + EPS, text_cfg=_no_text_cfg, threads_cfg=struct_merge(_threads_cfg, concat(_no_cutoff_cfg, _no_top_bevel_cfg)));
             else
               up(_entry_height + transition_height) zrot((_entry_height + transition_height) * thread_degrees_per_mm)
-                    snap_threads(threads_height=max(_end_height, 0) + EPS, text_cfg=_no_text_cfg, threads_cfg=struct_merge(_threads_cfg, concat(_no_cutoff_cfg, _no_top_bevel_cfg)));
+                    negative_snap_threads(threads_height=max(_end_height, 0) + EPS, text_cfg=_no_text_cfg, threads_cfg=struct_merge(_threads_cfg, concat(_no_cutoff_cfg, _no_top_bevel_cfg)));
           }
         }
       children();

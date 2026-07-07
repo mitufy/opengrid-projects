@@ -61,9 +61,11 @@ _text_cfg = text_cfg(
   text_depth=text_depth
 );
 
-_threads_cfg = threads_cfg(
-  threads_type=threads_type,
-  threads_offset_angle=threads_offset_angle
+_threads_cfg = positive_threads_cfg(
+  threads_cfg(
+    threads_type=threads_type,
+    threads_offset_angle=threads_offset_angle
+  )
 );
 _threads_diameter = struct_val(_threads_cfg, "threads_diameter");
 _threads_pitch = struct_val(_threads_cfg, "threads_pitch");
@@ -127,7 +129,7 @@ thread_join_overlap = EPS * 2;
 zrot(180) up(_threads_side_offset) xrot(90)
       diff() {
         zrot(90)
-          snap_threads(threads_height=snap_thickness, threads_cfg=_threads_cfg, text_cfg=_text_cfg);
+          positive_snap_threads(threads_height=snap_thickness, threads_cfg=_threads_cfg, text_cfg=_text_cfg);
         up(thread_join_overlap) {
           fwd(_threads_side_offset - body_width / 2)
             down(final_stem_length - EPS) xrot(-90)

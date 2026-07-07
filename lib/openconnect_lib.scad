@@ -512,7 +512,6 @@ module openconnect_screw(threads_height = OG_STANDARD_THICKNESS, text_cfg = [], 
   ocscrew_flat_slot_start_thickness = struct_val(_slot_cfg, "flat_slot_start_thickness");
   ocscrew_flat_slot_end_thickness = struct_val(_slot_cfg, "flat_slot_end_thickness");
 
-  _screw_threads_cfg = struct_set(threads_cfg, ["threads_clearance", 0]);
   _shifted_offsets = [for (p = struct_val(text_cfg, "pos_offsets", [])) [p[0], p[1] + (folded ? 2 : 0)]];
   _text_cfg_shifted = struct_set(text_cfg, ["pos_offsets", _shifted_offsets]);
 
@@ -525,7 +524,7 @@ module openconnect_screw(threads_height = OG_STANDARD_THICKNESS, text_cfg = [], 
       up(threads_height + _total_height) xrot(180) zrot(180)
             diff() {
               up(_total_height - EPS)
-                snap_threads(threads_height=threads_height, threads_cfg=_screw_threads_cfg, text_cfg=_text_cfg_shifted);
+                positive_snap_threads(threads_height=threads_height, threads_cfg=threads_cfg, text_cfg=_text_cfg_shifted);
               tag_intersect("") {
                 tag(folded ? "keep" : "") openconnect_head(head_type="head", add_nubs="Both", head_cfg=_head_cfg);
                 if (!folded)
