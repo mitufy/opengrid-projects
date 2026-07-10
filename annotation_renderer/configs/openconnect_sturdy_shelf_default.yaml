@@ -10,7 +10,7 @@ scene:
       defines:
         shelf_type: Standard
         add_texture: true
-    transform:
+    transform:  
       location_mm: [56, 0, -28]
   transform:
     $constant: wall_placeholder_transform

@@ -178,20 +178,16 @@ compartment_corner_center = [
   compartment_annotation_back_y - final_compartment_rounding,
   compartment_annotation_z
 ];
-compartment_corner_edge = [
-  compartment_annotation_max_x,
-  compartment_annotation_back_y - final_compartment_rounding,
+compartment_corner_arc_segments = 12;
+function compartment_corner_arc_point(angle) = [
+  compartment_corner_center[0] + cos(angle) * final_compartment_rounding,
+  compartment_corner_center[1] + sin(angle) * final_compartment_rounding,
   compartment_annotation_z
 ];
-compartment_corner_arc_mid = [
-  compartment_annotation_max_x - final_compartment_rounding + final_compartment_rounding * cos(45),
-  compartment_annotation_back_y - final_compartment_rounding + final_compartment_rounding * sin(45),
-  compartment_annotation_z
-];
-compartment_corner_arc_end = [
-  compartment_annotation_max_x - final_compartment_rounding,
-  compartment_annotation_back_y,
-  compartment_annotation_z
+compartment_corner_edge = compartment_corner_arc_point(0);
+compartment_corner_arc_points = [
+  for (i = [0:compartment_corner_arc_segments])
+    compartment_corner_arc_point(90 * i / compartment_corner_arc_segments)
 ];
 holder_tilt_angle_anchor = [holder_max_x, holder_max_y, holder_min_z];
 holder_tilt_angle_arc_radius = final_holder_height;
@@ -367,7 +363,7 @@ module emit_general_holder_annotations() {
       id="compartment_corner_rounding_extent",
       label="compartment_corner_rounding_extent",
       value=final_compartment_rounding,
-      points=[compartment_corner_edge, compartment_corner_arc_mid, compartment_corner_arc_end],
+      points=compartment_corner_arc_points,
       basis="first_compartment_back_right_corner_rounding_extent"
     );
   }

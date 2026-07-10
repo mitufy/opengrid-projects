@@ -156,21 +156,22 @@ hook_annotation_width_y = hook_annotation_front_y;
 hook_annotation_width_z = hook_annotation_z_max;
 hook_annotation_depth_x = hook_annotation_x_min;
 hook_annotation_height_x = hook_annotation_x_min;
+hook_annotation_side_profile_x = hook_annotation_x_min;
 hook_annotation_length_x = hook_annotation_x_min;
-hook_annotation_length_z = hook_annotation_z_min;
+hook_annotation_length_z = hook_annotation_z_min + hook_final_bottom_thickness;
 hook_annotation_bottom_thickness_y = hook_annotation_length_start_y + min(hook_final_length, max(EPS, hook_final_length / 2));
 hook_tip_annotation_start = [
-  hook_annotation_length_x,
+  hook_annotation_side_profile_x,
   hook_annotation_length_start_y + hook_final_length * cos(hook_corner_angle),
   hook_final_length * sin(hook_corner_angle)
 ];
 hook_tip_annotation_end = [
-  hook_annotation_length_x,
+  hook_annotation_side_profile_x,
   hook_tip_annotation_start[1] + hook_final_tip_length * cos(hook_corner_angle + hook_final_tip_angle),
   hook_tip_annotation_start[2] + hook_final_tip_length * sin(hook_corner_angle + hook_final_tip_angle)
 ];
 function _hook_side_profile_point(point) = [
-  hook_annotation_length_x,
+  hook_annotation_side_profile_x,
   hook_annotation_length_start_y + point[0] * cos(hook_corner_angle) - point[1] * sin(hook_corner_angle),
   point[0] * sin(hook_corner_angle) + point[1] * cos(hook_corner_angle)
 ];

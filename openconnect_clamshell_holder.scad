@@ -347,38 +347,33 @@ up(generate_holder_part == "Both" ? holder_height / 2 : holder_width / 2)
                 down((holder_top_thickness - holder_thickness) / 2)
                   attach(CENTER, CENTER)
                     tag("remove") cuboid([item_width, item_height, item_depth + EPS * 2], edges="Z", rounding=final_corner_rounding);
-                if (item_width - front_opening_left_right_margin * 2 > 0 && item_height - front_opening_top_bottom_margin * 2 > 0)
+                if (item_width - final_front_opening_left_right_margin * 2 > 0 && item_height - final_front_opening_top_bottom_margin * 2 > 0)
                   attach(BOTTOM, BOTTOM, inside=true)
-                    cuboid([item_width - front_opening_left_right_margin * 2, item_height - front_opening_top_bottom_margin * 2, holder_thickness + EPS * 2], edges="Z", rounding=min((item_width - front_opening_left_right_margin * 2) / 2, (item_height - front_opening_top_bottom_margin * 2) / 2, final_corner_rounding));
+                    cuboid([item_width - final_front_opening_left_right_margin * 2, item_height - final_front_opening_top_bottom_margin * 2, holder_thickness + EPS * 2], edges="Z", rounding=min((item_width - final_front_opening_left_right_margin * 2) / 2, (item_height - final_front_opening_top_bottom_margin * 2) / 2, final_corner_rounding));
                 right(middle_cutoff_offset) {
                   attach(CENTER, CENTER, inside=true)
                     cuboid([middle_cutoff_size, holder_height + 10, holder_depth + 10]);
-                  if (front_opening_top_bottom_margin > 0 && item_height - front_opening_top_bottom_margin * 2 > 0)
+                  if (final_front_opening_top_bottom_margin > 0 && item_height - final_front_opening_top_bottom_margin * 2 > 0)
                     attach(BOTTOM, BOTTOM, inside=true)
-                      cuboid([middle_cutoff_size, item_height - front_opening_top_bottom_margin * 2, holder_thickness + EPS * 2])
+                      cuboid([middle_cutoff_size, item_height - final_front_opening_top_bottom_margin * 2, holder_thickness + EPS * 2])
                         edge_mask("Z")
-                          rounding_edge_mask(r=min(max(0, item_width - front_opening_left_right_margin * 2 - final_corner_rounding * 2), front_opening_top_bottom_margin, 2), spin=180);
+                          rounding_edge_mask(r=min(max(0, item_width - final_front_opening_left_right_margin * 2 - final_corner_rounding * 2), final_front_opening_top_bottom_margin, 2), spin=180);
                 }
               }
-            if (holder_side_cutout != "None") {
-              side_cutout_height = item_height - front_opening_top_bottom_margin * 2 - side_cutout_top_margin - side_cutout_bottom_margin;
-              side_cutout_depth = item_depth + holder_thickness - side_cutout_back_margin - side_cutout_front_margin;
-              side_cutout_width =
-                side_cutout_bottom_margin < 0 || side_cutout_top_margin < 0 ? holder_width / 2
-                : (holder_width - (item_width - front_opening_left_right_margin * 2)) / 2 + max(0, final_corner_rounding - side_cutout_bottom_margin, final_corner_rounding - side_cutout_top_margin);
-              rounding_edges = side_cutout_front_margin > 0 ? "X" : [FRONT + TOP, BACK + TOP];
+            if (effective_holder_side_cutout != "None") {
+              rounding_edges = effective_side_cutout_front_margin > 0 ? "X" : [FRONT + TOP, BACK + TOP];
               if (side_cutout_height > 0 && side_cutout_depth > 0)
-                back(holder_front_thickness + side_cutout_top_margin + front_opening_top_bottom_margin) down(holder_top_thickness + side_cutout_back_margin) {
-                    conditional_flip(axis="X", copy=holder_side_cutout == "Both", condition=(holder_side_cutout == "Both" || holder_side_cutout == "Left"))
+                back(holder_front_thickness + effective_side_cutout_top_margin + final_front_opening_top_bottom_margin) down(holder_top_thickness + effective_side_cutout_back_margin) {
+                    conditional_flip(axis="X", copy=effective_holder_side_cutout == "Both", condition=(effective_holder_side_cutout == "Both" || effective_holder_side_cutout == "Left"))
                       attach(FRONT + TOP, FRONT + TOP, align=RIGHT, inside=true)
                         cuboid([side_cutout_width + EPS, side_cutout_height + EPS * 2, side_cutout_depth + EPS * 2], edges=rounding_edges, rounding=max(0, min(side_cutout_height / 2, side_cutout_depth / 2, side_cutout_rounding))) {
-                          if (side_cutout_top_margin - final_corner_rounding > EPS && side_cutout_bottom_margin - final_corner_rounding > EPS && front_opening_left_right_margin > EPS) {
-                            if (side_cutout_top_margin - final_corner_rounding > EPS)
+                          if (effective_side_cutout_top_margin - final_corner_rounding > EPS && effective_side_cutout_bottom_margin - final_corner_rounding > EPS && final_front_opening_left_right_margin > EPS) {
+                            if (effective_side_cutout_top_margin - final_corner_rounding > EPS)
                               edge_mask([LEFT + FRONT])
-                                rounding_edge_mask(r=min(side_cutout_top_margin - final_corner_rounding, front_opening_left_right_margin, 2), spin=-90);
-                            if (side_cutout_bottom_margin - final_corner_rounding > EPS)
+                                rounding_edge_mask(r=min(effective_side_cutout_top_margin - final_corner_rounding, final_front_opening_left_right_margin, 2), spin=-90);
+                            if (effective_side_cutout_bottom_margin - final_corner_rounding > EPS)
                               edge_mask([LEFT + BACK])
-                                rounding_edge_mask(r=min(side_cutout_bottom_margin - final_corner_rounding, front_opening_left_right_margin, 2), spin=-90);
+                                rounding_edge_mask(r=min(effective_side_cutout_bottom_margin - final_corner_rounding, final_front_opening_left_right_margin, 2), spin=-90);
                           }
                         }
                   }

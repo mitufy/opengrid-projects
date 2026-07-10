@@ -20,8 +20,12 @@ from annotation_renderer.annotation_config import (
 )
 from annotation_renderer.config import ConfigError, DimensionSegment, resolve_render, validate_config_shape
 from annotation_renderer.config_defaults import (
+    ANNOTATION_COLOR_BLUE,
+    ANNOTATION_LABEL_FONT_SIZE_PX,
+    BUILTIN_CONFIG_CONSTANTS,
     CAMERA_VIEW_PRESETS,
     DEFAULT_RENDER_MESH_SHADING,
+    DEFAULT_STYLE_PRESET_NAME,
     GALLERY_SETTING_DEFAULTS,
     MESH_SHADING_VALUES,
     RENDER_CAMERA_VIEW_PRESET_VALUES,
@@ -38,6 +42,7 @@ from annotation_renderer.scene_cli import (
     cache_enabled_for,
     cache_root_for,
     command_failure_message,
+    apply_gallery_target_render_size,
     build_blender_config,
     build_gallery_contact_sheet,
     discover_scad_source_annotations,
@@ -300,6 +305,27 @@ class AnimationConfigTests(unittest.TestCase):
 
         self.assertEqual(labels[0].font_size_px, 33)
 
+    def test_image_labels_accept_per_label_title_area(self) -> None:
+        labels = collect_image_labels(
+            labels_config=[
+                {
+                    "id": "mode",
+                    "position": "top",
+                    "title_area": True,
+                    "title_edge_margin_px": 11,
+                    "title_padding_x_px": 7,
+                }
+            ],
+            annotation_config={},
+            style_config={},
+            expression_context={},
+            value_context={},
+        )
+
+        self.assertTrue(labels[0].title_area)
+        self.assertEqual(labels[0].title_edge_margin_px, 11)
+        self.assertEqual(labels[0].title_padding_x_px, 7)
+
     def test_annotation_group_color_overrides_type_style_for_dimensions(self) -> None:
         annotations = [
             parse_scad_annotation_line(
@@ -360,6 +386,56 @@ class AnimationConfigTests(unittest.TestCase):
 
         self.assertEqual(callouts[0].arc_color, "#123456")
         self.assertEqual(callouts[0].radius_color, "#654321")
+
+    def test_annotation_group_display_rotation_applies_before_offset(self) -> None:
+        annotation = parse_scad_annotation_line(
+            'ECHO: "OPENGRID_ANNOTATION_V1|id=body_width|kind=dimension|label=body_width|axis=x|value=2|start=1,0,0|end=2,0,0|basis=test"'
+        )
+
+        chain = collect_dimension_chain(
+            annotations=[annotation],
+            chain_config={
+                "ids": ["body_width"],
+                "display_rotation_deg": [0, 0, 90],
+                "display_offset_mm": [10, 0, 0],
+            },
+            style_config=resolve_style({}),
+        )
+
+        self.assertEqual(chain[0].source_start_mm, (1.0, 0.0, 0.0))
+        self.assertEqual(chain[0].source_end_mm, (2.0, 0.0, 0.0))
+        self.assertAlmostEqual(chain[0].start_mm[0], 10.0)
+        self.assertAlmostEqual(chain[0].start_mm[1], 1.0)
+        self.assertAlmostEqual(chain[0].end_mm[0], 10.0)
+        self.assertAlmostEqual(chain[0].end_mm[1], 2.0)
+
+    def test_angle_radius_display_rotation_applies_to_radius_and_arc_points(self) -> None:
+        annotations = [
+            parse_scad_annotation_line(
+                'ECHO: "OPENGRID_ANNOTATION_V1|id=tip_radius|kind=radius|label=tip_radius|value=2|center=1,0,0|edge=2,0,0|basis=test"'
+            ),
+            parse_scad_annotation_line(
+                'ECHO: "OPENGRID_ANNOTATION_V1|id=tip_radius_extent|kind=arc|label=tip_radius|value=90|points=2,0,0;0,2,0|basis=test"'
+            ),
+        ]
+
+        callouts = collect_angle_radius_callouts(
+            annotations=[annotation for annotation in annotations if annotation is not None],
+            callout_config={
+                "arc_id": "tip_radius_extent",
+                "radius_id": "tip_radius",
+                "display_rotation_deg": [0, 0, 90],
+                "display_offset_mm": [10, 0, 0],
+            },
+            style_config=resolve_style({}),
+        )
+
+        self.assertAlmostEqual(callouts[0].center_mm[0], 10.0)
+        self.assertAlmostEqual(callouts[0].center_mm[1], 1.0)
+        self.assertAlmostEqual(callouts[0].edge_mm[0], 10.0)
+        self.assertAlmostEqual(callouts[0].edge_mm[1], 2.0)
+        self.assertAlmostEqual(callouts[0].points_mm[0][0], 10.0)
+        self.assertAlmostEqual(callouts[0].points_mm[0][1], 2.0)
 
     def test_scad_value_context_keeps_string_values(self) -> None:
         annotation = parse_scad_annotation_line(
@@ -648,6 +724,44 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertGreaterEqual(top_bbox["top"], 24)
         self.assertLessEqual(bottom_bbox["bottom"], 320 - 30)
         self.assertEqual(metadata["title_area"], title_areas["bottom"])
+
+    def test_image_label_title_area_can_be_enabled_per_top_label(self) -> None:
+        labels = [
+            ImageLabel(
+                id="top_label",
+                label="top_label",
+                value_text=None,
+                position="top",
+                offset_px=(0.0, 0.0),
+                angle_deg=0.0,
+                color=None,
+                value_color=None,
+                font_size_px=24,
+                title_area=True,
+                title_edge_margin_px=14,
+            )
+        ]
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            render_path = tmp_path / "render.png"
+            output_path = tmp_path / "annotated.png"
+            Image.new("RGB", (420, 260), "#ffffff").save(render_path)
+
+            metadata = draw_image_label_overlay(
+                render_path=render_path,
+                output_path=output_path,
+                labels=labels,
+                style_config={
+                    "image_label_title_positions": ["bottom"],
+                    "image_label_margin_px": 20,
+                    "image_label_title_padding_x_px": 12,
+                    "image_label_title_padding_y_px": 8,
+                    "image_label_title_min_width_px": 160,
+                },
+            )
+
+        self.assertIn("top", metadata["title_areas"])
+        self.assertGreaterEqual(metadata["title_areas"]["top"]["bbox_px"]["top"], 14)
 
     def test_annotation_bounds_audit_reports_far_outside_anchor_points(self) -> None:
         annotation = parse_scad_annotation_line(
@@ -1254,6 +1368,42 @@ class AnimationConfigTests(unittest.TestCase):
             },
         )
 
+    def test_gallery_target_size_derives_thumbnail_and_render_size(self) -> None:
+        settings = gallery_settings(
+            {
+                "gallery": {
+                    "columns": 2,
+                    "target_width_px": 1920,
+                    "target_height_px": 1440,
+                    "margin_px": 0,
+                    "gutter_px": 4,
+                    "title_height_px": 45,
+                }
+            },
+            variant_count=4,
+        )
+
+        self.assertEqual(settings["thumbnail_width"], 958)
+        self.assertEqual(settings["thumbnail_height"], 673)
+        self.assertEqual(settings["render_width"], 958)
+        self.assertEqual(settings["render_height"], 673)
+        resolved = apply_gallery_target_render_size({"render": {"width": 100, "height": 100}}, settings)
+        self.assertEqual(resolved["render"]["width"], 958)
+        self.assertEqual(resolved["render"]["height"], 673)
+
+    def test_gallery_target_size_rejects_non_divisible_layout(self) -> None:
+        with self.assertRaisesRegex(ConfigError, "divisible by gallery.columns"):
+            gallery_settings(
+                {
+                    "gallery": {
+                        "columns": 2,
+                        "target_width_px": 1919,
+                        "target_height_px": 1440,
+                    }
+                },
+                variant_count=4,
+            )
+
     def test_gallery_contact_sheet_uses_layout_settings(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -1278,6 +1428,32 @@ class AnimationConfigTests(unittest.TestCase):
             )
             with Image.open(output_path) as gallery:
                 self.assertEqual(gallery.size, (91, 23))
+
+    def test_gallery_contact_sheet_can_use_fixed_thumbnail_height(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            image_a = temp_path / "a.png"
+            image_b = temp_path / "b.png"
+            output_path = temp_path / "gallery.png"
+            Image.new("RGB", (40, 30), (255, 0, 0)).save(image_a)
+            Image.new("RGB", (40, 30), (0, 0, 255)).save(image_b)
+
+            build_gallery_contact_sheet(
+                results=[
+                    {"variant_name": "a", "annotated": image_a},
+                    {"variant_name": "b", "annotated": image_b},
+                ],
+                output_path=output_path,
+                columns=2,
+                thumbnail_width=40,
+                thumbnail_height=30,
+                margin_px=3,
+                gutter_px=5,
+                title_height_px=7,
+                title_font_size_px=6,
+            )
+            with Image.open(output_path) as gallery:
+                self.assertEqual(gallery.size, (91, 43))
 
     def test_render_animation_is_validated_during_config_shape_validation(self) -> None:
         config = {
@@ -1684,6 +1860,22 @@ class AnimationConfigTests(unittest.TestCase):
             28,
         )
 
+    def test_base_scene_uses_builtin_annotation_style_defaults(self) -> None:
+        raw_base = yaml.safe_load(Path("annotation_renderer/configs/base_scene.yaml").read_text(encoding="utf-8"))
+        raw_constants = raw_base["constants"]
+        self.assertNotIn("default_annotation_style", raw_constants)
+        self.assertNotIn("annotation_label_font_size_px", raw_constants)
+        self.assertNotIn("annotation_color_blue", raw_constants)
+
+        self.assertEqual(BUILTIN_CONFIG_CONSTANTS["default_annotation_style"], {"preset": DEFAULT_STYLE_PRESET_NAME})
+        config = load_config(Path("annotation_renderer/configs/openconnect_clamshell_holder_default.yaml"), [])
+        self.assertEqual(config["constants"]["default_annotation_style"], {"preset": DEFAULT_STYLE_PRESET_NAME})
+        style = resolve_style(config["annotations"]["style"])
+        self.assertEqual(style["label_font_size_px"], ANNOTATION_LABEL_FONT_SIZE_PX)
+        self.assertEqual(style["tick_length_px"], 14)
+        self.assertEqual(style["extension_width_px"], 2)
+        self.assertEqual(style["type_styles"]["grids"]["line_colors"], [ANNOTATION_COLOR_BLUE])
+
     def test_dimension_chains_use_each_chain_style_for_label_metadata(self) -> None:
         projection = {
             "projection": {
@@ -1902,8 +2094,10 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("auto_adjust_labels", style_properties)
         self.assertIn("font_size_px", style_properties)
         self.assertIn("font_size_px", annotation_group_properties)
+        self.assertIn("display_rotation_deg", annotation_group_properties)
         self.assertIn("label_along_offset_px", annotation_group_properties)
         self.assertIn("font_size_px", angle_radius_properties)
+        self.assertIn("display_rotation_deg", angle_radius_properties)
         self.assertIn("label_font_size_px", image_label_properties)
         self.assertIn("cache", render_properties)
         self.assertIn("cache_dir", render_properties)

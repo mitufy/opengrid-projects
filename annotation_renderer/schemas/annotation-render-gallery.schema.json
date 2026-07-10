@@ -16,6 +16,14 @@
       "type": "integer",
       "minimum": 1
     },
+    "target_width_px": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "target_height_px": {
+      "type": "integer",
+      "minimum": 1
+    },
     "margin_px": {
       "type": "integer",
       "minimum": 0

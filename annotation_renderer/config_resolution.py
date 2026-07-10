@@ -10,6 +10,7 @@ from typing import Mapping, Sequence
 
 from annotation_renderer.config_defaults import (
     AXES,
+    BUILTIN_CONFIG_CONSTANTS,
     CONSTANT_REF_KEY,
     DEFAULT_STYLE_PRESET_NAME,
     DEFAULT_LINE_COLORS,
@@ -78,16 +79,17 @@ def resolve_constant_references(
 
 
 def resolve_config_constants(config: Mapping[str, object], *, include_variants: bool = False) -> dict[str, object]:
-    constants = config.get("constants", {})
-    if constants is None:
-        constants = {}
-    if not isinstance(constants, Mapping):
+    raw_constants = config.get("constants", {})
+    if raw_constants is None:
+        raw_constants = {}
+    if not isinstance(raw_constants, Mapping):
         raise ConfigError("constants must be an object")
+    constants = {**deepcopy(BUILTIN_CONFIG_CONSTANTS), **deepcopy(dict(raw_constants))}
 
     resolved: dict[str, object] = {}
     for key, value in config.items():
         if key == "constants":
-            resolved[key] = deepcopy(value)
+            resolved[key] = deepcopy(constants)
         elif key == "variants" and not include_variants:
             resolved[key] = deepcopy(value)
         else:

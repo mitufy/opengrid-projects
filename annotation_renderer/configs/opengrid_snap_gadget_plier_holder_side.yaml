@@ -10,7 +10,7 @@ scene:
       defines:
         stem_height: 12
         stem_depth: 14
-        transition_depth_ratio: 1
+        transition_depth_ratio: 0.2
     transform:
       location_mm: [-14, 0, -20.6]
       rotation_deg: [0, 0, 0]
@@ -44,34 +44,41 @@ annotations:
   #   label_font_size_px: 24
   - ids: [stem_height]
     display_offset_mm: [0, 0, 0]
-    line_offset_px: 0
-    label_offset_px: -28
+    line_offset_px: 1
+    label_offset_px: 50
     label_font_size_px:
       $constant: annotation_label_font_size_px
+    color:
+      $constant: annotation_color_blue
   - ids: [stem_depth]
     display_offset_mm: [0, 0, 0]
-    line_offset_px: -28
-    label_offset_px: -28
+    line_offset_px: -20
+    label_offset_px: -50
+    label_along_offset_px: -65
     label_font_size_px:
       $constant: annotation_label_font_size_px
-  # - ids: [transition_depth_ratio]
-  #   optional: true
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -120
-  #   label_offset_px: -28
-  #   label_font_size_px: 24
-  #   labels:
-  #     transition_depth_ratio: transition_part
+  - ids: [transition_depth_ratio]
+    optional: true
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: -200
+    label_offset_px: -50
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
+    color:
+      $constant: annotation_color_red
+    labels:
+      transition_depth_ratio: transition_part
   - ids: [stopper_depth]
     display_offset_mm: [0, 0, 0]
-    line_offset_px: -28
-    label_offset_px: -28
+    line_offset_px: -20
+    label_offset_px: -50
+    label_along_offset_px: 65
     label_font_size_px:
       $constant: annotation_label_font_size_px
-  image_labels:
-  - $constant: bottom_image_label
-    id: transition_depth_ratio
-    label: transition_depth_ratio
-    show_value: true
-    value_color:
-      $constant: annotation_color_red
+  # image_labels:
+  # - $constant: bottom_image_label
+  #   id: transition_depth_ratio
+  #   label: transition_depth_ratio
+  #   show_value: true
+  #   value_color:
+  #     $constant: annotation_color_red

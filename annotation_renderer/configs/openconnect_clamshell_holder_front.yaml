@@ -36,15 +36,15 @@ annotations:
       $constant: annotation_color_black
     display_offset_mm: [0, 0, 0]
     line_offset_px: -28
-    label_offset_px: -28
+    label_offset_px: -50
     label_font_size_px:
       $constant: annotation_label_font_size_px
   - ids: [item_height]
     color:
       $constant: annotation_color_black
     display_offset_mm: [0, 0, 0]
-    line_offset_px: 28
-    label_offset_px: 28
+    line_offset_px: 50
+    label_offset_px: 50
     label_font_size_px:
       $constant: annotation_label_font_size_px
   # - ids: [item_depth]
@@ -54,18 +54,19 @@ annotations:
   - ids: [front_opening_side_margin]
     optional: true
     display_offset_mm: [0, 0, 0]
-    line_offset_px: 28
-    label_offset_px: 28
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
+    line_offset_px: 50
+    label_offset_px: 50
+    label_font_size_px: 48
+    color:
+      $constant: annotation_color_blue
   - ids: [front_opening_end_margin]
     optional: true
     display_offset_mm: [0, 0, 0]
-    line_offset_px: -28
-    label_offset_px: -28
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-
+    line_offset_px: -50
+    label_offset_px: -50
+    label_font_size_px: 48
+    color:
+      $constant: annotation_color_blue
   angle_radius_callouts:
   - id: item_corner_rounding_fillet
     arc_id: item_corner_rounding_extent
@@ -73,12 +74,11 @@ annotations:
     angle_id: item_corner_rounding
     optional: true
     show_angle_label: false
-    radius_label_offset_px: 36
+    radius_label_offset_px: 100
     angle_fill_alpha: 28
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
+    label_font_size_px: 48
   image_labels:
-  - $constant: bottom_image_label
+  - $constant: top_image_label
     id: holder_slot_position
     show_value: true
     value_color:

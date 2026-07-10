@@ -10,6 +10,8 @@ scene:
       defines:
         add_texture: true
         shelf_type: Slim
+        horizontal_grids: 2
+        depth_grids: 2
     transform:
       location_mm: [56, 0, -28]
   transform:

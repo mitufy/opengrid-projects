@@ -1,14 +1,6 @@
 $schema: ../schemas/annotation-render-config.schema.json
 job_name: opengrid_annotation_base
 constants:
-  annotation_label_font_size_px: 58
-  annotation_title_font_size_px: 68
-  annotation_aux_label_font_size_px: 60
-  annotation_font: sans
-  annotation_color_black: '#000000'
-  annotation_color_blue: '#4169E1'
-  annotation_color_red: '#FF0000'
-  annotation_color_white: '#ffffff'
   gallery_outline_color: '#111827'
   gallery_neutral_material_color: '#8fa1b3'
   og_tile_size: 28
@@ -35,7 +27,14 @@ constants:
     extension_width_px: 1.2
   bottom_image_label:
     position: bottom
+    title_area: true
     offset_px: [0, -24]
+    font_size_px:
+      $constant: annotation_title_font_size_px
+  top_image_label:
+    position: top
+    title_area: true
+    offset_px: [0, 24]
     font_size_px:
       $constant: annotation_title_font_size_px
   default_grid_label_aliases:
@@ -50,45 +49,6 @@ constants:
     transform:
       location_mm: [14, 0, -14]
       rotation_deg: [-90, 180, 0]
-  default_annotation_style:
-    preset: makerworld_technical_light
-    extension_width_px: 2
-    tick_length_px: 14
-    radial_line_width_px: 2.5
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-    label_color:
-      $constant: annotation_color_black
-    label_outline_color:
-      $constant: annotation_color_white
-    angle_fill_color:
-      $constant: annotation_color_red
-    image_label_margin_px: 32
-    type_styles:
-      grids:
-        line_colors:
-        - $constant: annotation_color_blue
-        font:
-          $constant: annotation_font
-        text_shade: 1.0
-      mm:
-        line_colors:
-        - $constant: annotation_color_black
-        font:
-          $constant: annotation_font
-        text_shade: 1.0
-      radius:
-        line_colors:
-        - $constant: annotation_color_red
-        font:
-          $constant: annotation_font
-        text_shade: 1.0
-      angle:
-        line_colors:
-        - $constant: annotation_color_red
-        font:
-          $constant: annotation_font
-        text_shade: 1.0
 scene:
   blend_file: ../assets/scenes/opengrid_wall_scene.blend
   camera: Camera

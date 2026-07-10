@@ -4,33 +4,35 @@ job_name: opengrid_snap_gadget_hook_parameter_gallery
 
 gallery:
   columns: 2
-  thumbnail_width: 640
+  target_width_px: 1920
+  target_height_px: 1440
   margin_px: 0
   gutter_px: 4
-  title_height_px: 32
-  title_font_size_px: 32
+  title_height_px: 45
+  title_font_size_px: 45
 
 variants:
-- name: Centered_Hook
+- name: Centered_Hook_main20
   set:
     scene.objects[0].model.defines.hook_shape_type: Centered
-    scene.objects[0].model.defines.hook_tip_angle: 180
+    # scene.objects[0].model.defines.hook_tip_angle: 180
+    scene.objects[0].model.defines.hook_main_size: 20
 
-- name: Straight_Hook
+- name: Straight_Hook_main40_stem20_width13.2_thickness10
   set:
     scene.objects[0].model.defines.hook_shape_type: Straight
     scene.objects[0].model.defines.hook_tip_angle: 120
     scene.objects[0].model.defines.hook_main_size: 40
     scene.objects[0].model.defines.body_width: 13.2
-    scene.objects[0].model.defines.body_thickness: 8
+    scene.objects[0].model.defines.body_thickness: 10
     # scene.objects[0].model.defines.threads_offset_angle: 90
     scene.objects[0].model.defines.hook_stem_length: 20
     # scene.objects[0].transform.location_mm: [-14, 0, -20.6]
     # scene.objects[0].transform.rotation_deg: [0, 90, 0]
-- name: Loop_Hook
+- name: Loop_Hook_main20
   set:
     scene.objects[0].model.defines.hook_shape_type: Loop
-- name: Centered_Hook_Rectangular
+- name: Centered_Hook_Rectangular_main20
   set:
     scene.objects[0].model.defines.hook_shape_type: Centered
     scene.objects[0].model.defines.corner_type: Rectangular

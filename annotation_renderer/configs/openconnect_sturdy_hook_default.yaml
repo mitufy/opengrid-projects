@@ -4,11 +4,11 @@ variant_name: openconnect_sturdy_hook_default
 job_name: sturdy_hook_scene
 scene:
   objects:
-  # - id: model
-  #   model:
-  #     $constant: sturdy_hook_model
-  #   transform:
-  #     location_mm: [56, 0, -28]
+  - id: model
+    model:
+      scad_file: openconnect_sturdy_hook.scad
+    transform:
+      location_mm: [56, 0, -28]
   - id: large_hook
     model:
       scad_file: openconnect_sturdy_hook.scad
@@ -61,21 +61,21 @@ annotations:
   - ids: [hook_width]
     display_offset_mm: [0, 0, 0]
     line_offset_px: 30
-    label_offset_px: 40
+    label_offset_px: 50
     label_font_size_px:
       $constant: annotation_label_font_size_px
   - ids: [hook_thickness]
     display_offset_mm: [0, 0, 0]
     label_along_offset_px: -80
-    line_offset_px: -1
-    label_offset_px: -40
+    line_offset_px: -200
+    label_offset_px: -50
     label_font_size_px:
       $constant: annotation_label_font_size_px
   - ids: [hook_length]
     display_offset_mm: [0, 0, 0]
     label_along_offset_px: 60
-    line_offset_px: -1
-    label_offset_px: -40
+    line_offset_px: -20
+    label_offset_px: -50
     label_font_size_px:
       $constant: annotation_label_font_size_px
   - ids: [hook_vertical_grids, truss_vertical_grids]
@@ -83,7 +83,7 @@ annotations:
     display_offset_mm: [0, 0, 0]
     label_along_offset_px: -60
     line_offset_px: -1
-    label_offset_px: -40
+    label_offset_px: -50
     label_font_size_px:
       $constant: annotation_label_font_size_px
   # image_labels:

@@ -34,6 +34,7 @@ scene:
       rotation_deg: [-90, 180, 0]
 render:
   fit_margin: 0
+  camera_view_preset: front_right
 annotations:
   style:
     $constant: default_annotation_style
@@ -43,22 +44,22 @@ annotations:
       mm:
         line_colors:
         - $constant: annotation_color_black
-  chains: []
-  # - ids: [stem_bottom_width]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 28
-  #   label_offset_px: 28
-  #   label_font_size_px: 24
-  # - ids: [stem_top_width]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 28
-  #   label_offset_px: 28
-  #   label_font_size_px: 24
+  chains: 
+  - ids: [stem_bottom_width]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 30
+    label_offset_px: 50
+  - ids: [stem_top_width]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: -50
+    label_offset_px: -50
   # - ids: [stem_height]
   #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -28
-  #   label_offset_px: -28
-  #   label_font_size_px: 24
+  #   line_offset_px: 150
+  #   label_offset_px: 50
+  #   color:
+  #     $constant: annotation_color_blue
+    # label_font_size_px: 24
   # - ids: [stem_depth]
   #   display_offset_mm: [0, 0, 0]
   #   line_offset_px: -34
@@ -66,6 +67,6 @@ annotations:
   #   label_font_size_px: 24
   # - ids: [stopper_depth]
   #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -34
-  #   label_offset_px: -42
-  #   label_font_size_px: 24
+  #   line_offset_px: -50
+  #   label_offset_px: -50
+    # label_font_size_px: 24

@@ -55,15 +55,15 @@ annotations:
   - ids: [gridfinity_width_grids]
     color:
       $constant: annotation_color_black
-    line_offset_px: -50
-    label_offset_px: -28
+    line_offset_px: -100
+    label_offset_px: -50
     label_font_size_px:
       $constant: annotation_label_font_size_px
   - ids: [gridfinity_depth_grids]
     color:
       $constant: annotation_color_black
-    line_offset_px: -50
-    label_offset_px: -28
+    line_offset_px: -150
+    label_offset_px: -50
     label_font_size_px:
       $constant: annotation_label_font_size_px
   - ids: [shelf_back_offset]

@@ -8,12 +8,11 @@ scene:
     model:
       scad_file: openconnect_vasemode_container.scad
       defines:
-        vase_surface_texture: checkers
-        horizontal_grids: 2
-        vertical_grids: 3
-        depth_grids: 2
+        horizontal_grids: 1
+        vertical_grids: 2
+        depth_grids: 1
         vase_tilt_angle: 15
-        label_holder_type: Standard
+        label_holder_type: None
         render_vase_print_preview: true
   transform:
     location_mm: [0, 0, -56]
@@ -21,8 +20,8 @@ scene:
     scale:
       $constant: blender_scene_scale_vector
 render:
-  fit_margin: 0.15
-  camera_view: right
+  fit_margin: 0.2
+  # camera_view_preset: top_front
 annotations:
   style:
     $constant: default_annotation_style
@@ -31,28 +30,35 @@ annotations:
     vase_surface_texture: surface_texture
     label_holder_type: label_holder
     vase_tilt_angle_extent: vase_tilt_angle
-  chains:
+  # chains:
   # - ids: [horizontal_grids]
   #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 0
-  #   label_offset_px: 32
-  #   font_size_px: 26
-  # - ids: [vertical_grids]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 0
-  #   label_offset_px: 50
+  #   line_offset_px: -20
+  #   label_offset_px: -50
   #   label_font_size_px:
   #     $constant: annotation_label_font_size_px
   #   color:
   #     $constant: annotation_color_black
-  - ids: [depth_grids]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 130
-    label_offset_px: 50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-    color:
-      $constant: annotation_color_black
+  # - ids: [vertical_grids]
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: 40
+  #   label_offset_px: 55
+  #   label_font_size_px:
+  #     $constant: annotation_label_font_size_px
+  #   color:
+  #     $constant: annotation_color_black
+  # - ids: [depth_grids]
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: -50
+  #   label_offset_px: -34
+    # font_size_px: 26
+  # - ids: [label_width]
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: 100
+  #   label_offset_px: 50
+  #   font_size_px: 45
+  #   color:
+  #     $constant: annotation_color_blue
   # - $constant: small_dimension_chain
   #   ids: [ocvase_linewidth]
   #   label_offset_px: 34
@@ -60,23 +66,23 @@ annotations:
   #   ids: [label_width]
   #   optional: true
   #   label_offset_px: 30
-  angle_radius_callouts:
-  - id: vase_tilt_angle_callout
-    arc_id: vase_tilt_angle_extent
-    radius_id: vase_tilt_angle_radius
-    angle_id: vase_tilt_angle
-    optional: true
-    show_radius_label: false
-    angle_label_offset_px: 55
-    angle_fill_alpha: 28
-  image_labels:
-  - $constant: bottom_image_label
-    id: vase_surface_texture
-    show_value: true
-    value_color:
-      $constant: annotation_color_blue
-    font_size_px:
-      $constant: annotation_title_font_size_px
+  # angle_radius_callouts:
+  # - id: vase_tilt_angle_callout
+  #   arc_id: vase_tilt_angle_extent
+  #   radius_id: vase_tilt_angle_radius
+  #   angle_id: vase_tilt_angle
+  #   optional: true
+  #   show_radius_label: false
+  #   angle_label_offset_px: 34
+  #   angle_fill_alpha: 28
+  # image_labels:
+  # - $constant: top_image_label
+  #   id: vase_surface_texture
+  #   show_value: true
+  #   value_color:
+  #     $constant: annotation_color_blue
+  #   font_size_px:
+  #     $constant: annotation_title_font_size_px
   # - id: label_holder_type
   #   position: top
   #   offset_px: [0, 28]

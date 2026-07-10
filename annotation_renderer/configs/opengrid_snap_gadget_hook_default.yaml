@@ -8,7 +8,9 @@ scene:
     model:
       scad_file: opengrid_snap_gadget_hook.scad
       defines:
-        hook_main_size: 35
+        hook_stem_length: 10
+        hook_main_size: 30
+        hook_tip_angle: 180
     transform:
       location_mm: [-14, 0, -20.6]
       rotation_deg: [0, 0, 0]
@@ -24,6 +26,7 @@ scene:
         hook_main_size: 20
         hook_stem_length: 3
         corner_type: Rectangular
+        body_thickness_scale: 1
     transform:
       location_mm: [42, 0, -20.6]
       rotation_deg: [0, 0, 0]
@@ -38,48 +41,50 @@ render:
   camera_view_preset: top_front
   # camera_view: top
   # camera_rotation_offset_deg: [-60, 0, -30]
-  export_blend: true
+  # export_blend: true
 annotations:
   style:
     $constant: default_annotation_style
-    auto_adjust_labels: true
-    tick_length_px: 12
+    auto_adjust_labels: false
+    # tick_length_px: 30
     type_styles:
       mm:
         line_colors:
         - $constant: annotation_color_black
-  angle_radius_callouts:
-  - id: hook_tip_angle_detail
-    arc_id: hook_tip_angle_extent
-    radius_id: hook_tip_angle_radius
-    angle_id: hook_tip_angle
-    optional: true
-    show_radius_label: false
-    angle_label_offset_px: 100
-    angle_label_tangent_offset_px: 56
-    angle_fill_alpha: 28
+  # angle_radius_callouts:
+  # - id: hook_tip_angle_detail
+  #   arc_id: hook_tip_angle_extent
+  #   radius_id: hook_tip_angle_radius
+  #   angle_id: hook_tip_angle
+  #   display_offset_mm: [-2, 0, 0]
+  #   optional: true
+  #   show_radius_label: false
+  #   angle_label_offset_px: 80
+  #   # angle_label_tangent_offset_px: 80
+  #   angle_fill_alpha: 28
   chains:
-  - ids: [body_width]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 28
-    label_offset_px: 28
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
+  # - ids: [body_width]
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: 50
+  #   label_offset_px: 50
+  #   label_font_size_px:
+  #     $constant: annotation_label_font_size_px
   - ids: [body_thickness]
     display_offset_mm: [0, 0, 0]
-    line_offset_px: -76
-    label_offset_px: -76
+    line_offset_px: -20
+    label_offset_px: -50
     label_font_size_px:
       $constant: annotation_label_font_size_px
   - ids: [hook_main_size]
+    display_rotation_deg: [0, 0, 2]
     display_offset_mm: [0, 0, 0]
-    line_offset_px: -34
-    label_offset_px: -42
+    line_offset_px: -200
+    label_offset_px: -50
     label_font_size_px:
       $constant: annotation_label_font_size_px
-  - ids: [hook_stem_length]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 28
-    label_offset_px: 28
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
+  # - ids: [hook_stem_length]
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: 50
+  #   label_offset_px: 50
+  #   label_font_size_px:
+  #     $constant: annotation_label_font_size_px

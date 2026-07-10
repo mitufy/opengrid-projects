@@ -46,6 +46,14 @@
           "type": "integer",
           "minimum": 1
         },
+        "target_width_px": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "target_height_px": {
+          "type": "integer",
+          "minimum": 1
+        },
         "margin_px": {
           "type": "integer",
           "minimum": 0
@@ -1426,6 +1434,9 @@
             "display_offset_mm": {
               "$ref": "#/$defs/vector3"
             },
+            "display_rotation_deg": {
+              "$ref": "#/$defs/vector3"
+            },
             "labels": {
               "$ref": "#/$defs/labelsMap"
             },
@@ -1598,6 +1609,9 @@
               "type": "boolean"
             },
             "display_offset_mm": {
+              "$ref": "#/$defs/vector3"
+            },
+            "display_rotation_deg": {
               "$ref": "#/$defs/vector3"
             },
             "labels": {
@@ -1782,6 +1796,9 @@
             "show_value": {
               "type": "boolean"
             },
+            "title_area": {
+              "type": "boolean"
+            },
             "color": {
               "type": "string"
             },
@@ -1795,6 +1812,46 @@
             "label_font_size_px": {
               "type": "integer",
               "minimum": 1
+            },
+            "title_padding_x_px": {
+              "type": "number",
+              "minimum": 0
+            },
+            "title_padding_y_px": {
+              "type": "number",
+              "minimum": 0
+            },
+            "title_radius_px": {
+              "type": "number",
+              "minimum": 0
+            },
+            "title_fill_color": {
+              "type": "string"
+            },
+            "title_fill_alpha": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "title_outline_color": {
+              "type": "string"
+            },
+            "title_outline_alpha": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "title_outline_width_px": {
+              "type": "number",
+              "minimum": 0
+            },
+            "title_min_width_px": {
+              "type": "number",
+              "minimum": 0
+            },
+            "title_edge_margin_px": {
+              "type": "number",
+              "minimum": 0
             }
           }
         },

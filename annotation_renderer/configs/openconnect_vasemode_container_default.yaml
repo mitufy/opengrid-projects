@@ -21,7 +21,8 @@ scene:
     scale:
       $constant: blender_scene_scale_vector
 render:
-  fit_margin: 0.15
+  fit_margin: 0.2
+  camera_location_offset_mm: [0, 0, 10]
 annotations:
   style:
     $constant: default_annotation_style
@@ -33,26 +34,32 @@ annotations:
   chains:
   - ids: [horizontal_grids]
     display_offset_mm: [0, 0, 0]
-    line_offset_px: 0
-    label_offset_px: -28
+    line_offset_px: -10
+    label_offset_px: -45
     label_font_size_px:
       $constant: annotation_label_font_size_px
+    color:
+      $constant: annotation_color_black
   - ids: [vertical_grids]
     display_offset_mm: [0, 0, 0]
     line_offset_px: 40
-    label_offset_px: 28
+    label_offset_px: 50
     label_font_size_px:
       $constant: annotation_label_font_size_px
+    color:
+      $constant: annotation_color_black
   # - ids: [depth_grids]
   #   display_offset_mm: [0, 0, 0]
   #   line_offset_px: -50
   #   label_offset_px: -34
     # font_size_px: 26
-  # - ids: [label_width]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 0
-  #   label_offset_px: 28
-  #   font_size_px: 28
+  - ids: [label_width]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 100
+    label_offset_px: 50
+    font_size_px: 45
+    color:
+      $constant: annotation_color_blue
   # - $constant: small_dimension_chain
   #   ids: [ocvase_linewidth]
   #   label_offset_px: 34
@@ -70,7 +77,7 @@ annotations:
   #   angle_label_offset_px: 34
   #   angle_fill_alpha: 28
   image_labels:
-  - $constant: bottom_image_label
+  - $constant: top_image_label
     id: vase_surface_texture
     show_value: true
     value_color:

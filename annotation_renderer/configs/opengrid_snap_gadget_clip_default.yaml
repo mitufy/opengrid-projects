@@ -62,7 +62,6 @@ annotations:
   style:
     $constant: default_annotation_style
     auto_adjust_labels: true
-    tick_length_px: 12
     type_styles:
       mm:
         line_colors:
@@ -70,8 +69,8 @@ annotations:
   chains:
   - ids: [clip_main_width]
     display_offset_mm: [0, 0, 0]
-    line_offset_px: 0
-    label_offset_px: 28
+    line_offset_px: 20
+    label_offset_px: 50
     label_font_size_px:
       $constant: annotation_label_font_size_px
   # - ids: [clip_main_depth]
@@ -86,8 +85,8 @@ annotations:
   #   label_font_size_px: 24
   - ids: [clip_height]
     display_offset_mm: [0, 0, 0]
-    line_offset_px: 28
-    label_offset_px: 28
+    line_offset_px: 50
+    label_offset_px: 50
     label_font_size_px:
       $constant: annotation_label_font_size_px
   # angle_radius_callouts:

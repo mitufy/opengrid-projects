@@ -891,6 +891,7 @@ def validate_annotation_group(value: object, *, name: str) -> None:
     if not all(isinstance(item, str) and item.strip() for item in ids):
         raise ConfigError(f"{name}.ids must contain only strings")
     validate_vector_shape(value.get("display_offset_mm"), name=f"{name}.display_offset_mm")
+    validate_vector_shape(value.get("display_rotation_deg"), name=f"{name}.display_rotation_deg")
     labels = value.get("labels", {})
     if labels is not None:
         if not isinstance(labels, Mapping):
@@ -919,6 +920,7 @@ def validate_angle_radius_group(value: object, *, name: str) -> None:
         if key in value and value[key] is not None and (not isinstance(value[key], str) or not str(value[key]).strip()):
             raise ConfigError(f"{name}.{key} must be a non-empty string")
     validate_vector_shape(value.get("display_offset_mm"), name=f"{name}.display_offset_mm")
+    validate_vector_shape(value.get("display_rotation_deg"), name=f"{name}.display_rotation_deg")
     labels = value.get("labels", {})
     if labels is not None:
         if not isinstance(labels, Mapping):
@@ -959,9 +961,25 @@ def validate_image_label(value: object, *, name: str) -> None:
             raise ConfigError(f"{name}.{key} must be numeric")
     if "show_value" in value and not isinstance(value["show_value"], bool):
         raise ConfigError(f"{name}.show_value must be a boolean")
+    if "title_area" in value and not isinstance(value["title_area"], bool):
+        raise ConfigError(f"{name}.title_area must be a boolean")
     for key in ("font_size_px", "label_font_size_px"):
         if key in value and not is_integer(value[key]):
             raise ConfigError(f"{name}.{key} must be an integer")
         if key in value and int(value[key]) < 1:
             raise ConfigError(f"{name}.{key} must be at least 1")
+    for key in (
+        "title_padding_x_px",
+        "title_padding_y_px",
+        "title_radius_px",
+        "title_outline_width_px",
+        "title_min_width_px",
+        "title_edge_margin_px",
+    ):
+        validate_number_field(value, key, name=name, minimum=0.0)
+    for key in ("title_fill_alpha", "title_outline_alpha"):
+        validate_integer_style_field(value, key, name=name, minimum=0, maximum=255)
+    for key in ("title_fill_color", "title_outline_color"):
+        if key in value and value[key] is not None and not isinstance(value[key], str):
+            raise ConfigError(f"{name}.{key} must be a string")
 

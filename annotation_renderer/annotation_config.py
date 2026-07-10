@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from typing import Mapping, Sequence
 
 from annotation_renderer.config_defaults import DEFAULT_LINE_COLORS
@@ -88,6 +89,17 @@ class ImageLabel:
     color: str | None
     value_color: str | None
     font_size_px: int | None
+    title_area: bool | None = None
+    title_padding_x_px: float | None = None
+    title_padding_y_px: float | None = None
+    title_radius_px: float | None = None
+    title_fill_color: str | None = None
+    title_fill_alpha: int | None = None
+    title_outline_color: str | None = None
+    title_outline_alpha: int | None = None
+    title_outline_width_px: float | None = None
+    title_min_width_px: float | None = None
+    title_edge_margin_px: float | None = None
 
 
 def annotation_group_is_optional(config: Mapping[str, object]) -> bool:
@@ -97,6 +109,7 @@ def annotation_group_is_optional(config: Mapping[str, object]) -> bool:
 @dataclass(frozen=True)
 class AnnotationGroupContext:
     offset: tuple[float, float, float]
+    rotation_deg: tuple[float, float, float]
     color: str | None
     colors: Mapping[str, object]
     show_values: bool
@@ -113,6 +126,25 @@ def color_text(value: object) -> str | None:
 
 def color_override(colors: Mapping[str, object], annotation_id: str) -> str | None:
     return color_text(colors.get(annotation_id))
+
+
+def rotate_point(point: tuple[float, float, float], rotation_deg: tuple[float, float, float]) -> tuple[float, float, float]:
+    x, y, z = point
+    rx, ry, rz = (math.radians(value) for value in rotation_deg)
+    cos_x, sin_x = math.cos(rx), math.sin(rx)
+    y, z = y * cos_x - z * sin_x, y * sin_x + z * cos_x
+    cos_y, sin_y = math.cos(ry), math.sin(ry)
+    x, z = x * cos_y + z * sin_y, -x * sin_y + z * cos_y
+    cos_z, sin_z = math.cos(rz), math.sin(rz)
+    x, y = x * cos_z - y * sin_z, x * sin_z + y * cos_z
+    return (x, y, z)
+
+
+def transform_annotation_point(
+    point: tuple[float, float, float],
+    context: AnnotationGroupContext,
+) -> tuple[float, float, float]:
+    return add_vectors(rotate_point(point, context.rotation_deg), context.offset)
 
 
 def annotation_line_color(
@@ -155,6 +187,12 @@ def annotation_group_context(
             group_config.get("display_offset_mm"),
             default=(0.0, 0.0, 0.0),
             name="display_offset_mm",
+            context=expression_context,
+        ),
+        rotation_deg=vector3(
+            group_config.get("display_rotation_deg"),
+            default=(0.0, 0.0, 0.0),
+            name="display_rotation_deg",
             context=expression_context,
         ),
         color=color_text(group_config.get("color")),
@@ -211,8 +249,8 @@ def collect_dimension_chain(
                 id=annotation_key,
                 label=annotation_label(annotation, override=context.label_overrides.get(annotation_key), show_value=context.show_values),
                 value=str(annotation.get("value", "")),
-                start_mm=add_vectors(source_start_mm, context.offset),
-                end_mm=add_vectors(source_end_mm, context.offset),
+                start_mm=transform_annotation_point(source_start_mm, context),
+                end_mm=transform_annotation_point(source_end_mm, context),
                 color=color,
                 parameter_type=parameter_type,
                 source_start_mm=source_start_mm,
@@ -264,8 +302,8 @@ def collect_radius_callouts(
                 id=annotation_key,
                 label=annotation_label(annotation, override=context.label_overrides.get(annotation_key), show_value=context.show_values),
                 value=str(annotation.get("value", "")),
-                center_mm=add_vectors(mapping_vector(callout["center_mm"]), context.offset),
-                edge_mm=add_vectors(mapping_vector(callout["edge_mm"]), context.offset),
+                center_mm=transform_annotation_point(mapping_vector(callout["center_mm"]), context),
+                edge_mm=transform_annotation_point(mapping_vector(callout["edge_mm"]), context),
                 color=color,
                 parameter_type=parameter_type,
             )
@@ -310,7 +348,7 @@ def collect_arc_callouts(
             parameter_type=parameter_type,
             fallback=DEFAULT_LINE_COLORS.get(annotation_key, "#8b6f2f"),
         )
-        points = tuple(add_vectors(mapping_vector(point), context.offset) for point in callout["points_mm"])
+        points = tuple(transform_annotation_point(mapping_vector(point), context) for point in callout["points_mm"])
         callouts.append(
             ArcCallout(
                 id=annotation_key,
@@ -400,9 +438,9 @@ def collect_angle_radius_callouts(
             angle_value=angle_value,
             radius_label=radius_label,
             radius_value=str(radius_annotation.get("value", "")),
-            center_mm=add_vectors(mapping_vector(radius_callout["center_mm"]), context.offset),
-            edge_mm=add_vectors(mapping_vector(radius_callout["edge_mm"]), context.offset),
-            points_mm=tuple(add_vectors(mapping_vector(point), context.offset) for point in arc_callout["points_mm"]),
+            center_mm=transform_annotation_point(mapping_vector(radius_callout["center_mm"]), context),
+            edge_mm=transform_annotation_point(mapping_vector(radius_callout["edge_mm"]), context),
+            points_mm=tuple(transform_annotation_point(mapping_vector(point), context) for point in arc_callout["points_mm"]),
             arc_color=arc_color,
             radius_color=radius_color,
             angle_type=angle_type,
@@ -498,6 +536,33 @@ def collect_image_labels(
                 if "value_color" in label_config and label_config["value_color"] is not None
                 else None,
                 font_size_px=int(font_size) if font_size is not None else None,
+                title_area=bool(label_config["title_area"]) if "title_area" in label_config else None,
+                title_padding_x_px=float(label_config["title_padding_x_px"])
+                if "title_padding_x_px" in label_config
+                else None,
+                title_padding_y_px=float(label_config["title_padding_y_px"])
+                if "title_padding_y_px" in label_config
+                else None,
+                title_radius_px=float(label_config["title_radius_px"]) if "title_radius_px" in label_config else None,
+                title_fill_color=str(label_config["title_fill_color"])
+                if "title_fill_color" in label_config and label_config["title_fill_color"] is not None
+                else None,
+                title_fill_alpha=int(label_config["title_fill_alpha"]) if "title_fill_alpha" in label_config else None,
+                title_outline_color=str(label_config["title_outline_color"])
+                if "title_outline_color" in label_config and label_config["title_outline_color"] is not None
+                else None,
+                title_outline_alpha=int(label_config["title_outline_alpha"])
+                if "title_outline_alpha" in label_config
+                else None,
+                title_outline_width_px=float(label_config["title_outline_width_px"])
+                if "title_outline_width_px" in label_config
+                else None,
+                title_min_width_px=float(label_config["title_min_width_px"])
+                if "title_min_width_px" in label_config
+                else None,
+                title_edge_margin_px=float(label_config["title_edge_margin_px"])
+                if "title_edge_margin_px" in label_config
+                else None,
             )
         )
     return labels

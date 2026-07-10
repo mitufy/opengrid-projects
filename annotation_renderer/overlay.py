@@ -1361,6 +1361,28 @@ def image_label_title_positions(style_config: Mapping[str, object]) -> tuple[str
     return tuple(positions)
 
 
+def image_label_title_position(label: ImageLabel) -> str | None:
+    if label.position.startswith("top"):
+        return "top"
+    if label.position.startswith("bottom"):
+        return "bottom"
+    return None
+
+
+def image_label_title_area_enabled(
+    label: ImageLabel,
+    *,
+    style_config: Mapping[str, object],
+    global_positions: Sequence[str],
+) -> bool:
+    if label.title_area is not None:
+        return label.title_area
+    if not bool(style_config.get("image_label_title_area", DEFAULT_STYLE_CONFIG["image_label_title_area"])):
+        return False
+    title_position = image_label_title_position(label)
+    return title_position is not None and title_position in global_positions
+
+
 def draw_image_label_overlay(
     *,
     render_path: Path,
@@ -1376,38 +1398,7 @@ def draw_image_label_overlay(
     label_outline_width_px = int(style_config.get("label_outline_width_px", LABEL_OUTLINE_WIDTH))
     label_font_size_px = int(style_config.get("label_font_size_px", DEFAULT_STYLE_CONFIG["label_font_size_px"]))
     margin_px = float(style_config.get("image_label_margin_px", DEFAULT_STYLE_CONFIG["image_label_margin_px"]))
-    title_area_enabled = bool(style_config.get("image_label_title_area", DEFAULT_STYLE_CONFIG["image_label_title_area"]))
-    title_padding_x_px = float(
-        style_config.get("image_label_title_padding_x_px", DEFAULT_STYLE_CONFIG["image_label_title_padding_x_px"])
-    )
-    title_padding_y_px = float(
-        style_config.get("image_label_title_padding_y_px", DEFAULT_STYLE_CONFIG["image_label_title_padding_y_px"])
-    )
-    title_radius_px = int(style_config.get("image_label_title_radius_px", DEFAULT_STYLE_CONFIG["image_label_title_radius_px"]))
-    title_fill_color = str(
-        style_config.get("image_label_title_fill_color", DEFAULT_STYLE_CONFIG["image_label_title_fill_color"])
-    )
-    title_fill_alpha = int(
-        style_config.get("image_label_title_fill_alpha", DEFAULT_STYLE_CONFIG["image_label_title_fill_alpha"])
-    )
-    title_outline_color = str(
-        style_config.get("image_label_title_outline_color", DEFAULT_STYLE_CONFIG["image_label_title_outline_color"])
-    )
-    title_outline_alpha = int(
-        style_config.get("image_label_title_outline_alpha", DEFAULT_STYLE_CONFIG["image_label_title_outline_alpha"])
-    )
-    title_outline_width_px = int(
-        style_config.get("image_label_title_outline_width_px", DEFAULT_STYLE_CONFIG["image_label_title_outline_width_px"])
-    )
-    title_min_width_px = float(
-        style_config.get("image_label_title_min_width_px", DEFAULT_STYLE_CONFIG["image_label_title_min_width_px"])
-    )
-    title_bottom_margin_px = float(
-        style_config.get("image_label_title_bottom_margin_px", DEFAULT_STYLE_CONFIG["image_label_title_bottom_margin_px"])
-    )
-    title_top_margin_px = float(
-        style_config.get("image_label_title_top_margin_px", DEFAULT_STYLE_CONFIG["image_label_title_top_margin_px"])
-    )
+    global_title_positions = image_label_title_positions(style_config)
     auto_adjust_labels = auto_adjust_labels_enabled(style_config)
 
     metadata = {}
@@ -1456,18 +1447,89 @@ def draw_image_label_overlay(
         }
 
     title_area_metadata_by_position: dict[str, object] = {}
-    if title_area_enabled:
+    title_positions = [
+        position
+        for position in ("top", "bottom")
+        if any(
+            image_label_title_position(label) == position
+            and image_label_title_area_enabled(label, style_config=style_config, global_positions=global_title_positions)
+            for label, _label_image, _center, _bbox in prepared_labels
+        )
+    ]
+    if title_positions:
         background = Image.new("RGBA", image.size, (0, 0, 0, 0))
         background_draw = ImageDraw.Draw(background)
-        for title_position in image_label_title_positions(style_config):
-            title_bboxes = [
-                bbox
+        for title_position in title_positions:
+            title_entries = [
+                (label, bbox)
                 for label, _label_image, _center, bbox in prepared_labels
-                if label.position.startswith(title_position)
+                if image_label_title_position(label) == title_position
+                and image_label_title_area_enabled(label, style_config=style_config, global_positions=global_title_positions)
             ]
+            title_bboxes = [bbox for _label, bbox in title_entries]
             if not title_bboxes:
                 continue
-            edge_margin_px = title_top_margin_px if title_position == "top" else title_bottom_margin_px
+            title_source = title_entries[0][0]
+            title_padding_x_px = float(
+                title_source.title_padding_x_px
+                if title_source.title_padding_x_px is not None
+                else style_config.get("image_label_title_padding_x_px", DEFAULT_STYLE_CONFIG["image_label_title_padding_x_px"])
+            )
+            title_padding_y_px = float(
+                title_source.title_padding_y_px
+                if title_source.title_padding_y_px is not None
+                else style_config.get("image_label_title_padding_y_px", DEFAULT_STYLE_CONFIG["image_label_title_padding_y_px"])
+            )
+            title_radius_px = int(
+                title_source.title_radius_px
+                if title_source.title_radius_px is not None
+                else style_config.get("image_label_title_radius_px", DEFAULT_STYLE_CONFIG["image_label_title_radius_px"])
+            )
+            title_fill_color = str(
+                title_source.title_fill_color
+                if title_source.title_fill_color is not None
+                else style_config.get("image_label_title_fill_color", DEFAULT_STYLE_CONFIG["image_label_title_fill_color"])
+            )
+            title_fill_alpha = int(
+                title_source.title_fill_alpha
+                if title_source.title_fill_alpha is not None
+                else style_config.get("image_label_title_fill_alpha", DEFAULT_STYLE_CONFIG["image_label_title_fill_alpha"])
+            )
+            title_outline_color = str(
+                title_source.title_outline_color
+                if title_source.title_outline_color is not None
+                else style_config.get("image_label_title_outline_color", DEFAULT_STYLE_CONFIG["image_label_title_outline_color"])
+            )
+            title_outline_alpha = int(
+                title_source.title_outline_alpha
+                if title_source.title_outline_alpha is not None
+                else style_config.get("image_label_title_outline_alpha", DEFAULT_STYLE_CONFIG["image_label_title_outline_alpha"])
+            )
+            title_outline_width_px = int(
+                title_source.title_outline_width_px
+                if title_source.title_outline_width_px is not None
+                else style_config.get(
+                    "image_label_title_outline_width_px",
+                    DEFAULT_STYLE_CONFIG["image_label_title_outline_width_px"],
+                )
+            )
+            title_min_width_px = float(
+                title_source.title_min_width_px
+                if title_source.title_min_width_px is not None
+                else style_config.get("image_label_title_min_width_px", DEFAULT_STYLE_CONFIG["image_label_title_min_width_px"])
+            )
+            edge_margin_px = float(
+                title_source.title_edge_margin_px
+                if title_source.title_edge_margin_px is not None
+                else style_config.get(
+                    "image_label_title_top_margin_px" if title_position == "top" else "image_label_title_bottom_margin_px",
+                    DEFAULT_STYLE_CONFIG[
+                        "image_label_title_top_margin_px"
+                        if title_position == "top"
+                        else "image_label_title_bottom_margin_px"
+                    ],
+                )
+            )
             label_union = union_bboxes(title_bboxes)
             title_left = label_union[0] - title_padding_x_px
             title_top = label_union[1] - title_padding_y_px
@@ -1515,7 +1577,11 @@ def draw_image_label_overlay(
             if abs(label_shift[0]) > 0.01 or abs(label_shift[1]) > 0.01:
                 shifted_labels = []
                 for label, label_image, center, bbox in prepared_labels:
-                    if label.position.startswith(title_position):
+                    if image_label_title_position(label) == title_position and image_label_title_area_enabled(
+                        label,
+                        style_config=style_config,
+                        global_positions=global_title_positions,
+                    ):
                         center = (center[0] + label_shift[0], center[1] + label_shift[1])
                         bbox = (
                             bbox[0] + label_shift[0],

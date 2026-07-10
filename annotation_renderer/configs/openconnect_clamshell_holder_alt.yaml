@@ -13,34 +13,36 @@ scene:
         item_depth: 30
         item_corner_rounding: 8
         generate_holder_part: Both
-        holder_slot_position: Top
+        holder_slot_position: Front
         holder_slot_column_limit: 1
+        slot_slide_direction: Down
     transform:
-      location_mm: [0, "-(item_height / 2 + og_standard_thickness)", 0]
-      rotation_deg: [-90, 0, 0]
+      location_mm: [0, "-(item_height / 2 + og_standard_thickness / 2)", 0]
+      rotation_deg: [180, 0, 0]
       scale:
         $constant: blender_scene_scale_vector
 render:
   fit_margin: 0.1
+  # camera_view_preset: top_front
 annotations:
   style:
     $constant: default_annotation_style
   aliases:
     holder_slot_position: slot_position
     item_corner_rounding_extent: item_corner_rounding
-  chains:
-  - ids: [item_width]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: -30
-    label_offset_px: -50
-  - ids: [item_height]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 20
-    label_offset_px: 50
-  - ids: [item_depth]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 20
-    label_offset_px: 50
+  # chains:
+  # - ids: [item_width]
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: 0
+  #   label_offset_px: 30
+  # - ids: [item_height]
+  #   display_offset_mm: [8, 0, 0]
+  #   line_offset_px: 0
+  #   label_offset_px: 28
+  # - ids: [item_depth]
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: 0
+  #   label_offset_px: 24
   # - ids: [front_opening_side_margin]
   #   optional: true
   #   display_offset_mm: [0, 0, 0]
@@ -60,11 +62,11 @@ annotations:
   #   show_angle_label: false
   #   radius_label_offset_px: 36
   #   angle_fill_alpha: 28
-  # image_labels:
-  # - $constant: top_image_label
-  #   id: holder_slot_position
-  #   show_value: true
-  #   value_color:
-  #     $constant: annotation_color_blue
-  #   font_size_px:
-  #     $constant: annotation_title_font_size_px
+  image_labels:
+  - $constant: top_image_label
+    id: holder_slot_position
+    show_value: true
+    value_color:
+      $constant: annotation_color_blue
+    font_size_px:
+      $constant: annotation_title_font_size_px

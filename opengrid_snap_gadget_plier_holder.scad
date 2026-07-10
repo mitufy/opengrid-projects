@@ -133,18 +133,18 @@ module emit_snap_gadget_plier_holder_annotations() {
     label="stem_bottom_width",
     axis="x",
     value=stem_bottom_width,
-    start=[-stem_bottom_width / 2, annotation_stem_y, annotation_stem_z],
-    end=[stem_bottom_width / 2, annotation_stem_y, annotation_stem_z],
-    basis="stem_bottom_width"
+    start=[-stem_bottom_width / 2, annotation_stem_back_y, annotation_stem_z],
+    end=[stem_bottom_width / 2, annotation_stem_back_y, annotation_stem_z],
+    basis="stem_bottom_width_on_stem_back_bottom_edge"
   );
   emit_dimension_annotation(
     id="stem_top_width",
     label="stem_top_width",
     axis="x",
     value=final_stem_top_width,
-    start=[-final_stem_top_width / 2, annotation_stem_y, stem_height],
-    end=[final_stem_top_width / 2, annotation_stem_y, stem_height],
-    basis="stem_top_width"
+    start=[-final_stem_top_width / 2, annotation_stem_back_y, stem_height],
+    end=[final_stem_top_width / 2, annotation_stem_back_y, stem_height],
+    basis="stem_top_width_on_stem_back_top_edge"
   );
   emit_dimension_annotation(
     id="stem_height",

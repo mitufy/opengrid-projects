@@ -227,7 +227,7 @@ annotations:
 
 Keep using the existing `extends` and `$constant` composition features instead of YAML anchors or merge keys. That keeps configs portable between YAML and JSON.
 
-Checked-in model configs use `constants.default_annotation_style` from `configs/base_scene.yaml` for shared annotation line, font, color-type, and image-title defaults. That constant inherits the `makerworld_technical_light` style preset and only keeps project-specific overrides. Use `style.type_styles` for broad parameter categories such as `mm`, `grids`, `radius`, and `angle`. Put color overrides on the chain or callout that uses them with `color`; use `colors` only when one group needs per-ID exceptions. Keep model-specific offsets local, and override only the style keys that differ:
+Checked-in model configs use the built-in `default_annotation_style` constant for shared annotation line, font, color-type, and image-title defaults. Those values live in `config_defaults.py` under the `makerworld_technical_light` style preset, so `configs/base_scene.yaml` does not duplicate them. Use `style.type_styles` for broad parameter categories such as `mm`, `grids`, `radius`, and `angle`. Put color overrides on the chain or callout that uses them with `color`; use `colors` only when one group needs per-ID exceptions. Keep model-specific offsets local, and override only the style keys that differ:
 
 ```yaml
 constants:
@@ -332,6 +332,21 @@ title_font_size_px: 22
 ```
 
 Pass it with `--gallery-config`. A model config can still include top-level `gallery` values, and those override the separate gallery config. This keeps reusable model parameter variants separate from one-off contact-sheet layout choices.
+
+For an exact contact-sheet size without post-scaling or padding, set `target_width_px` and `target_height_px` instead of hand-calculating `thumbnail_width` and per-render `render.width` / `render.height`:
+
+```yaml
+gallery:
+  columns: 2
+  target_width_px: 1920
+  target_height_px: 1440
+  margin_px: 0
+  gutter_px: 4
+  title_height_px: 45
+  title_font_size_px: 45
+```
+
+The gallery runner derives `thumbnail_width`, `thumbnail_height`, and each variant's render size from the target dimensions, row count, margins, gutters, and title height. The target size must divide evenly after subtracting those spacing values.
 
 ## Config Structure
 
@@ -649,7 +664,7 @@ annotations:
     - ids: [horizontal_grids]
 ```
 
-`display_offset_mm` accepts numbers or simple expressions. The shelf width example keeps the current offset readable:
+`display_offset_mm` translates emitted annotation anchors in model-local millimeters. `display_rotation_deg` rotates those same anchors in model-local degrees before that offset is applied. Rotation uses `[x, y, z]` order, matching the OpenSCAD annotation helper transform order. Both fields accept numbers or simple expressions. The shelf width example keeps the current offset readable:
 
 ```yaml
 display_offset_mm:
@@ -659,6 +674,15 @@ display_offset_mm:
 ```
 
 Here `OG_TILE_SIZE` and `shelf_back_thickness` are intended to come from SCAD context metadata, so the offset follows the actual shelf model settings.
+
+Use `display_rotation_deg` when an emitted anchor is correct in shape but needs to be presented from another local orientation:
+
+```yaml
+chains:
+  - ids: [stem_bottom_width]
+    display_rotation_deg: [0, 0, 90]
+    display_offset_mm: [0, 0, 0]
+```
 
 By default, annotation text uses only the emitted label or config alias and does not append the current parameter value. That keeps labels stable for documentation, for example `hook_length` or `horizontal_grids x 28mm`. Set `annotations.style.show_values` to `true` only when a render should include text like `hook_length = 45`.
 
@@ -734,11 +758,12 @@ image_labels:
     position: bottom
     offset_px: [0, -24]
     show_value: true
+    title_area: true
 ```
 
 When `show_value` is true, image labels first use an explicit `value`, then the annotated object's `scene.objects[*].model.defines`, then SCAD context metadata from that same object. That lets labels such as `shell_thickness`, `handle_depth`, or `shelf_texture_depth` show the actual value used by OpenSCAD without repeating it in config.
 
-Bottom image labels are boxed by default through `annotations.style.image_label_title_area`. The boxed edges are controlled by `image_label_title_positions`; use `[top, bottom]` to draw matching boxes around top and bottom labels. `image_label_title_top_margin_px` and `image_label_title_bottom_margin_px` control each box's distance from the corresponding image edge.
+Set `title_area: true` on an image label to draw the rounded background box for that label's top or bottom edge. Shared constants such as `top_image_label` and `bottom_image_label` already include this. Box defaults still come from `annotations.style.image_label_title_*`, but individual labels can override them with shorter fields such as `title_padding_x_px`, `title_padding_y_px`, `title_min_width_px`, and `title_edge_margin_px`.
 
 Image labels accept `font_size_px`; `label_font_size_px` is also accepted as an alias.
 

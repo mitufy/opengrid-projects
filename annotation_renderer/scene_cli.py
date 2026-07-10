@@ -881,6 +881,7 @@ def annotation_offset_summary(kind: str, group: Mapping[str, object]) -> str:
     if kind == "dimension":
         items: list[tuple[str, object]] = [
             ("display_offset_mm", group.get("display_offset_mm", [0, 0, 0])),
+            ("display_rotation_deg", group.get("display_rotation_deg", [0, 0, 0])),
             ("line_offset_px", group.get("line_offset_px", 0)),
             ("label_offset_px", group.get("label_offset_px", 0)),
             ("label_along_offset_px", group.get("label_along_offset_px", 0)),
@@ -888,7 +889,10 @@ def annotation_offset_summary(kind: str, group: Mapping[str, object]) -> str:
     elif kind == "image_label":
         items = [("offset_px", group.get("offset_px", [0, 0]))]
     else:
-        items = [("display_offset_mm", group.get("display_offset_mm", [0, 0, 0]))]
+        items = [
+            ("display_offset_mm", group.get("display_offset_mm", [0, 0, 0])),
+            ("display_rotation_deg", group.get("display_rotation_deg", [0, 0, 0])),
+        ]
         for key in (
             "label_offset_px",
             "angle_label_offset_px",
@@ -1047,6 +1051,7 @@ def editable_annotations_template(config: Mapping[str, object]) -> dict[str, obj
                 "angle_id",
                 "optional",
                 "display_offset_mm",
+                "display_rotation_deg",
                 "color",
                 "colors",
                 "line_offset_px",
@@ -2571,6 +2576,7 @@ def build_render_metadata(
                 "position": label.position,
                 "offset_px": list(label.offset_px),
                 "angle_deg": label.angle_deg,
+                "title_area": label.title_area,
             }
             for label in annotation_state["image_labels"]
         ],
@@ -2841,6 +2847,7 @@ def gallery_settings(
     config: Mapping[str, object],
     *,
     gallery_config: Mapping[str, object] | None = None,
+    variant_count: int | None = None,
 ) -> dict[str, int]:
     merged_gallery = compact_gallery_config(gallery_config or {}, name="gallery config")
     raw_gallery = config.get("gallery", {})
@@ -2849,13 +2856,82 @@ def gallery_settings(
         key: int(merged_gallery.get(key, default))
         for key, default in GALLERY_SETTING_DEFAULTS.items()
     }
+    for key in ("target_width_px", "target_height_px"):
+        if key in merged_gallery:
+            settings[key] = int(merged_gallery[key])
     for key in ("columns", "thumbnail_width", "title_font_size_px"):
         if settings[key] < 1:
             raise ConfigError(f"gallery.{key} must be at least 1")
     for key in ("margin_px", "gutter_px", "title_height_px"):
         if settings[key] < 0:
             raise ConfigError(f"gallery.{key} must be at least 0")
+    target_keys = {"target_width_px", "target_height_px"}
+    present_target_keys = target_keys & settings.keys()
+    if present_target_keys:
+        if present_target_keys != target_keys:
+            raise ConfigError("gallery.target_width_px and gallery.target_height_px must be set together")
+        for key in target_keys:
+            if settings[key] < 1:
+                raise ConfigError(f"gallery.{key} must be at least 1")
+        if variant_count is None:
+            raise ConfigError("gallery target sizing requires a variant count")
+        apply_gallery_target_size(settings, variant_count=variant_count)
     return settings
+
+
+def apply_gallery_target_size(settings: dict[str, int], *, variant_count: int) -> None:
+    if variant_count < 1:
+        raise ConfigError("Gallery requires at least one render result")
+    columns = settings["columns"]
+    rows = (variant_count + columns - 1) // columns
+    margin = settings["margin_px"]
+    gutter = settings["gutter_px"]
+    title_height = settings["title_height_px"]
+    target_width = settings["target_width_px"]
+    target_height = settings["target_height_px"]
+
+    available_width = target_width - margin * 2 - (columns - 1) * gutter
+    if available_width < columns:
+        raise ConfigError(
+            "gallery.target_width_px is too small for gallery.columns, gallery.margin_px, and gallery.gutter_px"
+        )
+    if available_width % columns:
+        raise ConfigError(
+            "gallery.target_width_px must leave a width divisible by gallery.columns after margins and gutters"
+        )
+    thumbnail_width = available_width // columns
+
+    available_height = target_height - margin * 2 - (rows - 1) * gutter - rows * title_height
+    if available_height < rows:
+        raise ConfigError(
+            "gallery.target_height_px is too small for gallery rows, gallery.margin_px, gallery.gutter_px, and gallery.title_height_px"
+        )
+    if available_height % rows:
+        raise ConfigError(
+            "gallery.target_height_px must leave a height divisible by gallery rows after margins, gutters, and titles"
+        )
+    thumbnail_height = available_height // rows
+
+    settings["thumbnail_width"] = thumbnail_width
+    settings["thumbnail_height"] = thumbnail_height
+    settings["render_width"] = thumbnail_width
+    settings["render_height"] = thumbnail_height
+
+
+def apply_gallery_target_render_size(config: Mapping[str, object], settings: Mapping[str, int]) -> dict[str, object]:
+    if "render_width" not in settings or "render_height" not in settings:
+        return dict(config)
+    resolved = deepcopy(dict(config))
+    render = resolved.get("render", {})
+    if render is None:
+        render = {}
+    if not isinstance(render, Mapping):
+        raise ConfigError("render must be an object")
+    updated_render = dict(render)
+    updated_render["width"] = int(settings["render_width"])
+    updated_render["height"] = int(settings["render_height"])
+    resolved["render"] = updated_render
+    return resolved
 
 
 def build_gallery_contact_sheet(
@@ -2864,6 +2940,7 @@ def build_gallery_contact_sheet(
     output_path: Path,
     columns: int,
     thumbnail_width: int,
+    thumbnail_height: int | None = None,
     margin_px: int,
     gutter_px: int,
     title_height_px: int,
@@ -2874,14 +2951,16 @@ def build_gallery_contact_sheet(
     cells: list[tuple[str, Image.Image]] = []
     for result in results:
         image = Image.open(Path(result["annotated"])).convert("RGB")
-        image.thumbnail((thumbnail_width, thumbnail_width * 2), resample=Image.Resampling.LANCZOS)
+        max_thumbnail_height = thumbnail_height if thumbnail_height is not None else thumbnail_width * 2
+        image.thumbnail((thumbnail_width, max_thumbnail_height), resample=Image.Resampling.LANCZOS)
         cells.append((str(result["variant_name"]), image.copy()))
 
     title_height = title_height_px
     margin = margin_px
     gutter = gutter_px
     cell_width = thumbnail_width
-    cell_height = max(image.height for _, image in cells) + title_height
+    image_height = thumbnail_height if thumbnail_height is not None else max(image.height for _, image in cells)
+    cell_height = image_height + title_height
     rows = (len(cells) + columns - 1) // columns
     sheet_width = margin * 2 + columns * cell_width + (columns - 1) * gutter
     sheet_height = margin * 2 + rows * cell_height + (rows - 1) * gutter
@@ -2916,11 +2995,16 @@ def run_gallery(
         raise ConfigError("No variants are configured. Add a top-level variants array or render the config normally.")
 
     resolved_variants = [(str(variant["name"]).strip(), variant_config(config, variant)) for variant in variants]
+    settings = gallery_settings(config, gallery_config=gallery_config, variant_count=len(resolved_variants))
+    resolved_variants = [
+        (name, apply_gallery_target_render_size(resolved_config, settings))
+        for name, resolved_config in resolved_variants
+    ]
     if args.print_resolved_config:
         print(
             json.dumps(
                 {
-                    "gallery": gallery_settings(config, gallery_config=gallery_config),
+                    "gallery": settings,
                     "gallery_config": project_relative_or_absolute(gallery_config_path) if gallery_config_path else None,
                     "variants": [
                         {
@@ -2945,7 +3029,6 @@ def run_gallery(
             render_config(config=resolved_config, config_path=config_path, config_dir=config_dir, args=args)
         return 0
 
-    settings = gallery_settings(config, gallery_config=gallery_config)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     gallery_root = output_root_for(config, args) / f"{sanitize_name(base_job_name(config))}__gallery__{timestamp}"
     gallery_root.mkdir(parents=True, exist_ok=True)
@@ -2968,6 +3051,7 @@ def run_gallery(
         output_path=contact_sheet,
         columns=settings["columns"],
         thumbnail_width=settings["thumbnail_width"],
+        thumbnail_height=settings.get("thumbnail_height"),
         margin_px=settings["margin_px"],
         gutter_px=settings["gutter_px"],
         title_height_px=settings["title_height_px"],

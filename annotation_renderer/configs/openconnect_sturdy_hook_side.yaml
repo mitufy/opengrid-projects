@@ -35,31 +35,32 @@ annotations:
     # hook_corner_fillet: corner_fillet
     # hook_corner_fillet_extent: corner_fillet
     # circular_tip_radius: tip_radius
-    # circular_tip_radius_extent: tip_radius
+    circular_tip_angle_radius: circular_tip_radius
     # circular_tip_angle: tip_angle
   angle_radius_callouts:
   - id: circular_tip_angle_radius
     arc_id: circular_tip_angle_extent
     radius_id: circular_tip_angle_radius
     angle_id: circular_tip_angle
-    optional: true
     color:
       $constant: annotation_color_red
-    show_radius_label: false
-    angle_label_offset_px: 34
+    show_radius_label: true
+    radius_label_offset_px: -50
+    radius_label_tangent_offset_px: -40
+    angle_label_offset_px: 50
     angle_label_tangent_offset_px: 10
     angle_fill_alpha: 28
-    font_size_px: 32
+    font_size_px: 44
   - id: hook_corner_fillet_detail
     arc_id: hook_corner_fillet_extent
     radius_id: hook_corner_fillet
-    optional: true
     color:
       $constant: annotation_color_red
     show_angle_label: false
-    radius_label_offset_px: 26
+    radius_label_tangent_offset_px: -40
+    radius_label_offset_px: 50
     angle_fill_alpha: 28
-    font_size_px: 32
+    font_size_px: 44
   - id: truss_angle_detail
     arc_id: truss_angle_extent
     radius_id: truss_angle_radius
@@ -68,16 +69,16 @@ annotations:
     color:
       $constant: annotation_color_red
     show_radius_label: false
-    angle_label_offset_px: 34
+    angle_label_offset_px: 50
     angle_fill_alpha: 28
-    font_size_px: 32
+    font_size_px: 44
   chains:
   - ids: [hook_thickness, hook_length]
     color:
       $constant: annotation_color_black
     display_offset_mm: [0, 0, 0]
-    line_offset_px: -40
-    label_offset_px: -38
+    line_offset_px: -60
+    label_offset_px: -60
     label_font_size_px:
       $constant: annotation_label_font_size_px
   # image_labels:

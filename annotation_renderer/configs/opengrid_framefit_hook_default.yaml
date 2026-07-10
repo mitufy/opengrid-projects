@@ -17,11 +17,11 @@ scene:
     model:
       scad_file: opengrid_framefit_hook.scad
       defines:
-        hook_width: 8
+        hook_width: 7
         hook_corner_angle: 45
         hook_tip_angle: 90
         hook_length: 16
-        hook_tip_length: 4
+        hook_tip_length: 6
     transform:
       location_mm: [28, 0, -56]
       rotation_deg: [0, 0, 180]
@@ -38,11 +38,11 @@ scene:
       rotation_deg: [0, 0, 180]
 render:
   fit_margin: 0
+  camera_view_preset: back_left
 annotations:
   style:
     $constant: default_annotation_style
     auto_adjust_labels: true
-    tick_length_px: 12
     type_styles:
       grids:
         line_colors:
@@ -51,36 +51,35 @@ annotations:
         line_colors:
         - $constant: annotation_color_black
   aliases:
-    hook_vertical_grids: hook_vertical_grids x 28mm
+    hook_vertical_grids: hook_vertical_grids
     truss_vertical_grid: truss_vertical_grid x 28mm
     hook_tip_shape: hook_tip_shape
   chains:
   - ids: [hook_width]
     display_offset_mm: [0, 0, 0]
-    line_offset_px: 28
-    label_offset_px: 28
+    line_offset_px: 10
+    label_offset_px: 50
     label_font_size_px:
       $constant: annotation_label_font_size_px
   - ids: [hook_length]
     display_offset_mm: [0, 0, 0]
-    line_offset_px: -28
-    label_offset_px: -28
+    line_offset_px: -10
+    label_offset_px: -50
     label_font_size_px:
       $constant: annotation_label_font_size_px
   # - ids: [hook_back_thickness]
   #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -28
-  #   label_offset_px: -28
+  #   line_offset_px: -50
+  #   label_offset_px: -50
   #   label_font_size_px: 24
   # - ids: [hook_tip_length]
   #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -28
-  #   label_offset_px: -28
+  #   line_offset_px: -50
+  #   label_offset_px: -50
   #   label_font_size_px: 24
-  - ids: [hook_vertical_grids, truss_vertical_grid]
-    optional: true
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 28
-    label_offset_px: 28
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
+  # - ids: [hook_vertical_grids, truss_vertical_grid]
+  #   optional: true
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: 20
+  #   label_offset_px: 50
+  #   label_font_size_px: 46

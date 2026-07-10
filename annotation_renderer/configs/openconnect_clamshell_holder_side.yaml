@@ -24,7 +24,7 @@ scene:
       scale:
         $constant: blender_scene_scale_vector
 render:
-  fit_margin: 0.1
+  fit_margin: 0
   camera_view: right
 annotations:
   style:
@@ -47,8 +47,8 @@ annotations:
     color:
       $constant: annotation_color_black
     display_offset_mm: [0, 0, 0]
-    line_offset_px: 56
-    label_offset_px: 28
+    line_offset_px: 100
+    label_offset_px: 50
     label_font_size_px:
       $constant: annotation_label_font_size_px
   # - ids: [front_opening_side_margin]
@@ -68,39 +68,35 @@ annotations:
     color:
       $constant: annotation_color_blue
     display_offset_mm: [0, 0, 0]
-    line_offset_px: 200
-    label_offset_px: 28
+    line_offset_px: 300
+    label_offset_px: 50
     label_along_offset_px: 0
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
+    label_font_size_px: 48
   - ids: [side_opening_back_margin]
     optional: true
     color:
       $constant: annotation_color_blue
     display_offset_mm: [0, 0, 0]
-    line_offset_px: -200
-    label_offset_px: -28
+    line_offset_px: -300
+    label_offset_px: -50
     label_along_offset_px: 0
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
+    label_font_size_px: 48
   - ids: [side_opening_top_margin]
     optional: true
     color:
       $constant: annotation_color_red
     display_offset_mm: [0, 0, 0]
-    line_offset_px: -60
-    label_offset_px: -28
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
+    line_offset_px: -300
+    label_offset_px: -50
+    label_font_size_px: 48
   - ids: [side_opening_bottom_margin]
     optional: true
     color:
       $constant: annotation_color_red
     display_offset_mm: [0, 0, 0]
     line_offset_px: 60
-    label_offset_px: 28
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
+    label_offset_px: 50
+    label_font_size_px: 48
   # angle_radius_callouts:
   # - id: item_corner_rounding_fillet
   #   arc_id: item_corner_rounding_extent

@@ -39,8 +39,8 @@ annotations:
     display_offset_mm: [-2, 0, 0]
     optional: true
     show_radius_label: false
-    angle_label_offset_px: 34
-    angle_label_tangent_offset_px: 56
+    angle_label_offset_px: 80
+    # angle_label_tangent_offset_px: 56
     angle_fill_alpha: 28
   chains:
   # - ids: [body_width]
@@ -50,19 +50,21 @@ annotations:
   #   label_font_size_px: 24
   - ids: [body_thickness]
     display_offset_mm: [0, 0, 0]
-    line_offset_px: -40
-    label_offset_px: -28
+    line_offset_px: -120
+    label_offset_px: -50
     label_font_size_px:
       $constant: annotation_label_font_size_px
   - ids: [hook_main_size]
     display_offset_mm: [0, 0, 0]
     line_offset_px: -300
-    label_offset_px: -28
+    label_offset_px: -50
+    label_along_offset_px: 90
     label_font_size_px:
       $constant: annotation_label_font_size_px
   - ids: [hook_stem_length]
     display_offset_mm: [0, 0, 0]
     line_offset_px: -300
-    label_offset_px: -28
+    label_offset_px: -50
+    label_along_offset_px: -90
     label_font_size_px:
       $constant: annotation_label_font_size_px
