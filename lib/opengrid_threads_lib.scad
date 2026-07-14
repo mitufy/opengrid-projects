@@ -143,7 +143,8 @@ module snap_threads(threads_height = OG_STANDARD_THICKNESS, threads_cfg = [], te
           }
         if (struct_val(_text_cfg, "text_depth") > 0)
           up(threads_height / 2 - EPS)
-            tag("remove") snap_text(text_cfg=_text_cfg, anchor=TOP);
+            tag("remove") zrot(_threads_offset_angle)
+              snap_text(text_cfg=_text_cfg, anchor=TOP);
       }
 
     children();
