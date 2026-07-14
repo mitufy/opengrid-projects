@@ -136,7 +136,8 @@ compartment_width_scale = final_compartment_taper_width / compartment_width;
 compartment_depth_scale = final_compartment_taper_depth / final_compartment_depth;
 
 slot_face_height = ang_hyp_to_adj(final_holder_tilt_angle, final_holder_height);
-final_slot_h_grids = max(1, floor(holder_width / OG_TILE_SIZE));
+minimum_slot_side_buffer = 4;
+final_slot_h_grids = holder_width_mode == "Tile Multiple" ? max(1, floor(holder_width / OG_TILE_SIZE)) : max(1, floor((holder_width + minimum_slot_side_buffer) / OG_TILE_SIZE));
 final_slot_v_grids = max(1, round(slot_face_height / OG_TILE_SIZE));
 slot_flat_region = fwd((slot_face_height - round(slot_face_height / OG_TILE_SIZE) * OG_TILE_SIZE) / 2, rect([holder_width, slot_face_height]));
 
