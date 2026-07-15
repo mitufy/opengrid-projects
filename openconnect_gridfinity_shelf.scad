@@ -63,9 +63,10 @@ GF_BASEPLATE_LOWER_TAPER_HEIGHT = 0.7;
 GF_BASEPLATE_RISER_HEIGHT = 1.8;
 GF_BASEPLATE_UPPER_TAPER_HEIGHT = 2.15;
 GF_BASEPLATE_PROFILE_HEIGHT = GF_BASEPLATE_LOWER_TAPER_HEIGHT + GF_BASEPLATE_RISER_HEIGHT + GF_BASEPLATE_UPPER_TAPER_HEIGHT;
-GF_NOMINAL_BIN_CLEARANCE = 0.5;
+GF_BASEPLATE_CLEARANCE_HEIGHT = 0.35;
+GF_BASEPLATE_HEIGHT = GF_BASEPLATE_CLEARANCE_HEIGHT + GF_BASEPLATE_PROFILE_HEIGHT;
 GF_TOP_CORNER_RADIUS = 4;
-GF_MID_INSET = GF_BASEPLATE_LOWER_TAPER_HEIGHT;
+GF_MID_INSET = GF_BASEPLATE_UPPER_TAPER_HEIGHT;
 GF_BOTTOM_INSET = GF_BASEPLATE_LOWER_TAPER_HEIGHT + GF_BASEPLATE_UPPER_TAPER_HEIGHT;
 GF_MID_CORNER_RADIUS = GF_TOP_CORNER_RADIUS - GF_MID_INSET;
 GF_BOTTOM_CORNER_RADIUS = GF_TOP_CORNER_RADIUS - GF_BOTTOM_INSET;
@@ -74,8 +75,7 @@ GF_ATTACHMENT_EDGE_CLEARANCE = 4;
 GF_ATTACHMENT_DIAMETER = max(0, magnet_diameter);
 GF_ATTACHMENT_BOSS_DIAMETER = GF_ATTACHMENT_DIAMETER + 4;
 GF_MAGNET_POSITION = min(GF_PITCH / 2 - GF_ATTACHMENT_BORDER, GF_PITCH / 2 - GF_ATTACHMENT_EDGE_CLEARANCE - GF_ATTACHMENT_DIAMETER / 2);
-GF_SKELETON_PROFILE_MARGIN = 0.5;
-GF_SKELETON_RAIL_WIDTH = GF_BOTTOM_INSET + GF_SKELETON_PROFILE_MARGIN;
+GF_SKELETON_RAIL_WIDTH = GF_BOTTOM_INSET;
 GF_SKELETON_WINDOW_SIZE = GF_PITCH - GF_SKELETON_RAIL_WIDTH * 2;
 GF_ATTACHMENT_BOSS_RAIL_OVERLAP = 2.4;
 GF_ATTACHMENT_WINDOW_SIZE = max(1, min(GF_SKELETON_WINDOW_SIZE, (GF_MAGNET_POSITION + GF_ATTACHMENT_BOSS_DIAMETER / 2 - GF_ATTACHMENT_BOSS_RAIL_OVERLAP) * 2));
@@ -107,14 +107,15 @@ final_magnet_thickness = max(0, magnet_thickness);
 magnet_holes_enabled = final_magnet_position != "None" && final_magnet_diameter > 0 && final_magnet_thickness > 0;
 final_shelf_base_extra_thickness = magnet_holes_enabled && final_magnet_thickness > 2.4 ? final_magnet_thickness : 2.4;
 final_socket_clearance = max(0, gridfinity_socket_clearance);
-//clamp to 0.2 so the back to the slot wall is at least 0.85 thick.
-final_shelf_back_offset = max(0.2, shelf_back_offset);
+//Ensure the slot wall is at least 0.85 thick.
+slot_backwall_filler = 0.7;
+final_shelf_back_offset = max(0, shelf_back_offset) + slot_backwall_filler;
 final_shelf_side_rim = max(0, shelf_side_rim);
 final_shelf_front_rim = max(0, shelf_front_rim);
 
 shelf_width = final_gridfinity_width_grids * GF_PITCH + final_shelf_side_rim * 2;
 shelf_depth = final_shelf_back_offset + final_gridfinity_depth_grids * GF_PITCH + final_shelf_front_rim;
-shelf_deck_height = final_shelf_base_extra_thickness + GF_BASEPLATE_PROFILE_HEIGHT;
+shelf_deck_height = final_shelf_base_extra_thickness + GF_BASEPLATE_HEIGHT;
 final_shelf_bottom_tilt_height = max(0, OG_TILE_SIZE - shelf_deck_height);
 
 slot_h_grids = max(1, floor(shelf_width / OG_TILE_SIZE));
@@ -130,7 +131,7 @@ has_front_lip = final_shelf_rim_lip_height > 0 && final_shelf_front_rim > 0;
 side_wall = has_side_lips ? final_shelf_side_rim : 0;
 front_wall = has_front_lip ? final_shelf_front_rim : 0;
 inner_width = shelf_width - side_wall * 2;
-inner_depth = shelf_depth - front_wall;
+inner_depth = shelf_depth - front_wall - final_shelf_back_offset;
 print_bottom_angle = final_shelf_bottom_tilt_height <= 0 ? 0 : atan(final_shelf_bottom_tilt_height / shelf_depth);
 
 //END shelf parameters
@@ -147,14 +148,14 @@ right(shelf_width) zrot(180)
                 tag_diff(tag="", remove="rm0") {
                   attach(TOP, BOTTOM)
                     cuboid([shelf_width, shelf_depth, final_shelf_rim_lip_height], rounding=GF_TOP_CORNER_RADIUS, edges=[BACK + LEFT, BACK + RIGHT])
-                      fwd(final_shelf_front_rim / 2) attach(TOP, TOP, inside=true)
+                      back(final_shelf_back_offset) attach(TOP, TOP, align=FRONT, inside=true)
                           tag("rm0") cuboid([inner_width, inner_depth, final_shelf_rim_lip_height + EPS], rounding=GF_TOP_CORNER_RADIUS, edges=has_side_lips && has_front_lip ? "Z" : has_front_lip ? [BACK + LEFT, BACK + RIGHT] : []);
                 }
               if (final_shelf_bottom_tilt_height > 0)
                 shelf_tilted_bottom();
             }
       xrot(90 - print_bottom_angle) right(slot_horizontal_alignment_offset + slot_horizontal_offset) back(slot_vertical_offset)
-        openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=slot_h_grids, vertical_grids=1, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, excess_length=4, anchor=TOP + FRONT + LEFT);
+            openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=slot_h_grids, vertical_grids=1, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, excess_length=4, anchor=TOP + FRONT + LEFT);
     }
 
 //END generation
@@ -216,28 +217,31 @@ module magnet_position_copies() {
 }
 
 module gridfinity_socket_cutout() {
-  top_size = min(GF_PITCH + 0.2, GF_PITCH - GF_NOMINAL_BIN_CLEARANCE + final_socket_clearance);
+  top_size = min(GF_PITCH + 0.2, GF_PITCH + final_socket_clearance);
   mid_size = max(1, top_size - GF_MID_INSET * 2);
   bottom_size = max(1, top_size - GF_BOTTOM_INSET * 2);
   top_radius = max(0.1, GF_TOP_CORNER_RADIUS);
   mid_radius = max(0.1, GF_MID_CORNER_RADIUS);
   bottom_radius = max(0.1, GF_BOTTOM_CORNER_RADIUS);
 
+  linear_extrude(height=GF_BASEPLATE_CLEARANCE_HEIGHT + EPS)
+    rect([bottom_size, bottom_size], rounding=bottom_radius, $fn=128);
   hull() {
-    linear_extrude(height=EPS)
-      rect([bottom_size, bottom_size], rounding=bottom_radius, $fn=128);
-    up(GF_BASEPLATE_LOWER_TAPER_HEIGHT)
+    up(GF_BASEPLATE_CLEARANCE_HEIGHT)
+      linear_extrude(height=EPS)
+        rect([bottom_size, bottom_size], rounding=bottom_radius, $fn=128);
+    up(GF_BASEPLATE_CLEARANCE_HEIGHT + GF_BASEPLATE_LOWER_TAPER_HEIGHT)
       linear_extrude(height=EPS)
         rect([mid_size, mid_size], rounding=mid_radius, $fn=128);
   }
-  up(GF_BASEPLATE_LOWER_TAPER_HEIGHT - EPS)
+  up(GF_BASEPLATE_CLEARANCE_HEIGHT + GF_BASEPLATE_LOWER_TAPER_HEIGHT - EPS)
     linear_extrude(height=GF_BASEPLATE_RISER_HEIGHT + EPS * 2)
       rect([mid_size, mid_size], rounding=mid_radius, $fn=128);
   hull() {
-    up(GF_BASEPLATE_LOWER_TAPER_HEIGHT + GF_BASEPLATE_RISER_HEIGHT)
+    up(GF_BASEPLATE_CLEARANCE_HEIGHT + GF_BASEPLATE_LOWER_TAPER_HEIGHT + GF_BASEPLATE_RISER_HEIGHT)
       linear_extrude(height=EPS)
         rect([mid_size, mid_size], rounding=mid_radius, $fn=128);
-    up(GF_BASEPLATE_PROFILE_HEIGHT + EPS)
+    up(GF_BASEPLATE_HEIGHT + EPS)
       linear_extrude(height=EPS)
         rect([top_size, top_size], rounding=top_radius, $fn=128);
   }
