@@ -25,20 +25,21 @@ holder_slot_column_limit = 1;
 holder_slot_position = "Top"; //[Top, Front]
 holder_thickness = 2.4;
 //Margins around the front opening. At least one margin should be greater than 0 to prevent the item from falling out.
-front_opening_side_margin = 8; //0.1
+front_opening_left_right_margin = 8; //0.1
 //Alternatively, you can set margins to very large values, thus disable the front opening completely.
-front_opening_end_margin = 6; //0.1
+front_opening_top_bottom_margin = 6; //0.1
 
 /* [Side Opening] */
 //Cutting a hole in the side, useful for items such as power strips.
-holder_side_opening = "Right"; //[None, Left, Right, Both]
+holder_side_cutout = "Right"; //[None, Left, Right, Both]
 //Using the four margin values below, the size and the position of the side opening can be freely adjusted.
-side_opening_front_margin = 15; //0.1
-//Margins are from the edge of the opening to the wall. All 0 means the wall would be completely removed.
-side_opening_back_margin = 15; //0.1
-side_opening_top_margin = 0; //0.1
-side_opening_bottom_margin = 0; //0.1
-side_opening_rounding = 2; //0.1
+side_cutout_top_margin = 20; //0.1
+//Cutout's top/bottom margins starts at the end of front_opening_top_bottom_margin, so it's necessary to substract its value when the calculation is based on item_height.
+side_cutout_bottom_margin = 10; //0.1
+//By default, the cutout would not remove the edges of the front opening. You can set cutout margins to negative values to change this.
+side_cutout_back_margin = 0; //0.1
+side_cutout_front_margin = 0; //0.1
+side_cutout_rounding = 2; //0.1
 
 /* [openConnect Settings] */
 //Usually, "Left" and "Right" are used when mounting underdesk, "Up" and "Down" are used when mounting on a wall.
@@ -107,58 +108,60 @@ middle_cutoff_offset = final_slot_h_grids % 2 != holder_middle_cutoff_tiles % 2 
 //END holder geometry calculations
 
 //BEGIN holder generation
-up(generate_holder_part == "Both" ? holder_depth / 2 : holder_width / 2) yrot(generate_holder_part == "Left" ? -90 : generate_holder_part == "Right" ? 90 : 0)
-    conditional_half(v=generate_holder_part == "Left" ? LEFT : RIGHT, pos_offset=middle_cutoff_offset, condition=generate_holder_part != "Both", mask_size=max(holder_width, holder_height) + 10)
-      diff() cuboid([holder_width, holder_height, holder_depth], edges=BOTTOM, rounding=0.8) {
-          down(EPS) back((holder_front_thickness - holder_thickness) / 2) {
-              down((holder_top_thickness - holder_thickness) / 2)
-                attach(CENTER, CENTER)
-                  tag("remove") cuboid([item_width, item_height, item_depth + EPS * 2], edges="Z", rounding=final_corner_rounding);
-              if (item_width - front_opening_side_margin * 2 > 0 && item_height - front_opening_end_margin * 2 > 0)
-                attach(BOTTOM, BOTTOM, inside=true)
-                  cuboid([item_width - front_opening_side_margin * 2, item_height - front_opening_end_margin * 2, holder_thickness + EPS * 2], edges="Z", rounding=min((item_width - front_opening_side_margin * 2) / 2, (item_height - front_opening_end_margin * 2) / 2, final_corner_rounding));
-              right(middle_cutoff_offset) {
-                attach(CENTER, CENTER, inside=true)
-                  cuboid([middle_cutoff_size, holder_height + 10, holder_depth + 10]);
-                if (front_opening_end_margin > 0 && item_height - front_opening_end_margin * 2 > 0)
+up(generate_holder_part == "Both" ? holder_height / 2 : holder_width / 2)
+  yrot(generate_holder_part == "Left" ? -90 : generate_holder_part == "Right" ? 90 : 0)
+    xrot(generate_holder_part == "Both" ? -90 : 0)
+      conditional_half(v=generate_holder_part == "Left" ? LEFT : RIGHT, pos_offset=middle_cutoff_offset, condition=generate_holder_part != "Both", mask_size=max(holder_width, holder_height) + 10)
+        diff() cuboid([holder_width, holder_height, holder_depth], edges=BOTTOM, rounding=0.8) {
+            down(EPS) back((holder_front_thickness - holder_thickness) / 2) {
+                down((holder_top_thickness - holder_thickness) / 2)
+                  attach(CENTER, CENTER)
+                    tag("remove") cuboid([item_width, item_height, item_depth + EPS * 2], edges="Z", rounding=final_corner_rounding);
+                if (item_width - front_opening_left_right_margin * 2 > 0 && item_height - front_opening_top_bottom_margin * 2 > 0)
                   attach(BOTTOM, BOTTOM, inside=true)
-                    cuboid([middle_cutoff_size, item_height - front_opening_end_margin * 2, holder_thickness + EPS * 2])
-                      edge_mask("Z")
-                        rounding_edge_mask(r=min(max(0, item_width - front_opening_side_margin * 2 - final_corner_rounding * 2), front_opening_end_margin, 2), spin=180);
-              }
-            }
-          if (holder_side_opening != "None") {
-            side_opening_height = item_height - front_opening_end_margin * 2 - side_opening_front_margin - side_opening_back_margin;
-            side_opening_depth = item_depth + holder_thickness - side_opening_top_margin - side_opening_bottom_margin;
-            side_opening_width =
-              side_opening_back_margin < 0 || side_opening_front_margin < 0 ? holder_width / 2
-              : (holder_width - (item_width - front_opening_side_margin * 2)) / 2 + max(0, final_corner_rounding - side_opening_back_margin, final_corner_rounding - side_opening_front_margin);
-            rounding_edges = side_opening_bottom_margin > 0 ? "X" : [FRONT + TOP, BACK + TOP];
-            if (side_opening_height > 0 && side_opening_depth > 0)
-              back(holder_front_thickness + side_opening_front_margin + front_opening_end_margin) down(holder_top_thickness + side_opening_top_margin) {
-                  conditional_flip(axis="X", copy=holder_side_opening == "Both", condition=(holder_side_opening == "Both" || holder_side_opening == "Left"))
-                    attach(FRONT + TOP, FRONT + TOP, align=RIGHT, inside=true)
-                      cuboid([side_opening_width + EPS, side_opening_height + EPS * 2, side_opening_depth + EPS * 2], edges=rounding_edges, rounding=max(0, min(side_opening_height / 2, side_opening_depth / 2, side_opening_rounding))) {
-                        if (side_opening_front_margin - final_corner_rounding > EPS && side_opening_back_margin - final_corner_rounding > EPS && front_opening_side_margin > EPS) {
-                          if (side_opening_front_margin - final_corner_rounding > EPS)
-                            edge_mask([LEFT + FRONT])
-                              rounding_edge_mask(r=min(side_opening_front_margin - final_corner_rounding, front_opening_side_margin, 2), spin=-90);
-                          if (side_opening_back_margin - final_corner_rounding > EPS)
-                            edge_mask([LEFT + BACK])
-                              rounding_edge_mask(r=min(side_opening_back_margin - final_corner_rounding, front_opening_side_margin, 2), spin=-90);
-                        }
-                      }
+                    cuboid([item_width - front_opening_left_right_margin * 2, item_height - front_opening_top_bottom_margin * 2, holder_thickness + EPS * 2], edges="Z", rounding=min((item_width - front_opening_left_right_margin * 2) / 2, (item_height - front_opening_top_bottom_margin * 2) / 2, final_corner_rounding));
+                right(middle_cutoff_offset) {
+                  attach(CENTER, CENTER, inside=true)
+                    cuboid([middle_cutoff_size, holder_height + 10, holder_depth + 10]);
+                  if (front_opening_top_bottom_margin > 0 && item_height - front_opening_top_bottom_margin * 2 > 0)
+                    attach(BOTTOM, BOTTOM, inside=true)
+                      cuboid([middle_cutoff_size, item_height - front_opening_top_bottom_margin * 2, holder_thickness + EPS * 2])
+                        edge_mask("Z")
+                          rounding_edge_mask(r=min(max(0, item_width - front_opening_left_right_margin * 2 - final_corner_rounding * 2), front_opening_top_bottom_margin, 2), spin=180);
                 }
-          }
-          attach_anchor = holder_slot_position == "Top" ? TOP : FRONT;
-          flat_region = holder_slot_position == "Top" ? left(slot_horizontal_offset, fwd(slot_vertical_offset, rect([holder_width, holder_height], rounding=final_corner_rounding))) : left(slot_horizontal_offset, fwd(slot_vertical_offset, rect([holder_width - final_corner_rounding * 2, holder_depth])));
+              }
+            if (holder_side_cutout != "None") {
+              side_cutout_height = item_height - front_opening_top_bottom_margin * 2 - side_cutout_top_margin - side_cutout_bottom_margin;
+              side_cutout_depth = item_depth + holder_thickness - side_cutout_back_margin - side_cutout_front_margin;
+              side_cutout_width =
+                side_cutout_bottom_margin < 0 || side_cutout_top_margin < 0 ? holder_width / 2
+                : (holder_width - (item_width - front_opening_left_right_margin * 2)) / 2 + max(0, final_corner_rounding - side_cutout_bottom_margin, final_corner_rounding - side_cutout_top_margin);
+              rounding_edges = side_cutout_front_margin > 0 ? "X" : [FRONT + TOP, BACK + TOP];
+              if (side_cutout_height > 0 && side_cutout_depth > 0)
+                back(holder_front_thickness + side_cutout_top_margin + front_opening_top_bottom_margin) down(holder_top_thickness + side_cutout_back_margin) {
+                    conditional_flip(axis="X", copy=holder_side_cutout == "Both", condition=(holder_side_cutout == "Both" || holder_side_cutout == "Left"))
+                      attach(FRONT + TOP, FRONT + TOP, align=RIGHT, inside=true)
+                        cuboid([side_cutout_width + EPS, side_cutout_height + EPS * 2, side_cutout_depth + EPS * 2], edges=rounding_edges, rounding=max(0, min(side_cutout_height / 2, side_cutout_depth / 2, side_cutout_rounding))) {
+                          if (side_cutout_top_margin - final_corner_rounding > EPS && side_cutout_bottom_margin - final_corner_rounding > EPS && front_opening_left_right_margin > EPS) {
+                            if (side_cutout_top_margin - final_corner_rounding > EPS)
+                              edge_mask([LEFT + FRONT])
+                                rounding_edge_mask(r=min(side_cutout_top_margin - final_corner_rounding, front_opening_left_right_margin, 2), spin=-90);
+                            if (side_cutout_bottom_margin - final_corner_rounding > EPS)
+                              edge_mask([LEFT + BACK])
+                                rounding_edge_mask(r=min(side_cutout_bottom_margin - final_corner_rounding, front_opening_left_right_margin, 2), spin=-90);
+                          }
+                        }
+                  }
+            }
+            attach_anchor = holder_slot_position == "Top" ? TOP : FRONT;
+            flat_region = holder_slot_position == "Top" ? left(slot_horizontal_offset, fwd(slot_vertical_offset, rect([holder_width, holder_height], rounding=final_corner_rounding))) : left(slot_horizontal_offset, fwd(slot_vertical_offset, rect([holder_width - final_corner_rounding * 2, holder_depth])));
             attach(attach_anchor, TOP, inside=true) {
               right(slot_horizontal_offset) back(slot_vertical_offset)
                   openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[flat_region]);
               // openconnect_slot_grid_limit_debug(slot_cfg=_slot_cfg, horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[flat_region]);
             }
-          if (final_corner_rounding > 0)
-            edge_mask([LEFT + FRONT, LEFT + BACK, RIGHT + FRONT, RIGHT + BACK])
-              yflip() teardrop_edge_mask(l=$edge_length, r=final_corner_rounding, spin=-90);
-        }
+            if (final_corner_rounding > 0)
+              edge_mask([LEFT + FRONT, LEFT + BACK, RIGHT + FRONT, RIGHT + BACK])
+                yflip() teardrop_edge_mask(l=$edge_length, r=final_corner_rounding, spin=-90);
+          }
 //END holder generation
