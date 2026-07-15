@@ -21,8 +21,8 @@ item_corner_rounding = 5; //0.1
 generate_holder_part = "Both"; //[Both, Left, Right]
 //Maximum number of slot columns on each holder half. Set to 1 for a minimal length holder.
 holder_slot_column_limit = 1;
-//"Top" for item facing down, "Front" for item facing its side. If item_depth is too small or corner_rounding is too large, "Front" may leave too little space for slots.
-holder_slot_position = "Top"; //[Top, Front]
+//If item_depth is too small or corner_rounding is too large, "Top" may leave too little space for slots.
+holder_slot_position = "Back"; //[Back, Top]
 holder_thickness = 2.4;
 //Margins around the front opening. At least one margin should be greater than 0 to prevent the item from falling out.
 front_opening_left_right_margin = 8; //0.1
@@ -86,8 +86,8 @@ _slot_cfg = ocslot_cfg(
 assert(item_width > 0 && item_height > 0 && item_depth > 0, "item size must be greater than 0");
 
 slot_wall_thickness = 1.2 + struct_val(_slot_cfg, "total_height");
-holder_top_thickness = holder_slot_position == "Top" ? slot_wall_thickness : holder_thickness;
-holder_front_thickness = holder_slot_position == "Front" ? slot_wall_thickness : holder_thickness;
+holder_top_thickness = holder_slot_position == "Back" ? slot_wall_thickness : holder_thickness;
+holder_front_thickness = holder_slot_position == "Top" ? slot_wall_thickness : holder_thickness;
 holder_width = item_width + holder_thickness * 2;
 holder_height = item_height + holder_thickness + holder_front_thickness;
 holder_depth = item_depth + holder_thickness + holder_top_thickness;
@@ -95,10 +95,10 @@ holder_depth = item_depth + holder_thickness + holder_top_thickness;
 final_corner_rounding = max(0, min(item_width / 2, item_height / 2, item_corner_rounding));
 //The calculation of horizontal slots for Front version is just an approximation.
 final_slot_h_grids =
-  holder_slot_position == "Top" ? max(1, floor(holder_width / OG_TILE_SIZE))
+  holder_slot_position == "Back" ? max(1, floor(holder_width / OG_TILE_SIZE))
   : max(1, floor(max(holder_width, holder_width - final_corner_rounding * 2 + 10) / OG_TILE_SIZE));
 final_slot_v_grids =
-  holder_slot_position == "Top" ? max(1, floor(holder_height / OG_TILE_SIZE))
+  holder_slot_position == "Back" ? max(1, floor(holder_height / OG_TILE_SIZE))
   : max(1, floor(holder_depth / OG_TILE_SIZE));
 //cut off the bridge part of the upper most slot
 middle_cutoff_size_base = max(0.8, slot_edge_wall_min_width) * 2 + EPS;
@@ -153,8 +153,8 @@ up(generate_holder_part == "Both" ? holder_height / 2 : holder_width / 2)
                         }
                   }
             }
-            attach_anchor = holder_slot_position == "Top" ? TOP : FRONT;
-            flat_region = holder_slot_position == "Top" ? left(slot_horizontal_offset, fwd(slot_vertical_offset, rect([holder_width, holder_height], rounding=final_corner_rounding))) : left(slot_horizontal_offset, fwd(slot_vertical_offset, rect([holder_width - final_corner_rounding * 2, holder_depth])));
+            attach_anchor = holder_slot_position == "Back" ? TOP : FRONT;
+            flat_region = holder_slot_position == "Back" ? left(slot_horizontal_offset, fwd(slot_vertical_offset, rect([holder_width, holder_height], rounding=final_corner_rounding))) : left(slot_horizontal_offset, fwd(slot_vertical_offset, rect([holder_width - final_corner_rounding * 2, holder_depth])));
             attach(attach_anchor, TOP, inside=true) {
               right(slot_horizontal_offset) back(slot_vertical_offset)
                   openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[flat_region]);
