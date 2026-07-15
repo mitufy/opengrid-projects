@@ -147,8 +147,8 @@ module emit_vasemode_container_annotations() {
     "vasemode_container_context",
     [
       "OG_TILE_SIZE",
-      "ocvase_linewidth",
-      "final_ocvase_linewidth",
+      "vase_linewidth",
+      "final_vase_linewidth",
       "vase_surface_texture",
       "horizontal_grids",
       "vertical_grids",
@@ -167,7 +167,7 @@ module emit_vasemode_container_annotations() {
       "label_holder_type",
       "label_width",
       "label_height",
-      "label_depth",
+      "label_thickness",
       "slot_position",
       "slot_lock_distribution",
       "slot_side_clearance",
@@ -178,8 +178,8 @@ module emit_vasemode_container_annotations() {
     ],
     [
       OG_TILE_SIZE,
-      ocvase_linewidth,
-      final_ocvase_linewidth,
+      vase_linewidth,
+      final_vase_linewidth,
       vase_surface_texture,
       horizontal_grids,
       vertical_grids,
@@ -198,7 +198,7 @@ module emit_vasemode_container_annotations() {
       label_holder_type,
       label_width,
       label_height,
-      label_depth,
+      label_thickness,
       slot_position,
       slot_lock_distribution,
       slot_side_clearance,
@@ -236,11 +236,11 @@ module emit_vasemode_container_annotations() {
     basis="container_depth_from_depth_grids_or_custom_depth"
   );
   emit_dimension_annotation(
-    id="ocvase_linewidth",
-    label="ocvase_linewidth",
+    id="vase_linewidth",
+    label="vase_linewidth",
     axis="x",
-    value=final_ocvase_linewidth,
-    start=[vase_annotation_visible_x - final_ocvase_linewidth, vase_annotation_back_top_y, vase_annotation_z_max],
+    value=final_vase_linewidth,
+    start=[vase_annotation_visible_x - final_vase_linewidth, vase_annotation_back_top_y, vase_annotation_z_max],
     end=[vase_annotation_visible_x, vase_annotation_back_top_y, vase_annotation_z_max],
     basis="single_wall_vase_mode_line_width"
   );
@@ -332,12 +332,12 @@ module emit_vasemode_container_annotations() {
       basis="label_slot_clear_height"
     );
     emit_dimension_annotation(
-      id="label_depth",
-      label="label_depth",
+      id="label_thickness",
+      label="label_thickness",
       axis="y",
-      value=final_label_depth,
+      value=final_label_thickness,
       start=[label_annotation_x_max, vase_annotation_front_top_y, label_annotation_z_min],
-      end=[label_annotation_x_max, vase_annotation_front_top_y - final_label_depth, label_annotation_z_min],
+      end=[label_annotation_x_max, vase_annotation_front_top_y - final_label_thickness, label_annotation_z_min],
       basis="label_insert_depth"
     );
   }
@@ -419,14 +419,14 @@ module render_vasemode_container_source_mesh(addgrid = true) {
                               attach(FRONT, BOTTOM, align=BOTTOM)
                                 tag("") prismoid(size2=[label_holder_side_width, final_label_height + label_side_clearance], xang=[90, 90], yang=[90, label_overhang_angle], h=label_holder_depth) {
                                     attach(LEFT + BOTTOM, LEFT + BOTTOM, align=FRONT, inside=true)
-                                      tag("rm0") prismoid(size2=[label_holder_side_width - final_ocvase_linewidth * 2, final_label_height + label_side_clearance], xang=[90, 90], yang=[90, label_overhang_angle], h=label_holder_depth - label_holder_wall_thickness);
+                                      tag("rm0") prismoid(size2=[label_holder_side_width - final_vase_linewidth * 2, final_label_height + label_side_clearance], xang=[90, 90], yang=[90, label_overhang_angle], h=label_holder_depth - label_holder_wall_thickness);
                                   }
                           if (label_holder_type != "Split-Left")
                             left((final_label_width + label_side_clearance * 2) / 2)
                               attach(FRONT, BOTTOM, align=BOTTOM)
                                 tag("") prismoid(size2=[label_holder_side_width, final_label_height + label_side_clearance], xang=[90, 90], yang=[90, label_overhang_angle], h=label_holder_depth) {
                                     attach(RIGHT + BOTTOM, RIGHT + BOTTOM, align=FRONT, inside=true)
-                                      tag("rm0") prismoid(size2=[label_holder_side_width - final_ocvase_linewidth * 2, final_label_height + label_side_clearance], xang=[90, 90], yang=[90, label_overhang_angle], h=label_holder_depth - label_holder_wall_thickness);
+                                      tag("rm0") prismoid(size2=[label_holder_side_width - final_vase_linewidth * 2, final_label_height + label_side_clearance], xang=[90, 90], yang=[90, label_overhang_angle], h=label_holder_depth - label_holder_wall_thickness);
                                   }
                         }
                   }
@@ -436,9 +436,9 @@ module render_vasemode_container_source_mesh(addgrid = true) {
 if (render_vase_print_preview)
   difference() {
     render_vasemode_container_source_mesh();
-    up(final_ocvase_linewidth)
-      right(final_ocvase_linewidth)
-        scale([1 - final_ocvase_linewidth * 2 / vase_width, 1 - final_ocvase_linewidth * 2 / vase_depth, 1])
+    up(final_vase_linewidth)
+      right(final_vase_linewidth)
+        scale([1 - final_vase_linewidth * 2 / vase_width, 1 - final_vase_linewidth * 2 / vase_depth, 1])
           render_vasemode_container_source_mesh(addgrid=false);
   }
 else

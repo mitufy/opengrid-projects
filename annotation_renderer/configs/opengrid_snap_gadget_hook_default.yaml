@@ -9,7 +9,7 @@ scene:
       scad_file: opengrid_snap_gadget_hook.scad
       defines:
         hook_stem_length: 10
-        hook_main_size: 30
+        hook_main_size: 36
         hook_tip_angle: 180
     transform:
       location_mm: [-14, 0, -20.6]
@@ -26,7 +26,7 @@ scene:
         hook_main_size: 20
         hook_stem_length: 3
         corner_type: Rectangular
-        body_thickness_scale: 1
+        hook_thickness_scale: 1
     transform:
       location_mm: [42, 0, -20.6]
       rotation_deg: [0, 0, 0]
@@ -39,6 +39,8 @@ render:
   fit_margin: 0
   # camera_view_preset: technical_iso
   camera_view_preset: top_front
+  lighting:
+    toplight_power: 6
   # camera_view: top
   # camera_rotation_offset_deg: [-60, 0, -30]
   # export_blend: true
@@ -63,15 +65,15 @@ annotations:
   #   # angle_label_tangent_offset_px: 80
   #   angle_fill_alpha: 28
   chains:
-  # - ids: [body_width]
+  # - ids: [hook_width]
   #   display_offset_mm: [0, 0, 0]
   #   line_offset_px: 50
   #   label_offset_px: 50
   #   label_font_size_px:
   #     $constant: annotation_label_font_size_px
-  - ids: [body_thickness]
+  - ids: [hook_thickness]
     display_offset_mm: [0, 0, 0]
-    line_offset_px: -20
+    line_offset_px: -60
     label_offset_px: -50
     label_font_size_px:
       $constant: annotation_label_font_size_px

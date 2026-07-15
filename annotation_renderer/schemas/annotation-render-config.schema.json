@@ -440,6 +440,14 @@
               "type": "number",
               "minimum": 0
             },
+            "toplight_power": {
+              "type": "number",
+              "minimum": 0
+            },
+            "frontlight_power": {
+              "type": "number",
+              "minimum": 0
+            },
             "color": {
               "type": "string"
             }

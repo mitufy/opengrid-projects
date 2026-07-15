@@ -32,13 +32,13 @@ scene:
         hook_width: 10
         hook_length: 32
         hook_tip_length: 12
-        truss_vertical_grid: 1
+        truss_vertical_grids: 1
     transform:
       location_mm: [-28, 0, -56]
       rotation_deg: [0, 0, 180]
 render:
   fit_margin: 0
-  camera_view_preset: back_left
+  # camera_view_preset: back_left
 annotations:
   style:
     $constant: default_annotation_style
@@ -51,22 +51,21 @@ annotations:
         line_colors:
         - $constant: annotation_color_black
   aliases:
-    hook_vertical_grids: hook_vertical_grids
-    truss_vertical_grid: truss_vertical_grid x 28mm
+    hook_vertical_grids: hook_vGrids x 28mm
+    truss_vertical_grids: truss_vertical_grids x 28mm
     hook_tip_shape: hook_tip_shape
   chains:
   - ids: [hook_width]
     display_offset_mm: [0, 0, 0]
-    line_offset_px: 10
+    line_offset_px: 40
     label_offset_px: 50
     label_font_size_px:
       $constant: annotation_label_font_size_px
   - ids: [hook_length]
     display_offset_mm: [0, 0, 0]
-    line_offset_px: -10
+    line_offset_px: -60
     label_offset_px: -50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
+    label_font_size_px: 52
   # - ids: [hook_back_thickness]
   #   display_offset_mm: [0, 0, 0]
   #   line_offset_px: -50
@@ -77,9 +76,9 @@ annotations:
   #   line_offset_px: -50
   #   label_offset_px: -50
   #   label_font_size_px: 24
-  # - ids: [hook_vertical_grids, truss_vertical_grid]
-  #   optional: true
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 20
-  #   label_offset_px: 50
-  #   label_font_size_px: 46
+  - ids: [hook_vertical_grids, truss_vertical_grids]
+    optional: true
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 40
+    label_offset_px: 50
+    label_font_size_px: 46

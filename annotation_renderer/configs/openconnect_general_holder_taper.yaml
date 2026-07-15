@@ -53,30 +53,32 @@ annotations:
       $constant: annotation_color_black
     display_offset_mm: [0, 0, 0]
     line_offset_px: 50
-    label_offset_px: 28
+    label_offset_px: 48
     label_font_size_px:
       $constant: annotation_label_font_size_px
   - ids: [compartment_bottom_width]
     optional: true
     display_offset_mm: [0, 0, 0]
-    line_offset_px: 50
-    label_offset_px: 28
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
+    line_offset_px: 100
+    label_offset_px: 40
+    label_font_size_px: 45
+    color:
+      $constant: annotation_color_blue
   - ids: [compartment_depth]
     optional: true
     color:
       $constant: annotation_color_black
     line_offset_px: -50
-    label_offset_px: -28
+    label_offset_px: -48
     label_font_size_px:
       $constant: annotation_label_font_size_px
   - ids: [compartment_bottom_depth]
     optional: true
-    line_offset_px: -50
-    label_offset_px: -28
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
+    line_offset_px: -100
+    label_offset_px: -40
+    label_font_size_px: 45
+    color:
+      $constant: annotation_color_blue
   # - ids: [front_opening_width]
   #   optional: true
   #   display_offset_mm: [0, 0, 0]
@@ -107,7 +109,7 @@ annotations:
   #   angle_label_offset_px: 34
   #   angle_fill_alpha: 28
   image_labels:
-  - $constant: bottom_image_label
+  - $constant: top_image_label
     id: holder_bottom_thickness
     offset_px: [0, 0]
     show_value: true
@@ -115,9 +117,9 @@ annotations:
       $constant: annotation_color_red
     font_size_px:
       $constant: annotation_title_font_size_px
-  - $constant: bottom_image_label
+  - $constant: top_image_label
     id: enable_bottom_taper
-    offset_px: [0, 40]
+    offset_px: [0, 90]
     show_value: true
     value_color:
       $constant: annotation_color_red

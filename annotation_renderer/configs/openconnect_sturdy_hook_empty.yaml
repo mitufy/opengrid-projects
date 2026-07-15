@@ -1,0 +1,23 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: base_scene.yaml
+variant_name: openconnect_sturdy_hook_default
+job_name: sturdy_hook_scene
+scene:
+  objects:
+  - id: large_hook
+    model:
+      scad_file: openconnect_sturdy_hook.scad
+      defines:
+        hook_length: 56
+        hook_vertical_grids: 2
+        circular_tip_radius: 28
+        hook_corner_fillet: 28
+        # truss_vertical_grids: 1
+  transform:
+    $constant: wall_placeholder_transform
+
+render:
+  fit_margin: 0.0
+  # camera_location_offset_mm: [30, 0, 0]
+  # camera_rotation_offset_deg: [0, 0, 10]
+  # camera_look_at: object_center

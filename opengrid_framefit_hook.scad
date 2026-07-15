@@ -146,19 +146,15 @@ hook_annotation_x_min = -hook_final_width / 2;
 hook_annotation_x_max = hook_final_width / 2;
 hook_annotation_back_y = -hook_final_back_thickness;
 hook_annotation_front_y = 0;
-hook_annotation_back_thickness_y = hook_final_back_thickness;
-hook_annotation_length_start_y = hook_annotation_back_thickness_y;
+hook_annotation_length_start_y = hook_final_back_thickness;
 hook_annotation_length_y = hook_annotation_length_start_y + hook_length;
 hook_annotation_z_min = 0;
 hook_annotation_z_max = hook_height;
-hook_annotation_truss_z_min = hook_annotation_z_min - truss_vertical_grid * OG_TILE_SIZE;
-hook_annotation_width_y = hook_annotation_front_y;
-hook_annotation_width_z = hook_annotation_z_max;
+hook_annotation_truss_z_min = hook_annotation_z_min - truss_vertical_grids * OG_TILE_SIZE;
 hook_annotation_depth_x = hook_annotation_x_min;
 hook_annotation_height_x = hook_annotation_x_min;
 hook_annotation_side_profile_x = hook_annotation_x_min;
 hook_annotation_length_x = hook_annotation_x_min;
-hook_annotation_length_z = hook_annotation_z_min + hook_final_bottom_thickness;
 hook_annotation_bottom_thickness_y = hook_annotation_length_start_y + min(hook_final_length, max(EPS, hook_final_length / 2));
 hook_tip_annotation_start = [
   hook_annotation_side_profile_x,
@@ -210,7 +206,7 @@ module emit_framefit_hook_annotations() {
       "hook_tip_thickness",
       "hook_tip_shape",
       "hook_tip_corner_fillet",
-      "truss_vertical_grid",
+      "truss_vertical_grids",
       "truss_thickness",
       "truss_rounding",
       "truss_max_angle",
@@ -237,7 +233,7 @@ module emit_framefit_hook_annotations() {
       hook_tip_thickness,
       hook_tip_shape,
       hook_tip_corner_fillet,
-      truss_vertical_grid,
+      truss_vertical_grids,
       truss_thickness,
       truss_rounding,
       truss_max_angle,
@@ -273,8 +269,8 @@ module emit_framefit_hook_annotations() {
     label="hook_width",
     axis="x",
     value=hook_final_width,
-    start=[hook_annotation_x_min, hook_annotation_width_y, hook_annotation_width_z],
-    end=[hook_annotation_x_max, hook_annotation_width_y, hook_annotation_width_z],
+    start=[hook_annotation_x_min, hook_final_back_thickness, hook_annotation_z_max],
+    end=[hook_annotation_x_max, hook_final_back_thickness, hook_annotation_z_max],
     basis="side_to_side_hook_width"
   );
   emit_dimension_annotation(
@@ -282,8 +278,8 @@ module emit_framefit_hook_annotations() {
     label="hook_vertical_grids",
     axis="z",
     value=hook_height,
-    start=[hook_annotation_height_x, hook_annotation_back_y, hook_annotation_z_min],
-    end=[hook_annotation_height_x, hook_annotation_back_y, hook_annotation_z_max],
+    start=[hook_annotation_height_x, hook_annotation_front_y, hook_annotation_z_min],
+    end=[hook_annotation_height_x, hook_annotation_front_y, hook_annotation_z_max],
     basis="framefit_hook_height_from_hook_vertical_grids"
   );
   emit_dimension_annotation(
@@ -291,8 +287,8 @@ module emit_framefit_hook_annotations() {
     label="hook_length",
     axis="y",
     value=hook_length,
-    start=[hook_annotation_length_x, hook_annotation_length_start_y, hook_annotation_length_z],
-    end=[hook_annotation_length_x, hook_annotation_length_y, hook_annotation_length_z],
+    start=[hook_annotation_length_x, hook_annotation_length_start_y, hook_annotation_z_min],
+    end=[hook_annotation_length_x, hook_annotation_length_y, hook_annotation_z_min],
     basis="outer_hook_reach_including_tip_projection"
   );
   if (hook_has_tip) {
@@ -312,7 +308,7 @@ module emit_framefit_hook_annotations() {
     axis="y",
     value=hook_final_back_thickness,
     start=[hook_annotation_depth_x, hook_annotation_front_y, hook_annotation_z_min],
-    end=[hook_annotation_depth_x, hook_annotation_back_thickness_y, hook_annotation_z_min],
+    end=[hook_annotation_depth_x, hook_final_back_thickness, hook_annotation_z_min],
     basis="back_wall_thickness_on_lower_side_edge"
   );
   emit_dimension_annotation(
@@ -324,15 +320,15 @@ module emit_framefit_hook_annotations() {
     end=[hook_annotation_depth_x, hook_annotation_bottom_thickness_y, hook_annotation_z_min + hook_final_bottom_thickness],
     basis="bottom_arm_thickness"
   );
-  if (truss_vertical_grid > 0) {
+  if (truss_vertical_grids > 0) {
     emit_dimension_annotation(
-      id="truss_vertical_grid",
-      label="truss_vertical_grid",
+      id="truss_vertical_grids",
+      label="truss_vertical_grids",
       axis="z",
-      value=truss_vertical_grid * OG_TILE_SIZE,
+      value=truss_vertical_grids * OG_TILE_SIZE,
       start=[hook_annotation_height_x, hook_annotation_back_y, hook_annotation_z_min],
       end=[hook_annotation_height_x, hook_annotation_back_y, hook_annotation_truss_z_min],
-      basis="truss_height_from_truss_vertical_grid"
+      basis="truss_height_from_truss_vertical_grids"
     );
   }
 }

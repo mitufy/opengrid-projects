@@ -8,15 +8,15 @@ gallery:
   target_height_px: 1440
   margin_px: 0
   gutter_px: 4
-  title_height_px: 45
-  title_font_size_px: 45
+  title_height_px: 60
+  title_font_size_px: 60
 
 variants:
 
-- name: Diagonal_Ribs_Texture
+- name: Checkers_Texture
   set:
     scene.objects[0].model.defines.render_vase_print_preview: true
-    scene.objects[0].model.defines.vase_surface_texture: diamonds
+    # scene.objects[0].model.defines.vase_surface_texture: diamonds
     scene.objects[0].model.defines.vase_tilt_angle: 0
     scene.objects[0].model.defines.horizontal_grids: 1
 - name: Cubes_Texture

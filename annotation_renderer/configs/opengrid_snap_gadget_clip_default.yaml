@@ -56,6 +56,8 @@ scene:
   #     rotation_deg: [-90, 180, 0]
 render:
   fit_margin: 0
+  # camera_view: front
+  # camera_orbit_deg: [22, 0]
   # camera_location_offset_mm: [-15, 0, 0]
   # camera_rotation_offset_deg: [0, 0, 5]
 annotations:
@@ -69,7 +71,7 @@ annotations:
   chains:
   - ids: [clip_main_width]
     display_offset_mm: [0, 0, 0]
-    line_offset_px: 20
+    line_offset_px: 80
     label_offset_px: 50
     label_font_size_px:
       $constant: annotation_label_font_size_px

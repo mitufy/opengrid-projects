@@ -4,43 +4,46 @@ job_name: general_holder_parameter_gallery
 
 gallery:
   columns: 2
-  thumbnail_width: 640
+  target_width_px: 1920
+  target_height_px: 1440
   margin_px: 0
-  gutter_px: 12
-  title_height_px: 22
-  title_font_size_px: 22
+  gutter_px: 4
+  title_height_px: 60
+  title_font_size_px: 60
 
 variants:
-- name: Rectangular_Tilted
+- name: Width45_Mode_Minimum
   set:
     scene.objects[0].model.defines.compartment_shape: Rectangular
     scene.objects[0].model.defines.compartment_column_count: 1
     scene.objects[0].model.defines.compartment_row_count: 1
-    scene.objects[0].model.defines.compartment_width: 52
-    scene.objects[0].model.defines.compartment_depth: 25
-    scene.objects[0].model.defines.holder_tilt_angle: 20
+    scene.objects[0].model.defines.compartment_width: 45
+    # scene.objects[0].model.defines.front_opening_height: 0
+    # scene.objects[0].model.defines.compartment_depth: 25
+    # scene.objects[0].model.defines.holder_back_offset: 20
 
-- name: Elliptic_Tapered_Bottomless
+- name: Width45_Mode_Tile_Multiple
   set:
-    scene.objects[0].model.defines.compartment_shape: Elliptic
+    scene.objects[0].model.defines.compartment_shape: Rectangular
+    scene.objects[0].model.defines.compartment_column_count: 1
+    scene.objects[0].model.defines.compartment_row_count: 1
+    scene.objects[0].model.defines.compartment_width: 45
+    # scene.objects[0].model.defines.front_opening_height: 0
+    scene.objects[0].model.defines.holder_width_mode: "Tile Multiple"
+
+- name: Circular_Tapered_Bottomless
+  set:
+    scene.objects[0].model.defines.compartment_shape: Circular
     scene.objects[0].model.defines.enable_bottom_taper: true
     scene.objects[0].model.defines.compartment_height: 28
-    scene.objects[0].model.defines.compartment_bottom_width: 30
-    scene.objects[0].model.defines.compartment_bottom_depth: 12
+    scene.objects[0].model.defines.compartment_bottom_width: 15
+    scene.objects[0].model.defines.compartment_bottom_depth: 15
     scene.objects[0].model.defines.holder_bottom_thickness: 0
-    scene.objects[0].model.defines.front_opening_height: 50
+    scene.objects[0].model.defines.front_opening_height: 0
     scene.objects[0].model.defines.compartment_column_count: 1
     scene.objects[0].model.defines.compartment_row_count: 1
 
-- name: Rectangular_2x1
-  set:
-    scene.objects[0].model.defines.compartment_shape: Rectangular
-    scene.objects[0].model.defines.compartment_column_count: 2
-    scene.objects[0].model.defines.compartment_row_count: 1
-    scene.objects[0].model.defines.compartment_width: 40
-    scene.objects[0].model.defines.compartment_depth: 25
-
-- name: Circular_3x2
+- name: Circular_Grid_3x2
   set:
     scene.objects[0].model.defines.compartment_shape: Circular
     scene.objects[0].model.defines.compartment_column_count: 3

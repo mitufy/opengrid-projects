@@ -51,7 +51,9 @@ slot_edge_wall_min_width = 0.6; //0.01
 /* [Hidden] */
 $fa = 1;
 $fs = 0.4;
+emit_annotation_metadata = false;
 include <lib/opengrid_base.scad>
+include <lib/annotation_metadata.scad>
 use <lib/openconnect_lib.scad>
 
 slot_cfg = ocslot_cfg(
@@ -78,6 +80,246 @@ final_plate_vertical_alignment =
   plate_slot_vertical_alignment == "Top" ? BACK
   : plate_slot_vertical_alignment == "Bottom" ? FRONT : CENTER;
 final_plate_alignment = final_plate_horizontal_alignment + final_plate_vertical_alignment;
+
+slot_head_cfg = struct_val(slot_cfg, "head_cfg");
+slot_middle_height = struct_val(slot_head_cfg, "middle_height");
+slot_back_pos_offset = struct_val(slot_head_cfg, "back_pos_offset");
+slot_bottom_height = struct_val(slot_cfg, "bottom_height");
+slot_top_height = struct_val(slot_cfg, "top_height");
+slot_large_rect_width = struct_val(slot_cfg, "large_rect_width");
+slot_large_rect_height = struct_val(slot_cfg, "large_rect_height");
+slot_large_rect_chamfer = struct_val(slot_cfg, "large_rect_chamfer");
+slot_nub_to_top_distance = struct_val(slot_cfg, "nub_to_top_distance");
+slot_middle_to_bottom = struct_val(slot_cfg, "middle_to_bottom");
+slot_top_bridge_offset = struct_val(slot_cfg, "top_bridge_offset");
+slot_side_bridge_offset = struct_val(slot_cfg, "side_bridge_offset");
+slot_side_cliff_offset = struct_val(slot_cfg, "side_cliff_offset");
+slot_grid_width = final_plate_h_grids * OG_TILE_SIZE;
+slot_grid_height = final_plate_v_grids * OG_TILE_SIZE;
+slot_grid_center_x =
+  final_plate_horizontal_alignment == LEFT ? slot_grid_width / 2
+  : final_plate_horizontal_alignment == RIGHT ? final_plate_width - slot_grid_width / 2
+  : final_plate_width / 2;
+slot_grid_center_y =
+  final_plate_vertical_alignment == BACK ? final_plate_height - slot_grid_height / 2
+  : final_plate_vertical_alignment == FRONT ? slot_grid_height / 2
+  : final_plate_height / 2;
+annotation_slot_center = [
+  slot_grid_center_x + plate_slot_horizontal_offset - (final_plate_h_grids - 1) * OG_TILE_SIZE / 2,
+  slot_grid_center_y + plate_slot_vertical_offset + (final_plate_v_grids - 1) * OG_TILE_SIZE / 2,
+  0
+];
+slot_annotation_top_z = slot_type == "negslot" ? 0 : final_plate_thickness;
+slot_annotation_bottom_z = slot_annotation_top_z - slot_total_height;
+slot_annotation_middle_z = slot_annotation_bottom_z + slot_bottom_height;
+slot_annotation_top_layer_z = slot_annotation_middle_z + slot_middle_height;
+slot_annotation_half_width = slot_large_rect_width / 2;
+slot_annotation_back_y = slot_annotation_half_width + slot_back_pos_offset;
+slot_annotation_front_y = slot_annotation_back_y - slot_large_rect_height;
+slot_annotation_nub_y = slot_annotation_back_y - slot_nub_to_top_distance;
+slot_annotation_side_x = slot_annotation_half_width;
+slot_annotation_side_y = slot_annotation_front_y + max(EPS, slot_large_rect_height / 3);
+
+function plate_slot_point(point) = [
+  annotation_slot_center[0] + point[0],
+  annotation_slot_center[1] + point[1],
+  point[2]
+];
+
+module emit_plate_slot_dimension_annotation(id, label, axis, value, start, end, basis) {
+  emit_dimension_annotation(
+    id=id,
+    label=label,
+    axis=axis,
+    value=value,
+    start=plate_slot_point(start),
+    end=plate_slot_point(end),
+    basis=basis
+  );
+}
+
+module emit_plate_slot_annotations() {
+  emit_context_values(
+    "openconnect_plate_slot_context",
+    [
+      "slot_side_clearance",
+      "slot_depth_clearance",
+      "slot_edge_bridge_min_width",
+      "slot_edge_wall_min_width",
+      "slot_bottom_height",
+      "slot_middle_height",
+      "slot_top_height",
+      "slot_total_height",
+      "slot_large_rect_width",
+      "slot_large_rect_height",
+      "slot_large_rect_chamfer",
+      "slot_nub_to_top_distance",
+      "slot_middle_to_bottom",
+      "slot_top_bridge_offset",
+      "slot_side_bridge_offset",
+      "slot_side_cliff_offset",
+      "OCSLOT_MOVE_DISTANCE",
+      "OCSLOT_ONRAMP_CLEARANCE"
+    ],
+    [
+      slot_side_clearance,
+      slot_depth_clearance,
+      slot_edge_bridge_min_width,
+      slot_edge_wall_min_width,
+      slot_bottom_height,
+      slot_middle_height,
+      slot_top_height,
+      slot_total_height,
+      slot_large_rect_width,
+      slot_large_rect_height,
+      slot_large_rect_chamfer,
+      slot_nub_to_top_distance,
+      slot_middle_to_bottom,
+      slot_top_bridge_offset,
+      slot_side_bridge_offset,
+      slot_side_cliff_offset,
+      OCSLOT_MOVE_DISTANCE,
+      OCSLOT_ONRAMP_CLEARANCE
+    ]
+  );
+  emit_plate_slot_dimension_annotation(
+    id="slot_total_height",
+    label="slot_total_height",
+    axis="z",
+    value=slot_total_height,
+    start=[-slot_annotation_half_width, slot_annotation_front_y, slot_annotation_bottom_z],
+    end=[-slot_annotation_half_width, slot_annotation_front_y, slot_annotation_top_z],
+    basis="openconnect_plate_slot_total_cut_depth"
+  );
+  emit_plate_slot_dimension_annotation(
+    id="slot_bottom_height",
+    label="slot_bottom_height",
+    axis="z",
+    value=slot_bottom_height,
+    start=[slot_annotation_side_x, slot_annotation_side_y, slot_annotation_bottom_z],
+    end=[slot_annotation_side_x, slot_annotation_side_y, slot_annotation_middle_z],
+    basis="openconnect_plate_slot_bottom_clearance_layer_height"
+  );
+  emit_plate_slot_dimension_annotation(
+    id="slot_middle_height",
+    label="slot_middle_height",
+    axis="z",
+    value=slot_middle_height,
+    start=[slot_annotation_side_x, slot_annotation_side_y, slot_annotation_middle_z],
+    end=[slot_annotation_side_x, slot_annotation_side_y, slot_annotation_top_layer_z],
+    basis="openconnect_plate_slot_tapered_middle_height"
+  );
+  emit_plate_slot_dimension_annotation(
+    id="slot_top_height",
+    label="slot_top_height",
+    axis="z",
+    value=slot_top_height,
+    start=[slot_annotation_side_x, slot_annotation_side_y, slot_annotation_top_layer_z],
+    end=[slot_annotation_side_x, slot_annotation_side_y, slot_annotation_top_z],
+    basis="openconnect_plate_slot_top_clearance_layer_height"
+  );
+  emit_plate_slot_dimension_annotation(
+    id="slot_large_rect_width",
+    label="slot_large_rect_width",
+    axis="x",
+    value=slot_large_rect_width,
+    start=[-slot_annotation_half_width, slot_annotation_back_y, slot_annotation_top_z],
+    end=[slot_annotation_half_width, slot_annotation_back_y, slot_annotation_top_z],
+    basis="openconnect_plate_slot_large_profile_width"
+  );
+  emit_plate_slot_dimension_annotation(
+    id="slot_large_rect_height",
+    label="slot_large_rect_height",
+    axis="y",
+    value=slot_large_rect_height,
+    start=[slot_annotation_half_width, slot_annotation_front_y, slot_annotation_top_z],
+    end=[slot_annotation_half_width, slot_annotation_back_y, slot_annotation_top_z],
+    basis="openconnect_plate_slot_large_profile_depth"
+  );
+  emit_plate_slot_dimension_annotation(
+    id="slot_large_rect_chamfer",
+    label="slot_large_rect_chamfer",
+    axis="x",
+    value=slot_large_rect_chamfer,
+    start=[slot_annotation_half_width - slot_large_rect_chamfer, slot_annotation_back_y, slot_annotation_top_z],
+    end=[slot_annotation_half_width, slot_annotation_back_y, slot_annotation_top_z],
+    basis="openconnect_plate_slot_large_profile_back_corner_chamfer"
+  );
+  emit_plate_slot_dimension_annotation(
+    id="slot_nub_to_top_distance",
+    label="slot_nub_to_top_distance",
+    axis="y",
+    value=slot_nub_to_top_distance,
+    start=[slot_annotation_half_width, slot_annotation_nub_y, slot_annotation_middle_z],
+    end=[slot_annotation_half_width, slot_annotation_back_y, slot_annotation_middle_z],
+    basis="openconnect_plate_slot_back_edge_to_lock_nub_centerline"
+  );
+  emit_plate_slot_dimension_annotation(
+    id="slot_side_clearance",
+    label="slot_side_clearance",
+    axis="x",
+    value=slot_side_clearance,
+    start=[OCHEAD_LARGE_RECT_WIDTH / 2, slot_annotation_back_y, slot_annotation_top_z],
+    end=[slot_annotation_half_width, slot_annotation_back_y, slot_annotation_top_z],
+    basis="openconnect_plate_slot_side_clearance_added_to_head_width"
+  );
+  emit_plate_slot_dimension_annotation(
+    id="slot_depth_clearance",
+    label="slot_depth_clearance",
+    axis="z",
+    value=slot_depth_clearance,
+    start=[-slot_annotation_half_width, slot_annotation_side_y, slot_annotation_bottom_z],
+    end=[-slot_annotation_half_width, slot_annotation_side_y, slot_annotation_bottom_z + slot_depth_clearance],
+    basis="openconnect_plate_slot_depth_clearance_added_to_bottom_layer"
+  );
+  emit_plate_slot_dimension_annotation(
+    id="slot_top_bridge_offset",
+    label="slot_top_bridge_offset",
+    axis="y",
+    value=slot_top_bridge_offset,
+    start=[0, slot_annotation_back_y, slot_annotation_top_z],
+    end=[0, slot_annotation_back_y + slot_top_bridge_offset, slot_annotation_top_z],
+    basis="openconnect_plate_slot_top_bridge_offset_from_min_bridge_width"
+  );
+  emit_plate_slot_dimension_annotation(
+    id="slot_side_bridge_offset",
+    label="slot_side_bridge_offset",
+    axis="x",
+    value=slot_side_bridge_offset,
+    start=[slot_annotation_half_width, slot_annotation_back_y + slot_top_bridge_offset, slot_annotation_top_z],
+    end=[slot_annotation_half_width + slot_side_bridge_offset, slot_annotation_back_y + slot_top_bridge_offset, slot_annotation_top_z],
+    basis="openconnect_plate_slot_side_bridge_offset_from_min_bridge_width"
+  );
+  emit_plate_slot_dimension_annotation(
+    id="slot_side_cliff_offset",
+    label="slot_side_cliff_offset",
+    axis="x",
+    value=slot_side_cliff_offset,
+    start=[-slot_annotation_half_width - slot_side_cliff_offset, slot_annotation_back_y + slot_top_bridge_offset, slot_annotation_top_z],
+    end=[-slot_annotation_half_width, slot_annotation_back_y + slot_top_bridge_offset, slot_annotation_top_z],
+    basis="openconnect_plate_slot_side_cliff_offset_from_min_wall_width"
+  );
+  emit_plate_slot_dimension_annotation(
+    id="OCSLOT_MOVE_DISTANCE",
+    label="OCSLOT_MOVE_DISTANCE",
+    axis="y",
+    value=OCSLOT_MOVE_DISTANCE,
+    start=[0, slot_annotation_front_y, slot_annotation_top_layer_z],
+    end=[0, slot_annotation_front_y + OCSLOT_MOVE_DISTANCE, slot_annotation_top_layer_z],
+    basis="openconnect_plate_slot_slide_distance_default_reference"
+  );
+  emit_plate_slot_dimension_annotation(
+    id="OCSLOT_ONRAMP_CLEARANCE",
+    label="OCSLOT_ONRAMP_CLEARANCE",
+    axis="x",
+    value=OCSLOT_ONRAMP_CLEARANCE,
+    start=[slot_annotation_half_width - OCSLOT_ONRAMP_CLEARANCE, slot_annotation_front_y, slot_annotation_top_layer_z],
+    end=[slot_annotation_half_width, slot_annotation_front_y, slot_annotation_top_layer_z],
+    basis="openconnect_plate_slot_onramp_clearance_default_reference"
+  );
+}
+
+emit_plate_slot_annotations();
 
 //BEGIN generation
 down(final_plate_thickness == EPS ? EPS : 0) diff()

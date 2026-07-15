@@ -159,8 +159,16 @@ side_cutout_wall_back_z = holder_depth - holder_top_thickness;
 side_cutout_back_z = side_cutout_wall_back_z - effective_side_cutout_back_margin;
 side_cutout_front_z = side_cutout_back_z - side_cutout_depth;
 side_cutout_wall_front_z = side_cutout_front_z - effective_side_cutout_front_margin;
-side_cutout_mid_y = (side_cutout_top_y + side_cutout_bottom_y) / 2;
+side_cutout_mid_y = side_cutout_top_y;
 side_cutout_mid_z = (side_cutout_front_z + side_cutout_back_z) / 2;
+
+// The complete holder is rotated onto its back for printing. Annotation metadata
+// must use the same final coordinate system as the emitted mesh.
+function clamshell_annotation_point(point) = [
+  point[0],
+  point[2] - holder_depth / 2,
+  holder_height / 2 - point[1]
+];
 
 module emit_clamshell_holder_annotations() {
   emit_context_values(
@@ -225,26 +233,26 @@ module emit_clamshell_holder_annotations() {
     label="item_width",
     axis="x",
     value=item_width,
-    start=[item_min_x, item_min_y, bottom_annotation_z],
-    end=[item_max_x, item_min_y, bottom_annotation_z],
+    start=clamshell_annotation_point([item_min_x, item_min_y, bottom_annotation_z]),
+    end=clamshell_annotation_point([item_max_x, item_min_y, bottom_annotation_z]),
     basis="bottom_plane_item_width"
   );
   emit_dimension_annotation(
     id="item_height",
     label="item_height",
-    axis="y",
+    axis="z",
     value=item_height,
-    start=[item_min_x, item_min_y, bottom_annotation_z],
-    end=[item_min_x, item_max_y, bottom_annotation_z],
+    start=clamshell_annotation_point([item_min_x, item_min_y, bottom_annotation_z]),
+    end=clamshell_annotation_point([item_min_x, item_max_y, bottom_annotation_z]),
     basis="bottom_plane_item_height"
   );
   emit_dimension_annotation(
     id="item_depth",
     label="item_depth",
-    axis="z",
+    axis="y",
     value=item_depth,
-    start=[item_max_x, item_max_y, bottom_annotation_z],
-    end=[item_max_x, item_max_y, bottom_annotation_z + item_depth],
+    start=clamshell_annotation_point([item_max_x, item_max_y, bottom_annotation_z]),
+    end=clamshell_annotation_point([item_max_x, item_max_y, bottom_annotation_z + item_depth]),
     basis="bottom_plane_item_depth"
   );
   if (final_corner_rounding > 0) {
@@ -252,15 +260,15 @@ module emit_clamshell_holder_annotations() {
       id="item_corner_rounding",
       label="item_corner_rounding",
       value=final_corner_rounding,
-      center=item_corner_rounding_center,
-      edge=item_corner_rounding_radius_edge,
+      center=clamshell_annotation_point(item_corner_rounding_center),
+      edge=clamshell_annotation_point(item_corner_rounding_radius_edge),
       basis="bottom_front_left_item_corner_rounding_center_to_arc_midpoint"
     );
     emit_arc_annotation(
       id="item_corner_rounding_extent",
       label="item_corner_rounding_extent",
       value=final_corner_rounding,
-      points=item_corner_rounding_arc_points,
+      points=[for (point = item_corner_rounding_arc_points) clamshell_annotation_point(point)],
       basis="bottom_front_left_item_corner_rounding_fillet_arc"
     );
   }
@@ -270,8 +278,8 @@ module emit_clamshell_holder_annotations() {
       label="front_opening_left_right_margin",
       axis="x",
       value=effective_front_opening_left_right_margin,
-      start=[item_min_x, item_max_y, holder_min_z],
-      end=[item_min_x + final_front_opening_left_right_margin, item_max_y, holder_min_z],
+      start=clamshell_annotation_point([item_min_x, item_max_y, holder_min_z]),
+      end=clamshell_annotation_point([item_min_x + final_front_opening_left_right_margin, item_max_y, holder_min_z]),
       basis="left_front_opening_left_right_margin"
     );
   }
@@ -279,10 +287,10 @@ module emit_clamshell_holder_annotations() {
     emit_dimension_annotation(
       id="front_opening_top_bottom_margin",
       label="front_opening_top_bottom_margin",
-      axis="y",
+      axis="z",
       value=effective_front_opening_top_bottom_margin,
-      start=[item_max_x, item_min_y, holder_min_z],
-      end=[item_max_x, item_min_y + final_front_opening_top_bottom_margin, holder_min_z],
+      start=clamshell_annotation_point([item_max_x, item_min_y, holder_min_z]),
+      end=clamshell_annotation_point([item_max_x, item_min_y + final_front_opening_top_bottom_margin, holder_min_z]),
       basis="front_opening_top_bottom_margin"
     );
   }
@@ -291,10 +299,10 @@ module emit_clamshell_holder_annotations() {
       emit_dimension_annotation(
         id="side_cutout_top_margin",
         label="side_cutout_top_margin",
-        axis="y",
+        axis="z",
         value=effective_side_cutout_top_margin,
-        start=[side_cutout_side_face_x, side_cutout_wall_top_y, side_cutout_mid_z],
-        end=[side_cutout_side_face_x, side_cutout_top_y, side_cutout_mid_z],
+        start=clamshell_annotation_point([side_cutout_side_face_x, side_cutout_wall_top_y, side_cutout_mid_z]),
+        end=clamshell_annotation_point([side_cutout_side_face_x, side_cutout_top_y, side_cutout_mid_z]),
         basis="side_cutout_top_margin_to_visible_cutout_edge"
       );
     }
@@ -302,10 +310,10 @@ module emit_clamshell_holder_annotations() {
       emit_dimension_annotation(
         id="side_cutout_bottom_margin",
         label="side_cutout_bottom_margin",
-        axis="y",
+        axis="z",
         value=effective_side_cutout_bottom_margin,
-        start=[side_cutout_side_face_x, side_cutout_bottom_y, side_cutout_mid_z],
-        end=[side_cutout_side_face_x, side_cutout_wall_bottom_y, side_cutout_mid_z],
+        start=clamshell_annotation_point([side_cutout_side_face_x, side_cutout_bottom_y, side_cutout_mid_z]),
+        end=clamshell_annotation_point([side_cutout_side_face_x, side_cutout_wall_bottom_y, side_cutout_mid_z]),
         basis="side_cutout_bottom_margin_to_visible_cutout_edge"
       );
     }
@@ -313,10 +321,10 @@ module emit_clamshell_holder_annotations() {
       emit_dimension_annotation(
         id="side_cutout_back_margin",
         label="side_cutout_back_margin",
-        axis="z",
+        axis="y",
         value=effective_side_cutout_back_margin,
-        start=[side_cutout_side_face_x, side_cutout_mid_y, side_cutout_back_z],
-        end=[side_cutout_side_face_x, side_cutout_mid_y, side_cutout_wall_back_z],
+        start=clamshell_annotation_point([side_cutout_side_face_x, side_cutout_mid_y, side_cutout_back_z]),
+        end=clamshell_annotation_point([side_cutout_side_face_x, side_cutout_mid_y, side_cutout_wall_back_z]),
         basis="side_cutout_back_margin_to_visible_cutout_edge"
       );
     }
@@ -324,10 +332,10 @@ module emit_clamshell_holder_annotations() {
       emit_dimension_annotation(
         id="side_cutout_front_margin",
         label="side_cutout_front_margin",
-        axis="z",
+        axis="y",
         value=effective_side_cutout_front_margin,
-        start=[side_cutout_side_face_x, side_cutout_mid_y, side_cutout_wall_front_z],
-        end=[side_cutout_side_face_x, side_cutout_mid_y, side_cutout_front_z],
+        start=clamshell_annotation_point([side_cutout_side_face_x, side_cutout_mid_y, side_cutout_wall_front_z]),
+        end=clamshell_annotation_point([side_cutout_side_face_x, side_cutout_mid_y, side_cutout_front_z]),
         basis="side_cutout_front_margin_to_visible_cutout_edge"
       );
     }

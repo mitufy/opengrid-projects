@@ -72,14 +72,13 @@ annotations:
     # label_font_size_px: 26
     color:
       $constant: annotation_color_black
-    tick_length_px: 12
+    
   - ids: [shelf_side_rim]
     optional: true
     line_offset_px: -50
     label_offset_px: -50
     label_along_offset_px: 52
-    # label_font_size_px: 26
-    tick_length_px: 12
+
     color:
       $constant: annotation_color_red
   - ids: [shelf_front_rim]
@@ -87,8 +86,7 @@ annotations:
     line_offset_px: -30
     label_offset_px: -50
     label_along_offset_px: -42
-    # label_font_size_px: 26
-    tick_length_px: 12
+
     color:
       $constant: annotation_color_red
   # - ids: [shelf_rim_lip_height]
@@ -97,13 +95,13 @@ annotations:
   #   label_offset_px: 28
   #   label_along_offset_px: 36
   #   label_font_size_px: 22
-  #   tick_length_px: 12
-  image_labels:
-  - $constant: bottom_image_label
-    id: magnet_position
-    offset_px: [0, 0]
-    show_value: true
-    value_color:
-      $constant: annotation_color_blue
-    font_size_px:
-      $constant: annotation_title_font_size_px
+  #   
+  # image_labels:
+  # - $constant: bottom_image_label
+  #   id: magnet_position
+  #   offset_px: [0, 0]
+  #   show_value: true
+  #   value_color:
+  #     $constant: annotation_color_blue
+  #   font_size_px:
+  #     $constant: annotation_title_font_size_px

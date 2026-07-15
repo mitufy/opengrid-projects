@@ -20,7 +20,10 @@ scene:
     scale:
       $constant: blender_scene_scale_vector
 render:
-  fit_margin: 0.2
+  fit_margin: 0
+  lighting:
+    toplight_power: 9
+    frontlight_power: 0.8
   # camera_view_preset: top_front
 annotations:
   style:
@@ -60,7 +63,7 @@ annotations:
   #   color:
   #     $constant: annotation_color_blue
   # - $constant: small_dimension_chain
-  #   ids: [ocvase_linewidth]
+  #   ids: [vase_linewidth]
   #   label_offset_px: 34
   # - $constant: small_dimension_chain
   #   ids: [label_width]

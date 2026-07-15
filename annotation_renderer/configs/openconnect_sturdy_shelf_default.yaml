@@ -16,6 +16,9 @@ scene:
     $constant: wall_placeholder_transform
 render:
   fit_margin: 0
+  lighting:
+    toplight_power: 1.5
+    frontlight_power: 1.5
   # camera_view: right
 annotations:
   style:

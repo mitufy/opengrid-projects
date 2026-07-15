@@ -61,7 +61,7 @@ annotations:
     color:
       $constant: annotation_color_blue
   # - $constant: small_dimension_chain
-  #   ids: [ocvase_linewidth]
+  #   ids: [vase_linewidth]
   #   label_offset_px: 34
   # - $constant: small_dimension_chain
   #   ids: [label_width]

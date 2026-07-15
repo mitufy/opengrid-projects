@@ -20,55 +20,16 @@ render:
 annotations:
   style:
     $constant: default_annotation_style
-    auto_adjust_labels: true
-    tick_length_px: 12
     type_styles:
       mm:
         line_colors:
         - $constant: annotation_color_black
-  chains:
-  # - ids: [stem_bottom_width]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 28
-  #   label_offset_px: 28
-  #   label_font_size_px: 24
-  # - ids: [stem_top_width]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 28
-  #   label_offset_px: 28
-  #   label_font_size_px: 24
-  - ids: [stem_height]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 0
-    label_offset_px: -28
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-  - ids: [stem_depth]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: -28
-    label_offset_px: -28
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-  # - ids: [transition_depth_ratio]
-  #   optional: true
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -120
-  #   label_offset_px: -28
-  #   label_font_size_px: 24
-  #   labels:
-  #     transition_depth_ratio: transition_part
-  - ids: [stopper_depth]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: -28
-    label_offset_px: -28
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-  image_labels:
-  - $constant: bottom_image_label
-    id: transition_depth_ratio
-    label: transition_depth_ratio
-    show_value: true
-    value_color:
-      $constant: annotation_color_red
-    font_size_px:
-      $constant: annotation_title_font_size_px
+  # image_labels:
+  # - $constant: bottom_image_label
+  #   id: transition_depth_ratio
+  #   label: transition_depth_ratio
+  #   show_value: true
+  #   value_color:
+  #     $constant: annotation_color_red
+  #   font_size_px:
+  #     $constant: annotation_title_font_size_px

@@ -26,7 +26,7 @@ annotations:
   style:
     $constant: default_annotation_style
     auto_adjust_labels: true
-    tick_length_px: 12
+    
     type_styles:
       mm:
         line_colors:
@@ -42,12 +42,12 @@ annotations:
   #   angle_label_tangent_offset_px: 56
   #   angle_fill_alpha: 28
   # chains:
-  # - ids: [body_width]
+  # - ids: [hook_width]
   #   display_offset_mm: [0, 0, 0]
   #   line_offset_px: 28
   #   label_offset_px: 28
   #   label_font_size_px: 24
-  # - ids: [body_thickness]
+  # - ids: [hook_thickness]
   #   display_offset_mm: [0, 0, 0]
   #   line_offset_px: -76
   #   label_offset_px: -76

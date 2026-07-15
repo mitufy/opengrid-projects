@@ -548,10 +548,10 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(
             side_margin_chain_ids,
             [
-                ["side_opening_front_margin"],
-                ["side_opening_back_margin"],
-                ["side_opening_top_margin"],
-                ["side_opening_bottom_margin"],
+                ["side_cutout_top_margin"],
+                ["side_cutout_bottom_margin"],
+                ["side_cutout_back_margin"],
+                ["side_cutout_front_margin"],
             ],
         )
         self.assertEqual(clamshell_holder_config["annotations"]["image_labels"][0]["id"], "holder_slot_position")
@@ -1007,16 +1007,16 @@ class AnimationConfigTests(unittest.TestCase):
         output = self.run_cli("--discover-annotations", "openconnect_clamshell_holder.scad")
 
         self.assertIn("    - item_width (axis=x", output)
-        self.assertIn("    - item_height (axis=y", output)
-        self.assertIn("    - item_depth (axis=z", output)
-        self.assertIn("    - front_opening_side_margin (axis=x", output)
-        self.assertIn("    - front_opening_end_margin (axis=y", output)
-        self.assertIn("    - side_opening_front_margin (axis=y", output)
-        self.assertIn("    - side_opening_back_margin (axis=y", output)
-        self.assertIn("    - side_opening_top_margin (axis=z", output)
-        self.assertIn("    - side_opening_bottom_margin (axis=z", output)
-        self.assertIn("basis=side_opening_front_margin_to_visible_cutout_edge", output)
-        self.assertIn("basis=side_opening_top_margin_to_visible_cutout_edge", output)
+        self.assertIn("    - item_height (axis=z", output)
+        self.assertIn("    - item_depth (axis=y", output)
+        self.assertIn("    - front_opening_left_right_margin (axis=x", output)
+        self.assertIn("    - front_opening_top_bottom_margin (axis=z", output)
+        self.assertIn("    - side_cutout_top_margin (axis=z", output)
+        self.assertIn("    - side_cutout_bottom_margin (axis=z", output)
+        self.assertIn("    - side_cutout_back_margin (axis=y", output)
+        self.assertIn("    - side_cutout_front_margin (axis=y", output)
+        self.assertIn("basis=side_cutout_top_margin_to_visible_cutout_edge", output)
+        self.assertIn("basis=side_cutout_back_margin_to_visible_cutout_edge", output)
         self.assertIn("    - item_corner_rounding", output)
         self.assertIn("    - holder_slot_position", output)
         self.assertIn("    - slot_slide_direction", output)
@@ -1036,7 +1036,7 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("    - horizontal_grids (axis=x", output)
         self.assertIn("    - vertical_grids (axis=z", output)
         self.assertIn("    - depth_grids (axis=y", output)
-        self.assertIn("    - ocvase_linewidth (axis=x", output)
+        self.assertIn("    - vase_linewidth (axis=x", output)
         self.assertIn("    - label_width (axis=x", output)
         self.assertIn("when=label_holder_type != \"None\"", output)
         self.assertIn("    - vase_surface_texture", output)
@@ -1056,6 +1056,71 @@ class AnimationConfigTests(unittest.TestCase):
             if annotation["id"] == "label_width" and annotation["kind"] == "dimension"
         )
         self.assertEqual(label_width["conditions"], ['label_holder_type != "None"'])
+
+    def test_parametric_snap_discovery_exposes_openconnect_head_anchors(self) -> None:
+        output = self.run_cli("--discover-annotations", "opengrid_parametric_snap.scad")
+
+        self.assertIn("    - ochead_bottom_height (axis=z", output)
+        self.assertIn("    - ochead_large_rect_width (axis=x", output)
+        self.assertIn("    - ochead_nub_to_top_distance (axis=y", output)
+        self.assertIn("    - ochead_nub_fillet", output)
+        self.assertNotIn("    - OCSLOT_MOVE_DISTANCE", output)
+
+        annotations = discover_scad_source_annotations(Path("opengrid_parametric_snap.scad"), defines={})
+        slot_move = next(
+            annotation
+            for annotation in annotations
+            if annotation["id"] == "OCSLOT_MOVE_DISTANCE" and annotation["kind"] == "dimension"
+        )
+        slot_clearance = next(
+            annotation
+            for annotation in annotations
+            if annotation["id"] == "OCSLOT_ONRAMP_CLEARANCE" and annotation["kind"] == "dimension"
+        )
+        total_height = next(
+            annotation
+            for annotation in annotations
+            if annotation["id"] == "OCHEAD_TOTAL_HEIGHT" and annotation["kind"] == "dimension"
+        )
+
+        self.assertEqual(slot_move["kind"], "dimension")
+        self.assertEqual(slot_move["basis"], "openconnect_slot_slide_distance_default_reference")
+        self.assertTrue(slot_move["internal"])
+        self.assertEqual(slot_clearance["axis"], "x")
+        self.assertTrue(slot_clearance["internal"])
+        self.assertEqual(total_height["axis"], "z")
+        self.assertTrue(total_height["internal"])
+
+    def test_openconnect_plate_discovery_exposes_slot_anchors(self) -> None:
+        output = self.run_cli("--discover-annotations", "openconnect_plate.scad")
+
+        self.assertIn("    - slot_side_clearance (axis=x", output)
+        self.assertIn("    - slot_depth_clearance (axis=z", output)
+        self.assertNotIn("    - slot_large_rect_width", output)
+
+        annotations = discover_scad_source_annotations(Path("openconnect_plate.scad"), defines={})
+        slot_width = next(
+            annotation
+            for annotation in annotations
+            if annotation["id"] == "slot_large_rect_width" and annotation["kind"] == "dimension"
+        )
+        slot_depth = next(
+            annotation
+            for annotation in annotations
+            if annotation["id"] == "slot_total_height" and annotation["kind"] == "dimension"
+        )
+        slot_move = next(
+            annotation
+            for annotation in annotations
+            if annotation["id"] == "OCSLOT_MOVE_DISTANCE" and annotation["kind"] == "dimension"
+        )
+
+        self.assertEqual(slot_width["axis"], "x")
+        self.assertTrue(slot_width["internal"])
+        self.assertEqual(slot_depth["basis"], "openconnect_plate_slot_total_cut_depth")
+        self.assertTrue(slot_depth["internal"])
+        self.assertEqual(slot_move["basis"], "openconnect_plate_slot_slide_distance_default_reference")
+        self.assertTrue(slot_move["internal"])
 
     def test_sturdy_shelf_discovery_uses_grid_parameter_ids(self) -> None:
         output = self.run_cli("--discover-annotations", "openconnect_sturdy_shelf.scad")
@@ -1784,6 +1849,47 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(preset_config["camera_orbit"], [35.0, 24.0])
         self.assertEqual(preset_config["camera_distance_scale"], 1.15)
 
+    def test_render_scene_light_power_is_validated_and_passed_to_blender(self) -> None:
+        render = resolve_render(
+            {
+                "preset": "cycles_standard_scene",
+                "lighting": {"preset": "scene", "toplight_power": 175.0, "frontlight_power": 80.0},
+            }
+        )
+        self.assertEqual(render["lighting"]["preset"], "scene")
+        self.assertEqual(render["lighting"]["toplight_power"], 175.0)
+        self.assertEqual(render["lighting"]["frontlight_power"], 80.0)
+
+        with self.assertRaisesRegex(ConfigError, "render.lighting.toplight_power must be numeric"):
+            resolve_render({"preset": "cycles_standard_scene", "lighting": {"preset": "scene", "toplight_power": "bright"}})
+        with self.assertRaisesRegex(ConfigError, "render.lighting.frontlight_power must be at least 0"):
+            resolve_render({"preset": "cycles_standard_scene", "lighting": {"preset": "scene", "frontlight_power": -1}})
+
+        blender_config = build_blender_config(
+            scene_config={"camera": "Camera"},
+            render_settings=render,
+            object_records=[
+                {
+                    "id": "model",
+                    "stl_path": "model.stl",
+                    "target_object": "model",
+                    "replace_target_object": True,
+                    "inherit_target_transform": False,
+                    "transform": {"location": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": [1, 1, 1]},
+                }
+            ],
+            projection_points={},
+            render_path=Path("render.png"),
+            projection_path=Path("projection.json"),
+            animation_config=None,
+            animation_frame_dir=None,
+            expression_context={},
+        )
+        self.assertEqual(
+            blender_config["lighting"],
+            {"preset": "scene", "toplight_power": 175.0, "frontlight_power": 80.0},
+        )
+
     def test_scad_output_folder_name_groups_by_scad_source(self) -> None:
         self.assertEqual(
             scad_output_folder_name(
@@ -2082,6 +2188,9 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("camera_view_preset", render_properties)
         self.assertEqual(schema["$defs"]["lightingPreset"]["enum"], ["scene", "technical", "softbox", "front_lit", "dramatic", "flat"])
         self.assertIn("lighting", render_properties)
+        lighting_properties = schema["$defs"]["lightingConfig"]["anyOf"][1]["properties"]
+        self.assertEqual(lighting_properties["toplight_power"]["minimum"], 0)
+        self.assertEqual(lighting_properties["frontlight_power"]["minimum"], 0)
         self.assertIn("outline", render_properties)
         self.assertIn("ground_plane", render_properties)
         self.assertIn("cutaway", render_properties)

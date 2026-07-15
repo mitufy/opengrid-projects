@@ -4,11 +4,6 @@ variant_name: openconnect_sturdy_hook_default
 job_name: sturdy_hook_scene
 scene:
   objects:
-  - id: model
-    model:
-      scad_file: openconnect_sturdy_hook.scad
-    transform:
-      location_mm: [56, 0, -28]
   - id: large_hook
     model:
       scad_file: openconnect_sturdy_hook.scad
@@ -17,29 +12,35 @@ scene:
         hook_vertical_grids: 2
         circular_tip_radius: 28
         hook_corner_fillet: 28
+        # truss_vertical_grids: 1
+  - id: model
+    model:
+      scad_file: openconnect_sturdy_hook.scad
+    transform:
+      location_mm: [56, 0, -28]
   transform:
     $constant: wall_placeholder_transform
 
 render:
-  fit_margin: 0
+  fit_margin: 0.0
   # camera_location_offset_mm: [30, 0, 0]
   # camera_rotation_offset_deg: [0, 0, 10]
   # camera_look_at: object_center
 annotations:
   style:
     $constant: default_annotation_style
-    auto_adjust_labels: false
-    tick_length_px: 15
-    type_styles:
-      grids:
-        line_colors:
-        - $constant: annotation_color_blue
-      mm:
-        line_colors:
-        - $constant: annotation_color_black
-    line_width_px: 3.0
-    extension_width_px: 1.4
-    radial_line_width_px: 2.6
+    # auto_adjust_labels: false
+    # tick_length_px: 15
+    # type_styles:
+    #   grids:
+    #     line_colors:
+    #     - $constant: annotation_color_blue
+    #   mm:
+    #     line_colors:
+    #     - $constant: annotation_color_black
+    # line_width_px: 3.0
+    # extension_width_px: 1.4
+    # radial_line_width_px: 2.6
   aliases:
     hook_vertical_grids: hook_vertical_grids x 28mm
     truss_vertical_grids: truss_vertical_grids x 28mm
@@ -66,26 +67,22 @@ annotations:
       $constant: annotation_label_font_size_px
   - ids: [hook_thickness]
     display_offset_mm: [0, 0, 0]
-    label_along_offset_px: -80
-    line_offset_px: -200
-    label_offset_px: -50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-  - ids: [hook_length]
-    display_offset_mm: [0, 0, 0]
-    label_along_offset_px: 60
     line_offset_px: -20
     label_offset_px: -50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
+    label_font_size_px: 50
+  - ids: [hook_length]
+    display_offset_mm: [0, 0, 0]
+    label_along_offset_px: 100
+    line_offset_px: -20
+    label_offset_px: -50
+    label_font_size_px: 50
   - ids: [hook_vertical_grids, truss_vertical_grids]
     optional: true
     display_offset_mm: [0, 0, 0]
-    label_along_offset_px: -60
+    # label_along_offset_px: -60
     line_offset_px: -1
     label_offset_px: -50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
+    label_font_size_px: 50
   # image_labels:
   # - $constant: bottom_image_label
   #   id: hook_shape_type

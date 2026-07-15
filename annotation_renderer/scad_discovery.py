@@ -320,13 +320,9 @@ def discover_scad_source_annotations(scad_file: Path, *, defines: Mapping[str, o
     source = strip_scad_comments(raw_source)
     conditional_ranges = scad_conditional_block_ranges(source)
     annotations: list[dict[str, object]] = []
-    call_kinds = {
-        "emit_dimension_annotation": "dimension",
-        "emit_radius_annotation": "radius",
-        "emit_arc_annotation": "arc",
-        "emit_feature_annotation": "feature",
-    }
-    call_pattern = re.compile(r"\b(emit_context_values|emit_dimension_annotation|emit_radius_annotation|emit_arc_annotation|emit_feature_annotation)\s*\(")
+    call_pattern = re.compile(
+        r"\b(emit_context_values|emit_[A-Za-z0-9_]*dimension_annotation|emit_[A-Za-z0-9_]*radius_annotation|emit_[A-Za-z0-9_]*arc_annotation|emit_[A-Za-z0-9_]*feature_annotation)\s*\("
+    )
     for match in call_pattern.finditer(source):
         prefix = source[max(0, match.start() - 16) : match.start()]
         if re.search(r"\bmodule\s+$", prefix):
@@ -360,9 +356,17 @@ def discover_scad_source_annotations(scad_file: Path, *, defines: Mapping[str, o
         annotation_id = scad_string_literal(arguments.get("id", ""))
         if not annotation_id:
             continue
+        if call_name.endswith("dimension_annotation"):
+            annotation_kind = "dimension"
+        elif call_name.endswith("radius_annotation"):
+            annotation_kind = "radius"
+        elif call_name.endswith("arc_annotation"):
+            annotation_kind = "arc"
+        else:
+            annotation_kind = "feature"
         annotation: dict[str, object] = {
             "id": annotation_id,
-            "kind": call_kinds[call_name],
+            "kind": annotation_kind,
         }
         if customizer_parameters is not None and annotation_id not in customizer_parameters:
             annotation["internal"] = True

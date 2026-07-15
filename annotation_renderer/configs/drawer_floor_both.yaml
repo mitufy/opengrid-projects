@@ -25,14 +25,14 @@ render:
   camera_view_preset: top_front
 annotations:
   object: drawer_container
-  style:
-    $constant: default_annotation_style
-    image_label_title_positions: [top, bottom]
-    image_label_title_top_margin_px: 18
-    image_label_title_bottom_margin_px: 6  # box distance from bottom image edge
-    image_label_title_padding_x_px: 20       # horizontal padding inside box
-    image_label_title_padding_y_px: 6     # vertical padding inside box
-    image_label_title_min_width_px: 620      # minimum box width
+  # style:
+    # $constant: default_annotation_style
+    # image_label_title_positions: [top, bottom]
+    # image_label_title_top_margin_px: 18
+    # image_label_title_bottom_margin_px: 6  # box distance from bottom image edge
+    # image_label_title_padding_x_px: 20       # horizontal padding inside box
+    # image_label_title_padding_y_px: 6     # vertical padding inside box
+    # image_label_title_min_width_px: 620      # minimum box width
   # chains:
   # - ids: [horizontal_grids]
   #   label_offset_px: 42
@@ -51,34 +51,30 @@ annotations:
     show_value: true
     value_color:
       $constant: annotation_color_red
-    font_size_px:
-      $constant: annotation_title_font_size_px
+    font_size_px: 48
   - $constant: bottom_image_label
     id: container_width_compartment_list
-    offset_px: [0, 30]
+    offset_px: [0, 50]
     show_value: true
     value_color:
       $constant: annotation_color_red
-    font_size_px:
-      $constant: annotation_title_font_size_px
+    font_size_px: 48
   - $constant: bottom_image_label
     id: container_depth_grid_count
-    offset_px: [0, 70]
+    offset_px: [0, 115]
     show_value: true
     value_color:
       $constant: annotation_color_red
-    font_size_px:
-      $constant: annotation_title_font_size_px
+    font_size_px: 48
   - $constant: bottom_image_label
     id: container_depth_compartment_list
-    offset_px: [0, 100]
+    offset_px: [0, 165]
     show_value: true
     value_color:
       $constant: annotation_color_red
-    font_size_px:
-      $constant: annotation_title_font_size_px
-  - id: add_container_divider
-    position: top
+    font_size_px: 48
+  - $constant: top_image_label
+    id: add_container_divider
     offset_px: [0, 0]
     show_value: true
     value_color:

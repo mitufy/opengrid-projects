@@ -21,7 +21,7 @@ annotations:
   style:
     $constant: default_annotation_style
     auto_adjust_labels: true
-    tick_length_px: 12
+    
     type_styles:
       grids:
         line_colors:
@@ -31,7 +31,7 @@ annotations:
         - $constant: annotation_color_black
   aliases:
     hook_vertical_grids: hook_vertical_grids x 28mm
-    truss_vertical_grid: truss_vertical_grid x 28mm
+    truss_vertical_grids: truss_vertical_grids x 28mm
     hook_tip_shape: hook_tip_shape
   chains:
   # - ids: [hook_width]
@@ -58,11 +58,11 @@ annotations:
     label_offset_px: -50
     label_font_size_px:
       $constant: annotation_label_font_size_px
-  - ids: [hook_vertical_grids, truss_vertical_grid]
+  - ids: [hook_vertical_grids, truss_vertical_grids]
     optional: true
     display_offset_mm: [0, 0, 0]
-    line_offset_px: 0
-    label_offset_px: -50
+    line_offset_px: 1
+    label_offset_px: 50
     label_font_size_px:
       $constant: annotation_label_font_size_px
   angle_radius_callouts:
@@ -71,5 +71,5 @@ annotations:
     radius_id: hook_corner_fillet
     optional: true
     show_angle_label: false
-    radius_label_offset_px: 26
+    radius_label_offset_px: 50
     angle_fill_alpha: 28

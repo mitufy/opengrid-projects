@@ -5,7 +5,7 @@ constants:
   drawer_shell_rotation_x_deg: 90
   drawer_container_rotation_x_deg: 0
   drawer_fit_render:
-    fit_margin: 0.11
+    fit_margin: 0.1
   drawer_common_defines:
     generate_drawer_stopper_clips: false
     view_drawer_overlapped: false
@@ -31,9 +31,20 @@ constants:
     rotation_deg: [drawer_shell_rotation_x_deg, 0, 0]
   drawer_container_transform:
     location_mm: [odd(horizontal_grids) * OG_TILE_SIZE / 2, -(shell_ocslot_part_thickness
-        + container_depth_clearance)-20, -(vertical_grids * OG_TILE_SIZE - shell_thickness
+        + container_depth_clearance)-40, -(OG_TILE_SIZE + vertical_grids * OG_TILE_SIZE/2 - shell_thickness
         - container_height_clearance / 2)]
     rotation_deg: [drawer_container_rotation_x_deg, 0, 0]
+  drawer_shell_transform_top:
+    location_mm: [0, -vertical_grids * OG_TILE_SIZE / 2 - 1.22, -OG_TILE_SIZE * 3]
+    rotation_deg: [0, 0, 0]
+  drawer_container_transform_top:
+    location_mm: [0, 
+    # -(vertical_grids * OG_TILE_SIZE - (shell_ocslot_part_thickness+shell_thickness)/2 - container_height_clearance / 2), 
+    # - (depth_grids * OG_TILE_SIZE / 2 - shell_thickness - container_depth_clearance)
+    -54.4,
+    -82
+    ]
+    rotation_deg: [-90, 0, 0]
   drawer_object_defaults:
     model:
       scad_file: openconnect_drawer.scad
@@ -58,3 +69,22 @@ constants:
       $constant: drawer_container_material
     transform:
       $constant: drawer_container_transform
+  drawer_shell_object_top:
+    id: drawer_shell
+    model:
+      defines:
+        $constant: drawer_shell_defines
+        shell_slot_position: Top
+    material:
+      $constant: drawer_shell_material
+    transform:
+      $constant: drawer_shell_transform_top
+  drawer_container_object_top:
+    id: drawer_container
+    model:
+      defines:
+        $constant: drawer_container_defines
+    material:
+      color: '#eee9df'
+    transform:
+      $constant: drawer_container_transform_top

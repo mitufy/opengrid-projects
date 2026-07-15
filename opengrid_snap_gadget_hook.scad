@@ -130,14 +130,14 @@ thread_join_overlap = EPS * 2;
 
 
 annotation_body_center_x = 0;
-annotation_body_side_x = body_thickness / 2;
+annotation_body_side_x = hook_thickness / 2;
 annotation_body_center_y = -final_stem_length / 2;
-annotation_body_center_z = body_width / 2;
-annotation_body_top_z = body_width;
+annotation_body_center_z = hook_width / 2;
+annotation_body_top_z = hook_width;
 annotation_hook_start_y = -final_stem_length;
 annotation_hook_end_y = annotation_hook_start_y - hook_main_size;
 annotation_hook_tip_path_radius = final_tip_size / 2;
-annotation_hook_tip_angle_radius = max(3, annotation_hook_tip_path_radius - body_thickness * final_thickness_scale / 2);
+annotation_hook_tip_angle_radius = max(3, annotation_hook_tip_path_radius - hook_thickness * final_thickness_scale / 2);
 annotation_hook_tip_angle_segments = 16;
 annotation_hook_tip_angle_center_path =
   hook_shape_type == "Centered"
@@ -164,41 +164,41 @@ module emit_snap_gadget_hook_annotations() {
     "snap_gadget_hook_context",
     [
       "snap_thickness",
-      "body_width",
-      "body_thickness",
+      "hook_width",
+      "hook_thickness",
       "hook_main_size",
       "hook_stem_length",
-      "body_thickness_scale",
+      "hook_thickness_scale",
       "hook_tip_angle",
       "hook_stem_fillet"
     ],
     [
       snap_thickness,
-      body_width,
-      body_thickness,
+      hook_width,
+      hook_thickness,
       hook_main_size,
       hook_stem_length,
-      body_thickness_scale,
+      hook_thickness_scale,
       hook_tip_angle,
       hook_stem_fillet
     ]
   );
   emit_dimension_annotation(
-    id="body_width",
-    label="body_width",
+    id="hook_width",
+    label="hook_width",
     axis="z",
-    value=body_width,
+    value=hook_width,
     start=[annotation_body_center_x, annotation_body_center_y, 0],
-    end=[annotation_body_center_x, annotation_body_center_y, body_width],
+    end=[annotation_body_center_x, annotation_body_center_y, hook_width],
     basis="hook_body_width_across_body_profile"
   );
   emit_dimension_annotation(
-    id="body_thickness",
-    label="body_thickness",
+    id="hook_thickness",
+    label="hook_thickness",
     axis="x",
-    value=body_thickness,
-    start=[-body_thickness / 2, annotation_body_center_y, annotation_body_center_z],
-    end=[body_thickness / 2, annotation_body_center_y, annotation_body_center_z],
+    value=hook_thickness,
+    start=[-hook_thickness / 2, 0, annotation_body_center_z],
+    end=[hook_thickness / 2, 0, annotation_body_center_z],
     basis="hook_body_thickness_across_body_profile"
   );
   emit_dimension_annotation(

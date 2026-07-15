@@ -305,11 +305,13 @@ def validate_lighting_config(value: object, *, name: str = "render.lighting") ->
         return
     if not isinstance(value, Mapping):
         raise ConfigError(f"{name} must be a preset name or object")
-    allowed_keys = {"preset", "strength", "ambient_strength", "color"}
+    allowed_keys = {"preset", "strength", "ambient_strength", "color", "toplight_power", "frontlight_power"}
     validate_allowed_keys(value, allowed=allowed_keys, name=name)
     validate_enum_field(value, "preset", name=name, allowed=RENDER_LIGHTING_PRESET_VALUES)
     validate_number_field(value, "strength", name=name, minimum=0.0)
     validate_number_field(value, "ambient_strength", name=name, minimum=0.0)
+    validate_number_field(value, "toplight_power", name=name, minimum=0.0)
+    validate_number_field(value, "frontlight_power", name=name, minimum=0.0)
     if "color" in value and (not isinstance(value["color"], str) or not str(value["color"]).strip()):
         raise ConfigError(f"{name}.color must be a non-empty string")
 

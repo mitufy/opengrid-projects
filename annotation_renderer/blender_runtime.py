@@ -627,6 +627,58 @@ def add_area_light(name, *, location, target, energy, size, color):
     return obj
 
 
+SCENE_LIGHT_POWER_KEYS = {
+    "toplight_power": "TopLight",
+    "frontlight_power": "FrontLight",
+}
+
+
+def set_scene_light_power(light_name, energy):
+    light_energy = float(energy)
+    light_objects = []
+    data_blocks = []
+
+    obj = bpy.data.objects.get(light_name)
+    if obj is not None and obj.type == "LIGHT" and getattr(obj, "data", None) is not None:
+        light_objects.append(obj.name)
+        data_blocks.append(obj.data)
+
+    data = bpy.data.lights.get(light_name)
+    if data is not None and data not in data_blocks:
+        data_blocks.append(data)
+
+    if not data_blocks:
+        return None
+
+    for data in data_blocks:
+        data.energy = light_energy
+    return {
+        "energy": light_energy,
+        "objects": light_objects,
+        "data": [data.name for data in data_blocks],
+    }
+
+
+def apply_scene_light_power_overrides(settings):
+    applied = {}
+    missing = []
+    for key, light_name in SCENE_LIGHT_POWER_KEYS.items():
+        if key not in settings:
+            continue
+        result = set_scene_light_power(light_name, settings[key])
+        if result is None:
+            missing.append(light_name)
+        else:
+            applied[light_name] = result
+
+    summary = {}
+    if applied:
+        summary["light_powers"] = applied
+    if missing:
+        summary["missing_lights"] = missing
+    return summary
+
+
 def camera_basis(camera):
     rotation = camera.matrix_world.to_quaternion()
     view = (camera.location - (camera.location + rotation @ Vector((0.0, 0.0, -1.0)))).normalized()
@@ -642,9 +694,15 @@ def configure_lighting(scene, camera, objects):
     settings = scene_control_settings(value)
     if not settings.get("enabled", True):
         return {"enabled": False}
-    preset = str(settings.get("preset") or "technical")
+    has_scene_light_overrides = any(key in settings for key in SCENE_LIGHT_POWER_KEYS)
+    preset = str(settings.get("preset") or ("scene" if has_scene_light_overrides else "technical"))
     if preset == "scene":
-        return {"preset": "scene", "applied": False}
+        summary = apply_scene_light_power_overrides(settings)
+        return {
+            "preset": "scene",
+            "applied": bool(summary.get("light_powers")),
+            **summary,
+        }
 
     color = parse_material_color(settings.get("color", "#ffffff"), alpha=1.0)
     strength_scale = float(settings.get("strength", 1.0))

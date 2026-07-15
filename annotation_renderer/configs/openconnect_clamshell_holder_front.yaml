@@ -18,7 +18,7 @@ scene:
     inherit_target_transform: false
     transform:
       location_mm: [0, "-(item_height / 2 + og_standard_thickness)", 0]
-      rotation_deg: [-90, 0, 0]
+      rotation_deg: [0, 0, 0]
       scale:
         $constant: blender_scene_scale_vector
 render:
@@ -51,7 +51,7 @@ annotations:
   #   display_offset_mm: [0, 0, 0]
   #   line_offset_px: 0
   #   label_offset_px: 24
-  - ids: [front_opening_side_margin]
+  - ids: [front_opening_left_right_margin]
     optional: true
     display_offset_mm: [0, 0, 0]
     line_offset_px: 50
@@ -59,7 +59,7 @@ annotations:
     label_font_size_px: 48
     color:
       $constant: annotation_color_blue
-  - ids: [front_opening_end_margin]
+  - ids: [front_opening_top_bottom_margin]
     optional: true
     display_offset_mm: [0, 0, 0]
     line_offset_px: -50
@@ -77,11 +77,11 @@ annotations:
     radius_label_offset_px: 100
     angle_fill_alpha: 28
     label_font_size_px: 48
-  image_labels:
-  - $constant: top_image_label
-    id: holder_slot_position
-    show_value: true
-    value_color:
-      $constant: annotation_color_blue
-    font_size_px:
-      $constant: annotation_title_font_size_px
+  # image_labels:
+  # - $constant: top_image_label
+  #   id: holder_slot_position
+  #   show_value: true
+  #   value_color:
+  #     $constant: annotation_color_blue
+  #   font_size_px:
+  #     $constant: annotation_title_font_size_px

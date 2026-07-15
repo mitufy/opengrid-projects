@@ -10,7 +10,8 @@ scene:
       defines:
         compartment_column_count: 1
         compartment_row_count: 1
-        # holder_back_offset: 2
+        compartment_depth: 20
+        holder_back_offset: 2
         compartment_corner_rounding: 5
         holder_tilt_angle: 15
     transform:
@@ -46,8 +47,7 @@ annotations:
   # - ids: [holder_back_offset]
   #   optional: true
   #   line_offset_px: -80
-  #   label_offset_px: -28
-  #   font_size_px: 26
+  #   label_offset_px: -50
   # - ids: [compartment_depth]
   #   optional: true
   #   display_offset_mm: [0, 0, 0]
@@ -58,23 +58,24 @@ annotations:
   #   optional: true
   #   display_offset_mm: [0, 0, 0]
   #   line_offset_px: -80
-  #   label_offset_px: -28
-  #   font_size_px: 26
-  - ids: [compartment_height]
-    color:
-      $constant: annotation_color_black
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: -10
-    label_offset_px: -24
-    label_along_offset_px: 50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
+  #   label_offset_px: -50
+  #   label_font_size_px:
+  #     $constant: annotation_label_font_size_px
+  # - ids: [compartment_height]
+  #   color:
+  #     $constant: annotation_color_black
+  #   display_offset_mm: [0, 0, 0]
+  #   line_offset_px: -10
+  #   label_offset_px: -50
+  #   label_along_offset_px: 50
+  #   label_font_size_px:
+  #     $constant: annotation_label_font_size_px
   - ids: [holder_bottom_thickness]
     optional: true
     display_offset_mm: [0, 0, 0]
-    line_offset_px: -10
-    label_offset_px: -24
-    label_along_offset_px: -50
+    line_offset_px: -50
+    label_offset_px: -50
+    label_along_offset_px: 50
     label_font_size_px:
       $constant: annotation_label_font_size_px
   angle_radius_callouts:

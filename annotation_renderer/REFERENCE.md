@@ -342,8 +342,8 @@ gallery:
   target_height_px: 1440
   margin_px: 0
   gutter_px: 4
-  title_height_px: 45
-  title_font_size_px: 45
+  title_height_px: 60
+  title_font_size_px: 60
 ```
 
 The gallery runner derives `thumbnail_width`, `thumbnail_height`, and each variant's render size from the target dimensions, row count, margins, gutters, and title height. The target size must divide evenly after subtracting those spacing values.
@@ -614,7 +614,7 @@ render:
 
 Additional Blender scene controls:
 
-* `lighting`: `scene`, `technical`, `softbox`, `front_lit`, `dramatic`, or `flat`; object form supports `preset`, `strength`, `ambient_strength`, and `color`.
+* `lighting`: `scene`, `technical`, `softbox`, `front_lit`, `dramatic`, or `flat`; object form supports `preset`, `strength`, `ambient_strength`, `color`, `toplight_power`, and `frontlight_power`. `toplight_power` and `frontlight_power` set the Blender scene lights named `TopLight` and `FrontLight`; use them with `preset: scene` when keeping the bundled scene lights.
 * `outline`: enables Freestyle outlines; object form supports `enabled`, `line_color`, and `line_width_px`.
 * `ground_plane`: adds a floor plane below the model; object form supports `offset_mm`, `size_scale`, `color`, `alpha`, `roughness`, and `shadow_only`.
 * `cutaway`: adds a boolean half-space cutter; object form supports `objects`, `axis`, `keep`, `position_mm`, `position_fraction`, `offset_mm`, and `section_plane`. `position_mm` is an absolute scene-axis position. `position_fraction` is usually easier: `0` means the selected bounds minimum, `0.5` means center, and `1` means bounds maximum. Without either, `offset_mm` is relative to the selected objects' bounding-box center.
@@ -625,8 +625,9 @@ Example:
 ```yaml
 render:
   lighting:
-    preset: technical
-    strength: 1.15
+    preset: scene
+    toplight_power: 175
+    frontlight_power: 80
   outline:
     enabled: true
     line_width_px: 1.4
@@ -836,7 +837,7 @@ Current parameter-detail variants:
 * `sturdy_hook_truss_details`: `truss_vertical_grids`, `truss_thickness`, `truss_max_angle`
 * `sturdy_shelf_truss_details`: `truss_beam_reach`, `truss_thickness`, `truss_strut_interval`, `shelf_corner_fillet`
 * `sturdy_shelf_edge_texture_details`: `shelf_side_edge_depth`, `shelf_front_edge_depth`, `shelf_texture_depth`
-* `drawer_shell_clearance_details`: `shell_thickness`, container width/height/depth clearances, `container_front_back_height_offset`
+* `drawer_shell_clearance_details`: `shell_thickness`, container width/height/depth clearances, `container_back_side_height_offset`
 * `drawer_container_label_handle_details`: `handle_depth`, `label_width`, `label_height`, stopper settings, and magnet diameters
 
 Use `extends` in a config when a secondary parameter set should reuse `model_defaults.yaml` constants, scene binding, and render presets without copying them:

@@ -157,6 +157,8 @@ compartment_annotation_front_y = holder_min_y + holder_outer_wall_thickness;
 compartment_annotation_back_y = compartment_annotation_front_y + final_compartment_depth;
 compartment_annotation_center_x = (compartment_annotation_min_x + compartment_annotation_max_x) / 2;
 compartment_annotation_center_y = (compartment_annotation_front_y + compartment_annotation_back_y) / 2;
+compartment_annotation_taper_start_x = (compartment_annotation_min_x + (compartment_width - compartment_bottom_width) / 2);
+compartment_annotation_taper_start_y = (compartment_annotation_front_y + (compartment_depth - compartment_bottom_depth) / 2);
 compartment_annotation_z = holder_max_z;
 compartment_height_annotation_min_z = holder_min_z + max(0, holder_bottom_thickness);
 compartment_height_annotation_max_z = compartment_height_annotation_min_z + final_compartment_height;
@@ -198,12 +200,13 @@ holder_tilt_angle_arc_start = [
 ];
 holder_tilt_angle_arc_mid = [
   holder_max_x,
-  holder_max_y - holder_tilt_angle_arc_radius * sin(final_holder_tilt_angle / 2),
+  holder_max_y + holder_tilt_angle_arc_radius * sin(final_holder_tilt_angle / 2),
   holder_min_z + holder_tilt_angle_arc_radius * cos(final_holder_tilt_angle / 2)
 ];
+holder_tilt_angle_radius_edge = holder_tilt_angle_arc_mid;
 holder_tilt_angle_arc_end = [
   holder_max_x,
-  holder_max_y - holder_tilt_angle_arc_radius * sin(final_holder_tilt_angle),
+  holder_max_y + holder_tilt_angle_arc_radius * sin(final_holder_tilt_angle),
   holder_min_z + holder_tilt_angle_arc_radius * cos(final_holder_tilt_angle)
 ];
 
@@ -373,8 +376,8 @@ module emit_general_holder_annotations() {
       label="holder_back_offset",
       axis="y",
       value=holder_back_offset,
-      start=[compartment_annotation_min_x, holder_back_offset_annotation_start_y, compartment_annotation_z],
-      end=[compartment_annotation_min_x, holder_back_offset_annotation_end_y, compartment_annotation_z],
+      start=[compartment_annotation_max_x, holder_back_offset_annotation_start_y, compartment_annotation_z],
+      end=[compartment_annotation_max_x, holder_back_offset_annotation_end_y, compartment_annotation_z],
       basis="extra_depth_added_by_holder_back_offset"
     );
   if (holder_outer_wall_thickness > 0)
@@ -393,9 +396,9 @@ module emit_general_holder_annotations() {
       label="compartment_bottom_width",
       axis="x",
       value=final_compartment_taper_width,
-      start=[compartment_annotation_center_x - final_compartment_taper_width / 2, compartment_annotation_center_y, holder_bottom_thickness_annotation_max_z],
-      end=[compartment_annotation_center_x + final_compartment_taper_width / 2, compartment_annotation_center_y, holder_bottom_thickness_annotation_max_z],
-      basis="first_compartment_bottom_taper_width"
+      start=[compartment_annotation_center_x - final_compartment_taper_width / 2, compartment_annotation_taper_start_y, holder_bottom_thickness_annotation_max_z],
+      end=[compartment_annotation_center_x + final_compartment_taper_width / 2, compartment_annotation_taper_start_y, holder_bottom_thickness_annotation_max_z],
+      basis="first_compartment_tapered_bottom_width"
     );
     if (compartment_shape != "Circular")
       emit_dimension_annotation(
@@ -403,9 +406,9 @@ module emit_general_holder_annotations() {
         label="compartment_bottom_depth",
         axis="y",
         value=final_compartment_taper_depth,
-        start=[compartment_annotation_center_x, compartment_annotation_center_y - final_compartment_taper_depth / 2, holder_bottom_thickness_annotation_max_z],
-        end=[compartment_annotation_center_x, compartment_annotation_center_y + final_compartment_taper_depth / 2, holder_bottom_thickness_annotation_max_z],
-        basis="first_compartment_bottom_taper_depth"
+        start=[compartment_annotation_taper_start_x, compartment_annotation_center_y - final_compartment_taper_depth / 2, holder_bottom_thickness_annotation_max_z],
+        end=[compartment_annotation_taper_start_x, compartment_annotation_center_y + final_compartment_taper_depth / 2, holder_bottom_thickness_annotation_max_z],
+        basis="first_compartment_tapered_bottom_depth"
       );
   }
   if (compartment_column_count > 1)
@@ -460,15 +463,15 @@ module emit_general_holder_annotations() {
       label="holder_tilt_angle_radius",
       value=holder_tilt_angle_arc_radius,
       center=holder_tilt_angle_anchor,
-      edge=holder_tilt_angle_arc_start,
-      basis="holder_tilt_angle_arc_radius"
+      edge=holder_tilt_angle_radius_edge,
+      basis="bottom_holder_tilt_angle_anchor_to_tilt_wedge_midpoint"
     );
     emit_arc_annotation(
       id="holder_tilt_angle_extent",
       label="holder_tilt_angle_extent",
       value=final_holder_tilt_angle,
       points=[holder_tilt_angle_arc_start, holder_tilt_angle_arc_mid, holder_tilt_angle_arc_end],
-      basis="holder_tilt_angle_arc_extent"
+      basis="tilt_wedge_side_arc_for_holder_tilt_angle"
     );
   }
   if (front_opening_width > 0 && front_opening_height > 0) {

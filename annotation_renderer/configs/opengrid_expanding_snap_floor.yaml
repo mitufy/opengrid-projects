@@ -1,0 +1,30 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: base_scene.yaml
+variant_name: opengrid_expanding_snap
+job_name: opengrid_expanding_snap
+scene:
+  blend_file: ../assets/scenes/opengrid_floor_scene.blend
+  objects:
+  # - id: snap
+  #   $constant: expanding_snap_object
+  - id: screw
+    model:
+      scad_file: opengrid_expanding_snap.scad
+      defines:
+        generate_screw: openConnect
+        snap_thickness: 4
+        # generate_snap: Self-Expanding
+    # transform:
+    #   location_mm: [14, 6.8, -14]
+    #   rotation_deg: [90, 0, 0]
+render:
+  # fit_margin: 0.3
+  camera_view_preset: top_front
+annotations:
+  style:
+    $constant: default_annotation_style
+    auto_adjust_labels: true
+    type_styles:
+      mm:
+        line_colors:
+        - $constant: annotation_color_black

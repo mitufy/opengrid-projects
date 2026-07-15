@@ -80,6 +80,8 @@ annotations:
     label_offset_px: 50
     label_font_size_px:
       $constant: annotation_label_font_size_px
+    color: 
+      $constant: annotation_color_blue
   # - ids: [clip_height]
   #   display_offset_mm: [0, 0, 0]
   #   line_offset_px: 28

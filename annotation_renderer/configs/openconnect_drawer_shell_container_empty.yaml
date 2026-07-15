@@ -22,23 +22,22 @@ annotations:
     $constant: default_annotation_style
   aliases:
     $constant: default_grid_label_aliases
-  chains:
-  - ids: [horizontal_grids]
-    line_offset_px: -1
-    label_offset_px: -35
-    label_along_offset_px: 105
-    font_size_px: 45
-    color:
-      $constant: annotation_color_black
-  - ids: [vertical_grids]
-    line_offset_px: 10
-    label_offset_px: 50
-    color:
-      $constant: annotation_color_black
-    font_size_px: 50
-  - ids: [depth_grids]
-    line_offset_px: 1
-    label_offset_px: 40
-    color:
-      $constant: annotation_color_blue
-    font_size_px: 45
+  # chains:
+  # - ids: [horizontal_grids]
+  #   line_offset_px: -1
+  #   label_offset_px: -50
+  #   font_size_px: 50
+  #   color:
+  #     $constant: annotation_color_black
+  # - ids: [vertical_grids]
+  #   line_offset_px: 10
+  #   label_offset_px: 50
+  #   color:
+  #     $constant: annotation_color_black
+  #   font_size_px: 50
+  # - ids: [depth_grids]
+  #   line_offset_px: 1
+  #   label_offset_px: 40
+  #   color:
+  #     $constant: annotation_color_blue
+  #   font_size_px: 45

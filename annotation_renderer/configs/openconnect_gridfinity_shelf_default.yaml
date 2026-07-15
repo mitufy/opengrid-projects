@@ -36,8 +36,11 @@ scene:
   #     location_mm: [-28, 0, -84]
   #     rotation_deg: [-print_bottom_angle, 0, 0]
 render:
-  fit_margin: 0
-  camera_view_preset: front_right
+  fit_margin: 0.2
+  # camera_view_preset: front_right
+  camera_location_offset_mm: [-50, 0, 20]
+  # camera_rotation_offset_deg: [10, 0, 0]
+  camera_look_at: object_center
   # camera_view_preset: technical_iso
   # lighting:
     # preset: technical
@@ -55,7 +58,7 @@ annotations:
   - ids: [gridfinity_width_grids]
     color:
       $constant: annotation_color_black
-    line_offset_px: -100
+    line_offset_px: -80
     label_offset_px: -50
     label_font_size_px:
       $constant: annotation_label_font_size_px
@@ -66,43 +69,43 @@ annotations:
     label_offset_px: -50
     label_font_size_px:
       $constant: annotation_label_font_size_px
-  - ids: [shelf_back_offset]
-    optional: true
-    color:
-      $constant: annotation_color_red
-    line_offset_px: -86
-    label_offset_px: -78
-    label_along_offset_px: 72
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-    tick_length_px: 12
+  # - ids: [shelf_back_offset]
+  #   optional: true
+  #   color:
+  #     $constant: annotation_color_red
+  #   line_offset_px: -86
+  #   label_offset_px: -78
+  #   label_along_offset_px: 72
+  #   label_font_size_px:
+  #     $constant: annotation_label_font_size_px
+  #   
   # - ids: [shelf_side_rim]
   #   optional: true
   #   line_offset_px: 70
   #   label_offset_px: 46
   #   label_along_offset_px: -52
   #   label_font_size_px: 22
-  #   tick_length_px: 12
+  #   
   # - ids: [shelf_front_rim]
   #   optional: true
   #   line_offset_px: -88
   #   label_offset_px: -54
   #   label_along_offset_px: 42
   #   label_font_size_px: 22
-  #   tick_length_px: 12
+  #   
   # - ids: [shelf_rim_lip_height]
   #   optional: true
   #   line_offset_px: 46
   #   label_offset_px: 28
   #   label_along_offset_px: 36
   #   label_font_size_px: 22
-  #   tick_length_px: 12
-  image_labels:
-  - $constant: bottom_image_label
-    id: magnet_position
-    offset_px: [0, 0]
-    show_value: true
-    value_color:
-      $constant: annotation_color_blue
-    font_size_px:
-      $constant: annotation_title_font_size_px
+  #   
+  # image_labels:
+  # - $constant: bottom_image_label
+  #   id: magnet_position
+  #   offset_px: [0, 0]
+  #   show_value: true
+  #   value_color:
+  #     $constant: annotation_color_blue
+  #   font_size_px:
+  #     $constant: annotation_title_font_size_px

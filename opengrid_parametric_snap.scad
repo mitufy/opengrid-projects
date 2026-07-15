@@ -168,7 +168,9 @@ disable_snap_directional_slants = false;
 /* [Hidden] */
 $fa = 1;
 $fs = 0.4;
+emit_annotation_metadata = false;
 include <lib/opengrid_base.scad>
+include <lib/annotation_metadata.scad>
 use <lib/openconnect_lib.scad>
 use <lib/opengrid_snap_lib.scad>
 use <lib/opengrid_threads_lib.scad>
@@ -353,6 +355,274 @@ _ochead_cfg = ochead_cfg(
 );
 _ochead_total_height = struct_val(_ochead_cfg, "total_height");
 _ochead_middle_to_bottom = struct_val(_ochead_cfg, "middle_to_bottom");
+_ochead_half_width = ochead_large_rect_width / 2;
+_ochead_back_y = _ochead_half_width + ochead_back_pos_offset;
+_ochead_front_y = _ochead_back_y - ochead_large_rect_height;
+_ochead_nub_y = _ochead_back_y - ochead_nub_to_top_distance;
+_ochead_middle_z = ochead_bottom_height;
+_ochead_top_z = ochead_bottom_height + ochead_middle_height;
+_ochead_annotation_side_x = _ochead_half_width;
+_ochead_annotation_side_y = _ochead_front_y + max(EPS, ochead_large_rect_height / 3);
+
+function _parametric_snap_openconnect_head_point(point) =
+  annot_zrot([
+    point[0] + snap_center_position_offset[0],
+    point[1] + snap_center_position_offset[1],
+    _snap_thickness - _ochead_total_height + point[2],
+  ], view_snap_rotated);
+
+function _parametric_snap_openconnect_screw_point(point) =
+  let (
+    screw_point = [
+      -point[0],
+      point[1],
+      _screw_threads_height + _ochead_total_height - point[2],
+    ],
+    rotated_point = annot_zrot(
+      screw_point,
+      generate_screw == "openConnect (Folded)" ? 180 + view_connector_rotated : view_connector_rotated
+    ),
+    overlapped_offset = [
+      view_snap_and_connector_overlapped && generate_snap != "None" ? snap_center_position_offset[0] : 0,
+      view_snap_and_connector_overlapped && generate_snap != "None" ? snap_center_position_offset[1] : 0,
+      0,
+    ],
+    yrotated_point = annot_yrot(
+      annot_translate(rotated_point, overlapped_offset),
+      view_snap_and_connector_overlapped && generate_snap == "Self-Expanding Threads" ? 180 : 0
+    )
+  ) annot_translate(
+    yrotated_point,
+    [
+      generate_snap == "None" || view_snap_and_connector_overlapped ? 0 : OG_TILE_SIZE,
+      0,
+      view_snap_and_connector_overlapped && generate_snap == "Self-Expanding Threads" ? _screw_threads_height : 0,
+    ]
+  );
+
+function _parametric_snap_openconnect_annotation_point(point) =
+  generate_screw == "openConnect" || generate_screw == "openConnect (Folded)" ?
+    _parametric_snap_openconnect_screw_point(point)
+  : _parametric_snap_openconnect_head_point(point);
+
+module emit_transformed_dimension_annotation(id, label, axis, value, start, end, basis) {
+  emit_dimension_annotation(
+    id=id,
+    label=label,
+    axis=axis,
+    value=value,
+    start=_parametric_snap_openconnect_annotation_point(start),
+    end=_parametric_snap_openconnect_annotation_point(end),
+    basis=basis
+  );
+}
+
+module emit_parametric_snap_openconnect_annotations() {
+  emit_context_values(
+    "parametric_snap_openconnect_context",
+    [
+      "ochead_bottom_height",
+      "ochead_top_height",
+      "ochead_middle_height",
+      "ochead_large_rect_width",
+      "ochead_large_rect_height",
+      "ochead_large_rect_chamfer",
+      "ochead_nub_to_top_distance",
+      "ochead_nub_depth",
+      "ochead_nub_tip_height",
+      "ochead_nub_fillet",
+      "ochead_back_pos_offset",
+      "OCHEAD_BOTTOM_HEIGHT",
+      "OCHEAD_TOP_HEIGHT",
+      "OCHEAD_MIDDLE_HEIGHT",
+      "OCHEAD_LARGE_RECT_WIDTH",
+      "OCHEAD_LARGE_RECT_HEIGHT",
+      "OCHEAD_LARGE_RECT_CHAMFER",
+      "OCHEAD_NUB_TO_TOP_DISTANCE",
+      "OCHEAD_NUB_DEPTH",
+      "OCHEAD_NUB_TIP_HEIGHT",
+      "OCHEAD_NUB_FILLET",
+      "OCHEAD_BACK_POS_OFFSET",
+      "OCHEAD_TOTAL_HEIGHT",
+      "OCHEAD_MIDDLE_TO_BOTTOM",
+      "OCSLOT_MOVE_DISTANCE",
+      "OCSLOT_ONRAMP_CLEARANCE"
+    ],
+    [
+      ochead_bottom_height,
+      ochead_top_height,
+      ochead_middle_height,
+      ochead_large_rect_width,
+      ochead_large_rect_height,
+      ochead_large_rect_chamfer,
+      ochead_nub_to_top_distance,
+      ochead_nub_depth,
+      ochead_nub_tip_height,
+      ochead_nub_fillet,
+      ochead_back_pos_offset,
+      OCHEAD_BOTTOM_HEIGHT,
+      OCHEAD_TOP_HEIGHT,
+      OCHEAD_MIDDLE_HEIGHT,
+      OCHEAD_LARGE_RECT_WIDTH,
+      OCHEAD_LARGE_RECT_HEIGHT,
+      OCHEAD_LARGE_RECT_CHAMFER,
+      OCHEAD_NUB_TO_TOP_DISTANCE,
+      OCHEAD_NUB_DEPTH,
+      OCHEAD_NUB_TIP_HEIGHT,
+      OCHEAD_NUB_FILLET,
+      OCHEAD_BACK_POS_OFFSET,
+      OCHEAD_TOTAL_HEIGHT,
+      OCHEAD_MIDDLE_TO_BOTTOM,
+      OCSLOT_MOVE_DISTANCE,
+      OCSLOT_ONRAMP_CLEARANCE
+    ]
+  );
+
+  if (generate_snap == "openConnect" || generate_snap == "openConnect (Folded)" || generate_screw == "openConnect" || generate_screw == "openConnect (Folded)") {
+    emit_transformed_dimension_annotation(
+      id="ochead_bottom_height",
+      label="ochead_bottom_height",
+      axis="z",
+      value=ochead_bottom_height,
+      start=[_ochead_annotation_side_x, _ochead_annotation_side_y, 0],
+      end=[_ochead_annotation_side_x, _ochead_annotation_side_y, ochead_bottom_height],
+      basis="openconnect_head_bottom_layer_height"
+    );
+    emit_transformed_dimension_annotation(
+      id="ochead_middle_height",
+      label="ochead_middle_height",
+      axis="z",
+      value=ochead_middle_height,
+      start=[_ochead_annotation_side_x, _ochead_annotation_side_y, _ochead_middle_z],
+      end=[_ochead_annotation_side_x, _ochead_annotation_side_y, _ochead_top_z],
+      basis="openconnect_head_tapered_middle_height"
+    );
+    emit_transformed_dimension_annotation(
+      id="ochead_top_height",
+      label="ochead_top_height",
+      axis="z",
+      value=ochead_top_height,
+      start=[_ochead_annotation_side_x, _ochead_annotation_side_y, _ochead_top_z],
+      end=[_ochead_annotation_side_x, _ochead_annotation_side_y, _ochead_total_height],
+      basis="openconnect_head_top_layer_height"
+    );
+    emit_transformed_dimension_annotation(
+      id="ochead_large_rect_width",
+      label="ochead_large_rect_width",
+      axis="x",
+      value=ochead_large_rect_width,
+      start=[-_ochead_half_width, _ochead_back_y, 0],
+      end=[_ochead_half_width, _ochead_back_y, 0],
+      basis="openconnect_head_large_bottom_profile_width"
+    );
+    emit_transformed_dimension_annotation(
+      id="ochead_large_rect_height",
+      label="ochead_large_rect_height",
+      axis="y",
+      value=ochead_large_rect_height,
+      start=[_ochead_half_width, _ochead_front_y, 0],
+      end=[_ochead_half_width, _ochead_back_y, 0],
+      basis="openconnect_head_large_bottom_profile_depth"
+    );
+    emit_transformed_dimension_annotation(
+      id="ochead_large_rect_chamfer",
+      label="ochead_large_rect_chamfer",
+      axis="x",
+      value=ochead_large_rect_chamfer,
+      start=[_ochead_half_width - ochead_large_rect_chamfer, _ochead_back_y, 0],
+      end=[_ochead_half_width, _ochead_back_y, 0],
+      basis="openconnect_head_large_profile_back_corner_chamfer"
+    );
+    emit_transformed_dimension_annotation(
+      id="ochead_nub_to_top_distance",
+      label="ochead_nub_to_top_distance",
+      axis="y",
+      value=ochead_nub_to_top_distance,
+      start=[_ochead_half_width, _ochead_nub_y, _ochead_middle_z],
+      end=[_ochead_half_width, _ochead_back_y, _ochead_middle_z],
+      basis="openconnect_head_back_edge_to_lock_nub_centerline"
+    );
+    emit_transformed_dimension_annotation(
+      id="ochead_nub_depth",
+      label="ochead_nub_depth",
+      axis="x",
+      value=ochead_nub_depth,
+      start=[-_ochead_half_width, _ochead_nub_y, _ochead_middle_z],
+      end=[-_ochead_half_width + ochead_nub_depth, _ochead_nub_y, _ochead_middle_z],
+      basis="openconnect_head_lock_nub_depth_from_side"
+    );
+    emit_transformed_dimension_annotation(
+      id="ochead_nub_tip_height",
+      label="ochead_nub_tip_height",
+      axis="y",
+      value=ochead_nub_tip_height,
+      start=[-_ochead_half_width + ochead_nub_depth, _ochead_nub_y - ochead_nub_tip_height / 2, _ochead_middle_z],
+      end=[-_ochead_half_width + ochead_nub_depth, _ochead_nub_y + ochead_nub_tip_height / 2, _ochead_middle_z],
+      basis="openconnect_head_lock_nub_tip_height"
+    );
+    emit_transformed_dimension_annotation(
+      id="ochead_back_pos_offset",
+      label="ochead_back_pos_offset",
+      axis="y",
+      value=ochead_back_pos_offset,
+      start=[0, _ochead_half_width, 0],
+      end=[0, _ochead_back_y, 0],
+      basis="openconnect_head_profile_back_offset_from_half_width"
+    );
+    emit_transformed_dimension_annotation(
+      id="OCHEAD_TOTAL_HEIGHT",
+      label="OCHEAD_TOTAL_HEIGHT",
+      axis="z",
+      value=_ochead_total_height,
+      start=[-_ochead_half_width, _ochead_front_y, 0],
+      end=[-_ochead_half_width, _ochead_front_y, _ochead_total_height],
+      basis="openconnect_head_total_height_from_default_head_formula"
+    );
+    emit_transformed_dimension_annotation(
+      id="OCHEAD_MIDDLE_TO_BOTTOM",
+      label="OCHEAD_MIDDLE_TO_BOTTOM",
+      axis="y",
+      value=_ochead_middle_to_bottom,
+      start=[0, _ochead_front_y, _ochead_middle_z],
+      end=[0, 0, _ochead_middle_z],
+      basis="openconnect_head_front_profile_offset_from_middle_to_bottom_formula"
+    );
+    emit_transformed_dimension_annotation(
+      id="OCSLOT_MOVE_DISTANCE",
+      label="OCSLOT_MOVE_DISTANCE",
+      axis="y",
+      value=OCSLOT_MOVE_DISTANCE,
+      start=[0, _ochead_front_y, _ochead_top_z],
+      end=[0, _ochead_front_y + OCSLOT_MOVE_DISTANCE, _ochead_top_z],
+      basis="openconnect_slot_slide_distance_default_reference"
+    );
+    emit_transformed_dimension_annotation(
+      id="OCSLOT_ONRAMP_CLEARANCE",
+      label="OCSLOT_ONRAMP_CLEARANCE",
+      axis="x",
+      value=OCSLOT_ONRAMP_CLEARANCE,
+      start=[_ochead_half_width - OCSLOT_ONRAMP_CLEARANCE, _ochead_front_y, _ochead_top_z],
+      end=[_ochead_half_width, _ochead_front_y, _ochead_top_z],
+      basis="openconnect_slot_onramp_clearance_default_reference"
+    );
+    emit_radius_annotation(
+      id="ochead_nub_fillet",
+      label="ochead_nub_fillet",
+      value=ochead_nub_fillet,
+      center=_parametric_snap_openconnect_annotation_point([
+        -_ochead_half_width + ochead_nub_depth,
+        _ochead_nub_y + ochead_nub_tip_height / 2 - ochead_nub_fillet,
+        _ochead_middle_z
+      ]),
+      edge=_parametric_snap_openconnect_annotation_point([
+        -_ochead_half_width + ochead_nub_depth,
+        _ochead_nub_y + ochead_nub_tip_height / 2,
+        _ochead_middle_z
+      ]),
+      basis="openconnect_head_lock_nub_fillet_radius"
+    );
+  }
+}
 
 // ── Modules ───────────────────────────────────────────────────────────────────
 module multiconnect_screw(threads_height = OG_STANDARD_THICKNESS, connectorslot_cfg = [], text_cfg = [], threads_cfg = []) {
@@ -440,6 +710,8 @@ half_of_anchor =
   view_cross_section == "Right" ? RIGHT
   : view_cross_section == "Back" ? BACK
   : view_cross_section == "Diagonal" ? RIGHT + BACK : undef;
+
+emit_parametric_snap_openconnect_annotations();
 
 conditional_half(v=half_of_anchor, condition=!is_undef(half_of_anchor)) {
   if (generate_snap != "None")

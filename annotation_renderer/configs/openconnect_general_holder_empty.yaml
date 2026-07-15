@@ -16,7 +16,7 @@ render:
   fit_margin: 0
   # camera_location_offset_mm: [0, 0, 100]
   # camera_look_at: object_center
-  # camera_view_preset: technical_iso
+  camera_view_preset: top_front
 annotations:
   style:
     $constant: default_annotation_style

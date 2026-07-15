@@ -4,20 +4,21 @@ variant_name: opengrid_expanding_snap
 job_name: opengrid_expanding_snap
 scene:
   objects:
-  - id: snap
-    $constant: expanding_snap_object
-  # - id: screw
-  #   model:
-  #     scad_file: opengrid_parametric_snap.scad
-  #     defines:
-  #       generate_screw: openConnect
-  #       generate_snap: None
-  #   transform:
-  #     location_mm: [14, 6.8, -14]
-  #     rotation_deg: [90, 0, 0]
+  - id: model
+    model:
+      scad_file: opengrid_parametric_snap.scad
+      defines:
+        generate_screw: None
+        generate_snap: openConnect
+    transform:
+      location_mm: [14, 6.8, -14]
+      rotation_deg: [90, 0, 0]
 render:
   fit_margin: 0.3
-  camera_view: bottom
+  camera_view: top
+  lighting:
+    toplight_power: 6
+    frontlight_power: 1.2
 annotations:
   style:
     $constant: default_annotation_style

@@ -319,12 +319,12 @@ module emit_drawer_annotation_context() {
       "container_width_clearance",
       "container_depth_clearance",
       "container_height_clearance",
-      "container_front_back_height_offset",
+      "container_back_side_height_offset",
       "handle_depth",
       "label_width",
       "label_height",
-      "stopper_clips_length",
-      "stopper_to_front_offset",
+      "stopper_clip_length",
+      "stopper_edge_distance",
       "back_magnet_diameter",
       "side_magnet_diameter"
     ],
@@ -353,12 +353,12 @@ module emit_drawer_annotation_context() {
       container_width_clearance,
       container_depth_clearance,
       container_height_clearance,
-      container_front_back_height_offset,
+      container_back_side_height_offset,
       handle_depth,
       label_width,
       label_height,
-      stopper_clips_length,
-      stopper_to_front_offset,
+      stopper_clip_length,
+      stopper_edge_distance,
       back_magnet_diameter,
       side_magnet_diameter
     ]
@@ -372,8 +372,8 @@ module emit_drawer_shell_annotations() {
       label="horizontal_grids",
       axis="x",
       value=shell_width,
-      start=[shell_annotation_x_min, shell_annotation_y_min, shell_annotation_z_max],
-      end=[shell_annotation_x_max, shell_annotation_y_min, shell_annotation_z_max],
+      start=[shell_annotation_x_min, shell_annotation_y_max, shell_annotation_z_max],
+      end=[shell_annotation_x_max, shell_annotation_y_max, shell_annotation_z_max],
       basis="drawer_shell_width_from_horizontal_grids"
     );
     emit_dimension_annotation(
@@ -390,8 +390,8 @@ module emit_drawer_shell_annotations() {
       label="depth_grids",
       axis="z",
       value=shell_depth,
-      start=[shell_annotation_x_max, shell_annotation_y_max, shell_annotation_z_min],
-      end=[shell_annotation_x_max, shell_annotation_y_max, shell_annotation_z_max],
+      start=[shell_annotation_x_min, shell_annotation_y_max, shell_annotation_z_min],
+      end=[shell_annotation_x_min, shell_annotation_y_max, shell_annotation_z_max],
       basis="drawer_shell_depth_from_depth_grids_right_width_edge"
     );
     emit_dimension_annotation(

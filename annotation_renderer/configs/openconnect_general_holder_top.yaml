@@ -39,7 +39,7 @@ render:
   # camera_view_preset: top_front
 annotations:
   style:
-    auto_adjust_labels: true
+    # auto_adjust_labels: true
     $constant: default_annotation_style
   aliases:
     holder_outer_wall_thickness: outer_wall_thickness
@@ -68,10 +68,11 @@ annotations:
   - ids: [holder_outer_wall_thickness]
     optional: true
     display_offset_mm: [0, 0, 0]
-    line_offset_px: -150
+    line_offset_px: -180
     label_offset_px: -50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
+    label_font_size_px: 45
+    color:
+      $constant: annotation_color_blue
   # - ids: [front_opening_width]
   #   optional: true
   #   display_offset_mm: [0, 0, 0]
@@ -85,8 +86,8 @@ annotations:
     optional: true
     show_angle_label: false
     angle_fill_alpha: 0
-    radius_label_offset_px: -120
-    radius_label_tangent_offset_px: -40
+    radius_label_offset_px: -180
+    radius_label_tangent_offset_px: -0
     label_font_size_px:
       $constant: annotation_label_font_size_px
   # - ids: [front_opening_height]
