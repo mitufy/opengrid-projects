@@ -30,10 +30,10 @@ container_front_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
 container_back_wall_type = "Solid"; //["Solid","Honeycomb"]
 //Honeycomb patterns on the side of shell and container do not align. To avoid an inconsistent see-through look, use honeycomb on only one of the two parts.
 container_side_wall_type = "Honeycomb"; //["Solid","Honeycomb"]
-container_solidwall_thickness = 1.6;
-container_honeycombwall_thickness = 2; //0.1
-//How much lower the back and side walls are compared to the front. "stopper_clips_length" needs to be larger than this value to work.
-container_front_back_height_offset = 3; //0.1
+container_solid_wall_thickness = 1.6;
+container_honeycomb_wall_thickness = 2; //0.1
+//How much lower the back and side walls are compared to the front. "stopper_clip_length" needs to be larger than this value to work.
+container_back_side_height_offset = 3; //0.1
 container_inner_fillet = 2; //0.1
 
 /*[Shell Divider]*/
@@ -65,7 +65,7 @@ add_label_holder = true;
 //Default label size is recommended for honeycomb front wall. Solid front wall can have larger labels.
 label_width = 48;
 label_height = 10;
-label_depth = 1; //0.1
+label_thickness = 1; //0.1
 handle_thickness = 2.4; //0.1
 //How much the handle protrudes from the front of the drawer container.
 handle_depth = 12;
@@ -75,7 +75,7 @@ handle_depth = 12;
 generate_drawer_stopper_clips = false;
 add_stopper_holes = true;
 //Increase this value if the clips are meant for walls in a vertically divided drawer shell.
-stopper_clips_length = 6;
+stopper_clip_length = 6;
 //Determine how much the container pulls out before the stoppers engage.
 stopper_edge_distance = 3; //0.1
 
@@ -92,8 +92,8 @@ shell_side_magnet_thickness = 1; //0.1
 container_side_magnet_thickness = 1; //0.1
 side_magnet_diameter = 6; //0.1
 //Below values determine how much the container pulls out before the side magnets engage.
-side_magnet_shell_edge_distance = 6; //0.1
-side_magnet_container_edge_distance = 6; //0.1
+shell_side_magnet_edge_distance = 6; //0.1
+container_side_magnet_edge_distance = 6; //0.1
 
 /* [openConnect Settings] */
 //Adding locking mechanism to more slots makes the fit tighter, but also more difficult to install.
@@ -200,11 +200,11 @@ shell_horizontal_compartments = add_shell_divider == "Width" || add_shell_divide
 container_width = shell_inner_width - container_width_clearance * 2;
 container_height = shell_inner_height - container_height_clearance * 2;
 container_depth = shell_inner_depth - container_depth_clearance;
-container_front_wall_thickness = container_front_wall_type == "Solid" ? container_solidwall_thickness : container_honeycombwall_thickness;
-container_bottom_wall_thickness = container_bottom_wall_type == "Solid" ? container_solidwall_thickness : container_honeycombwall_thickness;
-container_side_wall_thickness = container_side_wall_type == "Solid" ? container_solidwall_thickness : container_honeycombwall_thickness;
-container_back_wall_thickness = container_back_wall_type == "Solid" ? container_solidwall_thickness : container_honeycombwall_thickness;
-container_back_wall_height = container_height - container_front_back_height_offset;
+container_front_wall_thickness = container_front_wall_type == "Solid" ? container_solid_wall_thickness : container_honeycomb_wall_thickness;
+container_bottom_wall_thickness = container_bottom_wall_type == "Solid" ? container_solid_wall_thickness : container_honeycomb_wall_thickness;
+container_side_wall_thickness = container_side_wall_type == "Solid" ? container_solid_wall_thickness : container_honeycomb_wall_thickness;
+container_back_wall_thickness = container_back_wall_type == "Solid" ? container_solid_wall_thickness : container_honeycomb_wall_thickness;
+container_back_wall_height = container_height - container_back_side_height_offset;
 container_side_wall_height = container_back_wall_height - container_outer_chamfer;
 container_divider_wall_height = container_side_wall_height - container_divider_wall_height_offset;
 
@@ -356,15 +356,15 @@ module drawer_shell() {
             if (add_side_magnet_holes) {
               if (left_hc)
                 attach(LEFT + FRONT, LEFT + FRONT, align=TOP, inside=true)
-                  tag("keep") cuboid([shell_thickness, shell_height, side_magnet_shell_edge_distance + side_magnet_hole_diameter + hex_hole_fill_edge]);
+                  tag("keep") cuboid([shell_thickness, shell_height, shell_side_magnet_edge_distance + side_magnet_hole_diameter + hex_hole_fill_edge]);
               ycopies(OG_TILE_SIZE, vertical_grids)
-                right(shell_slot_position == "Left" ? shell_ocslot_part_thickness : shell_thickness) left(shell_side_magnet_hole_thickness - EPS * 2) attach(LEFT, FRONT, align=TOP, inset=side_magnet_shell_edge_distance, inside=true)
+                right(shell_slot_position == "Left" ? shell_ocslot_part_thickness : shell_thickness) left(shell_side_magnet_hole_thickness - EPS * 2) attach(LEFT, FRONT, align=TOP, inset=shell_side_magnet_edge_distance, inside=true)
                       tag("rm_outer") teardrop(h=shell_side_magnet_hole_thickness, d=side_magnet_hole_diameter, cap_h=side_magnet_hole_diameter / 2 + 0.2);
               if (right_hc)
                 attach(RIGHT + FRONT, RIGHT + FRONT, align=TOP, inside=true)
-                  tag("keep") cuboid([shell_thickness, shell_height, side_magnet_shell_edge_distance + side_magnet_hole_diameter + hex_hole_fill_edge]);
+                  tag("keep") cuboid([shell_thickness, shell_height, shell_side_magnet_edge_distance + side_magnet_hole_diameter + hex_hole_fill_edge]);
               ycopies(OG_TILE_SIZE, vertical_grids)
-                left(shell_slot_position == "Right" ? shell_ocslot_part_thickness : shell_thickness) right(shell_side_magnet_hole_thickness - EPS * 2) attach(RIGHT, FRONT, align=TOP, inset=side_magnet_shell_edge_distance, inside=true)
+                left(shell_slot_position == "Right" ? shell_ocslot_part_thickness : shell_thickness) right(shell_side_magnet_hole_thickness - EPS * 2) attach(RIGHT, FRONT, align=TOP, inset=shell_side_magnet_edge_distance, inside=true)
                       tag("rm_outer") teardrop(h=shell_side_magnet_hole_thickness, d=side_magnet_hole_diameter, cap_h=side_magnet_hole_diameter / 2 + 0.2);
             }
             if (add_shell_divider == "Width" || add_shell_divider == "Both")
@@ -470,12 +470,12 @@ module drawer_container() {
               hole_extrude_thickness = container_side_magnet_hole_thickness - container_side_wall_thickness + 0.45 + EPS;
               if (container_side_wall_type == "Honeycomb")
                 attach(LEFT + FRONT, LEFT + FRONT, align=BOTTOM, inside=true)
-                  tag("keep") cuboid([container_side_wall_thickness, container_height - container_front_back_height_offset - container_outer_chamfer, side_magnet_container_edge_distance + side_magnet_hole_diameter + hex_hole_fill_edge]);
+                  tag("keep") cuboid([container_side_wall_thickness, container_height - container_back_side_height_offset - container_outer_chamfer, container_side_magnet_edge_distance + side_magnet_hole_diameter + hex_hole_fill_edge]);
               ycopies(OG_TILE_SIZE, vertical_grids) {
-                attach(LEFT, FRONT, align=BOTTOM, inset=side_magnet_container_edge_distance, inside=true, spin=90)
+                attach(LEFT, FRONT, align=BOTTOM, inset=container_side_magnet_edge_distance, inside=true, spin=90)
                   tag("rm_outer") teardrop(h=container_side_magnet_hole_thickness, d=side_magnet_hole_diameter, cap_h=side_magnet_hole_diameter / 2 + 0.2);
                 if (hole_extrude_thickness > EPS)
-                  right(container_side_wall_thickness) attach(LEFT, FRONT, align=BOTTOM, inset=side_magnet_container_edge_distance, inside=true, spin=90)
+                  right(container_side_wall_thickness) attach(LEFT, FRONT, align=BOTTOM, inset=container_side_magnet_edge_distance, inside=true, spin=90)
                       tag("kp_root") teardrop(h=hole_extrude_thickness, d=side_magnet_hole_diameter + 0.2, cap_h=side_magnet_hole_diameter / 2 + 0.2, chamfer1=-hole_extrude_thickness);
               }
             }
@@ -484,7 +484,7 @@ module drawer_container() {
             if (back_hc)
               line_copies(back_magnet_grid_space[0], back_magnet_grid_count[0])
                 attach(BOTTOM + FRONT, BOTTOM + FRONT, inside=true)
-                  tag("keep") cuboid([back_magnet_hole_diameter + 4.2, container_height - container_front_back_height_offset, container_back_wall_thickness]);
+                  tag("keep") cuboid([back_magnet_hole_diameter + 4.2, container_height - container_back_side_height_offset, container_back_wall_thickness]);
             fwd((vertical_grids - 1) / 2 * OG_TILE_SIZE - back_magnet_ocslot_offset)
               line_copies(back_magnet_grid_space[0], back_magnet_grid_count[0]) {
                 attach(BOTTOM, FRONT, inside=true)
@@ -531,7 +531,7 @@ module drawer_divider(is_shell, by_width) {
   solidwall_y =
     by_width && is_shell ? shell_height
     : !by_width && is_shell ? divider_wall_thickness
-    : min((container_height - container_front_back_height_offset - container_outer_chamfer), container_divider_wall_height + container_bottom_wall_thickness);
+    : min((container_height - container_back_side_height_offset - container_outer_chamfer), container_divider_wall_height + container_bottom_wall_thickness);
   solidwall_z =
     by_width && !is_shell ? container_depth
     : !by_width && !is_shell ? divider_wall_thickness
@@ -569,10 +569,10 @@ module drawer_divider(is_shell, by_width) {
                 }
                 if (by_width && add_side_magnet_holes) {
                   ycopies(OG_TILE_SIZE, vertical_grids)
-                    attach(LEFT, FRONT, align=TOP, inset=side_magnet_shell_edge_distance, inside=true)
+                    attach(LEFT, FRONT, align=TOP, inset=shell_side_magnet_edge_distance, inside=true)
                       tag("rm1") teardrop(h=shell_side_magnet_hole_thickness, d=side_magnet_hole_diameter, cap_h=side_magnet_hole_diameter / 2 + 0.2);
                   ycopies(OG_TILE_SIZE, vertical_grids)
-                    attach(RIGHT, FRONT, align=TOP, inset=side_magnet_shell_edge_distance, inside=true)
+                    attach(RIGHT, FRONT, align=TOP, inset=shell_side_magnet_edge_distance, inside=true)
                       tag("rm1") teardrop(h=shell_side_magnet_hole_thickness, d=side_magnet_hole_diameter, cap_h=side_magnet_hole_diameter / 2 + 0.2);
                 }
               } else if (container_divider_wall_fillet > 0)
@@ -704,7 +704,7 @@ module container_label_holder() {
   label_depth_clearance = 0.3;
   label_holder_wall_thickness = 0.8;
   label_holder_width = label_width + label_holder_wall_thickness * 2 + label_side_clearance * 2;
-  label_holder_depth = label_depth + label_depth_clearance + label_holder_wall_thickness;
+  label_holder_depth = label_thickness + label_depth_clearance + label_holder_wall_thickness;
   label_holder_height = label_height + label_holder_depth + label_side_clearance;
   if (container_front_wall_type == "Honeycomb") {
     left(honeycomb_unit_space_adj / 2 - ang_hyp_to_adj(30, honeycomb_strut_adj) / 2) {
@@ -733,24 +733,24 @@ module container_label_holder() {
 
 module drawer_stopper(hole = false, hole_excess = 0, anchor = TOP, orient = UP, spin = 0) {
   stopper_leg_thickness = 1.6;
-  stopper_leg_outer_round = min(stopper_rounding, min(stopper_width - stopper_width_clearance * 2, stopper_clips_length) / 2);
-  stopper_leg_inner_round = min(stopper_rounding, min(stopper_width - stopper_leg_thickness * 2 - stopper_width_clearance * 2, stopper_clips_length) / 2);
-  stopper_leg_nub_length = min(3, stopper_clips_length - stopper_leg_outer_round);
+  stopper_leg_outer_round = min(stopper_rounding, min(stopper_width - stopper_width_clearance * 2, stopper_clip_length) / 2);
+  stopper_leg_inner_round = min(stopper_rounding, min(stopper_width - stopper_leg_thickness * 2 - stopper_width_clearance * 2, stopper_clip_length) / 2);
+  stopper_leg_nub_length = min(3, stopper_clip_length - stopper_leg_outer_round);
   stopper_leg_nub_width = min(0.6, stopper_leg_nub_length);
 
-  stopper_clips_length_clearance = 0.1;
+  stopper_clip_length_clearance = 0.1;
 
-  tag_scope() cuboid([stopper_width + stopper_flank_width - (hole ? 0 : stopper_width_clearance * 2), stopper_height - (hole ? 0 : stopper_height_clearance * 2), stopper_flank_depth - (hole ? 0 : stopper_clips_length_clearance)], anchor=anchor, orient=orient, spin=spin) {
+  tag_scope() cuboid([stopper_width + stopper_flank_width - (hole ? 0 : stopper_width_clearance * 2), stopper_height - (hole ? 0 : stopper_height_clearance * 2), stopper_flank_depth - (hole ? 0 : stopper_clip_length_clearance)], anchor=anchor, orient=orient, spin=spin) {
       attach(BOTTOM, TOP)
         diff() cuboid([stopper_width - (hole ? 0 : stopper_width_clearance * 2), stopper_height - (hole ? 0 : stopper_height_clearance * 2), shell_thickness - stopper_flank_depth + (hole ? EPS * 2 : 0)], rounding=-stopper_rounding, edges=[TOP + LEFT, TOP + RIGHT], $fn=64) {
             if (hole && hole_excess > 0)
               attach(BOTTOM, TOP)
                 cuboid([stopper_width + stopper_flank_width, stopper_height, hole_excess]);
-            if (!hole && stopper_clips_length > EPS)
+            if (!hole && stopper_clip_length > EPS)
               attach(BOTTOM, TOP)
-                cuboid([stopper_width - stopper_width_clearance * 2, stopper_height - stopper_height_clearance * 2, stopper_clips_length], rounding=stopper_leg_outer_round, edges=[BOTTOM + LEFT, BOTTOM + RIGHT], $fn=64) {
+                cuboid([stopper_width - stopper_width_clearance * 2, stopper_height - stopper_height_clearance * 2, stopper_clip_length], rounding=stopper_leg_outer_round, edges=[BOTTOM + LEFT, BOTTOM + RIGHT], $fn=64) {
                   attach(BOTTOM, BOTTOM, inside=true)
-                    cuboid([stopper_width - stopper_leg_thickness * 2 - stopper_width_clearance * 2, stopper_height - stopper_height_clearance * 2 + EPS, stopper_clips_length], rounding=stopper_leg_inner_round, edges=[TOP + LEFT, TOP + RIGHT], $fn=64) {
+                    cuboid([stopper_width - stopper_leg_thickness * 2 - stopper_width_clearance * 2, stopper_height - stopper_height_clearance * 2 + EPS, stopper_clip_length], rounding=stopper_leg_inner_round, edges=[TOP + LEFT, TOP + RIGHT], $fn=64) {
                       edge_mask([BOTTOM + LEFT, BOTTOM + RIGHT])
                         rounding_edge_mask(r=stopper_leg_inner_round, spin=90);
                     }

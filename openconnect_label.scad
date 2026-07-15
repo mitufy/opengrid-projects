@@ -13,27 +13,27 @@ include <BOSL2/std.scad>
 /*[Main Settings]*/
 //"Emboss" and "Deboss" can be printed in two colors by manually changing filaments. "Flush" requires an automatic system such as bambulab's AMS.
 label_text_style = "Emboss"; // [Emboss, Flush, Deboss]
-label_left_text = "Tools";
+left_text = "Tools";
 //Default font for the right is Emoji. You can change it in settings below.
-label_right_text = "🛠️";
+right_text = "🛠️";
 
 /*[Left Text]*/
 left_text_font = "Noto Sans"; // font
-left_font_size = 5.4;
+left_text_size = 5.4;
 //Offset the outline of the text, making it thicker.
 left_text_bolden = 0.05; //0.05
 //Increase or decrease the spacing between each letter.
-left_letter_spacing = 1; //0.01
+left_text_spacing = 1; //0.01
 //Left text position offset in x and y.
 left_text_position_offset = [0, 0]; //0.2
 
 /*[Right Text]*/
 right_text_font = "Noto Emoji"; // font
-right_font_size = 6.2;
+right_text_size = 6.2;
 //Offset the outline of the text, making it thicker.
 right_text_bolden = 0.05; //0.05
 //Increase or decrease the spacing between each letter.
-right_letter_spacing = 1; //0.01
+right_text_spacing = 1; //0.01
 //Right text position offset in x and y.
 right_text_position_offset = [0, 0]; //0.2
 
@@ -56,8 +56,8 @@ $fs = 0.4;
 EPS = 0.005;
 
 text_edge_offset = 3;
-left_text_metrics = textmetrics(text=label_left_text, font=left_text_font, size=left_font_size, valign="center", halign="center", spacing=left_letter_spacing);
-right_text_metrics = textmetrics(text=label_right_text, font=right_text_font, size=right_font_size, valign="center", halign="center", spacing=right_letter_spacing);
+left_text_metrics = textmetrics(text=left_text, font=left_text_font, size=left_text_size, valign="center", halign="center", spacing=left_text_spacing);
+right_text_metrics = textmetrics(text=right_text, font=right_text_font, size=right_text_size, valign="center", halign="center", spacing=right_text_spacing);
 left_text_width = left_text_metrics.size.x + left_text_bolden * 2;
 right_text_width = right_text_metrics.size.x + right_text_bolden * 2;
 
@@ -66,18 +66,18 @@ module text_object(extrude_depth = label_thickness) {
     right(left_text_position_offset[0]) back(left_text_position_offset[1])
         linear_extrude(extrude_depth) {
           if (left_text_filled)
-            offset(r=left_text_bolden) fill() text(text=label_left_text, font=left_text_font, size=left_font_size, valign="center", halign="center", spacing=left_letter_spacing);
+            offset(r=left_text_bolden) fill() text(text=left_text, font=left_text_font, size=left_text_size, valign="center", halign="center", spacing=left_text_spacing);
           else
-            offset(r=left_text_bolden) text(text=label_left_text, font=left_text_font, size=left_font_size, valign="center", halign="center", spacing=left_letter_spacing);
+            offset(r=left_text_bolden) text(text=left_text, font=left_text_font, size=left_text_size, valign="center", halign="center", spacing=left_text_spacing);
         }
-  if (label_right_text != "") {
+  if (right_text != "") {
     right(label_width / 2 - right_text_width / 2 - text_edge_offset)
       right(right_text_position_offset[0]) back(right_text_position_offset[1])
           linear_extrude(extrude_depth) {
             if (right_text_filled)
-              offset(r=right_text_bolden) fill() text(text=label_right_text, font=right_text_font, size=right_font_size, valign="center", halign="center", spacing=right_letter_spacing);
+              offset(r=right_text_bolden) fill() text(text=right_text, font=right_text_font, size=right_text_size, valign="center", halign="center", spacing=right_text_spacing);
             else
-              offset(r=right_text_bolden) text(text=label_right_text, font=right_text_font, size=right_font_size, valign="center", halign="center", spacing=right_letter_spacing);
+              offset(r=right_text_bolden) text(text=right_text, font=right_text_font, size=right_text_size, valign="center", halign="center", spacing=right_text_spacing);
           }
   }
 }

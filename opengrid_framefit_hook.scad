@@ -29,7 +29,7 @@ hook_tip_corner_fillet = 6;
 
 /*[Hook Truss]*/
 //Add a truss at the bottom of the hook to increase strength. Thanks to @agentharm for the idea!
-truss_vertical_grid = 0;
+truss_vertical_grids = 0;
 truss_thickness = 3;
 truss_rounding = 3;
 //A truss with max_angle set to 45 can be printed without support.
@@ -146,14 +146,14 @@ diff() {
       attach(FRONT, BOTTOM)
         frame_snap();
     //bottom truss
-    if (truss_vertical_grid > 0 && hook_corner_angle == 0) {
-      truss_angle = min(truss_max_angle, adj_opp_to_ang(truss_vertical_grid * OG_TILE_SIZE, hook_final_length));
+    if (truss_vertical_grids > 0 && hook_corner_angle == 0) {
+      truss_angle = min(truss_max_angle, adj_opp_to_ang(truss_vertical_grids * OG_TILE_SIZE, hook_final_length));
       attach(BOTTOM, TOP)
-        cuboid([hook_final_width, hook_final_back_thickness, truss_vertical_grid * OG_TILE_SIZE], anchor=FRONT) {
-          zcopies(spacing=OG_TILE_SIZE, n=truss_vertical_grid)
+        cuboid([hook_final_width, hook_final_back_thickness, truss_vertical_grids * OG_TILE_SIZE], anchor=FRONT) {
+          zcopies(spacing=OG_TILE_SIZE, n=truss_vertical_grids)
             attach(FRONT, BOTTOM)
               frame_snap();
-          for (i = [1:truss_vertical_grid])
+          for (i = [1:truss_vertical_grids])
             attach(BACK, LEFT, align=TOP, spin=-90)
               truss_sweep(truss_height=i * OG_TILE_SIZE, truss_thickness=truss_thickness, truss_width=hook_final_width, truss_rounding=truss_rounding, truss_angle=truss_angle);
         }
@@ -162,11 +162,11 @@ diff() {
       edge_mask([TOP + BACK])
         chamfer_edge_mask(chamfer=hook_final_side_chamfer);
     //applying bottom chamfer to diagonal hooks may make print surface too small.
-    if (hook_has_side_chamfer && hook_corner_angle == 0 && truss_vertical_grid <= 0)
+    if (hook_has_side_chamfer && hook_corner_angle == 0 && truss_vertical_grids <= 0)
       edge_mask([BOTTOM + FRONT])
         chamfer_edge_mask(chamfer=hook_final_side_chamfer);
     //hook length bottom chamfer
-    if (hook_has_side_chamfer && truss_vertical_grid <= 0)
+    if (hook_has_side_chamfer && truss_vertical_grids <= 0)
       attach(BOTTOM, FRONT, align=FRONT, spin=90)
         tag("remove") offset_sweep(rect([hook_final_length + hook_final_back_thickness, 1]), height=hook_final_width, bottom=hook_side_chamfer_end, top=hook_side_chamfer_end);
     //hook height front chamfer
@@ -204,7 +204,7 @@ diff() {
                     attach(FRONT, FRONT, align=TOP, spin=90)
                       tag("remove") offset_sweep(rect([max(EPS, hook_final_tip_fillet_diff), 1]), height=hook_final_width, bottom=hook_side_chamfer_end, top=hook_side_chamfer_end);
                   //hook tip rect bottom chamfer
-                  if (hook_has_side_chamfer && truss_vertical_grid <= 0)
+                  if (hook_has_side_chamfer && truss_vertical_grids <= 0)
                     attach(BACK, FRONT, align=BOTTOM, spin=90)
                       tag("remove") offset_sweep(rect([hook_final_tip_length, 1]), height=hook_final_width, bottom=hook_side_chamfer_end, top=hook_side_chamfer_end);
                   if (hook_tip_shape == "Rectangular") {

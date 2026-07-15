@@ -45,7 +45,7 @@ clip_stem_length = 0;
 clip_rect_rounding = 3; //1
 tip_angle = 180; //[90:15:270]
 //Side chamfer is automatically clamped to ensure a sufficiently large print surface.
-body_side_chamfer = 0.8; //0.2
+clip_side_chamfer = 0.8; //0.2
 //Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
 thickness_text_mode = "Uncommon"; //[All, Uncommon, None]
 
@@ -81,7 +81,7 @@ _threads_side_offset = struct_val(_threads_cfg, "threads_diameter") / 2 - OG_SNA
 thread_join_overlap = EPS * 2;
 symmetric_clip_height = struct_val(_threads_cfg, "threads_diameter") - OG_SNAP_THREADS_SIDE_OFFSET * 2;
 final_tip_diameter = max(EPS, clip_thickness * clip_thickness_scale + 1, tip_diameter);
-final_side_chamfer = max(0, min(clip_thickness / 2 * clip_thickness_scale - OG_MIN_WALL_WIDTH, clip_height / 2 - OG_MIN_WALL_WIDTH, body_side_chamfer));
+final_side_chamfer = max(0, min(clip_thickness / 2 * clip_thickness_scale - OG_MIN_WALL_WIDTH, clip_height / 2 - OG_MIN_WALL_WIDTH, clip_side_chamfer));
 
 tip_path = ["arcleft", final_tip_diameter / 2, tip_angle];
 circular_clip_path = ["arcright", clip_main_width / 2 + clip_thickness / 2, clip_surround_angle];

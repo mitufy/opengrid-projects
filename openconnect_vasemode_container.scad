@@ -9,7 +9,7 @@ openGrid is created by David D: https://www.printables.com/model/1214361-opengri
 
 /* [Main Settings] */
 //Recommended: 150-200% of nozzle size (e.g. 0.6–0.8mm for a 0.4mm nozzle). Higher values may work, feel free to experiment.
-ocvase_linewidth = 0.6;
+vase_linewidth = 0.6;
 //Multiple containers of same texture can be installed side by side as the pattern is designed to be complementary.
 vase_surface_texture = "checkers"; //["":None, "cubes":Cubes, "diamonds":Diagonal Ribs,"wave_ribs":Wave Ribs,"checkers":Checkers]
 
@@ -28,7 +28,7 @@ vase_front_inset_angle = 0; //[0:5:45]
 label_holder_type = "None"; //["None", "Standard", "Split-Left", "Split-Right"]
 label_width = 48;
 label_height = 10;
-label_depth = 1;
+label_thickness = 1;
 
 /* [Advanced Settings] */
 slot_position = "All"; //["All", "Staggered", "Edge Rows", "Edge Columns", "Corners"]
@@ -56,12 +56,12 @@ use <lib/openconnect_lib.scad>
 final_horizontal_grids = max(1, floor(horizontal_grids));
 final_vertical_grids = max(1, floor(vertical_grids));
 final_depth_grids = max(1, floor(depth_grids));
-final_ocvase_linewidth = max(0.01, ocvase_linewidth);
+final_vase_linewidth = max(0.01, vase_linewidth);
 final_slot_side_clearance = max(0, slot_side_clearance);
 final_slot_depth_clearance = max(0, slot_depth_clearance);
 final_label_width = max(0.01, label_width);
 final_label_height = max(0.01, label_height);
-final_label_depth = max(0.01, label_depth);
+final_label_thickness = max(0.01, label_thickness);
 final_surface_texture_depth = max(EPS, surface_texture_depth);
 final_vase_tilt_limit = min(45, max(0, vase_tilt_angle));
 final_vase_front_inset_limit = min(45, max(0, vase_front_inset_angle));
@@ -75,7 +75,7 @@ vase_height = ang_hyp_to_adj(final_vase_tilt_angle, vase_grid_height);
 _slot_cfg = ocslot_cfg(
   side_clearance=final_slot_side_clearance,
   depth_clearance=final_slot_depth_clearance,
-  vase_linewidth=final_ocvase_linewidth,
+  vase_linewidth=final_vase_linewidth,
   vase_overhang_angle=vase_slot_overhang_angle
 );
 final_vase_front_inset_angle = min(adj_opp_to_ang(vase_height, max(0, vase_depth - ang_adj_to_opp(final_vase_tilt_angle, vase_height) - 1)), final_vase_front_inset_limit);
@@ -85,9 +85,9 @@ vase_bottom_edge_back_offset = ang_hyp_to_opp(final_vase_tilt_angle, vase_grid_h
 label_overhang_angle = max(10, 45 - final_vase_front_inset_angle);
 label_side_clearance = 0.2;
 label_depth_clearance = 0.3;
-label_holder_wall_thickness = final_ocvase_linewidth * 2;
-label_holder_depth = final_label_depth + label_depth_clearance + label_holder_wall_thickness;
-label_holder_side_width = final_ocvase_linewidth * 4;
+label_holder_wall_thickness = final_vase_linewidth * 2;
+label_holder_depth = final_label_thickness + label_depth_clearance + label_holder_wall_thickness;
+label_holder_side_width = final_vase_linewidth * 4;
 label_move =
   label_holder_type == "Split-Left" ? -vase_width / 2
   : label_holder_type == "Split-Right" ? vase_width / 2 : 0;
@@ -165,14 +165,14 @@ right(vase_width/2)zrot(180)fwd(vase_bottom_edge_back_offset)
                       attach(FRONT, BOTTOM, align=BOTTOM)
                         tag("") prismoid(size2=[label_holder_side_width, final_label_height + label_side_clearance], xang=[90, 90], yang=[90, label_overhang_angle], h=label_holder_depth) {
                             attach(LEFT + BOTTOM, LEFT + BOTTOM, align=FRONT, inside=true)
-                              tag("rm0") prismoid(size2=[label_holder_side_width - final_ocvase_linewidth * 2, final_label_height + label_side_clearance], xang=[90, 90], yang=[90, label_overhang_angle], h=label_holder_depth - label_holder_wall_thickness);
+                              tag("rm0") prismoid(size2=[label_holder_side_width - final_vase_linewidth * 2, final_label_height + label_side_clearance], xang=[90, 90], yang=[90, label_overhang_angle], h=label_holder_depth - label_holder_wall_thickness);
                           }
                   if (label_holder_type != "Split-Left")
                     left((final_label_width + label_side_clearance * 2) / 2)
                       attach(FRONT, BOTTOM, align=BOTTOM)
                         tag("") prismoid(size2=[label_holder_side_width, final_label_height + label_side_clearance], xang=[90, 90], yang=[90, label_overhang_angle], h=label_holder_depth) {
                             attach(RIGHT + BOTTOM, RIGHT + BOTTOM, align=FRONT, inside=true)
-                              tag("rm0") prismoid(size2=[label_holder_side_width - final_ocvase_linewidth * 2, final_label_height + label_side_clearance], xang=[90, 90], yang=[90, label_overhang_angle], h=label_holder_depth - label_holder_wall_thickness);
+                              tag("rm0") prismoid(size2=[label_holder_side_width - final_vase_linewidth * 2, final_label_height + label_side_clearance], xang=[90, 90], yang=[90, label_overhang_angle], h=label_holder_depth - label_holder_wall_thickness);
                           }
                 }
           }

@@ -52,7 +52,7 @@ slot_vertical_offset = 0; //0.1
 
 /* [Advanced Settings] */
 use_custom_height = false;
-custom_hook_height = 70;
+custom_height = 70;
 hook_side_rounding = 2.4; //0.2
 hook_tip_rounding = 5; //0.2
 //Increase clearances if the slots feel too tight.
@@ -79,10 +79,10 @@ _slot_cfg = ocslot_cfg(
   side_clearance=slot_side_clearance,
   depth_clearance=slot_depth_clearance
 );
-hook_grid_height = use_custom_height ? max(1, floor(custom_hook_height / OG_TILE_SIZE)) : max(1, hook_vertical_grids);
+hook_grid_height = use_custom_height ? max(1, floor(custom_height / OG_TILE_SIZE)) : max(1, hook_vertical_grids);
 vertical_grids = hook_grid_height + truss_vertical_grids;
 horizontal_grids = max(1, floor(hook_width / OG_TILE_SIZE));
-hook_stem_height = use_custom_height ? custom_hook_height : hook_grid_height * OG_TILE_SIZE;
+hook_stem_height = use_custom_height ? custom_height : hook_grid_height * OG_TILE_SIZE;
 
 final_corner_radius = max(hook_thickness / 2, min(hook_corner_fillet, hook_stem_height - hook_thickness / 2 - hook_side_rounding, hook_length));
 // final_corner_radius = hook_shape_type == "Circular" ? max(hook_thickness / 2, min(hook_corner_fillet, hook_stem_height - hook_thickness / 2 - hook_side_rounding, hook_length)) : hook_thickness / 2;

@@ -34,10 +34,10 @@ slot_position = "All"; //["All", "Staggered", "Edge Rows", "Edge Columns", "Corn
 //Slot alignment applies when the plate size is in millimeters and not divisible by 28.
 plate_slot_horizontal_alignment = "Center"; //["Center", "Left", "Right"]
 plate_slot_vertical_alignment = "Center"; //["Center", "Top", "Bottom"]
-//Manually offset the horizontal position of the slots. Use this if you want more precise control than offered by slot_horizontal_alignment.
-slot_horizontal_offset = 0; //0.1
-//Manually offset the vertical position of the slots. Use this if you want more precise control than offered by slot_vertical_alignment.
-slot_vertical_offset = 0; //0.1
+//Manually offset the horizontal position of the slots. Use this if you want more precise control than offered by plate_slot_horizontal_alignment.
+plate_slot_horizontal_offset = 0; //0.1
+//Manually offset the vertical position of the slots. Use this if you want more precise control than offered by plate_slot_vertical_alignment.
+plate_slot_vertical_offset = 0; //0.1
 //Increase clearances if the slots feel too tight.
 slot_side_clearance = 0.1; //0.01
 slot_depth_clearance = 0.1; //0.01
@@ -91,15 +91,15 @@ down(final_plate_thickness == EPS ? EPS : 0) diff()
                 rounding_edge_mask(r=plate_corner_rounding_size);
             }
           if (slot_type == "slot")
-            right(slot_horizontal_offset) back(slot_vertical_offset)
+            right(plate_slot_horizontal_offset) back(plate_slot_vertical_offset)
                 attach(TOP, TOP, align=final_plate_alignment, inside=true)
                   tag("remove") openconnect_slot_grid(slot_cfg=slot_cfg, slot_type="slot", horizontal_grids=final_plate_h_grids, vertical_grids=final_plate_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=EPS);
           else if (slot_type == "negslot")
-            right(slot_horizontal_offset) back(slot_vertical_offset)
+            right(plate_slot_horizontal_offset) back(plate_slot_vertical_offset)
                 attach(TOP, BOTTOM, align=final_plate_alignment)
                   tag("") openconnect_slot_grid(slot_cfg=slot_cfg, slot_type="slot", horizontal_grids=final_plate_h_grids, vertical_grids=final_plate_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=0);
           else if (slot_type == "vase")
-            right(slot_horizontal_offset) back(slot_vertical_offset)
+            right(plate_slot_horizontal_offset) back(plate_slot_vertical_offset)
                 attach(TOP, BOTTOM, align=final_plate_alignment)
                   tag("") openconnect_slot_grid(slot_cfg=slot_cfg, slot_type="vase", horizontal_grids=final_plate_h_grids, vertical_grids=final_plate_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, excess_thickness=0);
         }

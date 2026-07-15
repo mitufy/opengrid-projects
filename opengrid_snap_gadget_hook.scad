@@ -15,14 +15,14 @@ corner_type = "Circular"; //["Circular", "Rectangular"]
 
 /* [Hook Settings] */
 //Width of hook body. The value for complete symmetry is 13.2.
-body_width = 8; //0.4
+hook_width = 8; //0.4
 //Thickness of hook body.
-body_thickness = 6; //0.4
+hook_thickness = 6; //0.4
 //Size of the main hook shape.
 hook_main_size = 20; //0.4
 hook_stem_length = 8; //0.4
-//Scaling of body thickness. 0.6 means thickness at the end of the hook would be 60% of the beginning.
-body_thickness_scale = 0.6; //[0.1:0.1:1]
+//Scaling of hook thickness. 0.6 means thickness at the end of the hook would be 60% of the beginning.
+hook_thickness_scale = 0.6; //[0.1:0.1:1]
 //Angle affects Centered and Straight hooks.
 hook_tip_angle = 165; //[15:15:255]
 
@@ -32,7 +32,7 @@ threads_offset_angle = 0; //[0:15:345]
 //Size of fillet at the part hook stem connects to threads.
 hook_stem_fillet = 4; //0.4
 //Chamfer is automatically clamped to ensure a sufficiently large print surface.
-body_max_chamfer = 0.8; //0.2
+hook_max_chamfer = 0.8; //0.2
 //Uncommon means snap thickness that is neither 3.4mm or 6.8mm.
 thickness_text_mode = "Uncommon"; //[All, Uncommon, None]
 
@@ -76,17 +76,17 @@ _threads_side_offset = _threads_diameter / 2 - OG_SNAP_THREADS_SIDE_OFFSET;
 square_corner_radius = 2;
 min_ang_radius = 1;
 //The minimum chamfer to make the threads_connect_diameter cutoff and a thick hook stem consistent.
-overlap_chamfer = calculate_overlap_chamfer(body_width, body_thickness, _threads_connect_diameter);
+overlap_chamfer = calculate_overlap_chamfer(hook_width, hook_thickness, _threads_connect_diameter);
 final_tip_size = max(EPS, hook_main_size);
 final_stem_length = max(EPS, hook_stem_length);
-final_thickness_scale = !use_custom_shape && hook_shape_type == "Loop" ? 1 : body_thickness_scale;
-final_side_chamfer = max(0, min((body_thickness * final_thickness_scale - OG_MIN_WALL_WIDTH) / 2, (body_width - OG_MIN_WALL_WIDTH) / 2, max(overlap_chamfer, body_max_chamfer)));
+final_thickness_scale = !use_custom_shape && hook_shape_type == "Loop" ? 1 : hook_thickness_scale;
+final_side_chamfer = max(0, min((hook_thickness * final_thickness_scale - OG_MIN_WALL_WIDTH) / 2, (hook_width - OG_MIN_WALL_WIDTH) / 2, max(overlap_chamfer, hook_max_chamfer)));
 
 circular_straight_hook_path = ["setdir", 90, "arcleft", final_tip_size / 2, hook_tip_angle];
 circular_center_hook_path = ["setdir", 90, "arcright", min_ang_radius, 90, "arcleft", final_tip_size / 2, hook_tip_angle + 90];
 circular_loop_hook_path = ["setdir", 0, "arcleft", final_tip_size / 2, 359.9];
 
-rect_offset_angle = opp_adj_to_ang((body_thickness - body_thickness * final_thickness_scale) / 2, final_tip_size);
+rect_offset_angle = opp_adj_to_ang((hook_thickness - hook_thickness * final_thickness_scale) / 2, final_tip_size);
 rect_corner_arc_length = PI / 2 * square_corner_radius;
 rect_tip_corner_length = max(EPS, (hook_main_size - square_corner_radius * 2) * (hook_tip_angle - 135) / 90);
 rect_straight_middle_ratio = (hook_main_size - square_corner_radius) / (hook_tip_angle > 135 ? (rect_corner_arc_length + rect_tip_corner_length + hook_main_size * 1.5 + rect_corner_arc_length - square_corner_radius) : (hook_main_size * 1.5 + rect_corner_arc_length - square_corner_radius));
@@ -118,11 +118,11 @@ hook_path =
   : corner_type == "Circular" ? circular_hook_path
   : rect_hook_path;
 
-tip_rounding_radius = max(0, min(body_thickness * final_thickness_scale, body_width - final_side_chamfer * 2) / 2 - EPS);
+tip_rounding_radius = max(0, min(hook_thickness * final_thickness_scale, hook_width - final_side_chamfer * 2) / 2 - EPS);
 artifact_cutoff_depth = EPS;
-sweep_profile = rect([body_thickness, body_width], chamfer=final_side_chamfer);
+sweep_profile = rect([hook_thickness, hook_width], chamfer=final_side_chamfer);
 offset_sweep_profile = scale([final_thickness_scale, 1, 1], sweep_profile);
-fillet_sweep_profile = rect([body_thickness, body_width - artifact_cutoff_depth], chamfer=final_side_chamfer);
+fillet_sweep_profile = rect([hook_thickness, hook_width - artifact_cutoff_depth], chamfer=final_side_chamfer);
 prism_fillet = max(0, min(final_stem_length, hook_stem_fillet));
 thread_join_overlap = EPS * 2;
 
@@ -131,7 +131,7 @@ zrot(180) up(_threads_side_offset) xrot(90)
         zrot(90)
           positive_snap_threads(threads_height=snap_thickness, threads_cfg=_threads_cfg, text_cfg=_text_cfg);
         up(thread_join_overlap) {
-          fwd(_threads_side_offset - body_width / 2)
+          fwd(_threads_side_offset - hook_width / 2)
             down(final_stem_length - EPS) xrot(-90)
                 tag_diff("", remove="rm0") path_sweep(sweep_profile, path=path_merge_collinear(turtle(hook_path)), scale=[final_thickness_scale, 1]) {
                     attach("end", "top")
@@ -140,18 +140,18 @@ zrot(180) up(_threads_side_offset) xrot(90)
                       tag("rm0") cuboid([100, 100, 10]);
                   }
           diff("rm2") {
-            fwd(_threads_side_offset - body_width / 2)
+            fwd(_threads_side_offset - hook_width / 2)
               down(artifact_cutoff_depth / 2) zrot(180) xrot(180)
                     join_prism(fillet_sweep_profile, base="plane", length=final_stem_length, base_fillet=prism_fillet, overlap=thread_join_overlap) {
                       up(EPS) tag_diff(tag="rm2", remove="rm1")
                           cuboid([100, 100, prism_fillet], anchor=TOP) {
-                            tag("rm1") cuboid([body_thickness, body_width, final_stem_length + EPS * 2], chamfer=final_side_chamfer, edges="Z", anchor=TOP);
-                            tag("rm1") back(_threads_side_offset - body_width / 2 + 0.1)
+                            tag("rm1") cuboid([hook_thickness, hook_width, final_stem_length + EPS * 2], chamfer=final_side_chamfer, edges="Z", anchor=TOP);
+                            tag("rm1") back(_threads_side_offset - hook_width / 2 + 0.1)
                                 cyl(l=final_stem_length + EPS * 2, d=_threads_connect_diameter, anchor=TOP);
                           }
                     }
             tag_diff(tag="rm2", remove="rm1")
-              cyl(l=hook_stem_length, d=max(body_thickness, body_width, _threads_connect_diameter) * 2, anchor=TOP)
+              cyl(l=hook_stem_length, d=max(hook_thickness, hook_width, _threads_connect_diameter) * 2, anchor=TOP)
                 attach(CENTER, CENTER, inside=true)
                   tag("rm1") cyl(l=hook_stem_length + EPS * 2, d=_threads_connect_diameter);
           }
