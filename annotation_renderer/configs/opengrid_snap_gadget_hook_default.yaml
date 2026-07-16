@@ -4,11 +4,15 @@ variant_name: opengrid_snap_gadget_hook_default
 default_variant: default
 job_name: snap_gadget_hook_scene
 
+constants:
+  snap_gadget_hook_model:
+    scad_file: opengrid_snap_gadget_hook.scad
+
 scene:
   objects:
   - id: model_a
     model:
-      scad_file: opengrid_snap_gadget_hook.scad
+      $constant: snap_gadget_hook_model
       defines:
         hook_stem_length: 10
         hook_main_size: 36
@@ -23,7 +27,7 @@ scene:
       rotation_deg: [-90, -90, 0]
   - id: model_b
     model:
-      scad_file: opengrid_snap_gadget_hook.scad
+      $constant: snap_gadget_hook_model
       defines:
         hook_main_size: 20
         hook_stem_length: 3
@@ -87,7 +91,7 @@ variants:
     objects:
     - id: model
       model:
-        scad_file: opengrid_snap_gadget_hook.scad
+        $constant: snap_gadget_hook_model
       transform:
         location_mm: [-14, 0, -20.6]
         rotation_deg: [0, 0, 0]
@@ -113,7 +117,7 @@ variants:
     objects:
     - id: model
       model:
-        scad_file: opengrid_snap_gadget_hook.scad
+        $constant: snap_gadget_hook_model
         defines:
           hook_main_size: 30
           hook_thickness_scale: 1

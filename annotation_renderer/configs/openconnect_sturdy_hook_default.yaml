@@ -4,11 +4,15 @@ variant_name: openconnect_sturdy_hook_default
 default_variant: default
 job_name: sturdy_hook_scene
 
+constants:
+  sturdy_hook_model:
+    scad_file: openconnect_sturdy_hook.scad
+
 scene:
   objects:
   - id: large_hook
     model:
-      scad_file: openconnect_sturdy_hook.scad
+      $constant: sturdy_hook_model
       defines:
         hook_length: 56
         hook_vertical_grids: 2
@@ -16,7 +20,7 @@ scene:
         hook_corner_fillet: 28
   - id: model
     model:
-      scad_file: openconnect_sturdy_hook.scad
+      $constant: sturdy_hook_model
     transform:
       location_mm: ["2 * og_tile_size", 0, "-og_tile_size"]
   transform:

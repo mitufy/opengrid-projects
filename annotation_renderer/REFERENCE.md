@@ -936,6 +936,8 @@ Collections are accepted by gallery rendering and all-variant validation:
 
 The smaller plate and snap utilities follow the same rule. `openconnect_plate_floor.yaml` owns its floor and slot-detail views, `opengrid_parametric_snap.yaml` owns its wall, floor, and OpenConnect-detail views, and `opengrid_expanding_snap.yaml` owns its wall and floor views. Their former alternate files are selectors, and each canonical config stores its SCAD source in one model constant.
 
+Canonical configs also reuse model constants across their own scene objects and variants. Each `scad_file` path is declared once in the config tree; additional objects reference that model constant. The test suite enforces this invariant so a model source cannot silently diverge between views.
+
 Use `variant_configs` when a gallery config should import complete per-model config files as variants:
 
 ```yaml

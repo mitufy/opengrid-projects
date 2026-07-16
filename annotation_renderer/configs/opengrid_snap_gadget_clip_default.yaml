@@ -4,11 +4,15 @@ variant_name: opengrid_snap_gadget_clip_default
 default_variant: default
 job_name: snap_gadget_clip_scene
 
+constants:
+  snap_gadget_clip_model:
+    scad_file: opengrid_snap_gadget_clip.scad
+
 scene:
   objects:
   - id: clip_a
     model:
-      scad_file: opengrid_snap_gadget_clip.scad
+      $constant: snap_gadget_clip_model
       defines:
         clip_shape: Rectangular
         clip_main_width: 30
@@ -26,7 +30,7 @@ scene:
       rotation_deg: [-90, 180, 0]
   - id: clip_b
     model:
-      scad_file: opengrid_snap_gadget_clip.scad
+      $constant: snap_gadget_clip_model
       defines:
         knurling_type: Diamond
     transform:
@@ -83,7 +87,7 @@ variants:
     objects:
     - id: model
       model:
-        scad_file: opengrid_snap_gadget_clip.scad
+        $constant: snap_gadget_clip_model
       transform:
         location_mm: [-14, 0, -20.6]
         rotation_deg: [0, 0, 0]
@@ -104,7 +108,7 @@ variants:
     objects:
     - id: circ_clip
       model:
-        scad_file: opengrid_snap_gadget_clip.scad
+        $constant: snap_gadget_clip_model
         defines:
           clip_shape: Elliptic
           clip_main_depth: 22
@@ -114,7 +118,7 @@ variants:
         rotation_deg: [0, 0, 0]
     - id: snapa
       model:
-        scad_file: opengrid_expanding_snap.scad
+        $constant: expanding_snap_model
         defines:
           snap_thickness: 6.8
           generate_screw: None

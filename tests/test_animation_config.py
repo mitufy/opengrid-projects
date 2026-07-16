@@ -1425,6 +1425,26 @@ class AnimationConfigTests(unittest.TestCase):
             self.assertNotIn("render", wrapper)
             self.assertNotIn("annotations", wrapper)
 
+    def test_each_scad_source_has_one_config_definition(self) -> None:
+        source_locations: dict[str, list[str]] = {}
+
+        def collect_sources(value: object, *, path: Path) -> None:
+            if isinstance(value, dict):
+                source = value.get("scad_file")
+                if isinstance(source, str):
+                    source_locations.setdefault(source, []).append(path.name)
+                for child in value.values():
+                    collect_sources(child, path=path)
+            elif isinstance(value, list):
+                for child in value:
+                    collect_sources(child, path=path)
+
+        for config_path in Path("annotation_renderer/configs").glob("*.yaml"):
+            collect_sources(yaml.safe_load(config_path.read_text(encoding="utf-8")), path=config_path)
+
+        duplicates = {source: locations for source, locations in source_locations.items() if len(locations) > 1}
+        self.assertEqual(duplicates, {})
+
     def test_compatibility_config_uses_its_default_variant(self) -> None:
         output = self.run_cli(
             "--config",

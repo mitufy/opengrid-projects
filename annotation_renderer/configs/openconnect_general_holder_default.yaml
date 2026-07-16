@@ -4,11 +4,15 @@ variant_name: openconnect_general_holder_default
 default_variant: default
 job_name: general_holder_scene_default
 
+constants:
+  general_holder_model:
+    scad_file: openconnect_general_holder.scad
+
 scene:
   objects:
   - id: model_b
     model:
-      scad_file: openconnect_general_holder.scad
+      $constant: general_holder_model
       defines:
         compartment_shape: Circular
         compartment_column_count: 1
@@ -22,7 +26,7 @@ scene:
         $constant: blender_scene_scale_vector
   - id: model_a
     model:
-      scad_file: openconnect_general_holder.scad
+      $constant: general_holder_model
       defines:
         compartment_column_count: 2
         compartment_row_count: 1
@@ -173,7 +177,7 @@ variants:
     objects:
     - id: model
       model:
-        scad_file: openconnect_general_holder.scad
+        $constant: general_holder_model
       transform:
         location_mm: ["-(2 * og_tile_size)", 0, "-og_tile_size"]
         rotation_deg: [holder_tilt_angle, 0, 0]
@@ -196,7 +200,7 @@ variants:
     objects:
     - id: model_a
       model:
-        scad_file: openconnect_general_holder.scad
+        $constant: general_holder_model
         defines:
           compartment_column_count: 1
           compartment_row_count: 1
@@ -226,7 +230,7 @@ variants:
     objects:
     - id: model_a
       model:
-        scad_file: openconnect_general_holder.scad
+        $constant: general_holder_model
         defines:
           compartment_column_count: 1
           compartment_row_count: 1
@@ -267,7 +271,7 @@ variants:
     objects:
     - id: model_a
       model:
-        scad_file: openconnect_general_holder.scad
+        $constant: general_holder_model
         defines:
           compartment_column_count: 1
           compartment_row_count: 1

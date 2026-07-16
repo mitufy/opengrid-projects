@@ -9,7 +9,7 @@ scene:
   objects:
   - id: drawer_container
     model:
-      scad_file: openconnect_drawer.scad
+      $constant: drawer_model
       defines:
         generate_drawer_shell: false
         generate_drawer_container: true

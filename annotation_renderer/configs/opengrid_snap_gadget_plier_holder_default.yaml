@@ -4,11 +4,15 @@ variant_name: opengrid_snap_gadget_plier_holder_default
 default_variant: default
 job_name: snap_gadget_plier_holder_scene
 
+constants:
+  snap_gadget_plier_holder_model:
+    scad_file: opengrid_snap_gadget_plier_holder.scad
+
 scene:
   objects:
   - id: model_a
     model:
-      scad_file: opengrid_snap_gadget_plier_holder.scad
+      $constant: snap_gadget_plier_holder_model
       defines:
         stem_height: 12
         stem_depth: 14
@@ -22,7 +26,7 @@ scene:
       rotation_deg: [-90, 180, 0]
   - id: model_b
     model:
-      scad_file: opengrid_snap_gadget_plier_holder.scad
+      $constant: snap_gadget_plier_holder_model
       defines:
         plier_count: 3
         add_spring_hole: true

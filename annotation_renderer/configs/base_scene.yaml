@@ -37,6 +37,8 @@ constants:
     offset_px: [0, 24]
     font_size_px:
       $constant: annotation_title_font_size_px
+  drawer_model:
+    scad_file: openconnect_drawer.scad
   default_grid_label_aliases:
     horizontal_grids: "horizontal_grids x {og_tile_size:g}mm"
     vertical_grids: "vertical_grids x {og_tile_size:g}mm"

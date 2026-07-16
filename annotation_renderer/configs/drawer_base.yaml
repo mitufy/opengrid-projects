@@ -47,7 +47,7 @@ constants:
     rotation_deg: [-90, 0, 0]
   drawer_object_defaults:
     model:
-      scad_file: openconnect_drawer.scad
+      $constant: drawer_model
       defines:
         $constant: drawer_common_defines
     inherit_target_transform: false
