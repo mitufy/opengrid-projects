@@ -13,19 +13,20 @@ try:
 except ImportError:  # pragma: no cover - exercised only in incomplete local environments
     yaml = None
 
-from annotation_renderer.config_resolution import (
+from annotation_renderer.config.resolution import (
     apply_annotation_overrides,
     apply_object_overrides,
     deep_merge,
+    normalize_config_annotation_syntax,
     resolve_config_constants,
     resolve_constant_references,
 )
-from annotation_renderer.config_schema import ConfigError
-from annotation_renderer.config_validation import validate_config_shape
-from annotation_renderer.openscad import project_relative_or_absolute, sanitize_name
+from annotation_renderer.config.schema import ConfigError
+from annotation_renderer.config.validation import validate_config_shape
+from annotation_renderer.openscad import project_relative_or_absolute
+from annotation_renderer.paths import PROJECT_ROOT
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
 JSON_CONFIG_SUFFIXES = {"", ".json"}
 YAML_CONFIG_SUFFIXES = {".yaml", ".yml"}
 INHERITED_VARIANTS_KEY = "_inherited_variants"
@@ -236,9 +237,9 @@ def variant_from_config_file(
     selected_variant: str | None = None,
     variant_name_override: str | None = None,
 ) -> dict[str, object]:
-    variant_name = variant_name_override or config.get("variant_name") or path.stem
+    variant_name = variant_name_override or path.stem
     if not isinstance(variant_name, str) or not variant_name.strip():
-        raise ConfigError(f"variant_name must be a non-empty string in {project_relative_or_absolute(path)}")
+        raise ConfigError(f"Imported variant name must be non-empty for {project_relative_or_absolute(path)}")
     selected_config = config
     default_variant = selected_variant or config.get("default_variant")
     if default_variant is not None:
@@ -332,12 +333,15 @@ def load_raw_config(path: Path, seen: tuple[Path, ...] = ()) -> dict[str, object
     config = load_mapping_file(path, description="Config")
     extends_value = config.pop("extends", None)
     if extends_value is None:
+        config.setdefault("job_name", path.stem)
         return expand_variant_configs(config, config_dir=path.parent, seen=(*seen, path))
     if not isinstance(extends_value, str) or not extends_value.strip():
         raise ConfigError("extends must be a non-empty string")
     base_path = resolve_optional_config_path(extends_value, config_dir=path.parent)
     base_config = load_raw_config(base_path, (*seen, path))
     merged_config = deep_merge(base_config, config)
+    if "job_name" not in config:
+        merged_config["job_name"] = path.stem
     if "variants" in config:
         if "default_variant" not in config:
             merged_config.pop("default_variant", None)
@@ -380,6 +384,7 @@ def load_config(path: Path, overrides: Sequence[str]) -> dict[str, object]:
     for override in deferred_overrides:
         apply_override(config, override)
     config = resolve_config_constants(config, include_variants=False)
+    config = normalize_config_annotation_syntax(config, include_variants=True)
     validate_config_shape(config)
     return config
 
@@ -466,7 +471,11 @@ def variant_config(
                 if key != "variant_collection"
             }
     if "job_name" not in variant:
-        resolved["job_name"] = f"{base_job_name(config)}__{variant_name}"
+        resolved["job_name"] = (
+            base_job_name(config)
+            if variant_name == config.get("default_variant")
+            else f"{base_job_name(config)}__{variant_name}"
+        )
 
     replace_sections = {"annotations"}
     for key in ("job_name", "output_dir", "constants", "scene", "render", "annotations"):
@@ -498,6 +507,7 @@ def variant_config(
             set_dotted_value(resolved, str(path), deepcopy(value))
 
     resolved = resolve_config_constants(resolved, include_variants=False)
+    resolved = normalize_config_annotation_syntax(resolved)
     object_overrides = variant.get("object_overrides")
     if object_overrides is not None:
         if not isinstance(object_overrides, Mapping):

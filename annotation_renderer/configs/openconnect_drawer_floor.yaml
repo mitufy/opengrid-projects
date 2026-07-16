@@ -1,9 +1,6 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
-variant_name: drawer_container_empty
 default_variant: gallery_base
-job_name: opengrid_drawer_floor
-
 scene:
   blend_file: ../assets/scenes/opengrid_floor_scene.blend
   objects:
@@ -15,80 +12,77 @@ scene:
         generate_drawer_container: true
         add_container_divider: Width
         container_width_grid_count: 4
-        container_width_compartment_list: "1,1,1,1"
+        container_width_compartment_list: 1,1,1,1
     transform:
       location_mm: [0, 0, 0]
       rotation_deg: [0, 0, 0]
-
 render:
   fit_margin: 0.2
   camera_view_preset: top_front
-
 annotations:
   object: drawer_container
   style:
     $constant: default_annotation_style
+  aliases:
+    container_width_grid_count: width grids
+    container_width_compartment_list: width compartments
+    container_depth_grid_count: depth grids
+    container_depth_compartment_list: depth compartments
   image_labels:
-  - name: container_width_grid_count_label
-    $constant: top_image_label
-    id: container_width_grid_count
-    title_area: false
-    offset_px: [0, 0]
-    show_value: true
-    value_color:
-      $constant: annotation_color_blue
-    font_size_px: 50
-  - name: container_width_compartment_list_label
-    $constant: top_image_label
-    id: container_width_compartment_list
-    title_area: false
-    offset_px: [0, 50]
-    show_value: true
-    value_color:
-      $constant: annotation_color_blue
-    font_size_px: 50
-  - name: container_depth_grid_count_label
-    $constant: bottom_image_label
-    id: container_depth_grid_count
-    optional: true
-    offset_px: [0, 0]
-    show_value: true
-    font_size_px: 50
-    value_color:
-      $constant: annotation_color_red
-  - name: container_depth_compartment_list_label
-    $constant: bottom_image_label
-    id: container_depth_compartment_list
-    optional: true
-    offset_px: [0, 50]
-    show_value: true
-    font_size_px: 50
-    value_color:
-      $constant: annotation_color_red
-  - name: add_container_divider_label
-    $constant: top_image_label
-    id: add_container_divider
-    enabled: false
-    offset_px: [0, 0]
-    show_value: true
-    value_color:
-      $constant: annotation_color_blue
-    font_size_px:
-      $constant: annotation_title_font_size_px
-
+    container_width_grid_count_label:
+      $constant: top_image_label
+      id: container_width_grid_count
+      title_area: false
+      offset_px: [0, 0]
+      show_value: true
+      value_color:
+        $constant: annotation_color_blue
+      font_size_px: 50
+    container_width_compartment_list_label:
+      $constant: top_image_label
+      id: container_width_compartment_list
+      title_area: false
+      offset_px: [0, 80]
+      show_value: true
+      value_color:
+        $constant: annotation_color_blue
+      font_size_px: 50
+    container_depth_grid_count_label:
+      $constant: bottom_image_label
+      id: container_depth_grid_count
+      optional: true
+      offset_px: [0, 0]
+      show_value: true
+      font_size_px: 50
+      value_color:
+        $constant: annotation_color_red
+    container_depth_compartment_list_label:
+      $constant: bottom_image_label
+      id: container_depth_compartment_list
+      optional: true
+      offset_px: [0, 80]
+      show_value: true
+      font_size_px: 50
+      value_color:
+        $constant: annotation_color_red
+    add_container_divider_label:
+      $constant: top_image_label
+      id: add_container_divider
+      enabled: false
+      offset_px: [0, 0]
+      show_value: true
+      value_color:
+        $constant: annotation_color_blue
+      font_size_px:
+        $constant: annotation_title_font_size_px
 gallery:
   $constant: parameter_gallery_settings
-
 variant_collections:
   product_views: [gallery_base, floor_width, floor_depth, floor_both]
   parameter_gallery: [Divider_Width, Divider_Depth, Divider_Both]
-
 variants:
 - name: gallery_base
-  job_name: opengrid_drawer_floor
-
 - name: floor_width
-  job_name: opengrid_drawer_floor
   annotation_overrides:
     container_width_grid_count_label:
       position: bottom
@@ -105,16 +99,14 @@ variants:
       enabled: false
     container_depth_compartment_list_label:
       enabled: false
-
 - name: floor_depth
-  job_name: opengrid_drawer_floor
   object_overrides:
     drawer_container:
       model:
         defines:
           add_container_divider: Depth
           container_depth_grid_count: 4
-          container_depth_compartment_list: "1,1,1,1"
+          container_depth_compartment_list: 1,1,1,1
           container_front_wall_type: Solid
           container_side_wall_type: Solid
   annotation_overrides:
@@ -130,22 +122,19 @@ variants:
       font_size_px: 48
     add_container_divider_label:
       enabled: true
-  unset:
-  - scene.objects.drawer_container.model.defines.container_width_grid_count
-  - scene.objects.drawer_container.model.defines.container_width_compartment_list
-  - annotations.style
-
+  unset: [scene.objects.drawer_container.model.defines.container_width_grid_count,
+    scene.objects.drawer_container.model.defines.container_width_compartment_list,
+    annotations.style]
 - name: floor_both
-  job_name: opengrid_drawer_floor
   object_overrides:
     drawer_container:
       model:
         defines:
           add_container_divider: Both
           container_width_grid_count: 3
-          container_width_compartment_list: "2,1"
+          container_width_compartment_list: 2,1
           container_depth_grid_count: 5
-          container_depth_compartment_list: "1,2,2"
+          container_depth_compartment_list: 1,2,2
           container_front_wall_type: Solid
           container_side_wall_type: Solid
   annotation_overrides:
@@ -171,9 +160,7 @@ variants:
       font_size_px: 48
     add_container_divider_label:
       enabled: true
-  unset:
-  - annotations.style
-
+  unset: [annotations.style]
 - name: Divider_Width
   extends_variant: gallery_base
   object_overrides:
@@ -182,8 +169,7 @@ variants:
         defines:
           add_container_divider: Width
           container_width_grid_count: 3
-          container_width_compartment_list: "2,1"
-
+          container_width_compartment_list: 2,1
 - name: Divider_Depth
   extends_variant: gallery_base
   object_overrides:
@@ -192,8 +178,7 @@ variants:
         defines:
           add_container_divider: Depth
           container_depth_grid_count: 4
-          container_depth_compartment_list: "1,1,1,1"
-
+          container_depth_compartment_list: 1,1,1,1
 - name: Divider_Both
   extends_variant: gallery_base
   object_overrides:
@@ -202,6 +187,6 @@ variants:
         defines:
           add_container_divider: Both
           container_width_grid_count: 3
-          container_width_compartment_list: "2,1"
+          container_width_compartment_list: 2,1
           container_depth_grid_count: 4
-          container_depth_compartment_list: "1,1,1,1"
+          container_depth_compartment_list: 1,1,1,1

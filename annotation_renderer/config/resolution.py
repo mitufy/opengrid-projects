@@ -8,17 +8,15 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Mapping, Sequence
 
-from annotation_renderer.config_defaults import (
+from annotation_renderer.config.defaults import (
     ANNOTATION_COLLECTION_KEYS,
     AXES,
     BUILTIN_CONFIG_CONSTANTS,
     CONSTANT_REF_KEY,
     DEFAULT_STYLE_PRESET_NAME,
-    DEFAULT_LINE_COLORS,
-    DEFAULT_TYPE_STYLES,
     STYLE_PRESETS,
 )
-from annotation_renderer.config_schema import ConfigError
+from annotation_renderer.config.schema import ConfigError
 
 
 def deep_merge(base: Mapping[str, object], override: Mapping[str, object]) -> dict[str, object]:
@@ -51,6 +49,86 @@ def annotation_group_identity(collection: str, group: Mapping[str, object]) -> s
             if isinstance(value, str) and value.strip():
                 return value.strip()
     return None
+
+
+def normalize_annotation_collection(
+    collection: str,
+    value: object,
+    *,
+    path: str,
+) -> object:
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        return deepcopy(list(value))
+    if not isinstance(value, Mapping):
+        raise ConfigError(f"{path} must be an array or an object keyed by group name")
+    if set(value) == {CONSTANT_REF_KEY}:
+        return deepcopy(dict(value))
+
+    groups: list[dict[str, object]] = []
+    for raw_name, raw_group in value.items():
+        name = str(raw_name).strip()
+        if not name:
+            raise ConfigError(f"{path} keys must be non-empty annotation group names")
+        if not isinstance(raw_group, Mapping):
+            raise ConfigError(f"{path}.{name} must be an object")
+        group = deepcopy(dict(raw_group))
+        explicit_name = group.get("name")
+        if explicit_name is not None and str(explicit_name).strip() != name:
+            raise ConfigError(f"{path}.{name}.name must match its mapping key")
+        group["name"] = name
+        if collection in {"chains", "radius_callouts", "arc_callouts"}:
+            singular_id = group.pop("id", None)
+            if singular_id is not None:
+                if "ids" in group:
+                    raise ConfigError(f"{path}.{name} cannot define both id and ids")
+                group["ids"] = [singular_id]
+            elif "ids" not in group:
+                group["ids"] = [name]
+        elif collection == "image_labels" and "id" not in group and "text" not in group:
+            group["id"] = name
+        groups.append(group)
+    return groups
+
+
+def normalize_annotation_syntax(annotations: object, *, path: str = "annotations") -> object:
+    if not isinstance(annotations, Mapping) or set(annotations) == {CONSTANT_REF_KEY}:
+        return deepcopy(annotations)
+    normalized = deepcopy(dict(annotations))
+    for collection in ANNOTATION_COLLECTION_KEYS:
+        if collection in normalized:
+            normalized[collection] = normalize_annotation_collection(
+                collection,
+                normalized[collection],
+                path=f"{path}.{collection}",
+            )
+    return normalized
+
+
+def normalize_config_annotation_syntax(
+    config: Mapping[str, object],
+    *,
+    include_variants: bool = False,
+) -> dict[str, object]:
+    normalized = deepcopy(dict(config))
+    if "annotations" in normalized:
+        normalized["annotations"] = normalize_annotation_syntax(normalized["annotations"])
+    if include_variants:
+        raw_variants = normalized.get("variants")
+        if isinstance(raw_variants, Sequence) and not isinstance(raw_variants, (str, bytes)):
+            variants: list[object] = []
+            for index, raw_variant in enumerate(raw_variants):
+                if not isinstance(raw_variant, Mapping):
+                    variants.append(raw_variant)
+                    continue
+                variant = deepcopy(dict(raw_variant))
+                if "annotations" in variant:
+                    variant["annotations"] = normalize_annotation_syntax(
+                        variant["annotations"],
+                        path=f"variants[{index}].annotations",
+                    )
+                variants.append(variant)
+            normalized["variants"] = variants
+    return normalized
 
 
 def apply_annotation_overrides(

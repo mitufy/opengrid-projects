@@ -12,11 +12,11 @@ try:
 except ImportError:  # pragma: no cover - exercised only in incomplete local environments
     yaml = None
 
-from annotation_renderer.config_schema import ConfigError
+from annotation_renderer.config.schema import ConfigError
 from annotation_renderer.openscad import project_relative_or_absolute
+from annotation_renderer.paths import PROJECT_ROOT
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
 JSON_DISCOVERY_SUFFIXES = {".json"}
 YAML_DISCOVERY_SUFFIXES = {".yaml", ".yml"}
 TEXT_DISCOVERY_SUFFIXES = {".txt", ".text"}

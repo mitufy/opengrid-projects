@@ -1,16 +1,6 @@
 # Annotation Renderer Utility
 
-Generate annotated technical PNGs from OpenSCAD models. The normal interface is
-`opengrid-annotate`; config files are there when you need to customize the
-defaults.
-
-Model `.scad` files are the source of truth. The default render config for a
-model uses the full model name, for example:
-
-```text
-openconnect_general_holder.scad
-annotation_renderer/configs/openconnect_general_holder_default.yaml
-```
+Generate annotated technical images from OpenSCAD models with OpenSCAD, Blender, and Pillow. The public interface is the `opengrid-annotate` command; checked-in YAML files define reusable model views.
 
 ## Setup
 
@@ -22,56 +12,60 @@ py -3 -m venv build\.venv-tools
 .\build\.venv-tools\Scripts\python.exe -m pip install -e .
 ```
 
-Install OpenSCAD Nightly and Blender 5.1 or newer. If they are not on `PATH`, pass their
-locations with `--openscad` and `--blender`.
-
-Check the local toolchain:
+Install OpenSCAD Nightly and Blender 5.1 or newer. If either tool is outside `PATH`, pass `--openscad` or `--blender`.
 
 ```powershell
 .\build\.venv-tools\Scripts\opengrid-annotate.exe doctor
-```
-
-Run one small end-to-end render check:
-
-```powershell
 .\build\.venv-tools\Scripts\opengrid-annotate.exe doctor --smoke-render
 ```
 
-## Quick Start
+## Commands
 
-Render the default annotated image for a model:
+Every render-oriented command accepts a built-in model name or a YAML/JSON config path directly.
 
 ```powershell
+# Render the configured default view
 .\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder
+
+# Render one named view
+.\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder --variant side
+
+# Render a configured contact sheet
+.\build\.venv-tools\Scripts\opengrid-annotate.exe gallery openconnect_general_holder
+
+# Validate all variants or one collection without rendering
+.\build\.venv-tools\Scripts\opengrid-annotate.exe validate openconnect_general_holder
+.\build\.venv-tools\Scripts\opengrid-annotate.exe validate openconnect_general_holder --collection product_views
+
+# Inspect the available models and annotations
+.\build\.venv-tools\Scripts\opengrid-annotate.exe models
+.\build\.venv-tools\Scripts\opengrid-annotate.exe describe openconnect_general_holder
+.\build\.venv-tools\Scripts\opengrid-annotate.exe annotations openconnect_general_holder
+
+# Discover annotation IDs directly from SCAD
+.\build\.venv-tools\Scripts\opengrid-annotate.exe discover openconnect_general_holder.scad
 ```
 
-That command resolves the model name to:
+Use `render TARGET --resolved` or `gallery TARGET --resolved` to inspect the fully resolved configuration without rendering. Use `schema` to print the JSON Schema.
+
+## Variations
+
+A model owns its views and parameter variations in one canonical file, such as:
 
 ```text
-annotation_renderer/configs/openconnect_general_holder_default.yaml
+openconnect_general_holder.scad
+annotation_renderer/configs/openconnect_general_holder.yaml
 ```
 
-Render with one temporary override:
-
-```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder `
-  --set scene.objects.model_a.model.defines.compartment_column_count=3
-```
-
-Render a permanent named image variation without creating another config file:
-
-```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder --variant side
-```
-
-Model configs can keep all image variations in one top-level `variants` list. Give annotation groups stable `name` values, then change their layout or visibility with `annotation_overrides`:
+Stable mapping keys make annotation declarations and variant overrides line up:
 
 ```yaml
 annotations:
   chains:
-  - name: compartment_width_dimension
-    ids: [compartment_width]
-    label_offset_px: 28
+    compartment_width_dimension:
+      id: compartment_width
+      line_offset_px: -20
+      label_offset_px: -50
 
 variants:
 - name: side
@@ -89,9 +83,9 @@ variants:
       enabled: false
 ```
 
-`object_overrides` targets scene objects by stable `id`; use `enabled: false` to exclude an object. A variant can also list dotted paths under `unset` when an inherited value must be removed instead of replaced.
+For `chains`, `radius_callouts`, and `arc_callouts`, a singular `id` expands to `ids: [id]`; when `id` is omitted, the mapping key is used. Image labels also default their `id` to the mapping key.
 
-Group useful subsets under `variant_collections`, then render or validate only that ordered subset:
+Collections define ordered subsets for galleries and validation:
 
 ```yaml
 variant_collections:
@@ -101,82 +95,34 @@ gallery:
   variant_collection: product_views
 ```
 
-```powershell
-# Validate every variant without invoking Blender or OpenSCAD
-.\build\.venv-tools\Scripts\opengrid-annotate.exe validate openconnect_general_holder
+Run a one-off override without changing YAML:
 
-# Render one named subset as a contact sheet
+```powershell
 .\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder `
-  --gallery --variant-collection product_views
+  --set scene.objects.model_a.model.defines.compartment_column_count=3
 ```
 
-When `gallery.variant_collection` is configured, plain `--gallery` renders that collection; an explicit `--variant` or `--variant-collection` takes precedence. Otherwise plain `--gallery` renders every named variant. The general-holder, gridfinity-shelf, sturdy-shelf, sturdy-hook, vasemode-container, clamshell-holder, drawer, plate, framefit-hook, and snap configs are reference examples: their view and parameter variants live in one canonical file per model. Select views with `--variant`; canonical parameter galleries share the `parameter_gallery_settings` layout from `base_scene.yaml`.
-
-List the built-in renderable models:
-
-```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe list-models
-```
-
-Describe one model default:
-
-```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe describe openconnect_general_holder
-```
-
-See the annotation groups currently configured for a model:
-
-```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe list-annotations openconnect_general_holder
-```
-
-Discover annotation IDs from the SCAD source:
-
-```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe discover openconnect_general_holder.scad
-```
-
-Discovery only accepts `.scad` files. It does not accept config names such as
-`openconnect_general_holder_default`.
-
-Create a separate editable config only when the result should not live as a named model variant:
+Create a separate config only when a variation should not live in the canonical model file:
 
 ```powershell
 .\build\.venv-tools\Scripts\opengrid-annotate.exe new-config openconnect_general_holder `
   --out build\scene_annotations\my_general_holder.yaml
-```
 
-Then render it directly:
-
-```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe `
-  --config build\scene_annotations\my_general_holder.yaml
+.\build\.venv-tools\Scripts\opengrid-annotate.exe render build\scene_annotations\my_general_holder.yaml
 ```
 
 ## Output
 
-Final images are written under `build/scene_annotations/<model-name>/`.
-Generated files under `build/` are ignored by git.
+Final images are written under `build/scene_annotations/<model-name>/`. Render-stage caching is enabled by default.
 
-Render-stage caching is enabled by default. OpenSCAD exports and Blender
-render/projection outputs are reused when their inputs have not changed. Use
-`--no-cache` for a cold run.
+- `--output-mode minimal` keeps final images only.
+- `--output-mode standard` also keeps metadata.
+- `--output-mode debug` keeps intermediate STLs, logs, projections, and overlay images.
+- `--export-blend` saves the prepared Blender scene.
+- `--no-cache` forces a cold run.
 
-Use `--output-mode debug` when you need Blender logs, temporary STLs, projection
-JSON, or intermediate overlay images. The default `standard` mode keeps the
-final image and metadata.
+## Documentation
 
-Use `--export-blend` or `render.export_blend: true` when you want the prepared
-Blender scene that was rendered. The `.blend` sidecar is written next to the
-final still image.
-
-## More Detail
-
-* [`USAGE.md`](USAGE.md): practical workflows for rendering, customizing,
-  galleries, animations, and troubleshooting.
-* [`REFERENCE.md`](REFERENCE.md): full config, scene, annotation, animation, and
-  SCAD metadata reference.
-* [`schemas/annotation-render-config.schema.json`](schemas/annotation-render-config.schema.json):
-  machine-readable render config schema.
-* [`schemas/annotation-render-gallery.schema.json`](schemas/annotation-render-gallery.schema.json):
-  contact-sheet config schema.
+- [USAGE.md](USAGE.md): practical rendering, gallery, animation, and troubleshooting workflows.
+- [REFERENCE.md](REFERENCE.md): complete configuration and SCAD metadata reference.
+- [annotation-render-config.schema.json](schemas/annotation-render-config.schema.json): machine-readable config schema.

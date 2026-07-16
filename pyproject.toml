@@ -26,10 +26,10 @@ mesh = [
 ]
 
 [project.scripts]
-opengrid-annotate = "annotation_renderer.scene_cli:main"
+opengrid-annotate = "annotation_renderer.cli:main"
 
-[tool.setuptools]
-packages = ["annotation_renderer"]
+[tool.setuptools.packages.find]
+include = ["annotation_renderer*"]
 
 [tool.setuptools.package-data]
 annotation_renderer = [

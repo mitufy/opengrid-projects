@@ -1,7 +1,5 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
-variant_name: openconnect_standard_snap_line_copies
-job_name: standard_snap_line_copies_scene
 scene:
   objects:
   - id: openconnect_standard_snap

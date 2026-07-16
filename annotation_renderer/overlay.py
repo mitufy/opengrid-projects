@@ -16,7 +16,7 @@ from annotation_renderer.annotation_config import (
     ImageLabel,
     RadiusCallout,
 )
-from annotation_renderer.config_defaults import DEFAULT_STYLE_PRESET_NAME, DEFAULT_TYPE_STYLES, STYLE_PRESETS
+from annotation_renderer.config.defaults import DEFAULT_STYLE_PRESET_NAME, DEFAULT_TYPE_STYLES, STYLE_PRESETS
 
 
 DEFAULT_STYLE_CONFIG = STYLE_PRESETS[DEFAULT_STYLE_PRESET_NAME]

@@ -23,9 +23,22 @@ annotation_renderer/
   USAGE.md
   REFERENCE.md
   __main__.py
-  scene_cli.py              # CLI orchestration
+  cli.py                    # command parsing and dispatch
+  catalog.py                # built-in model config lookup
+  commands.py               # inspection, discovery, and templates
+  pipeline.py               # one render's orchestration
+  gallery.py                # variant validation and contact sheets
+  diagnostics.py            # dependency and smoke checks
+  cache.py                  # content-addressed stage keys
+  metadata.py               # metadata and quality warnings
+  paths.py                  # canonical package and repository paths
   blender_runtime.py        # script executed inside Blender
-  config*.py                # schema, defaults, loading, validation, resolution
+  config/
+    defaults.py             # built-in render and annotation defaults
+    loader.py               # YAML/JSON inheritance and variants
+    resolution.py           # constants, expressions, and concise syntax
+    schema.py               # JSON Schema access
+    validation.py           # semantic validation and resolved settings
   annotation_config.py      # annotation config collection helpers
   openscad.py               # OpenSCAD command helpers
   overlay.py                # Pillow annotation overlay drawing
@@ -36,13 +49,12 @@ annotation_renderer/
     scenes/
       opengrid_wall_scene.blend
   configs/
-    *_default.yaml          # directly renderable model defaults
+    <model>.yaml            # canonical model views and variants
     *_copies.yaml           # STL copy/grid scene examples
     animation_presets.yaml
     base_scene.yaml
     gallery_defaults.yaml
     model_defaults.yaml     # imports renderable defaults as variants
-    parameter_details.yaml
     render_settings_gallery.yaml
   schemas/
     annotation-render-config.schema.json
@@ -66,7 +78,7 @@ For a local editable install with the console entry point:
 
 ```powershell
 .\build\.venv-tools\Scripts\python.exe -m pip install -e .
-.\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder --validate-only
+.\build\.venv-tools\Scripts\opengrid-annotate.exe validate openconnect_general_holder
 ```
 
 Check the local environment before rendering:
@@ -99,43 +111,35 @@ Essential commands:
 # Render the default config for one SCAD model
 .\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder
 
-# Validate the default config without rendering
-.\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder --validate-only
-
 # Validate every variant in a model config
 .\build\.venv-tools\Scripts\opengrid-annotate.exe validate openconnect_general_holder
 
-# Render a named config from annotation_renderer\configs without --config
-.\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_sturdy_hook_angle
-
 # Render one config path directly
-.\build\.venv-tools\Scripts\opengrid-annotate.exe `
-  --config annotation_renderer\configs\openconnect_general_holder_default.yaml
+.\build\.venv-tools\Scripts\opengrid-annotate.exe render `
+  annotation_renderer\configs\openconnect_general_holder.yaml
 
 # Render one imported model variant
-.\build\.venv-tools\Scripts\opengrid-annotate.exe `
-  --config annotation_renderer\configs\model_defaults.yaml `
-  --variant openconnect_sturdy_hook_default
+.\build\.venv-tools\Scripts\opengrid-annotate.exe render `
+  annotation_renderer\configs\model_defaults.yaml `
+  --variant openconnect_sturdy_hook
 
 # Render a contact sheet for all variants
-.\build\.venv-tools\Scripts\opengrid-annotate.exe `
-  --config annotation_renderer\configs\model_defaults.yaml `
-  --gallery `
+.\build\.venv-tools\Scripts\opengrid-annotate.exe gallery `
+  annotation_renderer\configs\model_defaults.yaml `
   --gallery-config annotation_renderer\configs\gallery_defaults.yaml
 
 # Render the scene-control demonstration gallery
-.\build\.venv-tools\Scripts\opengrid-annotate.exe `
-  --config annotation_renderer\configs\render_settings_gallery.yaml `
-  --gallery
+.\build\.venv-tools\Scripts\opengrid-annotate.exe gallery `
+  annotation_renderer\configs\render_settings_gallery.yaml
 ```
 
-Use `--set path=value` for one-off overrides, `--print-resolved-config` to inspect merged config, `--print-schema` for editor integration, and `doctor` to check local dependencies. Array items can be selected by stable `id` or `name`, such as `scene.objects.model.model.defines.hook_length=50`, or by numeric index for compatibility, such as `annotations.chains[0].label_offset_px=36`. Use `--output-file path\image.png` when a workflow needs a stable final still-image path.
+Use `--set path=value` for one-off overrides, `render TARGET --resolved` to inspect a merged config, `schema` for editor integration, and `doctor` to check local dependencies. Named objects and annotation groups use stable mapping paths such as `scene.objects.model.model.defines.hook_length=50` and `annotations.chains.compartment_width_dimension.label_offset_px=36`. Use `--output-file path\image.png` when a workflow needs a stable final still-image path.
 
 OpenSCAD exports and Blender render/projection outputs are cached by default under `build/scene_annotations/.cache`, keyed by the transitive OpenSCAD dependency contents, executable contents, resolved render inputs, and generated STL content. This makes iterative annotation offset changes reuse the expensive stages without serving stale geometry after shared-library edits. Use `--no-cache` for a cold run, `--cache-dir path\to\cache` to override the cache directory, or set `render.cache` / `render.cache_dir` in config. Blender stage caching is disabled for animation renders.
 
 Use `--export-blend` or `render.export_blend: true` to save the prepared Blender scene used for the still render. The `.blend` sidecar is written next to the final PNG or exact `--output-file` path. When a Blender render is served from cache, the cache must also contain the prepared `.blend`; otherwise the Blender stage runs once to create it.
 
-Final render images are grouped by SCAD source under `build/scene_annotations/<scad-file-stem>/`, for example `build/scene_annotations/openconnect_general_holder/general_holder_scene_default__20260513-215208.png`. Gallery runs create a timestamped gallery folder and write `gallery.png` plus `gallery_metadata.json`.
+Final render images are grouped by SCAD source under `build/scene_annotations/<scad-file-stem>/`, for example `build/scene_annotations/openconnect_general_holder/openconnect_general_holder__20260513-215208.png`. Gallery runs create a timestamped gallery folder and write `gallery.png` plus `gallery_metadata.json`.
 
 Use `--output-mode` or `render.output_mode` to control retained sidecars:
 
@@ -151,12 +155,12 @@ the warning in metadata when metadata is enabled.
 
 ## Discovery And Templates
 
-Discovery commands default to `configs/model_defaults.yaml`, so they can be used without passing `--config`.
+The inspection commands accept a built-in model name or a YAML/JSON config path.
 
 List the renderable default models:
 
 ```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe list-models
+.\build\.venv-tools\Scripts\opengrid-annotate.exe models
 ```
 
 Describe one model preset:
@@ -168,7 +172,7 @@ Describe one model preset:
 List annotation groups and their current offsets:
 
 ```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe list-annotations openconnect_general_holder
+.\build\.venv-tools\Scripts\opengrid-annotate.exe annotations openconnect_general_holder
 ```
 
 List the parameters that can be added to annotation config:
@@ -177,12 +181,12 @@ List the parameters that can be added to annotation config:
 .\build\.venv-tools\Scripts\opengrid-annotate.exe discover openconnect_sturdy_hook.scad
 ```
 
-The discovery output reads the SCAD source directly. Pass a `.scad` file path, not a render config name such as `openconnect_sturdy_hook_default` or `openconnect_drawer_shell_container_default`. It lists Customizer-facing annotation parameters without running OpenSCAD, so it does not include exact values that depend on customizable model parameters. Internal helper metadata used to draw composed arcs and radius leaders is hidden from discovery. The list is grouped by config use:
+The discovery output reads the SCAD source directly. Pass a `.scad` file path, not a render config name such as `openconnect_sturdy_hook` or `openconnect_drawer_shell_container`. It lists Customizer-facing annotation parameters without running OpenSCAD, so it does not include exact values that depend on customizable model parameters. Internal helper metadata used to draw composed arcs and radius leaders is hidden from discovery. The list is grouped by config use:
 
-* `dimension parameters` can be added to `annotations.chains[].ids`
-* `radius parameters` can be added to `annotations.radius_callouts[].ids` or `annotations.angle_radius_callouts[].radius_id`
-* `arc parameters` can be added to `annotations.arc_callouts[].ids` or `annotations.angle_radius_callouts[].arc_id`
-* `context value parameters` can be added to `annotations.image_labels[].id`; numeric values can also be used in offsets and `annotations.angle_radius_callouts[].angle_id`
+* `dimension parameters` can be used as a chain's `id` or in `ids`
+* `radius parameters` can be used by radius callouts or as `angle_radius_callouts.<name>.radius_id`
+* `arc parameters` can be used by arc callouts or as `angle_radius_callouts.<name>.arc_id`
+* `context value parameters` can be used by image labels, offsets, and angle callouts
 
 By default, discovery only prints the plain text list. Add `--out` when you want a file:
 
@@ -204,10 +208,10 @@ The generated config includes editable object-scoped model defines and annotatio
 
 ## YAML And JSON
 
-The renderer accepts `.yaml`, `.yml`, and `.json` files anywhere a config path is used, including `--config`, `--gallery-config`, `extends`, and `variant_configs`. The checked-in defaults are YAML now, and new custom configs should also prefer YAML because it is easier to read and edit by hand. JSON remains supported for external configs, but the old checked-in JSON config paths are gone:
+The renderer accepts `.yaml`, `.yml`, and `.json` targets, plus those formats in `--gallery-config`, `extends`, and `variant_configs`. Checked-in and hand-edited configs should prefer YAML; JSON remains supported for external tools:
 
 ```yaml
-extends: ../../annotation_renderer/configs/openconnect_general_holder_default.yaml
+extends: ../../annotation_renderer/configs/openconnect_general_holder.yaml
 job_name: general_holder_custom
 
 scene:
@@ -222,7 +226,8 @@ scene:
 
 annotations:
   chains:
-    - ids: [compartment_width]
+    compartment_width_dimension:
+      id: compartment_width
       display_offset_mm: [0, 0, 0]
       line_offset_px: 20
       label_offset_px: 28
@@ -230,7 +235,7 @@ annotations:
 
 Keep using the existing `extends` and `$constant` composition features instead of YAML anchors or merge keys. That keeps configs portable between YAML and JSON.
 
-Checked-in model configs use the built-in `default_annotation_style` constant for shared annotation line, font, color-type, and image-title defaults. Those values live in `config_defaults.py` under the `makerworld_technical_light` style preset, so `configs/base_scene.yaml` does not duplicate them. Use `style.type_styles` for broad parameter categories such as `mm`, `grids`, `radius`, and `angle`. Put color overrides on the chain or callout that uses them with `color`; use `colors` only when one group needs per-ID exceptions. Keep model-specific offsets local, and override only the style keys that differ:
+Checked-in model configs use the built-in `default_annotation_style` constant for shared annotation line, font, color-type, and image-title defaults. Those values live in `config/defaults.py` under the `makerworld_technical_light` style preset, so `configs/base_scene.yaml` does not duplicate them. Use `style.type_styles` for broad parameter categories such as `mm`, `grids`, `radius`, and `angle`. Put color overrides on the chain or callout that uses them with `color`; use `colors` only when one group needs per-ID exceptions. Keep model-specific offsets local, and override only the style keys that differ:
 
 ```yaml
 constants:
@@ -247,7 +252,8 @@ annotations:
   aliases:
     $constant: default_grid_label_aliases
   chains:
-    - ids: [horizontal_grids]
+    horizontal_grids_dimension:
+      id: horizontal_grids
 ```
 
 ## Animation Workflow
@@ -260,7 +266,7 @@ Use this loop when adding an animation:
 
 1. Add a reusable render preset under `constants` in `configs/animation_presets.yaml`.
 2. Use `object_animations` for one-object motion or `clips` when multiple object animations should run in sequence.
-3. Validate the target model config with `--animation-preset <preset> --validate-only`.
+3. Inspect the resolved animation config with `render MODEL --animation-preset <preset> --resolved`.
 4. Render the target model config with that preset.
 
 Example render command:
@@ -335,9 +341,9 @@ title_height_px: 22
 title_font_size_px: 22
 ```
 
-Pass it with `--gallery-config`. `variant_collection` selects the default ordered subset for a gallery. A model config can still include top-level `gallery` values, and those override the separate gallery config. Explicit `--variant` or `--variant-collection` arguments override the configured collection. This keeps reusable model variants in the model config while allowing one-off contact-sheet selection and layout choices to stay external.
+Pass it to `gallery` with `--gallery-config`. `variant_collection` selects the default ordered subset. A model config can still include top-level `gallery` values, and those override the separate gallery config. Explicit `--variant` or `--collection` arguments override the configured collection.
 
-For an exact contact-sheet size without post-scaling or padding, set `target_width_px` and `target_height_px` instead of hand-calculating `thumbnail_width` and per-render `render.width` / `render.height`:
+For an exact contact-sheet canvas size, set `target_width_px` and `target_height_px` instead of hand-calculating `thumbnail_width` and per-render `render.width` / `render.height`:
 
 ```yaml
 gallery:
@@ -350,13 +356,13 @@ gallery:
   title_font_size_px: 60
 ```
 
-The gallery runner derives `thumbnail_width`, `thumbnail_height`, and each variant's render size from the target dimensions, row count, margins, gutters, and title height. The target size must divide evenly after subtracting those spacing values.
+The gallery runner derives maximum cell dimensions from the target size, row count, margins, gutters, and title height. Each variant keeps its original render aspect ratio inside those bounds, and annotation pixel sizes are scaled by the same factor. When the available space is not evenly divisible, the remaining one or two pixels become harmless canvas padding.
 
 ## Config Structure
 
 Configs contain the model parameters, Blender scene binding, render settings, and annotation layout in one file.
 
-The tracked defaults are split by model. `base_scene.yaml` holds shared scene, render, and annotation constants. Each model default extends it and is directly renderable. `model_defaults.yaml` imports the per-model files with `variant_configs`, so running it without `--variant` renders the first imported variant and `--gallery` renders all imported variants.
+The tracked configs are split by model. `base_scene.yaml` holds shared scene, render, and annotation constants. Each canonical model config extends it and is directly renderable. `model_defaults.yaml` imports them with `variant_configs` and can be passed directly to `render`, `gallery`, or `models`.
 
 The tracked default config keeps the Blender scene and render binding explicit:
 
@@ -435,7 +441,7 @@ This adds XYZ Euler degrees to the camera's current rotation. It is useful for s
 
 Expression names can come from top-level numeric `constants`, numeric `scene.objects[*].model.defines` for the active object, and SCAD-emitted numeric context metadata. Prefer SCAD context for values calculated by the model, such as `OG_TILE_SIZE`, `shell_thickness`, `shell_ocslot_part_thickness`, `shelf_back_thickness`, and final derived thicknesses. That keeps config transforms and annotation offsets tied to the same OpenSCAD run that generated the STL.
 
-Because SCAD context only exists after export, `--print-resolved-config` may show `transform: null` with the raw `transform_config` for scene objects whose expressions depend on emitted context. A real render resolves those expressions after parsing each object's OpenSCAD log.
+Because SCAD context only exists after export, `render TARGET --resolved` may show `transform: null` with the raw `transform_config` for scene objects whose expressions depend on emitted context. A real render resolves those expressions after parsing each object's OpenSCAD log.
 
 Constants can also hold reusable config snippets. Use `{"$constant": "name"}` in JSON or `$constant: name` in YAML anywhere in the active config to replace that value with the matching constant. When `$constant` appears in an object with other keys, the constant is used as a base object and the other keys override it:
 
@@ -456,8 +462,9 @@ scene:
     $constant: placeholder_transform
 annotations:
   chains:
-    - $constant: small_dimension_chain
-      ids: [shelf_back_thickness]
+    shelf_back_thickness_dimension:
+      $constant: small_dimension_chain
+      id: shelf_back_thickness
 ```
 
 Constant references are resolved after the selected variant and `--set` overrides are applied. Numeric constants still feed expression strings; object, array, string, and boolean constants are only used as reusable config values.
@@ -467,9 +474,9 @@ Variants can inherit another variant with `extends_variant`. This is useful when
 ```yaml
 variants:
 - name: general_holder_large_opening
-  extends_variant: openconnect_general_holder_default
+  extends_variant: default
   set:
-    scene.objects[0].model.defines.front_opening_width: 38
+    scene.objects.model_a.model.defines.front_opening_width: 38
 ```
 
 Use `scene.objects` for every renderable source. Each object must define exactly one source: `model` for an OpenSCAD-generated STL, or `stl_file` for a prebuilt STL asset. Put repeated object settings in `scene.object_defaults`; each object is merged over those defaults. This is useful when several objects come from the same SCAD file and mostly share OpenSCAD defines:
@@ -673,7 +680,8 @@ For multi-object scenes, set `annotations.object` to choose which generated obje
 annotations:
   object: drawer_shell
   chains:
-    - ids: [horizontal_grids]
+    horizontal_grids_dimension:
+      id: horizontal_grids
 ```
 
 `display_offset_mm` translates emitted annotation anchors in model-local millimeters. `display_rotation_deg` rotates those same anchors in model-local degrees before that offset is applied. Rotation uses `[x, y, z]` order, matching the OpenSCAD annotation helper transform order. Both fields accept numbers or simple expressions. The shelf width example keeps the current offset readable:
@@ -691,7 +699,8 @@ Use `display_rotation_deg` when an emitted anchor is correct in shape but needs 
 
 ```yaml
 chains:
-  - ids: [stem_bottom_width]
+  stem_bottom_width_dimension:
+    id: stem_bottom_width
     display_rotation_deg: [0, 0, 90]
     display_offset_mm: [0, 0, 0]
 ```
@@ -714,17 +723,19 @@ annotations:
   style:
     auto_adjust_labels: true
   chains:
-  - ids: [compartment_depth]
-    color: "#000000"
-    label_offset_px: -28
-    label_along_offset_px: 36
+    compartment_depth_dimension:
+      id: compartment_depth
+      color: "#000000"
+      label_offset_px: -28
+      label_along_offset_px: 36
 ```
 
 `radius_callouts` draw dashed radial leaders from emitted `kind=radius` metadata:
 
 ```yaml
 radius_callouts:
-  - ids: [hook_corner_fillet]
+  hook_corner_fillet_callout:
+    id: hook_corner_fillet
     display_offset_mm: [0, 0, 0]
     labels:
       hook_corner_fillet: corner_fillet
@@ -738,7 +749,8 @@ For radius parameters, prefer `radius_callouts` so the label is attached to a ce
 
 ```yaml
 arc_callouts:
-  - ids: [circular_tip_radius_extent]
+  circular_tip_radius_extent_callout:
+    id: circular_tip_radius_extent
     labels:
       circular_tip_radius_extent: tip radius extent
     show_label: false
@@ -749,7 +761,7 @@ arc_callouts:
 
 ```yaml
 angle_radius_callouts:
-  - id: circular_tip_angle_radius
+  circular_tip_angle_radius:
     arc_id: circular_tip_radius_extent
     radius_id: circular_tip_radius
     angle_id: circular_tip_angle
@@ -766,7 +778,7 @@ The renderer draws only the sampled arc plus one dashed radius leader from the r
 
 ```yaml
 image_labels:
-  - id: hook_shape_type
+  hook_shape_type:
     position: bottom
     offset_px: [0, -24]
     show_value: true
@@ -782,11 +794,13 @@ Image labels accept `font_size_px`; `label_font_size_px` is also accepted as an 
 Annotation groups can override label and line sizing when a parameter span is physically small:
 
 ```yaml
-ids: [shelf_back_thickness]
-label_font_size_px: 20
-tick_length_px: 12
-line_width_px: 2.2
-extension_visible: false
+chains:
+  shelf_back_thickness_dimension:
+    id: shelf_back_thickness
+    label_font_size_px: 20
+    tick_length_px: 12
+    line_width_px: 2.2
+    extension_visible: false
 ```
 
 For annotation groups, `label_font_size_px` is the canonical label size field. `font_size_px` is accepted as an alias for consistency with image labels.
@@ -811,13 +825,13 @@ Set an outline width or alpha to `0` to disable that halo. `line_outline_width_p
 
 ## Variants
 
-Use top-level `variants` when several images share most of the same scene and render settings. Each variant has a unique `name` and can either set complete sections or use a `set` object whose keys are dotted config paths. Prefer a stable object `id` or annotation `name` over a numeric array position:
+Use top-level `variants` when several images share most of the same scene and render settings. Each variant has a unique `name` and can either set complete sections or use a `set` object whose keys are dotted config paths. Prefer stable object IDs and annotation mapping keys over numeric array positions:
 
 ```yaml
 variants:
-  - name: deep_drawer_shell
-    set:
-      scene.objects.drawer_shell.model.defines.depth_grids: 6
+- name: deep_drawer_shell
+  set:
+    scene.objects.drawer_shell.model.defines.depth_grids: 6
 ```
 
 Variant objects can also override full config sections when a dotted path is not enough. `annotations` is replaced as a complete section so model-specific labels do not leak between variants. `constants`, `scene`, and `render` are merged with the base config so shared Blender scene settings can stay in one place.
@@ -853,16 +867,15 @@ For annotation layout changes, prefer stable group names and `annotation_overrid
 ```yaml
 annotations:
   chains:
-  - name: compartment_width_dimension
-    ids: [compartment_width]
-    line_offset_px: 0
-    label_offset_px: 28
+    compartment_width_dimension:
+      id: compartment_width
+      line_offset_px: 0
+      label_offset_px: 28
   angle_radius_callouts:
-  - name: holder_tilt_angle_callout
-    id: holder_tilt_angle_callout
-    arc_id: holder_tilt_angle_extent
-    radius_id: holder_tilt_angle_radius
-    angle_id: holder_tilt_angle
+    holder_tilt_angle_callout:
+      arc_id: holder_tilt_angle_extent
+      radius_id: holder_tilt_angle_radius
+      angle_id: holder_tilt_angle
 
 variants:
 - name: side
@@ -873,7 +886,7 @@ variants:
       enabled: false
 ```
 
-Names must be unique across the annotation catalog. For compatibility, an unnamed group can be targeted by its single annotation ID, callout ID, or image-label ID, but explicit names are recommended because they remain stable when IDs are reorganized. Invalid and ambiguous override targets are rejected.
+Mapping keys must be unique across the annotation catalog and are the only identities used by `annotation_overrides`. Invalid and ambiguous override targets are rejected.
 
 Set `default_variant` when omitting `--variant` should select a named variation even though the base config is directly renderable:
 
@@ -899,42 +912,42 @@ gallery:
 Collections are accepted by gallery rendering and all-variant validation:
 
 ```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder `
-  --gallery --variant-collection product_views
+.\build\.venv-tools\Scripts\opengrid-annotate.exe gallery openconnect_general_holder `
+  --collection product_views
 
 .\build\.venv-tools\Scripts\opengrid-annotate.exe validate openconnect_general_holder `
-  --variant-collection product_views
+  --collection product_views
 ```
 
 `validate MODEL` resolves every variant by default and checks its final schema, object targets, source files, and Blender scene path without running the rendering applications. It catches errors in variants that a normal default render would never select.
 
-`gallery.variant_collection` makes a collection the default for plain `--gallery`. Command-line selection still wins, and omitting both the configured collection and command-line selection renders all variants.
+`gallery.variant_collection` makes a collection the default for `gallery MODEL`. Command-line selection still wins, and omitting both selections renders all variants.
 
-`openconnect_general_holder_default.yaml` demonstrates the one-file-per-model pattern. Its `default`, `empty`, `side`, `top`, `taper`, and four parameter-gallery variants share a single named annotation catalog. Views are selected directly with `--variant`, and plain `--gallery` selects its parameter-gallery collection.
+`openconnect_general_holder.yaml` demonstrates the one-file-per-model pattern. Its `default`, `empty`, `side`, `top`, `taper`, and four parameter-gallery variants share a single named annotation catalog. Views are selected with `render --variant`; `gallery` selects its configured parameter-gallery collection.
 
-`openconnect_gridfinity_shelf_default.yaml` follows the same pattern for its `default`, `empty`, `top`, and four parameter-gallery variants.
+`openconnect_gridfinity_shelf.yaml` follows the same pattern for its `default`, `empty`, `top`, and four parameter-gallery variants.
 
-`openconnect_sturdy_shelf_default.yaml` likewise owns its `default`, `empty`, `side`, and four parameter-gallery variants. The shared named annotation catalog switches between grid dimensions and the side-view thickness/fillet callouts without duplicating complete annotation sections.
+`openconnect_sturdy_shelf.yaml` likewise owns its `default`, `empty`, `side`, and four parameter-gallery variants. The shared named annotation catalog switches between grid dimensions and the side-view thickness/fillet callouts without duplicating complete annotation sections.
 
-`openconnect_sturdy_hook_default.yaml` owns its two-object default view, single-object empty and side views, and four parameter-gallery variants. The side-specific annotation catalog remains explicit because it intentionally uses different aliases and technical-line styling; scene and model definitions are still shared.
+`openconnect_sturdy_hook.yaml` owns its two-object default view, single-object empty and side views, and four parameter-gallery variants. The side-specific annotation catalog remains explicit because it intentionally uses different aliases and technical-line styling; scene and model definitions are still shared.
 
-`openconnect_vasemode_container_default.yaml` shares one named annotation catalog across its default, empty, side, and texture-gallery variants. The variants toggle grid dimensions and the tilt callout, and reposition the texture label without duplicating its base style or aliases.
+`openconnect_vasemode_container.yaml` shares one named annotation catalog across its default, empty, side, and texture-gallery variants. The variants toggle grid dimensions and the tilt callout, and reposition the texture label without duplicating its base style or aliases.
 
-`opengrid_framefit_hook_default.yaml` owns both its three-object default composition and single-object side detail.
+`opengrid_framefit_hook.yaml` owns both its three-object default composition and single-object side detail.
 
-`opengrid_snap_gadget_hook_default.yaml` owns the composed default, empty and side details, and four shape-parameter variants. Compact per-view scene lists preserve the historical `model_a` versus `model` object IDs, while gallery changes use the stable `model` ID.
+`opengrid_snap_gadget_hook.yaml` owns the composed default, empty and side details, and four shape-parameter variants. Compact per-view scene lists preserve the historical `model_a` versus `model` object IDs, while gallery changes use the stable `model` ID.
 
-`opengrid_snap_gadget_clip_default.yaml` uses the same pattern for its composed default, empty parameter base, side detail, and four clip-shape variants. Historical object IDs and snap transforms remain unchanged.
+`opengrid_snap_gadget_clip.yaml` uses the same pattern for its composed default, empty parameter base, side detail, and four clip-shape variants. Historical object IDs and snap transforms remain unchanged.
 
-`opengrid_snap_gadget_plier_holder_default.yaml` completes the snap-gadget group with shared `model_a`/`snap_a` identities. Its empty variant uses `unset` for inherited dimensions and camera controls, and gallery variants add only their parameter and view changes.
+`opengrid_snap_gadget_plier_holder.yaml` completes the snap-gadget group with shared `model_a`/`snap_a` identities. Its empty variant uses `unset` for inherited dimensions and camera controls, and gallery variants add only their parameter and view changes.
 
-`openconnect_clamshell_holder_default.yaml` owns the default, alternate, empty, front, side, and four parameter-gallery variants. One named annotation catalog supplies every view: variants enable or reposition only the dimensions and labels they need.
+`openconnect_clamshell_holder.yaml` owns the default, alternate, empty, front, side, and four parameter-gallery variants. One named annotation catalog supplies every view: variants enable or reposition only the dimensions and labels they need.
 
-`openconnect_drawer_shell_container_default.yaml` owns the combined, empty, top, shell-only, and four parameter-gallery variants. It reuses the object and transform constants in `drawer_base.yaml`, targets scene objects by ID, and keeps both shell and container dimensions in one named annotation catalog. `model_defaults.yaml` imports its `shell` variant directly with a named `variant_configs` entry.
+`openconnect_drawer_shell_container.yaml` owns the combined, empty, top, shell-only, and four parameter-gallery variants. It reuses the object and transform constants in `drawer_base.yaml`, targets scene objects by ID, and keeps both shell and container dimensions in one named annotation catalog. `model_defaults.yaml` imports its `shell` variant directly with a named `variant_configs` entry.
 
-`drawer_container_empty.yaml` is the canonical floor-scene drawer config. It owns the width, depth, combined-divider, and three parameter-gallery variants. Its shared label catalog keeps width and depth values distinct, including separate `container_depth_grid_count` and `container_depth_compartment_list` targets.
+`openconnect_drawer_floor.yaml` is the canonical floor-scene drawer config. It owns the width, depth, combined-divider, and three parameter-gallery variants. Its shared label catalog keeps width and depth values distinct, including separate `container_depth_grid_count` and `container_depth_compartment_list` targets.
 
-The smaller plate and snap utilities follow the same rule. `openconnect_plate_floor.yaml` owns its floor and slot-detail views, `opengrid_parametric_snap.yaml` owns its wall, floor, and OpenConnect-detail views, and `opengrid_expanding_snap.yaml` owns its wall and floor views. Each canonical config stores its SCAD source in one model constant.
+The smaller plate and snap utilities follow the same rule. `openconnect_plate.yaml` owns its floor and slot-detail views, `opengrid_parametric_snap.yaml` owns its wall, floor, and OpenConnect-detail views, and `opengrid_expanding_snap.yaml` owns its wall and floor views. Each canonical config stores its SCAD source in one model constant.
 
 Canonical configs also reuse model constants across their own scene objects and variants. Each `scad_file` path is declared once in the config tree; additional objects reference that model constant. The test suite enforces this invariant so a model source cannot silently diverge between views.
 
@@ -942,48 +955,21 @@ Use `variant_configs` when a gallery config should import complete per-model con
 
 ```yaml
 extends: base_scene.yaml
-job_name: opengrid_annotation_models
 variant_configs:
-  - openconnect_sturdy_hook_default.yaml
-  - openconnect_sturdy_shelf_default.yaml
-  - openconnect_general_holder_default.yaml
+  - openconnect_sturdy_hook.yaml
+  - openconnect_sturdy_shelf.yaml
+  - openconnect_general_holder.yaml
 ```
 
-Imported config paths are resolved relative to the importing config. The imported variant name comes from top-level `variant_name`, or from the filename stem when `variant_name` is omitted.
+Imported config paths are resolved relative to the importing config. The imported variant name comes from the filename stem unless the entry supplies `name` explicitly.
 
 If an imported config declares `default_variant`, `variant_configs` imports that resolved variant rather than the unresolved top-level base. An object entry can select and rename a variant explicitly:
 
 ```yaml
 variant_configs:
-- path: openconnect_drawer_shell_container_default.yaml
+- path: openconnect_drawer_shell_container.yaml
   variant: shell
-  name: openconnect_drawer_shell_default
-```
-
-Extra parameter groups live in `configs/parameter_details.yaml`, which extends the defaults and replaces the variant list with secondary detail renders:
-
-```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe `
-  --config annotation_renderer\configs\parameter_details.yaml `
-  --variant sturdy_hook_circular_details
-```
-
-Current parameter-detail variants:
-
-* `sturdy_hook_circular_details`: `hook_width`, `hook_corner_fillet`, `circular_tip_radius`, `circular_tip_angle`
-* `sturdy_hook_rectangular_details`: `hook_width`, `rectangular_tip_extra_length`, `hook_shape_type`
-* `sturdy_hook_truss_details`: `truss_vertical_grids`, `truss_thickness`, `truss_max_angle`
-* `sturdy_shelf_truss_details`: `truss_beam_reach`, `truss_thickness`, `truss_strut_interval`, `shelf_corner_fillet`
-* `sturdy_shelf_edge_texture_details`: `shelf_side_edge_depth`, `shelf_front_edge_depth`, `shelf_texture_depth`
-* `drawer_shell_clearance_details`: `shell_thickness`, container width/height/depth clearances, `container_back_side_height_offset`
-* `drawer_container_label_handle_details`: `handle_depth`, `label_width`, `label_height`, stopper settings, and magnet diameters
-
-Use `extends` in a config when a secondary parameter set should reuse `model_defaults.yaml` constants, scene binding, and render presets without copying them:
-
-```yaml
-extends: model_defaults.yaml
-job_name: my_parameter_details
-variants: []
+  name: openconnect_drawer_shell
 ```
 
 ## SCAD Annotation Contract

@@ -1,9 +1,6 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
-variant_name: openconnect_clamshell_holder_default
 default_variant: default
-job_name: clamshell_holder_scene_default
-
 scene:
   objects:
   - id: model
@@ -16,14 +13,13 @@ scene:
         item_corner_rounding: 8
         holder_slot_column_limit: 1
     transform:
-      location_mm: [0, "-(item_depth+holder_thickness+3.72) / 2", -(item_height+holder_thickness*2) / 2]
+      location_mm: [0, -(item_depth+holder_thickness+3.72) / 2, -(item_height+holder_thickness*2)
+          / 2]
       rotation_deg: [0, 0, 0]
       scale:
         $constant: blender_scene_scale_vector
-
 render:
   fit_margin: 0.1
-
 annotations:
   style:
     $constant: default_annotation_style
@@ -31,127 +27,122 @@ annotations:
     holder_slot_position: slot_position
     item_corner_rounding_extent: item_corner_rounding
   chains:
-  - name: item_width_dimension
-    ids: [item_width]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: -30
-    label_offset_px: -50
-    color:
-      $constant: annotation_color_black
-  - name: item_height_dimension
-    ids: [item_height]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 20
-    label_offset_px: 50
-    color:
-      $constant: annotation_color_black
-  - name: item_depth_dimension
-    ids: [item_depth]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 20
-    label_offset_px: 50
-    color:
-      $constant: annotation_color_black
-  - name: front_opening_left_right_margin_dimension
-    ids: [front_opening_left_right_margin]
-    enabled: false
-    optional: true
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 50
-    label_offset_px: 50
-    label_font_size_px: 48
-    color:
-      $constant: annotation_color_blue
-  - name: front_opening_top_bottom_margin_dimension
-    ids: [front_opening_top_bottom_margin]
-    enabled: false
-    optional: true
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: -50
-    label_offset_px: -50
-    label_font_size_px: 48
-    color:
-      $constant: annotation_color_blue
-  - name: side_cutout_top_margin_dimension
-    ids: [side_cutout_top_margin]
-    enabled: false
-    color:
-      $constant: annotation_color_blue
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 200
-    label_offset_px: 45
-    label_along_offset_px: 0
-    label_font_size_px: 48
-  - name: side_cutout_bottom_margin_dimension
-    ids: [side_cutout_bottom_margin]
-    enabled: false
-    color:
-      $constant: annotation_color_blue
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: -300
-    label_offset_px: -45
-    label_along_offset_px: 0
-    label_font_size_px: 48
-  - name: side_cutout_back_margin_dimension
-    ids: [side_cutout_back_margin]
-    enabled: false
-    optional: true
-    color:
-      $constant: annotation_color_red
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: -300
-    label_offset_px: -45
-    label_font_size_px: 48
-  - name: side_cutout_front_margin_dimension
-    ids: [side_cutout_front_margin]
-    enabled: false
-    optional: true
-    color:
-      $constant: annotation_color_red
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 60
-    label_offset_px: 45
-    label_font_size_px: 48
+    item_width_dimension:
+      id: item_width
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: -30
+      label_offset_px: -50
+      color:
+        $constant: annotation_color_black
+    item_height_dimension:
+      id: item_height
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 20
+      label_offset_px: 50
+      color:
+        $constant: annotation_color_black
+    item_depth_dimension:
+      id: item_depth
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 20
+      label_offset_px: 50
+      color:
+        $constant: annotation_color_black
+    front_opening_left_right_margin_dimension:
+      id: front_opening_left_right_margin
+      enabled: false
+      optional: true
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 50
+      label_offset_px: 50
+      label_font_size_px: 48
+      color:
+        $constant: annotation_color_blue
+    front_opening_top_bottom_margin_dimension:
+      id: front_opening_top_bottom_margin
+      enabled: false
+      optional: true
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: -50
+      label_offset_px: -50
+      label_font_size_px: 48
+      color:
+        $constant: annotation_color_blue
+    side_cutout_top_margin_dimension:
+      id: side_cutout_top_margin
+      enabled: false
+      color:
+        $constant: annotation_color_blue
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 200
+      label_offset_px: 45
+      label_along_offset_px: 0
+      label_font_size_px: 48
+    side_cutout_bottom_margin_dimension:
+      id: side_cutout_bottom_margin
+      enabled: false
+      color:
+        $constant: annotation_color_blue
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: -300
+      label_offset_px: -45
+      label_along_offset_px: 0
+      label_font_size_px: 48
+    side_cutout_back_margin_dimension:
+      id: side_cutout_back_margin
+      enabled: false
+      optional: true
+      color:
+        $constant: annotation_color_red
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: -300
+      label_offset_px: -45
+      label_font_size_px: 48
+    side_cutout_front_margin_dimension:
+      id: side_cutout_front_margin
+      enabled: false
+      optional: true
+      color:
+        $constant: annotation_color_red
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 60
+      label_offset_px: 45
+      label_font_size_px: 48
   angle_radius_callouts:
-  - name: item_corner_rounding_fillet
-    id: item_corner_rounding_fillet
-    enabled: false
-    arc_id: item_corner_rounding_extent
-    radius_id: item_corner_rounding
-    angle_id: item_corner_rounding
-    optional: true
-    show_angle_label: false
-    radius_label_offset_px: 100
-    angle_fill_alpha: 28
-    label_font_size_px: 48
+    item_corner_rounding_fillet:
+      enabled: false
+      arc_id: item_corner_rounding_extent
+      radius_id: item_corner_rounding
+      angle_id: item_corner_rounding
+      optional: true
+      show_angle_label: false
+      radius_label_offset_px: 100
+      angle_fill_alpha: 28
+      label_font_size_px: 48
   image_labels:
-  - name: holder_slot_position_label
-    $constant: top_image_label
-    id: holder_slot_position
-    enabled: false
-    show_value: true
-    value_color:
-      $constant: annotation_color_blue
-    font_size_px:
-      $constant: annotation_title_font_size_px
-
+    holder_slot_position_label:
+      $constant: top_image_label
+      id: holder_slot_position
+      enabled: false
+      show_value: true
+      value_color:
+        $constant: annotation_color_blue
+      font_size_px:
+        $constant: annotation_title_font_size_px
 gallery:
   $constant: parameter_gallery_settings
-
 variant_collections:
-  product_views: [default, alt, empty, front, side]
-  parameter_gallery:
-  - Width164_Height60_SlotColumn1
-  - Width164_Height60_SlotColumn2
-  - Width164_SlotPosition_Top
-  - Width120_Height100_Rounding20
-
+  product_views:
+  - default
+  - alt
+  - empty
+  - front
+  - side
+  parameter_gallery: [Width164_Height60_SlotColumn1, Width164_Height60_SlotColumn2,
+    Width164_SlotPosition_Top, Width120_Height100_Rounding20]
 variants:
 - name: default
-  job_name: clamshell_holder_scene_default
-
 - name: alt
-  job_name: clamshell_holder_scene_default
   object_overrides:
     model:
       model:
@@ -159,7 +150,7 @@ variants:
           holder_slot_position: Front
           slot_slide_direction: Down
       transform:
-        location_mm: [0, "-(item_height / 2 + og_standard_thickness / 2)", 0]
+        location_mm: [0, -(item_height / 2 + og_standard_thickness / 2), 0]
         rotation_deg: [-90, 0, 0]
   annotation_overrides:
     item_width_dimension:
@@ -170,9 +161,7 @@ variants:
       enabled: false
     holder_slot_position_label:
       enabled: true
-
 - name: empty
-  job_name: clamshell_holder_scene_default
   annotation_overrides:
     item_width_dimension:
       enabled: false
@@ -180,12 +169,8 @@ variants:
       enabled: false
     item_depth_dimension:
       enabled: false
-  unset:
-  - scene.objects.model.model.defines
-  - annotations.aliases
-
+  unset: [scene.objects.model.model.defines, annotations.aliases]
 - name: front
-  job_name: clamshell_holder_scene_default
   object_overrides:
     model:
       inherit_target_transform: false
@@ -209,9 +194,7 @@ variants:
       enabled: true
     item_corner_rounding_fillet:
       enabled: true
-
 - name: side
-  job_name: clamshell_holder_scene_default
   object_overrides:
     model:
       inherit_target_transform: false
@@ -245,9 +228,7 @@ variants:
       enabled: true
     side_cutout_front_margin_dimension:
       enabled: true
-  unset:
-  - annotations.aliases
-
+  unset: [annotations.aliases]
 - name: Width164_Height60_SlotColumn1
   extends_variant: empty
   object_overrides:
@@ -258,7 +239,6 @@ variants:
           item_height: 60
           item_corner_rounding: 8
           holder_slot_column_limit: 1
-
 - name: Width164_Height60_SlotColumn2
   extends_variant: empty
   object_overrides:
@@ -269,7 +249,6 @@ variants:
           item_height: 60
           item_corner_rounding: 8
           holder_slot_column_limit: 2
-
 - name: Width164_SlotPosition_Top
   extends_variant: empty
   object_overrides:
@@ -283,9 +262,9 @@ variants:
           holder_slot_position: Top
           slot_slide_direction: Down
       transform:
-        location_mm: [0, "-(item_height+holder_thickness+3.72)", "-(item_depth+holder_thickness*2) / 2"]
+        location_mm: [0, -(item_height+holder_thickness+3.72), -(item_depth+holder_thickness*2)
+            / 2]
         rotation_deg: [-90, 0, 0]
-
 - name: Width120_Height100_Rounding20
   extends_variant: empty
   object_overrides:
@@ -297,4 +276,5 @@ variants:
           item_corner_rounding: 20
           holder_slot_column_limit: 1
       transform:
-        location_mm: [0, "-(item_depth+holder_thickness+3.72) / 2", -(item_height+holder_thickness*2) / 2-14]
+        location_mm: [0, -(item_depth+holder_thickness+3.72) / 2, -(item_height+holder_thickness*2)
+            / 2-14]

@@ -1,13 +1,9 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
-variant_name: opengrid_snap_gadget_hook_default
 default_variant: default
-job_name: snap_gadget_hook_scene
-
 constants:
   snap_gadget_hook_model:
     scad_file: opengrid_snap_gadget_hook.scad
-
 scene:
   objects:
   - id: model_a
@@ -41,13 +37,11 @@ scene:
     transform:
       location_mm: [42, 0, -14]
       rotation_deg: [-90, -90, 0]
-
 render:
   fit_margin: 0
   camera_view_preset: top_front
   lighting:
     toplight_power: 6
-
 annotations:
   style:
     $constant: default_annotation_style
@@ -57,39 +51,30 @@ annotations:
         line_colors:
         - $constant: annotation_color_black
   chains:
-  - name: hook_thickness_dimension
-    ids: [hook_thickness]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: -60
-    label_offset_px: -50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-  - name: hook_main_size_dimension
-    ids: [hook_main_size]
-    display_rotation_deg: [0, 0, 2]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: -200
-    label_offset_px: -50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-
+    hook_thickness_dimension:
+      id: hook_thickness
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: -60
+      label_offset_px: -50
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+    hook_main_size_dimension:
+      id: hook_main_size
+      display_rotation_deg: [0, 0, 2]
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: -200
+      label_offset_px: -50
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
 gallery:
   $constant: parameter_gallery_settings
-
 variant_collections:
   product_views: [default, empty, side]
-  parameter_gallery:
-  - Centered_main20
-  - Straight_main40_width13.2_thick10
-  - Loop_main20
-  - Centered_Rectangular_main20
-
+  parameter_gallery: [Centered_main20, Straight_main40_width13.2_thick10, Loop_main20,
+    Centered_Rectangular_main20]
 variants:
 - name: default
-  job_name: snap_gadget_hook_scene
-
 - name: empty
-  job_name: snap_gadget_hook_scene
   scene:
     objects:
     - id: model
@@ -111,11 +96,8 @@ variants:
         mm:
           line_colors:
           - $constant: annotation_color_black
-  unset:
-  - render.lighting
-
+  unset: [render.lighting]
 - name: side
-  job_name: snap_gadget_hook_scene
   scene:
     objects:
     - id: model
@@ -146,45 +128,42 @@ variants:
           line_colors:
           - $constant: annotation_color_black
     angle_radius_callouts:
-    - name: hook_tip_angle_detail
-      id: hook_tip_angle_detail
-      arc_id: hook_tip_angle_extent
-      radius_id: hook_tip_angle_radius
-      angle_id: hook_tip_angle
-      display_offset_mm: [-2, 0, 0]
-      optional: true
-      show_radius_label: false
-      angle_label_offset_px: 80
-      angle_fill_alpha: 28
+      hook_tip_angle_detail:
+        arc_id: hook_tip_angle_extent
+        radius_id: hook_tip_angle_radius
+        angle_id: hook_tip_angle
+        display_offset_mm: [-2, 0, 0]
+        optional: true
+        show_radius_label: false
+        angle_label_offset_px: 80
+        angle_fill_alpha: 28
     chains:
-    - name: hook_thickness_dimension
-      ids: [hook_thickness]
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: -50
-      label_offset_px: -50
-      label_font_size_px:
-        $constant: annotation_label_font_size_px
-    - name: hook_main_size_dimension
-      ids: [hook_main_size]
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: -320
-      label_offset_px: -50
-      label_along_offset_px: 90
-      label_font_size_px:
-        $constant: annotation_label_font_size_px
-    - name: hook_stem_length_dimension
-      ids: [hook_stem_length]
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: -320
-      label_offset_px: -50
-      label_along_offset_px: -90
-      label_font_size_px:
-        $constant: annotation_label_font_size_px
-      color:
-        $constant: annotation_color_blue
-  unset:
-  - render.camera_view_preset
-
+      hook_thickness_dimension:
+        id: hook_thickness
+        display_offset_mm: [0, 0, 0]
+        line_offset_px: -50
+        label_offset_px: -50
+        label_font_size_px:
+          $constant: annotation_label_font_size_px
+      hook_main_size_dimension:
+        id: hook_main_size
+        display_offset_mm: [0, 0, 0]
+        line_offset_px: -320
+        label_offset_px: -50
+        label_along_offset_px: 90
+        label_font_size_px:
+          $constant: annotation_label_font_size_px
+      hook_stem_length_dimension:
+        id: hook_stem_length
+        display_offset_mm: [0, 0, 0]
+        line_offset_px: -320
+        label_offset_px: -50
+        label_along_offset_px: -90
+        label_font_size_px:
+          $constant: annotation_label_font_size_px
+        color:
+          $constant: annotation_color_blue
+  unset: [render.camera_view_preset]
 - name: Centered_main20
   extends_variant: empty
   object_overrides:
@@ -193,7 +172,6 @@ variants:
         defines:
           hook_shape_type: Centered
           hook_main_size: 20
-
 - name: Straight_main40_width13.2_thick10
   extends_variant: empty
   object_overrides:
@@ -206,7 +184,6 @@ variants:
           hook_width: 13.2
           hook_thickness: 10
           hook_stem_length: 20
-
 - name: Loop_main20
   extends_variant: empty
   object_overrides:
@@ -214,7 +191,6 @@ variants:
       model:
         defines:
           hook_shape_type: Loop
-
 - name: Centered_Rectangular_main20
   extends_variant: empty
   object_overrides:

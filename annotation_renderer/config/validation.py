@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Mapping, Sequence
 
-from annotation_renderer.config_defaults import (
+from annotation_renderer.config.defaults import (
     ANNOTATION_COLLECTION_KEYS,
     ANIMATION_CLIP_CONFIG_KEYS,
     ANIMATION_CONFIG_KEYS,
@@ -41,8 +41,8 @@ from annotation_renderer.config_defaults import (
     STYLE_STRING_LIST_FIELDS,
     VISIBILITY_KEYFRAME_KEYS,
 )
-from annotation_renderer.config_resolution import deep_merge, resolve_config_constants, resolve_preset_mapping
-from annotation_renderer.config_schema import ConfigError, validate_against_config_schema
+from annotation_renderer.config.resolution import deep_merge, resolve_config_constants, resolve_preset_mapping
+from annotation_renderer.config.schema import ConfigError, validate_against_config_schema
 
 
 def resolve_scene(scene_config: object) -> dict[str, object]:

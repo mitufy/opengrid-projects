@@ -1,8 +1,6 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
-variant_name: opengrid_expanding_snap
 default_variant: wall
-job_name: opengrid_expanding_snap
 
 scene:
   objects:
@@ -27,10 +25,8 @@ variant_collections:
 
 variants:
 - name: wall
-  job_name: opengrid_expanding_snap
 
 - name: floor
-  job_name: opengrid_expanding_snap
   scene:
     blend_file: ../assets/scenes/opengrid_floor_scene.blend
     objects:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from annotation_renderer.scene_cli import main
+from annotation_renderer.cli import main
 
 
 if __name__ == "__main__":

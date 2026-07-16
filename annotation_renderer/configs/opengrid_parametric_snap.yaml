@@ -1,13 +1,9 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
-variant_name: opengrid_parametric_snap
 default_variant: wall
-job_name: opengrid_parametric_snap
-
 constants:
   parametric_snap_model:
     scad_file: opengrid_parametric_snap.scad
-
 scene:
   objects:
   - id: model
@@ -17,16 +13,14 @@ scene:
         generate_screw: None
         generate_snap: openConnect
     transform:
-      location_mm: ["og_tile_size / 2", og_standard_thickness, "-(og_tile_size / 2)"]
+      location_mm: [og_tile_size / 2, og_standard_thickness, -(og_tile_size / 2)]
       rotation_deg: [90, 0, 0]
-
 render:
   fit_margin: 0.3
   camera_view: top
   lighting:
     toplight_power: 6
     frontlight_power: 1.2
-
 annotations:
   style:
     $constant: default_annotation_style
@@ -35,16 +29,11 @@ annotations:
       mm:
         line_colors:
         - $constant: annotation_color_black
-
 variant_collections:
   product_views: [wall, floor, openconnect_annotated]
-
 variants:
 - name: wall
-  job_name: opengrid_parametric_snap
-
 - name: floor
-  job_name: opengrid_parametric_snap
   scene:
     blend_file: ../assets/scenes/opengrid_floor_scene.blend
     objects:
@@ -57,7 +46,7 @@ variants:
       model:
         $constant: parametric_snap_model
         defines:
-          generate_snap: "openConnect (Folded)"
+          generate_snap: openConnect (Folded)
       transform:
         location_mm: [32, 0, 0]
         rotation_deg: [0, 0, 180]
@@ -66,20 +55,15 @@ variants:
         $constant: parametric_snap_model
         defines:
           generate_screw: openConnect
-          generate_snap: "Self-Expanding Threads"
+          generate_snap: Self-Expanding Threads
       transform:
         location_mm: [0, -32, 0]
   render:
     camera_view_preset: top_front
     lighting:
       toplight_power: 1.5
-  unset:
-  - render.fit_margin
-  - render.camera_view
-  - render.lighting.frontlight_power
-
+  unset: [render.fit_margin, render.camera_view, render.lighting.frontlight_power]
 - name: openconnect_annotated
-  job_name: openconnect_snap_annotated
   scene:
     objects:
     - id: snap
@@ -116,76 +100,74 @@ variants:
           line_colors:
           - $constant: annotation_color_red
     chains:
-    - name: ochead_height_dimension
-      ids: [ochead_bottom_height, ochead_middle_height, ochead_top_height]
-      labels:
-        ochead_bottom_height: "0.6"
-        ochead_middle_height: "1.4"
-        ochead_top_height: "0.6"
-      line_offset_px: 72
-      label_offset_px: 58
-      label_along_offset_px: 0
-    - name: ochead_large_rect_width_dimension
-      ids: [ochead_large_rect_width]
-      labels:
-        ochead_large_rect_width: "17"
-      line_offset_px: -80
-      label_offset_px: -60
-    - name: ochead_large_rect_height_dimension
-      ids: [ochead_large_rect_height]
-      labels:
-        ochead_large_rect_height: "10.6"
-      line_offset_px: 72
-      label_offset_px: 54
-    - name: ochead_large_rect_chamfer_dimension
-      ids: [ochead_large_rect_chamfer]
-      labels:
-        ochead_large_rect_chamfer: "4"
-      line_offset_px: -42
-      label_offset_px: -36
-    - name: ochead_nub_to_top_distance_dimension
-      ids: [ochead_nub_to_top_distance]
-      labels:
-        ochead_nub_to_top_distance: "7.2"
-      line_offset_px: 86
-      label_offset_px: 54
-    - name: ochead_nub_depth_dimension
-      ids: [ochead_nub_depth]
-      labels:
-        ochead_nub_depth: "0.6"
-      line_offset_px: -66
-      label_offset_px: -42
-      label_along_offset_px: 90
-    - name: ochead_nub_tip_height_dimension
-      ids: [ochead_nub_tip_height]
-      labels:
-        ochead_nub_tip_height: "1.2"
-      line_offset_px: 50
-      label_offset_px: 36
-    - name: ochead_back_pos_offset_dimension
-      ids: [ochead_back_pos_offset]
-      labels:
-        ochead_back_pos_offset: "0.4"
-      line_offset_px: -34
-      label_offset_px: -28
-    - name: ocslot_move_distance_dimension
-      ids: [OCSLOT_MOVE_DISTANCE]
-      labels:
-        OCSLOT_MOVE_DISTANCE: "10.6"
-      line_offset_px: 104
-      label_offset_px: 64
-    - name: ocslot_onramp_clearance_dimension
-      ids: [OCSLOT_ONRAMP_CLEARANCE]
-      labels:
-        OCSLOT_ONRAMP_CLEARANCE: "0.8"
-      line_offset_px: -70
-      label_offset_px: -44
+      ochead_height_dimension:
+        ids: [ochead_bottom_height, ochead_middle_height, ochead_top_height]
+        labels:
+          ochead_bottom_height: '0.6'
+          ochead_middle_height: '1.4'
+          ochead_top_height: '0.6'
+        line_offset_px: 72
+        label_offset_px: 58
+        label_along_offset_px: 0
+      ochead_large_rect_width_dimension:
+        id: ochead_large_rect_width
+        labels:
+          ochead_large_rect_width: '17'
+        line_offset_px: -80
+        label_offset_px: -60
+      ochead_large_rect_height_dimension:
+        id: ochead_large_rect_height
+        labels:
+          ochead_large_rect_height: '10.6'
+        line_offset_px: 72
+        label_offset_px: 54
+      ochead_large_rect_chamfer_dimension:
+        id: ochead_large_rect_chamfer
+        labels:
+          ochead_large_rect_chamfer: '4'
+        line_offset_px: -42
+        label_offset_px: -36
+      ochead_nub_to_top_distance_dimension:
+        id: ochead_nub_to_top_distance
+        labels:
+          ochead_nub_to_top_distance: '7.2'
+        line_offset_px: 86
+        label_offset_px: 54
+      ochead_nub_depth_dimension:
+        id: ochead_nub_depth
+        labels:
+          ochead_nub_depth: '0.6'
+        line_offset_px: -66
+        label_offset_px: -42
+        label_along_offset_px: 90
+      ochead_nub_tip_height_dimension:
+        id: ochead_nub_tip_height
+        labels:
+          ochead_nub_tip_height: '1.2'
+        line_offset_px: 50
+        label_offset_px: 36
+      ochead_back_pos_offset_dimension:
+        id: ochead_back_pos_offset
+        labels:
+          ochead_back_pos_offset: '0.4'
+        line_offset_px: -34
+        label_offset_px: -28
+      ocslot_move_distance_dimension:
+        id: OCSLOT_MOVE_DISTANCE
+        labels:
+          OCSLOT_MOVE_DISTANCE: '10.6'
+        line_offset_px: 104
+        label_offset_px: 64
+      ocslot_onramp_clearance_dimension:
+        id: OCSLOT_ONRAMP_CLEARANCE
+        labels:
+          OCSLOT_ONRAMP_CLEARANCE: '0.8'
+        line_offset_px: -70
+        label_offset_px: -44
     radius_callouts:
-    - name: ochead_nub_fillet_callout
-      ids: [ochead_nub_fillet]
-      labels:
-        ochead_nub_fillet: "0.8"
-      label_offset_px: -92
-  unset:
-  - render.camera_view
-  - render.lighting
+      ochead_nub_fillet_callout:
+        id: ochead_nub_fillet
+        labels:
+          ochead_nub_fillet: '0.8'
+        label_offset_px: -92
+  unset: [render.camera_view, render.lighting]

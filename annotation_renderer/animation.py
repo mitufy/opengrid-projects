@@ -7,8 +7,8 @@ from typing import Mapping, Sequence
 
 from PIL import Image
 
-from annotation_renderer.config_resolution import vector3
-from annotation_renderer.config_schema import ConfigError
+from annotation_renderer.config.resolution import vector3
+from annotation_renderer.config.schema import ConfigError
 
 
 def resolve_animation_config(

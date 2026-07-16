@@ -1,16 +1,12 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: drawer_base.yaml
-variant_name: openconnect_drawer_shell_container_default
 default_variant: default
-job_name: openconnect_drawer_shell_container_scene_default
-
 scene:
   object_defaults:
     $constant: drawer_object_defaults
   objects:
   - $constant: drawer_shell_object
   - $constant: drawer_container_object
-
 render:
   fit_margin: 0.1
   camera_location_offset_mm: [0, 0, 0]
@@ -18,84 +14,74 @@ render:
   lighting:
     toplight_power: 2
     frontlight_power: 1.5
-
 annotations:
   style:
     $constant: default_annotation_style
   aliases:
     $constant: default_grid_label_aliases
   chains:
-  - name: container_horizontal_grids_dimension
-    ids: [horizontal_grids]
-    line_offset_px: -1
-    label_offset_px: -35
-    label_along_offset_px: 105
-    label_font_size_px: 45
-    color:
-      $constant: annotation_color_black
-  - name: container_vertical_grids_dimension
-    ids: [vertical_grids]
-    line_offset_px: 10
-    label_offset_px: 50
-    color:
-      $constant: annotation_color_black
-    label_font_size_px: 50
-  - name: container_depth_grids_dimension
-    ids: [depth_grids]
-    line_offset_px: 1
-    label_offset_px: 40
-    color:
-      $constant: annotation_color_blue
-    label_font_size_px: 45
-  - name: shell_horizontal_grids_dimension
-    ids: [horizontal_grids]
-    enabled: false
-    label_offset_px: 50
-    color:
-      $constant: annotation_color_black
-  - name: shell_vertical_grids_dimension
-    ids: [vertical_grids]
-    enabled: false
-    line_offset_px: 10
-    label_offset_px: 50
-    color:
-      $constant: annotation_color_black
-  - name: shell_depth_grids_dimension
-    ids: [depth_grids]
-    enabled: false
-    line_offset_px: 10
-    label_offset_px: 50
-    color:
-      $constant: annotation_color_black
+    container_horizontal_grids_dimension:
+      id: horizontal_grids
+      line_offset_px: -1
+      label_offset_px: -35
+      label_along_offset_px: 105
+      label_font_size_px: 45
+      color:
+        $constant: annotation_color_black
+    container_vertical_grids_dimension:
+      id: vertical_grids
+      line_offset_px: 10
+      label_offset_px: 50
+      color:
+        $constant: annotation_color_black
+      label_font_size_px: 50
+    container_depth_grids_dimension:
+      id: depth_grids
+      line_offset_px: 1
+      label_offset_px: 40
+      color:
+        $constant: annotation_color_blue
+      label_font_size_px: 45
+    shell_horizontal_grids_dimension:
+      id: horizontal_grids
+      enabled: false
+      label_offset_px: 50
+      color:
+        $constant: annotation_color_black
+    shell_vertical_grids_dimension:
+      id: vertical_grids
+      enabled: false
+      line_offset_px: 10
+      label_offset_px: 50
+      color:
+        $constant: annotation_color_black
+    shell_depth_grids_dimension:
+      id: depth_grids
+      enabled: false
+      line_offset_px: 10
+      label_offset_px: 50
+      color:
+        $constant: annotation_color_black
   image_labels:
-  - name: shell_slot_position_label
-    $constant: top_image_label
-    id: shell_slot_position
-    enabled: false
-    offset_px: [0, 0]
-    show_value: true
-    value_color:
-      $constant: annotation_color_blue
-    font_size_px:
-      $constant: annotation_title_font_size_px
-
+    shell_slot_position_label:
+      $constant: top_image_label
+      id: shell_slot_position
+      enabled: false
+      offset_px: [0, 0]
+      show_value: true
+      value_color:
+        $constant: annotation_color_blue
+      font_size_px:
+        $constant: annotation_title_font_size_px
 gallery:
   $constant: parameter_gallery_settings
-
 variant_collections:
   product_views: [default, empty, top, shell]
-  parameter_gallery:
-  - Solid_Wall_NoLabel
-  - Solid_Wall_hGrid3_vGrid4
-  - DivHeight_22_hGrid6_vGrid4
-  - DivWidth_42_hGrid6_vGrid4
-
+  parameter_gallery: [Solid_Wall_NoLabel, Solid_Wall_hGrid3_vGrid4, DivHeight_22_hGrid6_vGrid4,
+    DivWidth_42_hGrid6_vGrid4]
 variants:
 - name: default
-  job_name: openconnect_drawer_shell_container_scene_default
-
 - name: empty
-  job_name: openconnect_drawer_shell_container_scene_default
   annotation_overrides:
     container_horizontal_grids_dimension:
       enabled: false
@@ -103,9 +89,7 @@ variants:
       enabled: false
     container_depth_grids_dimension:
       enabled: false
-
 - name: top
-  job_name: openconnect_drawer_shell_container_scene_default
   object_overrides:
     drawer_shell:
       model:
@@ -141,9 +125,7 @@ variants:
   - annotations.style
   - annotations.aliases
   - annotations.chains
-
 - name: shell
-  job_name: openconnect_drawer_shell_scene_default
   object_overrides:
     drawer_container:
       enabled: false
@@ -162,11 +144,7 @@ variants:
       enabled: true
     shell_depth_grids_dimension:
       enabled: true
-  unset:
-  - render.camera_location_offset_mm
-  - render.camera_rotation_offset_deg
-  - render.lighting
-
+  unset: [render.camera_location_offset_mm, render.camera_rotation_offset_deg, render.lighting]
 - name: Solid_Wall_NoLabel
   extends_variant: empty
   object_overrides:
@@ -180,7 +158,6 @@ variants:
           container_front_wall_type: Solid
           container_side_wall_type: Solid
           add_label_holder: false
-
 - name: Solid_Wall_hGrid3_vGrid4
   extends_variant: empty
   object_overrides:
@@ -199,7 +176,6 @@ variants:
           vertical_grids: 4
           horizontal_grids: 3
           depth_grids: 5
-
 - name: DivHeight_22_hGrid6_vGrid4
   extends_variant: empty
   object_overrides:
@@ -210,11 +186,10 @@ variants:
           horizontal_grids: 6
           depth_grids: 5
           add_shell_divider: Height
-          shell_height_compartment_list: "2,2"
+          shell_height_compartment_list: 2,2
           shell_bottom_wall_type: Solid
     drawer_container:
       enabled: false
-
 - name: DivWidth_42_hGrid6_vGrid4
   extends_variant: empty
   object_overrides:
@@ -225,7 +200,7 @@ variants:
           horizontal_grids: 6
           depth_grids: 6
           add_shell_divider: Width
-          shell_width_compartment_list: "4,2"
+          shell_width_compartment_list: 4,2
           shell_bottom_wall_type: Solid
     drawer_container:
       enabled: false

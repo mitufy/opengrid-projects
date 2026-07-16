@@ -1,5 +1,4 @@
 $schema: ../schemas/annotation-render-config.schema.json
-job_name: opengrid_annotation_base
 constants:
   gallery_outline_color: '#111827'
   gallery_neutral_material_color: '#8fa1b3'

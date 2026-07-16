@@ -9,9 +9,7 @@ import subprocess
 from pathlib import Path
 from typing import Sequence
 
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-
+from annotation_renderer.paths import PROJECT_ROOT
 
 def project_relative_or_absolute(path: Path, *, repo_root: Path = PROJECT_ROOT) -> str:
     resolved_path = path.resolve()

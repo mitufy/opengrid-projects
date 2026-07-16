@@ -19,10 +19,6 @@
     "job_name": {
       "type": "string"
     },
-    "variant_name": {
-      "type": "string",
-      "description": "Name used when this config is imported by another config through variant_configs."
-    },
     "default_variant": {
       "type": "string",
       "minLength": 1,
@@ -1469,6 +1465,17 @@
         "type": "object"
       }
     },
+    "annotationGroupMap": {
+      "type": "object",
+      "description": "Concise annotation syntax keyed by stable group name. A singular id is expanded to ids, and omitted ids default to the mapping key.",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
     "objectOverrideMap": {
       "type": "object",
       "propertyNames": {
@@ -2235,34 +2242,39 @@
           "$ref": "#/$defs/labelsMap"
         },
         "chains": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/annotationGroup"
-          }
+          "oneOf": [
+            {"type": "array", "items": {"$ref": "#/$defs/annotationGroup"}},
+            {"$ref": "#/$defs/annotationGroupMap"},
+            {"$ref": "#/$defs/constantRef"}
+          ]
         },
         "radius_callouts": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/annotationGroup"
-          }
+          "oneOf": [
+            {"type": "array", "items": {"$ref": "#/$defs/annotationGroup"}},
+            {"$ref": "#/$defs/annotationGroupMap"},
+            {"$ref": "#/$defs/constantRef"}
+          ]
         },
         "arc_callouts": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/annotationGroup"
-          }
+          "oneOf": [
+            {"type": "array", "items": {"$ref": "#/$defs/annotationGroup"}},
+            {"$ref": "#/$defs/annotationGroupMap"},
+            {"$ref": "#/$defs/constantRef"}
+          ]
         },
         "angle_radius_callouts": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/angleRadiusCallout"
-          }
+          "oneOf": [
+            {"type": "array", "items": {"$ref": "#/$defs/angleRadiusCallout"}},
+            {"$ref": "#/$defs/annotationGroupMap"},
+            {"$ref": "#/$defs/constantRef"}
+          ]
         },
         "image_labels": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/imageLabel"
-          }
+          "oneOf": [
+            {"type": "array", "items": {"$ref": "#/$defs/imageLabel"}},
+            {"$ref": "#/$defs/annotationGroupMap"},
+            {"$ref": "#/$defs/constantRef"}
+          ]
         },
         "style": {
           "$ref": "#/$defs/annotationStyle"

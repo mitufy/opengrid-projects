@@ -1,9 +1,6 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
-variant_name: openconnect_gridfinity_shelf_default
 default_variant: default
-job_name: gridfinity_shelf_scene_default
-
 scene:
   objects:
   - id: model
@@ -14,14 +11,12 @@ scene:
         gridfinity_depth_grids: 2
         magnet_position: All
     transform:
-      location_mm: ["-og_tile_size", 0, "-og_tile_size"]
+      location_mm: [-og_tile_size, 0, -og_tile_size]
       rotation_deg: [-print_bottom_angle, 0, 0]
-
 render:
   fit_margin: 0.2
   camera_location_offset_mm: [-50, 0, 20]
   camera_look_at: object_center
-
 annotations:
   style:
     $constant: default_annotation_style
@@ -30,66 +25,56 @@ annotations:
     gridfinity_width_grids: gridfinity_width_grids x 42mm
     gridfinity_depth_grids: gridfinity_depth_grids x 42mm
   chains:
-  - name: gridfinity_width_dimension
-    ids: [gridfinity_width_grids]
-    color:
-      $constant: annotation_color_black
-    line_offset_px: -80
-    label_offset_px: -50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-  - name: gridfinity_depth_dimension
-    ids: [gridfinity_depth_grids]
-    color:
-      $constant: annotation_color_black
-    line_offset_px: -150
-    label_offset_px: -50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-  - name: shelf_back_offset_dimension
-    enabled: false
-    ids: [shelf_back_offset]
-    optional: true
-    line_offset_px: -30
-    label_offset_px: -50
-    color:
-      $constant: annotation_color_black
-  - name: shelf_side_rim_dimension
-    enabled: false
-    ids: [shelf_side_rim]
-    optional: true
-    line_offset_px: -50
-    label_offset_px: -50
-    label_along_offset_px: 52
-    color:
-      $constant: annotation_color_red
-  - name: shelf_front_rim_dimension
-    enabled: false
-    ids: [shelf_front_rim]
-    optional: true
-    line_offset_px: -30
-    label_offset_px: -50
-    label_along_offset_px: -42
-    color:
-      $constant: annotation_color_red
-
+    gridfinity_width_dimension:
+      id: gridfinity_width_grids
+      color:
+        $constant: annotation_color_black
+      line_offset_px: -80
+      label_offset_px: -50
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+    gridfinity_depth_dimension:
+      id: gridfinity_depth_grids
+      color:
+        $constant: annotation_color_black
+      line_offset_px: -150
+      label_offset_px: -50
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+    shelf_back_offset_dimension:
+      id: shelf_back_offset
+      enabled: false
+      optional: true
+      line_offset_px: -30
+      label_offset_px: -50
+      color:
+        $constant: annotation_color_black
+    shelf_side_rim_dimension:
+      id: shelf_side_rim
+      enabled: false
+      optional: true
+      line_offset_px: -50
+      label_offset_px: -50
+      label_along_offset_px: 52
+      color:
+        $constant: annotation_color_red
+    shelf_front_rim_dimension:
+      id: shelf_front_rim
+      enabled: false
+      optional: true
+      line_offset_px: -30
+      label_offset_px: -50
+      label_along_offset_px: -42
+      color:
+        $constant: annotation_color_red
 gallery:
   $constant: parameter_gallery_settings
-
 variant_collections:
   product_views: [default, empty, top]
-  parameter_gallery:
-  - Magnet_None
-  - Magnet_All
-  - Rim2_LipHeight3
-  - WidthGrid4_DepthGrid3
-
+  parameter_gallery: [Magnet_None, Magnet_All, Rim2_LipHeight3, WidthGrid4_DepthGrid3]
 variants:
 - name: default
-  job_name: gridfinity_shelf_scene_default
-
 - name: empty
-  job_name: gridfinity_shelf_scene_empty
   render:
     fit_margin: 0
     camera_view_preset: technical_iso
@@ -98,13 +83,9 @@ variants:
       enabled: false
     gridfinity_depth_dimension:
       enabled: false
-  unset:
-  - scene.objects.model.model.defines.magnet_position
-  - render.camera_location_offset_mm
-  - render.camera_look_at
-
+  unset: [scene.objects.model.model.defines.magnet_position, render.camera_location_offset_mm,
+    render.camera_look_at]
 - name: top
-  job_name: gridfinity_shelf_scene_top
   object_overrides:
     model:
       model:
@@ -127,10 +108,7 @@ variants:
       enabled: true
     shelf_front_rim_dimension:
       enabled: true
-  unset:
-  - render.camera_location_offset_mm
-  - render.camera_look_at
-
+  unset: [render.camera_location_offset_mm, render.camera_look_at]
 - name: Magnet_None
   extends_variant: empty
   object_overrides:
@@ -138,7 +116,6 @@ variants:
       model:
         defines:
           magnet_position: None
-
 - name: Magnet_All
   extends_variant: empty
   object_overrides:
@@ -146,7 +123,6 @@ variants:
       model:
         defines:
           magnet_position: All
-
 - name: Rim2_LipHeight3
   extends_variant: empty
   object_overrides:
@@ -157,7 +133,6 @@ variants:
           shelf_side_rim: 2
           shelf_front_rim: 2
           shelf_rim_lip_height: 3
-
 - name: WidthGrid4_DepthGrid3
   extends_variant: empty
   object_overrides:
@@ -168,4 +143,4 @@ variants:
           gridfinity_width_grids: 4
           gridfinity_depth_grids: 3
       transform:
-        location_mm: ["-(3 * og_tile_size)", 0, "-og_tile_size"]
+        location_mm: [-(3 * og_tile_size), 0, -og_tile_size]

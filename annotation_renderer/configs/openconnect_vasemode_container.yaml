@@ -1,9 +1,6 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: animation_presets.yaml
-variant_name: openconnect_vasemode_container_default
 default_variant: default
-job_name: vasemode_container_scene_default
-
 scene:
   objects:
   - id: model
@@ -18,15 +15,13 @@ scene:
         label_holder_type: Standard
         render_vase_print_preview: true
   transform:
-    location_mm: [0, 0, "-(2 * og_tile_size)"]
+    location_mm: [0, 0, -(2 * og_tile_size)]
     rotation_deg: [vase_tilt_angle, 0, 0]
     scale:
       $constant: blender_scene_scale_vector
-
 render:
   fit_margin: 0.2
   camera_location_offset_mm: [0, 0, 10]
-
 annotations:
   style:
     $constant: default_annotation_style
@@ -36,80 +31,69 @@ annotations:
     label_holder_type: label_holder
     vase_tilt_angle_extent: vase_tilt_angle
   chains:
-  - name: horizontal_grids_dimension
-    ids: [horizontal_grids]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: -10
-    label_offset_px: -45
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-    color:
-      $constant: annotation_color_black
-  - name: vertical_grids_dimension
-    ids: [vertical_grids]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 40
-    label_offset_px: 50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-    color:
-      $constant: annotation_color_black
-  - name: label_width_dimension
-    ids: [label_width]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 100
-    label_offset_px: 50
-    font_size_px: 45
-    color:
-      $constant: annotation_color_blue
-  - name: depth_grids_dimension
-    enabled: false
-    ids: [depth_grids]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 130
-    label_offset_px: 50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-    color:
-      $constant: annotation_color_black
+    horizontal_grids_dimension:
+      id: horizontal_grids
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: -10
+      label_offset_px: -45
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+      color:
+        $constant: annotation_color_black
+    vertical_grids_dimension:
+      id: vertical_grids
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 40
+      label_offset_px: 50
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+      color:
+        $constant: annotation_color_black
+    label_width_dimension:
+      id: label_width
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 100
+      label_offset_px: 50
+      font_size_px: 45
+      color:
+        $constant: annotation_color_blue
+    depth_grids_dimension:
+      id: depth_grids
+      enabled: false
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 130
+      label_offset_px: 50
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+      color:
+        $constant: annotation_color_black
   angle_radius_callouts:
-  - name: vase_tilt_angle_callout
-    enabled: false
-    id: vase_tilt_angle_callout
-    arc_id: vase_tilt_angle_extent
-    radius_id: vase_tilt_angle_radius
-    angle_id: vase_tilt_angle
-    optional: true
-    show_radius_label: false
-    angle_label_offset_px: 55
-    angle_fill_alpha: 28
+    vase_tilt_angle_callout:
+      enabled: false
+      arc_id: vase_tilt_angle_extent
+      radius_id: vase_tilt_angle_radius
+      angle_id: vase_tilt_angle
+      optional: true
+      show_radius_label: false
+      angle_label_offset_px: 55
+      angle_fill_alpha: 28
   image_labels:
-  - $constant: top_image_label
-    name: vase_surface_texture_label
-    id: vase_surface_texture
-    show_value: true
-    value_color:
-      $constant: annotation_color_blue
-    font_size_px:
-      $constant: annotation_title_font_size_px
-
+    vase_surface_texture_label:
+      $constant: top_image_label
+      id: vase_surface_texture
+      show_value: true
+      value_color:
+        $constant: annotation_color_blue
+      font_size_px:
+        $constant: annotation_title_font_size_px
 gallery:
   $constant: parameter_gallery_settings
-
 variant_collections:
   product_views: [default, empty, side]
-  parameter_gallery:
-  - Checkers_Texture
-  - Cubes_Texture
-  - Wave_Ribs_Texture
-  - No_Texture
-
+  parameter_gallery: [Checkers_Texture, Cubes_Texture, Wave_Ribs_Texture, No_Texture]
 variants:
 - name: default
-  job_name: vasemode_container_scene_default
-
 - name: empty
-  job_name: vasemode_container_scene_default
   object_overrides:
     model:
       model:
@@ -134,12 +118,8 @@ variants:
       enabled: false
     vase_surface_texture_label:
       enabled: false
-  unset:
-  - scene.objects.model.model.defines.vase_surface_texture
-  - render.camera_location_offset_mm
-
+  unset: [scene.objects.model.model.defines.vase_surface_texture, render.camera_location_offset_mm]
 - name: side
-  job_name: vasemode_container_scene_default
   render:
     fit_margin: 0.15
     camera_view: right
@@ -157,9 +137,7 @@ variants:
     vase_surface_texture_label:
       position: bottom
       offset_px: [0, -24]
-  unset:
-  - render.camera_location_offset_mm
-
+  unset: [render.camera_location_offset_mm]
 - name: Checkers_Texture
   extends_variant: empty
   object_overrides:
@@ -169,7 +147,6 @@ variants:
           render_vase_print_preview: true
           vase_tilt_angle: 0
           horizontal_grids: 1
-
 - name: Cubes_Texture
   extends_variant: empty
   object_overrides:
@@ -180,7 +157,6 @@ variants:
           vase_surface_texture: cubes
           vase_tilt_angle: 0
           horizontal_grids: 1
-
 - name: Wave_Ribs_Texture
   extends_variant: empty
   object_overrides:
@@ -191,7 +167,6 @@ variants:
           vase_surface_texture: wave_ribs
           vase_tilt_angle: 0
           horizontal_grids: 1
-
 - name: No_Texture
   extends_variant: empty
   object_overrides:
@@ -199,6 +174,6 @@ variants:
       model:
         defines:
           render_vase_print_preview: true
-          vase_surface_texture: ""
+          vase_surface_texture: ''
           vase_tilt_angle: 0
           horizontal_grids: 1

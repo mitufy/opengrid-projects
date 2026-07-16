@@ -1,6 +1,5 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
-job_name: opengrid_animation_presets
 constants:
   openconnect_install_keyframes_mm:
   - frame: 0

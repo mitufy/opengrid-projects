@@ -1,13 +1,9 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
-variant_name: opengrid_snap_gadget_clip_default
 default_variant: default
-job_name: snap_gadget_clip_scene
-
 constants:
   snap_gadget_clip_model:
     scad_file: opengrid_snap_gadget_clip.scad
-
 scene:
   objects:
   - id: clip_a
@@ -41,10 +37,8 @@ scene:
     transform:
       location_mm: [42, 0, -14]
       rotation_deg: [-90, 180, 0]
-
 render:
   fit_margin: 0
-
 annotations:
   style:
     $constant: default_annotation_style
@@ -54,38 +48,29 @@ annotations:
         line_colors:
         - $constant: annotation_color_black
   chains:
-  - name: clip_main_width_dimension
-    ids: [clip_main_width]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 80
-    label_offset_px: 50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-  - name: clip_height_dimension
-    ids: [clip_height]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 50
-    label_offset_px: 50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-
+    clip_main_width_dimension:
+      id: clip_main_width
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 80
+      label_offset_px: 50
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+    clip_height_dimension:
+      id: clip_height
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 50
+      label_offset_px: 50
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
 gallery:
   $constant: parameter_gallery_settings
-
 variant_collections:
   product_views: [default, empty, side]
-  parameter_gallery:
-  - Circular_Stem15
-  - Circular_Vertical_Tilt45
-  - Elliptic_Surround120
-  - Rectangular_NoTip_Surround180
-
+  parameter_gallery: [Circular_Stem15, Circular_Vertical_Tilt45, Elliptic_Surround120,
+    Rectangular_NoTip_Surround180]
 variants:
 - name: default
-  job_name: snap_gadget_clip_scene
-
 - name: empty
-  job_name: snap_gadget_clip_scene
   scene:
     objects:
     - id: model
@@ -104,9 +89,7 @@ variants:
   annotations:
     style:
       $constant: default_annotation_style
-
 - name: side
-  job_name: snap_gadget_clip_scene
   scene:
     objects:
     - id: circ_clip
@@ -140,53 +123,51 @@ variants:
           line_colors:
           - $constant: annotation_color_black
     chains:
-    - name: clip_main_width_dimension
-      ids: [clip_main_width]
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: -450
-      label_offset_px: -50
-      label_font_size_px:
-        $constant: annotation_label_font_size_px
-    - name: clip_thickness_dimension
-      ids: [clip_thickness]
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: 450
-      label_offset_px: 50
-      label_font_size_px:
-        $constant: annotation_label_font_size_px
-    - name: clip_main_depth_dimension
-      ids: [clip_main_depth]
-      optional: true
-      display_offset_mm: [0, 0, 0]
-      line_offset_px: 450
-      label_offset_px: 50
-      label_along_offset_px: 70
-      label_font_size_px:
-        $constant: annotation_label_font_size_px
-    - name: clip_stem_length_dimension
-      ids: [clip_stem_length]
-      optional: true
-      display_offset_mm: ["-(clip_main_width / 2 + clip_thickness)", 0, 0]
-      line_offset_px: 450
-      label_offset_px: 50
-      label_font_size_px:
-        $constant: annotation_label_font_size_px
-      color:
-        $constant: annotation_color_blue
+      clip_main_width_dimension:
+        id: clip_main_width
+        display_offset_mm: [0, 0, 0]
+        line_offset_px: -450
+        label_offset_px: -50
+        label_font_size_px:
+          $constant: annotation_label_font_size_px
+      clip_thickness_dimension:
+        id: clip_thickness
+        display_offset_mm: [0, 0, 0]
+        line_offset_px: 450
+        label_offset_px: 50
+        label_font_size_px:
+          $constant: annotation_label_font_size_px
+      clip_main_depth_dimension:
+        id: clip_main_depth
+        optional: true
+        display_offset_mm: [0, 0, 0]
+        line_offset_px: 450
+        label_offset_px: 50
+        label_along_offset_px: 70
+        label_font_size_px:
+          $constant: annotation_label_font_size_px
+      clip_stem_length_dimension:
+        id: clip_stem_length
+        optional: true
+        display_offset_mm: [-(clip_main_width / 2 + clip_thickness), 0, 0]
+        line_offset_px: 450
+        label_offset_px: 50
+        label_font_size_px:
+          $constant: annotation_label_font_size_px
+        color:
+          $constant: annotation_color_blue
     angle_radius_callouts:
-    - name: clip_surround_angle_detail
-      id: clip_surround_angle_detail
-      arc_id: clip_surround_angle
-      radius_id: clip_surround_angle_radius
-      display_offset_mm: [0, -2.6, 0]
-      optional: true
-      show_radius_label: false
-      angle_label_offset_px: 50
-      label_font_size_px:
-        $constant: annotation_label_font_size_px
-      auto_adjust_labels: false
-      angle_fill_alpha: 28
-
+      clip_surround_angle_detail:
+        arc_id: clip_surround_angle
+        radius_id: clip_surround_angle_radius
+        display_offset_mm: [0, -2.6, 0]
+        optional: true
+        show_radius_label: false
+        angle_label_offset_px: 50
+        label_font_size_px:
+          $constant: annotation_label_font_size_px
+        auto_adjust_labels: false
+        angle_fill_alpha: 28
 - name: Circular_Stem15
   extends_variant: empty
   object_overrides:
@@ -195,7 +176,6 @@ variants:
         defines:
           clip_shape: Circular
           clip_stem_length: 15
-
 - name: Circular_Vertical_Tilt45
   extends_variant: empty
   object_overrides:
@@ -207,7 +187,6 @@ variants:
       transform:
         location_mm: [-7.4, 0, -14]
         rotation_deg: [0, -90, 0]
-
 - name: Elliptic_Surround120
   extends_variant: empty
   object_overrides:
@@ -218,7 +197,6 @@ variants:
           clip_surround_angle: 120
           clip_main_width: 30
           clip_main_depth: 13
-
 - name: Rectangular_NoTip_Surround180
   extends_variant: empty
   object_overrides:

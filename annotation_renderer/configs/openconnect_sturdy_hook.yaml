@@ -1,0 +1,187 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: base_scene.yaml
+default_variant: default
+constants:
+  sturdy_hook_model:
+    scad_file: openconnect_sturdy_hook.scad
+scene:
+  objects:
+  - id: large_hook
+    model:
+      $constant: sturdy_hook_model
+      defines:
+        hook_length: 56
+        hook_vertical_grids: 2
+        circular_tip_radius: 28
+        hook_corner_fillet: 28
+  - id: model
+    model:
+      $constant: sturdy_hook_model
+    transform:
+      location_mm: [2 * og_tile_size, 0, -og_tile_size]
+  transform:
+    $constant: wall_placeholder_transform
+render:
+  fit_margin: 0
+annotations:
+  style:
+    $constant: default_annotation_style
+  aliases:
+    hook_vertical_grids: hook_vertical_grids x {og_tile_size:g}mm
+    truss_vertical_grids: truss_vertical_grids x {og_tile_size:g}mm
+    hook_shape_type: hook_shape
+    hook_corner_fillet: corner_fillet
+    hook_corner_fillet_extent: corner_fillet
+    circular_tip_radius: tip_radius
+    circular_tip_radius_extent: tip_radius
+    circular_tip_angle: tip_angle
+  chains:
+    hook_width_dimension:
+      id: hook_width
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 30
+      label_offset_px: 50
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+    hook_thickness_dimension:
+      id: hook_thickness
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: -20
+      label_offset_px: -50
+      label_font_size_px: 50
+    hook_length_dimension:
+      id: hook_length
+      display_offset_mm: [0, 0, 0]
+      label_along_offset_px: 100
+      line_offset_px: -20
+      label_offset_px: -50
+      label_font_size_px: 50
+    hook_grid_dimension:
+      ids: [hook_vertical_grids, truss_vertical_grids]
+      optional: true
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: -1
+      label_offset_px: -50
+      label_font_size_px: 50
+gallery:
+  $constant: parameter_gallery_settings
+variant_collections:
+  product_views: [default, empty, side]
+  parameter_gallery: [SliceOff_Target14, Rectangular, Flat, TrussGrid1]
+variants:
+- name: default
+- name: empty
+  object_overrides:
+    model:
+      enabled: false
+  annotations: {}
+- name: side
+  object_overrides:
+    large_hook:
+      model:
+        defines:
+          hook_shape_type: Circular
+          hook_length: 60
+          hook_vertical_grids: 2
+          circular_tip_radius: 26
+          circular_tip_angle: 90
+          hook_corner_fillet: 26
+    model:
+      enabled: false
+  render:
+    camera_view: bottom
+  annotations:
+    style:
+      $constant: default_annotation_style
+      line_width_px: 2.3
+      extension_width_px: 1.1
+      tick_length_px: 15
+      radial_line_width_px: 2.1
+    aliases:
+      hook_vertical_grids: hook_vgrids x {og_tile_size:g}mm
+      truss_vertical_grids: truss_vgrids x {og_tile_size:g}mm
+      hook_length: hook length
+      hook_thickness: hook thickness
+      circular_tip_angle: tip angle
+      circular_tip_angle_radius: tip radius
+      hook_corner_fillet: corner fillet
+    angle_radius_callouts:
+      circular_tip_angle_radius:
+        arc_id: circular_tip_angle_extent
+        radius_id: circular_tip_angle_radius
+        angle_id: circular_tip_angle
+        color:
+          $constant: annotation_color_red
+        show_radius_label: true
+        radius_label_offset_px: -50
+        radius_label_tangent_offset_px: -40
+        angle_label_offset_px: 50
+        angle_label_tangent_offset_px: 10
+        angle_fill_alpha: 28
+        font_size_px: 44
+      hook_corner_fillet_detail:
+        arc_id: hook_corner_fillet_extent
+        radius_id: hook_corner_fillet
+        color:
+          $constant: annotation_color_red
+        show_angle_label: false
+        radius_label_tangent_offset_px: -40
+        radius_label_offset_px: 50
+        angle_fill_alpha: 28
+        font_size_px: 44
+      truss_angle_detail:
+        arc_id: truss_angle_extent
+        radius_id: truss_angle_radius
+        angle_id: truss_max_angle
+        optional: true
+        color:
+          $constant: annotation_color_red
+        show_radius_label: false
+        angle_label_offset_px: 50
+        angle_fill_alpha: 28
+        font_size_px: 44
+    chains:
+      hook_thickness+hook_length:
+        ids: [hook_thickness, hook_length]
+        color:
+          $constant: annotation_color_black
+        display_offset_mm: [0, 0, 0]
+        line_offset_px: -60
+        label_offset_px: -60
+        label_font_size_px:
+          $constant: annotation_label_font_size_px
+- name: SliceOff_Target14
+  extends_variant: empty
+  object_overrides:
+    large_hook:
+      model:
+        defines:
+          circular_tip_thickness_scale: 1
+          hook_tip_sliceoff_side: Left
+          hook_tip_sliceoff_target_width: 14
+- name: Rectangular
+  extends_variant: empty
+  object_overrides:
+    large_hook:
+      model:
+        defines:
+          hook_shape_type: Rectangular
+          rectangular_tip_extra_length: 10
+          hook_corner_fillet: 0
+          hook_length: 46
+- name: Flat
+  extends_variant: empty
+  object_overrides:
+    large_hook:
+      model:
+        defines:
+          hook_shape_type: Flat
+          hook_corner_fillet: 0
+          hook_length: 46
+- name: TrussGrid1
+  extends_variant: empty
+  object_overrides:
+    large_hook:
+      model:
+        defines:
+          truss_vertical_grids: 1

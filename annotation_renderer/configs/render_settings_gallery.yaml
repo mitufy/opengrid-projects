@@ -1,13 +1,11 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: openconnect_general_holder_default.yaml
-job_name: render_settings_gallery
+extends: openconnect_general_holder.yaml
 gallery:
   columns: 2
   thumbnail_width: 560
 variants:
 - name: technical_iso_outline
   set:
-    job_name: gallery_technical_iso_outline
     render.camera_view_preset: technical_iso
     render.camera_distance_scale: 1.14
     render.lighting:
@@ -24,7 +22,6 @@ variants:
         roughness: 0.62
 - name: softbox_outline
   set:
-    job_name: gallery_softbox_outline
     render.camera_view_preset: front_left
     render.camera_distance_scale: 1.1
     render.lighting:
@@ -42,7 +39,6 @@ variants:
         roughness: 0.7
 - name: ground_plane_flat
   set:
-    job_name: gallery_ground_plane_flat
     render.camera_view_preset: front_left
     render.camera_distance_scale: 1.1
     render.lighting:
@@ -65,7 +61,6 @@ variants:
         roughness: 0.68
 - name: lens_roll_composed
   set:
-    job_name: gallery_lens_roll_composed
     render.camera_view_preset: technical_iso
     render.camera_lens_mm: 90
     render.camera_roll_deg: 2
@@ -84,7 +79,6 @@ variants:
         roughness: 0.62
 - name: cross_section_plane
   set:
-    job_name: gallery_cross_section_plane
     annotations.chains: []
     annotations.angle_radius_callouts: []
     annotations.image_labels: []
@@ -116,7 +110,6 @@ variants:
         roughness: 0.7
 - name: dramatic_product_view
   set:
-    job_name: gallery_dramatic_product_view
     annotations.chains: []
     annotations.angle_radius_callouts: []
     annotations.image_labels: []

@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from annotation_renderer.config_schema import (
+from annotation_renderer.config.schema import (
     schema_allowed_keys,
-    schema_definition_enum,
     schema_definition_enum_values,
     schema_property_enum,
     schema_property_enum_values,

@@ -6,20 +6,19 @@ from dataclasses import dataclass
 import math
 from typing import Mapping, Sequence
 
-from annotation_renderer.config_defaults import DEFAULT_LINE_COLORS
-from annotation_renderer.config_resolution import (
+from annotation_renderer.config.defaults import DEFAULT_LINE_COLORS
+from annotation_renderer.config.resolution import (
     add_vectors,
     aliases_from_config,
     annotation_label,
     annotation_parameter_type,
     label_overrides_from_config,
     mapping_vector,
-    resolve_style,
     type_line_color,
     vector2,
     vector3,
 )
-from annotation_renderer.config_schema import ConfigError
+from annotation_renderer.config.schema import ConfigError
 from annotation_renderer.scad_annotations import (
     annotation_to_arc_callout,
     annotation_to_dimension_segment,

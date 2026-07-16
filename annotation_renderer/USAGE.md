@@ -26,20 +26,19 @@ Render the default image for a SCAD model:
 The model name maps to the full-name default config:
 
 ```text
-openconnect_general_holder -> annotation_renderer\configs\openconnect_general_holder_default.yaml
+openconnect_general_holder -> annotation_renderer\configs\openconnect_general_holder.yaml
 ```
 
-`render` also accepts the stem of any config file in `annotation_renderer\configs`,
-so custom configs can be rendered without `--config`:
+`render` also accepts a YAML or JSON config path directly:
 
 ```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_sturdy_hook_angle
+.\build\.venv-tools\Scripts\opengrid-annotate.exe render build\scene_annotations\my_hook.yaml
 ```
 
 Validate the resolved config without rendering:
 
 ```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder --validate-only
+.\build\.venv-tools\Scripts\opengrid-annotate.exe validate openconnect_general_holder
 ```
 
 Write the final still image to a stable path:
@@ -63,12 +62,13 @@ Use `--set path=value` for one-off changes:
   --set render.camera_view_preset=technical_iso
 ```
 
-Array indexes are supported, which is useful for annotation tuning:
+Annotation mappings use their stable group names, so tuning does not depend on
+list order:
 
 ```powershell
 .\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder `
-  --set annotations.chains[0].label_offset_px=36 `
-  --set annotations.chains[0].label_along_offset_px=24
+  --set annotations.chains.compartment_width_dimension.label_offset_px=36 `
+  --set annotations.chains.compartment_width_dimension.label_along_offset_px=24
 ```
 
 Render-stage caching is on by default, so annotation-only offset changes should
@@ -80,7 +80,7 @@ run, or `--cache-dir path\to\cache` to use a different cache folder.
 List renderable defaults:
 
 ```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe list-models
+.\build\.venv-tools\Scripts\opengrid-annotate.exe models
 ```
 
 Describe one model:
@@ -92,14 +92,14 @@ Describe one model:
 List the annotation groups already configured for a model:
 
 ```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe list-annotations openconnect_general_holder
+.\build\.venv-tools\Scripts\opengrid-annotate.exe annotations openconnect_general_holder
 ```
 
 Print the fully resolved config:
 
 ```powershell
 .\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder `
-  --print-resolved-config
+  --resolved
 ```
 
 ## Discover Annotation IDs
@@ -119,14 +119,14 @@ Pass a `.scad` file, not a config name. This works:
 This does not:
 
 ```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe discover openconnect_sturdy_hook_default
+.\build\.venv-tools\Scripts\opengrid-annotate.exe discover openconnect_sturdy_hook
 ```
 
 Discovery lists parameters by config use:
 
-* `dimension parameters`: add to `annotations.chains[].ids`
-* `radius parameters`: add to `annotations.radius_callouts[].ids`
-* `arc parameters`: add to `annotations.arc_callouts[].ids`
+* `dimension parameters`: use as a chain's `id` or in `ids`
+* `radius parameters`: use as a radius callout's `id` or in `ids`
+* `arc parameters`: use as an arc callout's `id` or in `ids`
 * `context value parameters`: use in labels, offsets, and expressions
 
 Write discovery output to a file:
@@ -150,15 +150,15 @@ Start from a compact generated config:
 Edit the generated YAML, then render it:
 
 ```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe `
-  --config build\scene_annotations\my_general_holder.yaml
+.\build\.venv-tools\Scripts\opengrid-annotate.exe render `
+  build\scene_annotations\my_general_holder.yaml
 ```
 
 A typical custom config only changes model defines, camera settings, and
 annotation offsets:
 
 ```yaml
-extends: ../../annotation_renderer/configs/openconnect_general_holder_default.yaml
+extends: ../../annotation_renderer/configs/openconnect_general_holder.yaml
 job_name: my_general_holder
 
 scene:
@@ -175,8 +175,9 @@ render:
 
 annotations:
   chains:
-  - ids: [compartment_width]
-    label_offset_px: 34
+    compartment_width_dimension:
+      id: compartment_width
+      label_offset_px: 34
 ```
 
 Prefer YAML for hand-edited configs. JSON is still accepted for external tools.
@@ -186,18 +187,16 @@ Prefer YAML for hand-edited configs. JSON is still accepted for external tools.
 Render every default model into a contact sheet:
 
 ```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe `
-  --config annotation_renderer\configs\model_defaults.yaml `
-  --gallery `
+.\build\.venv-tools\Scripts\opengrid-annotate.exe gallery `
+  annotation_renderer\configs\model_defaults.yaml `
   --gallery-config annotation_renderer\configs\gallery_defaults.yaml
 ```
 
 Render the scene-control gallery:
 
 ```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe `
-  --config annotation_renderer\configs\render_settings_gallery.yaml `
-  --gallery
+.\build\.venv-tools\Scripts\opengrid-annotate.exe gallery `
+  annotation_renderer\configs\render_settings_gallery.yaml
 ```
 
 Use `variants` in custom configs when several images share the same base model:

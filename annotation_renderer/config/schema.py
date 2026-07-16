@@ -4,18 +4,19 @@ from __future__ import annotations
 
 import json
 from copy import deepcopy
-from pathlib import Path
 from typing import Mapping, Sequence
 
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import best_match
+
+from annotation_renderer.paths import SCHEMA_DIR
 
 
 class ConfigError(ValueError):
     """Raised when an annotation render config is invalid."""
 
 
-CONFIG_SCHEMA_PATH = Path(__file__).resolve().parent / "schemas" / "annotation-render-config.schema.json"
+CONFIG_SCHEMA_PATH = SCHEMA_DIR / "annotation-render-config.schema.json"
 CONFIG_SCHEMA = json.loads(CONFIG_SCHEMA_PATH.read_text(encoding="utf-8"))
 INTERNAL_CONFIG_KEYS = {"_inherited_variants", "_source_config"}
 
