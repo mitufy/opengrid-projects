@@ -1093,6 +1093,62 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(legacy_variants, canonical_variants)
         self.assertEqual(len(legacy_variants), 4)
 
+    def test_snap_gadget_plier_holder_variants_share_one_canonical_config(self) -> None:
+        config = load_config(Path("annotation_renderer/configs/opengrid_snap_gadget_plier_holder_default.yaml"), [])
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "product_views")],
+            ["default", "empty", "side"],
+        )
+        self.assertEqual(len(selected_variant_collection(config, "parameter_gallery")), 4)
+
+        default = variant_config(config, selected_variants(config, "default")[0])
+        empty = variant_config(config, selected_variants(config, "empty")[0])
+        side = variant_config(config, selected_variants(config, "side")[0])
+        self.assertEqual(
+            [item["id"] for item in default["scene"]["objects"]],
+            ["model_a", "snap_a", "model_b", "snap_b"],
+        )
+        self.assertEqual([item["id"] for item in empty["scene"]["objects"]], ["model_a", "snap_a"])
+        self.assertEqual(self.first_model_config(empty).get("defines", {}), {})
+        self.assertNotIn("camera_view", empty["render"])
+        self.assertEqual(side["render"]["camera_view"], "right")
+        self.assertEqual(
+            {item["name"] for item in chain_items_from_config(side["annotations"])},
+            {
+                "stem_height_dimension",
+                "stem_depth_dimension",
+                "transition_depth_ratio_dimension",
+                "stopper_depth_dimension",
+            },
+        )
+
+        wide = variant_config(config, selected_variants(config, "Width_Scale_1.4")[0])
+        self.assertEqual(self.first_model_config(wide)["defines"]["stopper_width_scale"], 1.4)
+        self.assertEqual(wide["render"]["camera_view_preset"], "top_front")
+
+        for wrapper_name in (
+            "opengrid_snap_gadget_plier_holder_empty.yaml",
+            "opengrid_snap_gadget_plier_holder_side.yaml",
+        ):
+            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
+            self.assertNotIn("scene", wrapper)
+            self.assertNotIn("render", wrapper)
+            self.assertNotIn("annotations", wrapper)
+
+        gallery_wrapper = yaml.safe_load(
+            Path("annotation_renderer/configs/opengrid_snap_gadget_plier_holder_gallery.yaml").read_text(encoding="utf-8")
+        )
+        self.assertNotIn("variants", gallery_wrapper)
+        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
+
+        legacy_variants = self.gallery_variant_lines("opengrid_snap_gadget_plier_holder_gallery")
+        canonical_variants = self.gallery_variant_lines(
+            "opengrid_snap_gadget_plier_holder",
+            collection="parameter_gallery",
+        )
+        self.assertEqual(legacy_variants, canonical_variants)
+        self.assertEqual(len(legacy_variants), 4)
+
     def test_compatibility_config_uses_its_default_variant(self) -> None:
         output = self.run_cli(
             "--config",

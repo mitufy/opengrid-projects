@@ -1,35 +1,10 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: base_scene.yaml
-variant_name: opengrid_snap_gadget_plier_holder_default
-job_name: snap_gadget_plier_holder_scene
-scene:
-  objects:
-  - id: model_a
-    model:
-      scad_file: opengrid_snap_gadget_plier_holder.scad
-    transform:
-      location_mm: [-14, 0, -20.6]
-      rotation_deg: [0, 0, 0]
-  - id: snap_a
-    $constant: expanding_snap_object
-    transform:
-      location_mm: [-14, 0, -14]
-      rotation_deg: [-90, 180, 0]
-render:
-  fit_margin: 0
-annotations:
-  style:
-    $constant: default_annotation_style
-    type_styles:
-      mm:
-        line_colors:
-        - $constant: annotation_color_black
-  # image_labels:
-  # - $constant: bottom_image_label
-  #   id: transition_depth_ratio
-  #   label: transition_depth_ratio
-  #   show_value: true
-  #   value_color:
-  #     $constant: annotation_color_red
-  #   font_size_px:
-  #     $constant: annotation_title_font_size_px
+extends: opengrid_snap_gadget_plier_holder_default.yaml
+variant_name: opengrid_snap_gadget_plier_holder_empty
+default_variant: opengrid_snap_gadget_plier_holder_empty
+
+# Compatibility entry point. Add new image variations to the canonical config instead.
+variants:
+- name: opengrid_snap_gadget_plier_holder_empty
+  extends_variant: empty
+  job_name: snap_gadget_plier_holder_scene

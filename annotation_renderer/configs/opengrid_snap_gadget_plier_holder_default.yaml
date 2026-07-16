@@ -1,7 +1,9 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
 variant_name: opengrid_snap_gadget_plier_holder_default
+default_variant: default
 job_name: snap_gadget_plier_holder_scene
+
 scene:
   objects:
   - id: model_a
@@ -32,45 +34,166 @@ scene:
     transform:
       location_mm: [42, 0, -14]
       rotation_deg: [-90, 180, 0]
+
 render:
   fit_margin: 0
-  # camera_view_preset: front_right
   camera_view: front
   camera_orbit_deg: [32, 0]
+
 annotations:
   style:
     $constant: default_annotation_style
-    # auto_adjust_labels: true
     type_styles:
       mm:
         line_colors:
         - $constant: annotation_color_black
-  chains: 
-  - ids: [stem_bottom_width]
+  chains:
+  - name: stem_bottom_width_dimension
+    ids: [stem_bottom_width]
     display_offset_mm: [0, 0, 0]
     line_offset_px: 100
     label_offset_px: 50
     label_font_size_px: 50
-  - ids: [stem_top_width]
+  - name: stem_top_width_dimension
+    ids: [stem_top_width]
     display_offset_mm: [0, 0, 0]
     line_offset_px: -100
     label_offset_px: -50
     label_font_size_px: 50
-  - ids: [stem_height]
+  - name: stem_height_dimension
+    ids: [stem_height]
     display_offset_mm: [0, 0, 0]
     line_offset_px: 80
     label_offset_px: 50
     label_font_size_px: 50
     color:
       $constant: annotation_color_blue
-    # label_font_size_px: 24
-  # - ids: [stem_depth]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -34
-  #   label_offset_px: -42
-  #   label_font_size_px: 24
-  # - ids: [stopper_depth]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -50
-  #   label_offset_px: -50
-    # label_font_size_px: 24
+
+variant_collections:
+  product_views: [default, empty, side]
+  parameter_gallery:
+  - Transition_Ratio_0.2
+  - Transition_Ratio_1
+  - Width_Scale_1
+  - Width_Scale_1.4
+
+variants:
+- name: default
+  job_name: snap_gadget_plier_holder_scene
+
+- name: empty
+  job_name: snap_gadget_plier_holder_scene
+  object_overrides:
+    model_b:
+      enabled: false
+    snap_b:
+      enabled: false
+  annotations:
+    style:
+      $constant: default_annotation_style
+      type_styles:
+        mm:
+          line_colors:
+          - $constant: annotation_color_black
+  unset:
+  - scene.objects.model_a.model.defines.stem_height
+  - scene.objects.model_a.model.defines.stem_depth
+  - render.camera_view
+  - render.camera_orbit_deg
+
+- name: side
+  job_name: snap_gadget_plier_holder_scene
+  object_overrides:
+    model_a:
+      model:
+        defines:
+          transition_depth_ratio: 0.2
+    model_b:
+      enabled: false
+    snap_b:
+      enabled: false
+  render:
+    camera_view: right
+  annotations:
+    style:
+      $constant: default_annotation_style
+      auto_adjust_labels: true
+      type_styles:
+        mm:
+          line_colors:
+          - $constant: annotation_color_black
+    chains:
+    - name: stem_height_dimension
+      ids: [stem_height]
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 1
+      label_offset_px: 50
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+      color:
+        $constant: annotation_color_blue
+    - name: stem_depth_dimension
+      ids: [stem_depth]
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: -20
+      label_offset_px: -50
+      label_along_offset_px: -65
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+    - name: transition_depth_ratio_dimension
+      ids: [transition_depth_ratio]
+      optional: true
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: -200
+      label_offset_px: -50
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+      color:
+        $constant: annotation_color_red
+      labels:
+        transition_depth_ratio: transition_part
+    - name: stopper_depth_dimension
+      ids: [stopper_depth]
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: -20
+      label_offset_px: -50
+      label_along_offset_px: 65
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+  unset:
+  - render.camera_orbit_deg
+
+- name: Transition_Ratio_0.2
+  extends_variant: empty
+  object_overrides:
+    model_a:
+      model:
+        defines:
+          transition_depth_ratio: 0.2
+  render:
+    camera_view: right
+
+- name: Transition_Ratio_1
+  extends_variant: empty
+  object_overrides:
+    model_a:
+      model:
+        defines:
+          transition_depth_ratio: 1
+  render:
+    camera_view: right
+
+- name: Width_Scale_1
+  extends_variant: empty
+  render:
+    camera_view_preset: top_front
+
+- name: Width_Scale_1.4
+  extends_variant: empty
+  object_overrides:
+    model_a:
+      model:
+        defines:
+          stopper_width_scale: 1.4
+  render:
+    camera_view_preset: top_front

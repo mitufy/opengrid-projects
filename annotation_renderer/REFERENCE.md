@@ -926,6 +926,8 @@ Collections are accepted by gallery rendering and all-variant validation:
 
 `opengrid_snap_gadget_clip_default.yaml` uses the same pattern for its composed default, empty parameter base, side detail, and four clip-shape variants. Historical object IDs and snap transforms remain unchanged.
 
+`opengrid_snap_gadget_plier_holder_default.yaml` completes the snap-gadget group with shared `model_a`/`snap_a` identities. Its empty variant uses `unset` for inherited dimensions and camera controls, and gallery variants add only their parameter and view changes.
+
 Use `variant_configs` when a gallery config should import complete per-model config files as variants:
 
 ```yaml

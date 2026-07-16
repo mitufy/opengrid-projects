@@ -1,8 +1,9 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: opengrid_snap_gadget_plier_holder_empty.yaml
+extends: opengrid_snap_gadget_plier_holder_default.yaml
 job_name: plier_holder_parameter_gallery
 
 gallery:
+  variant_collection: parameter_gallery
   columns: 2
   target_width_px: 1920
   target_height_px: 1440
@@ -10,33 +11,3 @@ gallery:
   gutter_px: 4
   title_height_px: 60
   title_font_size_px: 60
-
-variants:
-- name: Transition_Ratio_0.2
-  set:
-    render.camera_view: right
-    scene.objects[0].model.defines.transition_depth_ratio: 0.2
-- name: Transition_Ratio_1
-  set:
-    render.camera_view: right
-    scene.objects[0].model.defines.transition_depth_ratio: 1
-- name: Width_Scale_1
-  set:
-    render.camera_view_preset: top_front
-    # scene.objects[0].model.defines.stopper_height_scale: 1.4
-    # scene.objects[0].model.defines.stem_height: 12
-- name: Width_Scale_1.4
-  set:
-    render.camera_view_preset: top_front
-    scene.objects[0].model.defines.stopper_width_scale: 1.4
-    # annotations:
-    #   image_labels:
-    #   - $constant: top_image_label
-    #     id: stopper_width_scale
-    #     label: stopper_width_scale
-    #     show_value: true
-    #     value_color:
-    #       $constant: annotation_color_red
-    #     font_size_px: 42
-    # scene.objects[0].model.defines.transition_depth_ratio: 0.2
-    # scene.objects[0].model.defines.stem_height: 18
