@@ -1,8 +1,9 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: openconnect_gridfinity_shelf_empty.yaml
+extends: openconnect_gridfinity_shelf_default.yaml
 job_name: gridfinity_shelf_parameter_gallery
 
 gallery:
+  variant_collection: parameter_gallery
   columns: 2
   target_width_px: 1920
   target_height_px: 1440
@@ -10,23 +11,3 @@ gallery:
   gutter_px: 4
   title_height_px: 60
   title_font_size_px: 60
-
-variants:
-- name: Magnet_None
-  set:
-    scene.objects[0].model.defines.magnet_position: None
-- name: Magnet_All
-  set:
-    scene.objects[0].model.defines.magnet_position: All
-- name: Rim2_LipHeight3
-  set:
-    scene.objects[0].model.defines.magnet_position: None
-    scene.objects[0].model.defines.shelf_side_rim: 2
-    scene.objects[0].model.defines.shelf_front_rim: 2
-    scene.objects[0].model.defines.shelf_rim_lip_height: 3
-- name: WidthGrid4_DepthGrid3
-  set:
-    scene.objects[0].model.defines.magnet_position: None
-    scene.objects[0].model.defines.gridfinity_width_grids: 4
-    scene.objects[0].model.defines.gridfinity_depth_grids: 3
-    scene.objects[0].transform.location_mm: ["-(3 * og_tile_size)", 0, "-og_tile_size"]

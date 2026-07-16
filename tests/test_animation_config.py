@@ -739,6 +739,80 @@ class AnimationConfigTests(unittest.TestCase):
             self.assertEqual({item["name"] for item in angle_radius_items_from_config(annotations)}, callout_names)
             self.assertEqual({item["name"] for item in image_label_items_from_config(annotations)}, label_names)
 
+    def test_gridfinity_shelf_variants_share_one_canonical_config(self) -> None:
+        config_path = Path("annotation_renderer/configs/openconnect_gridfinity_shelf_default.yaml")
+        config = load_config(config_path, [])
+
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "product_views")],
+            ["default", "empty", "top"],
+        )
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "parameter_gallery")],
+            ["Magnet_None", "Magnet_All", "Rim2_LipHeight3", "WidthGrid4_DepthGrid3"],
+        )
+
+        expected_chains = {
+            "default": {"gridfinity_width_dimension", "gridfinity_depth_dimension"},
+            "empty": set(),
+            "top": {
+                "shelf_back_offset_dimension",
+                "shelf_side_rim_dimension",
+                "shelf_front_rim_dimension",
+            },
+        }
+        for variant_name, chain_names in expected_chains.items():
+            resolved = variant_config(config, selected_variants(config, variant_name)[0])
+            self.assertEqual(
+                {item["name"] for item in chain_items_from_config(resolved["annotations"])},
+                chain_names,
+            )
+
+        empty = variant_config(config, selected_variants(config, "empty")[0])
+        self.assertNotIn("magnet_position", self.first_model_config(empty)["defines"])
+        self.assertEqual(empty["render"]["camera_view_preset"], "technical_iso")
+        self.assertNotIn("camera_location_offset_mm", empty["render"])
+
+        top = variant_config(config, selected_variants(config, "top")[0])
+        self.assertEqual(self.first_model_config(top)["defines"]["shelf_back_offset"], 8)
+        self.assertEqual(top["render"]["camera_view_preset"], "top_front")
+
+        wide = variant_config(config, selected_variants(config, "WidthGrid4_DepthGrid3")[0])
+        self.assertEqual(self.first_model_config(wide)["defines"]["gridfinity_width_grids"], 4)
+        self.assertEqual(wide["scene"]["objects"][0]["transform"]["location_mm"], ["-(3 * og_tile_size)", 0, "-og_tile_size"])
+
+        for wrapper_name in ("openconnect_gridfinity_shelf_empty.yaml", "openconnect_gridfinity_shelf_top.yaml"):
+            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
+            self.assertNotIn("scene", wrapper)
+            self.assertNotIn("render", wrapper)
+            self.assertNotIn("annotations", wrapper)
+
+        gallery_wrapper = yaml.safe_load(
+            Path("annotation_renderer/configs/openconnect_gridfinity_shelf_gallery.yaml").read_text(encoding="utf-8")
+        )
+        self.assertNotIn("variants", gallery_wrapper)
+        self.assertNotIn("variant_collections", gallery_wrapper)
+        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
+
+        legacy_output = self.run_cli(
+            "render",
+            "openconnect_gridfinity_shelf_gallery",
+            "--gallery",
+            "--validate-only",
+        )
+        canonical_output = self.run_cli(
+            "render",
+            "openconnect_gridfinity_shelf",
+            "--gallery",
+            "--variant-collection",
+            "parameter_gallery",
+            "--validate-only",
+        )
+        legacy_variants = [line for line in legacy_output.splitlines() if line.startswith("Variant:")]
+        canonical_variants = [line for line in canonical_output.splitlines() if line.startswith("Variant:")]
+        self.assertEqual(legacy_variants, canonical_variants)
+        self.assertEqual(len(legacy_variants), 4)
+
     def test_compatibility_config_uses_its_default_variant(self) -> None:
         output = self.run_cli(
             "--config",

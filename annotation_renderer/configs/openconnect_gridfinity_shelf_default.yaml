@@ -1,7 +1,9 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
 variant_name: openconnect_gridfinity_shelf_default
+default_variant: default
 job_name: gridfinity_shelf_scene_default
+
 scene:
   objects:
   - id: model
@@ -11,42 +13,15 @@ scene:
         gridfinity_width_grids: 2
         gridfinity_depth_grids: 2
         magnet_position: All
-        # shelf_back_offset: 4
-        # shelf_side_rim: 4
-        # shelf_side_rim: 4
-        # shelf_front_rim: 4
-        # shelf_rim_lip_height: 3
-        # magnet_position: Corners Only
     transform:
       location_mm: ["-og_tile_size", 0, "-og_tile_size"]
       rotation_deg: [-print_bottom_angle, 0, 0]
-  # - id: model_b
-  #   model:
-  #     scad_file: openconnect_gridfinity_shelf.scad
-  #     defines:
-  #       gridfinity_width_grids: 4
-  #       gridfinity_depth_grids: 2
-  #       # shelf_back_offset: 4
-  #       # shelf_side_rim: 4
-  #       # shelf_side_rim: 4
-  #       # shelf_front_rim: 4
-  #       # shelf_rim_lip_height: 3
-  #       magnet_position: All
-  #   transform:
-  #     location_mm: [-28, 0, -84]
-  #     rotation_deg: [-print_bottom_angle, 0, 0]
+
 render:
   fit_margin: 0.2
-  # camera_view_preset: front_right
   camera_location_offset_mm: [-50, 0, 20]
-  # camera_rotation_offset_deg: [10, 0, 0]
   camera_look_at: object_center
-  # camera_view_preset: technical_iso
-  # lighting:
-    # preset: technical
-    # strength: 0.01
-    # ambient_strength: 1
-    # color: '#ffffff'
+
 annotations:
   style:
     $constant: default_annotation_style
@@ -55,57 +30,139 @@ annotations:
     gridfinity_width_grids: gridfinity_width_grids x 42mm
     gridfinity_depth_grids: gridfinity_depth_grids x 42mm
   chains:
-  - ids: [gridfinity_width_grids]
+  - name: gridfinity_width_dimension
+    ids: [gridfinity_width_grids]
     color:
       $constant: annotation_color_black
     line_offset_px: -80
     label_offset_px: -50
     label_font_size_px:
       $constant: annotation_label_font_size_px
-  - ids: [gridfinity_depth_grids]
+  - name: gridfinity_depth_dimension
+    ids: [gridfinity_depth_grids]
     color:
       $constant: annotation_color_black
     line_offset_px: -150
     label_offset_px: -50
     label_font_size_px:
       $constant: annotation_label_font_size_px
-  # - ids: [shelf_back_offset]
-  #   optional: true
-  #   color:
-  #     $constant: annotation_color_red
-  #   line_offset_px: -86
-  #   label_offset_px: -78
-  #   label_along_offset_px: 72
-  #   label_font_size_px:
-  #     $constant: annotation_label_font_size_px
-  #   
-  # - ids: [shelf_side_rim]
-  #   optional: true
-  #   line_offset_px: 70
-  #   label_offset_px: 46
-  #   label_along_offset_px: -52
-  #   label_font_size_px: 22
-  #   
-  # - ids: [shelf_front_rim]
-  #   optional: true
-  #   line_offset_px: -88
-  #   label_offset_px: -54
-  #   label_along_offset_px: 42
-  #   label_font_size_px: 22
-  #   
-  # - ids: [shelf_rim_lip_height]
-  #   optional: true
-  #   line_offset_px: 46
-  #   label_offset_px: 28
-  #   label_along_offset_px: 36
-  #   label_font_size_px: 22
-  #   
-  # image_labels:
-  # - $constant: bottom_image_label
-  #   id: magnet_position
-  #   offset_px: [0, 0]
-  #   show_value: true
-  #   value_color:
-  #     $constant: annotation_color_blue
-  #   font_size_px:
-  #     $constant: annotation_title_font_size_px
+  - name: shelf_back_offset_dimension
+    enabled: false
+    ids: [shelf_back_offset]
+    optional: true
+    line_offset_px: -30
+    label_offset_px: -50
+    color:
+      $constant: annotation_color_black
+  - name: shelf_side_rim_dimension
+    enabled: false
+    ids: [shelf_side_rim]
+    optional: true
+    line_offset_px: -50
+    label_offset_px: -50
+    label_along_offset_px: 52
+    color:
+      $constant: annotation_color_red
+  - name: shelf_front_rim_dimension
+    enabled: false
+    ids: [shelf_front_rim]
+    optional: true
+    line_offset_px: -30
+    label_offset_px: -50
+    label_along_offset_px: -42
+    color:
+      $constant: annotation_color_red
+
+variant_collections:
+  product_views: [default, empty, top]
+  parameter_gallery:
+  - Magnet_None
+  - Magnet_All
+  - Rim2_LipHeight3
+  - WidthGrid4_DepthGrid3
+
+variants:
+- name: default
+  job_name: gridfinity_shelf_scene_default
+
+- name: empty
+  job_name: gridfinity_shelf_scene_empty
+  render:
+    fit_margin: 0
+    camera_view_preset: technical_iso
+  annotation_overrides:
+    gridfinity_width_dimension:
+      enabled: false
+    gridfinity_depth_dimension:
+      enabled: false
+  unset:
+  - scene.objects.model.model.defines.magnet_position
+  - render.camera_location_offset_mm
+  - render.camera_look_at
+
+- name: top
+  job_name: gridfinity_shelf_scene_top
+  object_overrides:
+    model:
+      model:
+        defines:
+          shelf_back_offset: 8
+          shelf_side_rim: 4
+          shelf_front_rim: 4
+          magnet_position: None
+  render:
+    fit_margin: 0
+    camera_view_preset: top_front
+  annotation_overrides:
+    gridfinity_width_dimension:
+      enabled: false
+    gridfinity_depth_dimension:
+      enabled: false
+    shelf_back_offset_dimension:
+      enabled: true
+    shelf_side_rim_dimension:
+      enabled: true
+    shelf_front_rim_dimension:
+      enabled: true
+  unset:
+  - render.camera_location_offset_mm
+  - render.camera_look_at
+
+- name: Magnet_None
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          magnet_position: None
+
+- name: Magnet_All
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          magnet_position: All
+
+- name: Rim2_LipHeight3
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          magnet_position: None
+          shelf_side_rim: 2
+          shelf_front_rim: 2
+          shelf_rim_lip_height: 3
+
+- name: WidthGrid4_DepthGrid3
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          magnet_position: None
+          gridfinity_width_grids: 4
+          gridfinity_depth_grids: 3
+      transform:
+        location_mm: ["-(3 * og_tile_size)", 0, "-og_tile_size"]

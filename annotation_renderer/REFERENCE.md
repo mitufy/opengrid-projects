@@ -912,6 +912,8 @@ Collections are accepted by gallery rendering and all-variant validation:
 
 `openconnect_general_holder_default.yaml` demonstrates the one-file-per-model pattern. Its `default`, `empty`, `side`, `top`, `taper`, and four parameter-gallery variants share a single named annotation catalog. The old per-view files are small compatibility entry points, and `openconnect_general_holder_gallery.yaml` only supplies gallery layout plus its default collection. These wrappers should not receive new image definitions.
 
+`openconnect_gridfinity_shelf_default.yaml` follows the same pattern for its `default`, `empty`, `top`, and four parameter-gallery variants. Its old view files contain only compatibility variant selection, while `openconnect_gridfinity_shelf_gallery.yaml` contains only layout and `gallery.variant_collection`.
+
 Use `variant_configs` when a gallery config should import complete per-model config files as variants:
 
 ```yaml
