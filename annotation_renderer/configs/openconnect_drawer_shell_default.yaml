@@ -1,41 +1,10 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: drawer_base.yaml
+extends: openconnect_drawer_shell_container_default.yaml
 variant_name: openconnect_drawer_shell_default
-job_name: openconnect_drawer_shell_scene_default
-scene:
-  object_defaults:
-    $constant: drawer_object_defaults
-  objects:
-  - $constant: drawer_shell_object
-render:
-  $constant: drawer_fit_render
-annotations:
-  object: drawer_shell
-  style:
-    $constant: default_annotation_style
-  aliases:
-    $constant: default_grid_label_aliases
-  chains:
-  - ids: [horizontal_grids]
-    label_offset_px: 50
-    color:
-      $constant: annotation_color_black
-  - ids: [vertical_grids]
-    line_offset_px: 10
-    label_offset_px: 50
-    color:
-      $constant: annotation_color_black
-  - ids: [depth_grids]
-    line_offset_px: 10
-    label_offset_px: 50
-    color:
-      $constant: annotation_color_black
-  # image_labels:
-  # - $constant: bottom_image_label
-  #   id: shell_slot_position
-  #   offset_px: [0, -6]
-  #   show_value: true
-  #   value_color:
-  #     $constant: annotation_color_blue
-  #   font_size_px:
-  #     $constant: annotation_aux_label_font_size_px
+default_variant: openconnect_drawer_shell_default
+
+# Compatibility entry point. Add new image variations to the canonical config instead.
+variants:
+- name: openconnect_drawer_shell_default
+  extends_variant: shell
+  job_name: openconnect_drawer_shell_scene_default

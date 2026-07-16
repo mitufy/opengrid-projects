@@ -1,8 +1,9 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: openconnect_drawer_shell_container_empty.yaml
+extends: openconnect_drawer_shell_container_default.yaml
 job_name: drawer_parameter_gallery
 
 gallery:
+  variant_collection: parameter_gallery
   columns: 2
   target_width_px: 1920
   target_height_px: 1440
@@ -10,51 +11,3 @@ gallery:
   gutter_px: 4
   title_height_px: 60
   title_font_size_px: 60
-
-variants:
-- name: Solid_Wall_NoLabel
-  set:
-    scene.objects[0].model.defines.shell_side_wall_type: Solid
-    # scene.objects[0].model.defines.container_front_wall_type: Solid
-    # scene.objects[1].model.defines.shell_side_wall_type: Solid
-    scene.objects[1].model.defines.container_front_wall_type: Solid
-    scene.objects[1].model.defines.container_side_wall_type: Solid
-    scene.objects[1].model.defines.add_label_holder: false
-    # scene.objects[0].model.defines.holder_slot_column_limit: 1
-
-- name: Solid_Wall_hGrid3_vGrid4
-  set:
-    scene.objects[0].model.defines.shell_side_wall_type: Solid
-    scene.objects[1].model.defines.container_front_wall_type: Solid
-    scene.objects[1].model.defines.container_side_wall_type: Solid
-    scene.objects[0].model.defines.vertical_grids: 4
-    scene.objects[0].model.defines.horizontal_grids: 3
-    scene.objects[0].model.defines.depth_grids: 5
-    scene.objects[1].model.defines.vertical_grids: 4
-    scene.objects[1].model.defines.horizontal_grids: 3
-    scene.objects[1].model.defines.depth_grids: 5
-    # scene.objects[1].model.defines.add_label_holder: false
-
-- name: DivHeight_22_hGrid6_vGrid4
-  set:
-    scene.objects:
-    - $constant: drawer_shell_object
-    scene.objects[0].model.defines.vertical_grids: 4
-    scene.objects[0].model.defines.horizontal_grids: 6
-    scene.objects[0].model.defines.depth_grids: 5
-    scene.objects[0].model.defines.add_shell_divider: Height
-    scene.objects[0].model.defines.shell_height_compartment_list: "2,2"
-    scene.objects[0].model.defines.shell_bottom_wall_type: Solid
-
-- name: DivWidth_42_hGrid6_vGrid4
-  set:
-    scene.objects:
-    - $constant: drawer_shell_object
-    scene.objects[0].model.defines.vertical_grids: 4
-    scene.objects[0].model.defines.horizontal_grids: 6
-    scene.objects[0].model.defines.depth_grids: 6
-    scene.objects[0].model.defines.add_shell_divider: Width
-    scene.objects[0].model.defines.shell_width_compartment_list: "4,2"
-    scene.objects[0].model.defines.shell_bottom_wall_type: Solid
-
-

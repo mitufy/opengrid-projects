@@ -930,6 +930,8 @@ Collections are accepted by gallery rendering and all-variant validation:
 
 `openconnect_clamshell_holder_default.yaml` owns the default, alternate, empty, front, side, and four parameter-gallery variants. One named annotation catalog supplies every view: variants enable or reposition only the dimensions and labels they need, while the old view and gallery files remain selectors and layout wrappers.
 
+`openconnect_drawer_shell_container_default.yaml` owns the combined, empty, top, shell-only, and four parameter-gallery variants. It reuses the object and transform constants in `drawer_base.yaml`, targets scene objects by ID, and keeps both shell and container dimensions in one named annotation catalog. The shell-only config remains a compatibility selector even when imported by `model_defaults.yaml`.
+
 Use `variant_configs` when a gallery config should import complete per-model config files as variants:
 
 ```yaml
@@ -941,7 +943,11 @@ variant_configs:
   - openconnect_general_holder_default.yaml
 ```
 
-Imported config paths are resolved relative to the importing config. The imported variant name comes from top-level `variant_name`, or from the filename stem when `variant_name` is omitted. Extra parameter groups live in `configs/parameter_details.yaml`, which extends the defaults and replaces the variant list with secondary detail renders:
+Imported config paths are resolved relative to the importing config. The imported variant name comes from top-level `variant_name`, or from the filename stem when `variant_name` is omitted.
+
+If an imported config declares `default_variant`, `variant_configs` imports that resolved variant rather than the unresolved top-level base. This lets compatibility entry points select a canonical view without copying its scene, render, or annotation sections.
+
+Extra parameter groups live in `configs/parameter_details.yaml`, which extends the defaults and replaces the variant list with secondary detail renders:
 
 ```powershell
 .\build\.venv-tools\Scripts\opengrid-annotate.exe `

@@ -1,43 +1,10 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: drawer_base.yaml
-variant_name: openconnect_drawer_shell_container_default
-job_name: openconnect_drawer_shell_container_scene_default
-scene:
-  object_defaults:
-    $constant: drawer_object_defaults
-  objects:
-  - $constant: drawer_shell_object
-  - $constant: drawer_container_object
-render:
-  fit_margin: 0.1
-  camera_location_offset_mm: [0, 0, 0]
-  camera_rotation_offset_deg: [0, 0, 0]
-  # camera_look_at: object_center
-  # camera_view_preset: technical_iso
-  lighting:
-    toplight_power: 2
-    frontlight_power: 1.5
-annotations:   
-  style:
-    $constant: default_annotation_style
-  aliases:
-    $constant: default_grid_label_aliases
-  # chains:
-  # - ids: [horizontal_grids]
-  #   line_offset_px: -1
-  #   label_offset_px: -50
-  #   font_size_px: 50
-  #   color:
-  #     $constant: annotation_color_black
-  # - ids: [vertical_grids]
-  #   line_offset_px: 10
-  #   label_offset_px: 50
-  #   color:
-  #     $constant: annotation_color_black
-  #   font_size_px: 50
-  # - ids: [depth_grids]
-  #   line_offset_px: 1
-  #   label_offset_px: 40
-  #   color:
-  #     $constant: annotation_color_blue
-  #   font_size_px: 45
+extends: openconnect_drawer_shell_container_default.yaml
+variant_name: openconnect_drawer_shell_container_empty
+default_variant: openconnect_drawer_shell_container_empty
+
+# Compatibility entry point. Add new image variations to the canonical config instead.
+variants:
+- name: openconnect_drawer_shell_container_empty
+  extends_variant: empty
+  job_name: openconnect_drawer_shell_container_scene_default

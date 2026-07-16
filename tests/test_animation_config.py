@@ -1232,6 +1232,91 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(legacy_variants, canonical_variants)
         self.assertEqual(len(legacy_variants), 4)
 
+    def test_drawer_variants_share_one_canonical_config(self) -> None:
+        config = load_config(Path("annotation_renderer/configs/openconnect_drawer_shell_container_default.yaml"), [])
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "product_views")],
+            ["default", "empty", "top", "shell"],
+        )
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "parameter_gallery")],
+            [
+                "Solid_Wall_NoLabel",
+                "Solid_Wall_hGrid3_vGrid4",
+                "DivHeight_22_hGrid6_vGrid4",
+                "DivWidth_42_hGrid6_vGrid4",
+            ],
+        )
+
+        default = variant_config(config, selected_variants(config, "default")[0])
+        empty = variant_config(config, selected_variants(config, "empty")[0])
+        top = variant_config(config, selected_variants(config, "top")[0])
+        shell = variant_config(config, selected_variants(config, "shell")[0])
+        self.assertEqual([item["id"] for item in default["scene"]["objects"]], ["drawer_shell", "drawer_container"])
+        self.assertEqual(
+            {item["name"] for item in chain_items_from_config(default["annotations"])},
+            {
+                "container_horizontal_grids_dimension",
+                "container_vertical_grids_dimension",
+                "container_depth_grids_dimension",
+            },
+        )
+        self.assertEqual(chain_items_from_config(empty["annotations"]), [])
+        self.assertEqual([item["id"] for item in top["scene"]["objects"]], ["drawer_shell", "drawer_container"])
+        self.assertEqual(top["scene"]["objects"][0]["model"]["defines"]["shell_slot_position"], "Top")
+        self.assertNotIn("roughness", top["scene"]["objects"][1]["material"])
+        self.assertNotIn("camera_rotation_offset_deg", top["render"])
+        self.assertEqual(image_label_items_from_config(top["annotations"])[0]["id"], "shell_slot_position")
+        self.assertEqual([item["id"] for item in shell["scene"]["objects"]], ["drawer_shell"])
+        self.assertEqual(shell["annotations"]["object"], "drawer_shell")
+        self.assertEqual(
+            {item["name"] for item in chain_items_from_config(shell["annotations"])},
+            {
+                "shell_horizontal_grids_dimension",
+                "shell_vertical_grids_dimension",
+                "shell_depth_grids_dimension",
+            },
+        )
+        self.assertNotIn("lighting", shell["render"])
+
+        solid = variant_config(config, selected_variants(config, "Solid_Wall_NoLabel")[0])
+        self.assertEqual(solid["scene"]["objects"][0]["model"]["defines"]["shell_side_wall_type"], "Solid")
+        self.assertFalse(solid["scene"]["objects"][1]["model"]["defines"]["add_label_holder"])
+        divided = variant_config(config, selected_variants(config, "DivHeight_22_hGrid6_vGrid4")[0])
+        self.assertEqual([item["id"] for item in divided["scene"]["objects"]], ["drawer_shell"])
+        self.assertEqual(divided["scene"]["objects"][0]["model"]["defines"]["add_shell_divider"], "Height")
+
+        for wrapper_name in (
+            "openconnect_drawer_shell_default.yaml",
+            "openconnect_drawer_shell_container_empty.yaml",
+            "openconnect_drawer_shell_container_top.yaml",
+        ):
+            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
+            self.assertNotIn("scene", wrapper)
+            self.assertNotIn("render", wrapper)
+            self.assertNotIn("annotations", wrapper)
+
+        gallery_wrapper = yaml.safe_load(
+            Path("annotation_renderer/configs/openconnect_drawer_gallery.yaml").read_text(encoding="utf-8")
+        )
+        self.assertNotIn("variants", gallery_wrapper)
+        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
+
+        legacy_variants = self.gallery_variant_lines("openconnect_drawer_gallery")
+        canonical_variants = self.gallery_variant_lines(
+            "openconnect_drawer_shell_container",
+            collection="parameter_gallery",
+        )
+        self.assertEqual(legacy_variants, canonical_variants)
+        self.assertEqual(len(legacy_variants), 4)
+
+        model_defaults = load_config(Path("annotation_renderer/configs/model_defaults.yaml"), [])
+        imported_shell = variant_config(
+            model_defaults,
+            selected_variants(model_defaults, "openconnect_drawer_shell_default")[0],
+        )
+        self.assertEqual([item["id"] for item in imported_shell["scene"]["objects"]], ["drawer_shell"])
+
     def test_compatibility_config_uses_its_default_variant(self) -> None:
         output = self.run_cli(
             "--config",

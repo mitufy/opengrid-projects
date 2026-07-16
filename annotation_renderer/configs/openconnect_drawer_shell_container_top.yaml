@@ -1,55 +1,10 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: drawer_base.yaml
-variant_name: openconnect_drawer_shell_container_default
-job_name: openconnect_drawer_shell_container_scene_default
-scene:
-  object_defaults:
-    $constant: drawer_object_defaults
-  objects:
-  - $constant: drawer_shell_object_top
-  - $constant: drawer_container_object_top
-render:
-  fit_margin: 0
-  camera_location_offset_mm: [0, 0, 0]
-  # camera_rotation_offset_deg: [0, 0, 0]
-  # camera_look_at: object_center
-  # camera_view_preset: top_front
-  camera_view: "front"
-  camera_orbit_deg: [0, 72]
-  lighting:
-    toplight_power: 3
-    frontlight_power: 1
-annotations:   
-  image_labels:
-  - $constant: top_image_label
-    id: shell_slot_position
-    offset_px: [0, 0]
-    show_value: true
-    value_color:
-      $constant: annotation_color_blue
-    font_size_px:
-      $constant: annotation_title_font_size_px
-#   style:
-#     $constant: default_annotation_style
-#   aliases:
-#     $constant: default_grid_label_aliases
-#   chains:
-#   - ids: [horizontal_grids]
-#     line_offset_px: -1
-#     label_offset_px: -50
-#     font_size_px: 50
-#     color:
-#       $constant: annotation_color_black
-#   - ids: [vertical_grids]
-#     line_offset_px: 10
-#     label_offset_px: 50
-#     color:
-#       $constant: annotation_color_black
-#     font_size_px: 50
-#   - ids: [depth_grids]
-#     line_offset_px: 1
-#     label_offset_px: 40
-#     color:
-#       $constant: annotation_color_blue
-#     font_size_px: 45
+extends: openconnect_drawer_shell_container_default.yaml
+variant_name: openconnect_drawer_shell_container_top
+default_variant: openconnect_drawer_shell_container_top
 
+# Compatibility entry point. Add new image variations to the canonical config instead.
+variants:
+- name: openconnect_drawer_shell_container_top
+  extends_variant: top
+  job_name: openconnect_drawer_shell_container_scene_default

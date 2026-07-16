@@ -233,10 +233,23 @@ def variant_from_config_file(config: Mapping[str, object], *, path: Path) -> dic
     variant_name = config.get("variant_name") or path.stem
     if not isinstance(variant_name, str) or not variant_name.strip():
         raise ConfigError(f"variant_name must be a non-empty string in {project_relative_or_absolute(path)}")
+    selected_config = config
+    default_variant = config.get("default_variant")
+    if default_variant is not None:
+        if not isinstance(default_variant, str) or not default_variant.strip():
+            raise ConfigError(f"default_variant must be a non-empty string in {project_relative_or_absolute(path)}")
+        resolved_config = resolve_config_constants(config, include_variants=False)
+        matches = selected_variants(resolved_config, default_variant.strip())
+        if not matches:
+            raise ConfigError(
+                f"default_variant {default_variant!r} does not match a variant in "
+                f"{project_relative_or_absolute(path)}"
+            )
+        selected_config = variant_config(resolved_config, matches[0])
     variant: dict[str, object] = {"name": variant_name.strip(), "_source_config": str(path)}
     for key in ("job_name", "output_dir", "constants", "scene", "render", "annotations"):
-        if key in config:
-            variant[key] = deepcopy(config[key])
+        if key in selected_config:
+            variant[key] = deepcopy(selected_config[key])
     return variant
 
 
