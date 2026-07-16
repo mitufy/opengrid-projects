@@ -1048,6 +1048,51 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(legacy_variants, canonical_variants)
         self.assertEqual(len(legacy_variants), 4)
 
+    def test_snap_gadget_clip_variants_share_one_canonical_config(self) -> None:
+        config = load_config(Path("annotation_renderer/configs/opengrid_snap_gadget_clip_default.yaml"), [])
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "product_views")],
+            ["default", "empty", "side"],
+        )
+        self.assertEqual(len(selected_variant_collection(config, "parameter_gallery")), 4)
+
+        default = variant_config(config, selected_variants(config, "default")[0])
+        empty = variant_config(config, selected_variants(config, "empty")[0])
+        side = variant_config(config, selected_variants(config, "side")[0])
+        self.assertEqual(
+            [item["id"] for item in default["scene"]["objects"]],
+            ["clip_a", "snap_a", "clip_b", "snap_b"],
+        )
+        self.assertEqual([item["id"] for item in empty["scene"]["objects"]], ["model", "snap_a"])
+        self.assertEqual([item["id"] for item in side["scene"]["objects"]], ["circ_clip", "snapa"])
+        self.assertEqual(
+            {item["name"] for item in angle_radius_items_from_config(side["annotations"])},
+            {"clip_surround_angle_detail"},
+        )
+
+        vertical = variant_config(config, selected_variants(config, "Circular_Vertical_Tilt45")[0])
+        self.assertEqual(vertical["scene"]["objects"][0]["transform"]["rotation_deg"], [0, -90, 0])
+
+        for wrapper_name in ("opengrid_snap_gadget_clip_empty.yaml", "opengrid_snap_gadget_clip_side.yaml"):
+            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
+            self.assertNotIn("scene", wrapper)
+            self.assertNotIn("render", wrapper)
+            self.assertNotIn("annotations", wrapper)
+
+        gallery_wrapper = yaml.safe_load(
+            Path("annotation_renderer/configs/opengrid_snap_gadget_clip_gallery.yaml").read_text(encoding="utf-8")
+        )
+        self.assertNotIn("variants", gallery_wrapper)
+        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
+
+        legacy_variants = self.gallery_variant_lines("opengrid_snap_gadget_clip_gallery")
+        canonical_variants = self.gallery_variant_lines(
+            "opengrid_snap_gadget_clip",
+            collection="parameter_gallery",
+        )
+        self.assertEqual(legacy_variants, canonical_variants)
+        self.assertEqual(len(legacy_variants), 4)
+
     def test_compatibility_config_uses_its_default_variant(self) -> None:
         output = self.run_cli(
             "--config",

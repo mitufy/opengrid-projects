@@ -1,7 +1,9 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
 variant_name: opengrid_snap_gadget_clip_default
+default_variant: default
 job_name: snap_gadget_clip_scene
+
 scene:
   objects:
   - id: clip_a
@@ -26,8 +28,6 @@ scene:
     model:
       scad_file: opengrid_snap_gadget_clip.scad
       defines:
-        # clip_shape: Elliptic
-        # clip_main_depth: 25
         knurling_type: Diamond
     transform:
       location_mm: [42, 0, -20.6]
@@ -37,29 +37,10 @@ scene:
     transform:
       location_mm: [42, 0, -14]
       rotation_deg: [-90, 180, 0]
-  # - id: clip_c
-  #   model:
-  #     scad_file: opengrid_snap_gadget_clip.scad
-  #     defines:
-  #       clip_shape: Circular
-  #       clip_orientation: Vertical
-  #       clip_entry_tilt_angle: 45
-  #       # clip_main_depth: 25
-  #       # knurling_type: Diamond
-  #   transform:
-  #     location_mm: [-42, 0, -20.6]
-  #     rotation_deg: [0, 90, 0]
-  # - id: snap_c
-  #   $constant: expanding_snap_object
-  #   transform:
-  #     location_mm: [-42, 0, -14]
-  #     rotation_deg: [-90, 180, 0]
+
 render:
   fit_margin: 0
-  # camera_view: front
-  # camera_orbit_deg: [22, 0]
-  # camera_location_offset_mm: [-15, 0, 0]
-  # camera_rotation_offset_deg: [0, 0, 5]
+
 annotations:
   style:
     $constant: default_annotation_style
@@ -69,36 +50,177 @@ annotations:
         line_colors:
         - $constant: annotation_color_black
   chains:
-  - ids: [clip_main_width]
+  - name: clip_main_width_dimension
+    ids: [clip_main_width]
     display_offset_mm: [0, 0, 0]
     line_offset_px: 80
     label_offset_px: 50
     label_font_size_px:
       $constant: annotation_label_font_size_px
-  # - ids: [clip_main_depth]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -0
-  #   label_offset_px: 56
-  #   label_font_size_px: 24
-  # - ids: [clip_thickness]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -0
-  #   label_offset_px: -28
-  #   label_font_size_px: 24
-  - ids: [clip_height]
+  - name: clip_height_dimension
+    ids: [clip_height]
     display_offset_mm: [0, 0, 0]
     line_offset_px: 50
     label_offset_px: 50
     label_font_size_px:
       $constant: annotation_label_font_size_px
-  # angle_radius_callouts:
-  # - id: clip_surround_angle_detail
-  #   arc_id: clip_surround_angle
-  #   radius_id: clip_surround_angle_radius
-  #   optional: true
-  #   show_radius_label: false
-  #   angle_label_offset_px: 90
-  #   angle_label_tangent_offset_px: 72
-  #   label_font_size_px: 20
-  #   auto_adjust_labels: false
-  #   angle_fill_alpha: 28
+
+variant_collections:
+  product_views: [default, empty, side]
+  parameter_gallery:
+  - Circular_Stem15
+  - Circular_Vertical_Tilt45
+  - Elliptic_Surround120
+  - Rectangular_NoTip_Surround180
+
+variants:
+- name: default
+  job_name: snap_gadget_clip_scene
+
+- name: empty
+  job_name: snap_gadget_clip_scene
+  scene:
+    objects:
+    - id: model
+      model:
+        scad_file: opengrid_snap_gadget_clip.scad
+      transform:
+        location_mm: [-14, 0, -20.6]
+        rotation_deg: [0, 0, 0]
+    - id: snap_a
+      $constant: expanding_snap_object
+      transform:
+        location_mm: [-14, 0, -14]
+        rotation_deg: [-90, 180, 0]
+  render:
+    camera_view_preset: technical_iso
+  annotations:
+    style:
+      $constant: default_annotation_style
+
+- name: side
+  job_name: snap_gadget_clip_scene
+  scene:
+    objects:
+    - id: circ_clip
+      model:
+        scad_file: opengrid_snap_gadget_clip.scad
+        defines:
+          clip_shape: Elliptic
+          clip_main_depth: 22
+          clip_stem_length: 6
+      transform:
+        location_mm: [14, 0, -20.6]
+        rotation_deg: [0, 0, 0]
+    - id: snapa
+      model:
+        scad_file: opengrid_expanding_snap.scad
+        defines:
+          snap_thickness: 6.8
+          generate_screw: None
+      transform:
+        location_mm: [14, 0, -14]
+        rotation_deg: [-90, 180, 0]
+  render:
+    fit_margin: 0.1
+    camera_view: bottom
+  annotations:
+    style:
+      $constant: default_annotation_style
+      auto_adjust_labels: true
+      type_styles:
+        mm:
+          line_colors:
+          - $constant: annotation_color_black
+    chains:
+    - name: clip_main_width_dimension
+      ids: [clip_main_width]
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: -450
+      label_offset_px: -50
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+    - name: clip_thickness_dimension
+      ids: [clip_thickness]
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 450
+      label_offset_px: 50
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+    - name: clip_main_depth_dimension
+      ids: [clip_main_depth]
+      optional: true
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: 450
+      label_offset_px: 50
+      label_along_offset_px: 70
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+    - name: clip_stem_length_dimension
+      ids: [clip_stem_length]
+      optional: true
+      display_offset_mm: ["-(clip_main_width / 2 + clip_thickness)", 0, 0]
+      line_offset_px: 450
+      label_offset_px: 50
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+      color:
+        $constant: annotation_color_blue
+    angle_radius_callouts:
+    - name: clip_surround_angle_detail
+      id: clip_surround_angle_detail
+      arc_id: clip_surround_angle
+      radius_id: clip_surround_angle_radius
+      display_offset_mm: [0, -2.6, 0]
+      optional: true
+      show_radius_label: false
+      angle_label_offset_px: 50
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+      auto_adjust_labels: false
+      angle_fill_alpha: 28
+
+- name: Circular_Stem15
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          clip_shape: Circular
+          clip_stem_length: 15
+
+- name: Circular_Vertical_Tilt45
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          clip_orientation: Vertical
+          clip_entry_tilt_angle: 45
+      transform:
+        location_mm: [-7.4, 0, -14]
+        rotation_deg: [0, -90, 0]
+
+- name: Elliptic_Surround120
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          clip_shape: Elliptic
+          clip_surround_angle: 120
+          clip_main_width: 30
+          clip_main_depth: 13
+
+- name: Rectangular_NoTip_Surround180
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          clip_shape: Rectangular
+          clip_surround_angle: 180
+          clip_main_width: 30
+          clip_main_depth: 13
+          tip_diameter: 0
+          clip_thickness_scale: 1
