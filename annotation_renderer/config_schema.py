@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from pathlib import Path
-from typing import Mapping
+from typing import Mapping, Sequence
+
+from jsonschema import Draft202012Validator
+from jsonschema.exceptions import best_match
 
 
 class ConfigError(ValueError):
@@ -13,6 +17,29 @@ class ConfigError(ValueError):
 
 CONFIG_SCHEMA_PATH = Path(__file__).resolve().parent / "schemas" / "annotation-render-config.schema.json"
 CONFIG_SCHEMA = json.loads(CONFIG_SCHEMA_PATH.read_text(encoding="utf-8"))
+INTERNAL_CONFIG_KEYS = {"_inherited_variants", "_source_config"}
+
+
+def schema_validation_view(value: object) -> object:
+    if isinstance(value, Mapping):
+        return {
+            str(key): schema_validation_view(item)
+            for key, item in value.items()
+            if key not in INTERNAL_CONFIG_KEYS
+        }
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        return [schema_validation_view(item) for item in value]
+    return deepcopy(value)
+
+
+def validate_against_config_schema(config: Mapping[str, object]) -> None:
+    validator = Draft202012Validator(CONFIG_SCHEMA)
+    error = best_match(validator.iter_errors(schema_validation_view(config)))
+    if error is None:
+        return
+    path = ".".join(str(item) for item in error.absolute_path)
+    location = f" at {path}" if path else ""
+    raise ConfigError(f"Config schema validation failed{location}: {error.message}")
 
 
 def schema_definition(definition_name: str) -> Mapping[str, object]:

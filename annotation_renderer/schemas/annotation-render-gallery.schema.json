@@ -39,6 +39,10 @@
     "title_font_size_px": {
       "type": "integer",
       "minimum": 1
+    },
+    "variant_collection": {
+      "type": "string",
+      "minLength": 1
     }
   }
 }

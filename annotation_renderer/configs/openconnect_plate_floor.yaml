@@ -9,7 +9,6 @@ scene:
     model:
       scad_file: openconnect_plate.scad
     material:
-      color: '#cccccc'
       roughness: 0.8
       # defines:
         # slot_type: negslot
@@ -18,9 +17,6 @@ scene:
     # transform:
     #   location_mm: [14, 6.8, -14]
     #   rotation_deg: [90, 0, 0]
-render:
-  # fit_margin: 0.3
-  # camera_view_preset: technical_iso
 annotations:
   style:
     $constant: default_annotation_style

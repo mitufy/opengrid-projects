@@ -29,8 +29,8 @@ annotations:
     tick_length_px: 15
     radial_line_width_px: 2.1
   aliases:
-    hook_vertical_grids: hook_vgrids x 28mm
-    truss_vertical_grids: truss_vgrids x 28mm
+    hook_vertical_grids: "hook_vgrids x {og_tile_size:g}mm"
+    truss_vertical_grids: "truss_vgrids x {og_tile_size:g}mm"
     # hook_shape_type: hook_shape
     # hook_corner_fillet: corner_fillet
     # hook_corner_fillet_extent: corner_fillet

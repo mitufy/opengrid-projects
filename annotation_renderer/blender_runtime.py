@@ -205,7 +205,13 @@ def replace_or_import_object(object_config):
             except RuntimeError:
                 pass
 
-    custom_material = configured_material(target_name, object_config.get("material"), materials)
+    material_config = object_config.get("material")
+    if isinstance(material_config, dict) and not materials and "color" not in material_config:
+        material_config = {
+            "color": object_config.get("default_material_color"),
+            **material_config,
+        }
+    custom_material = configured_material(target_name, material_config, materials)
     if custom_material is not None:
         replacement.data.materials.clear()
         replacement.data.materials.append(custom_material)

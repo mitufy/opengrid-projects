@@ -493,7 +493,7 @@ def collect_image_labels(
     expression_context: Mapping[str, float] | None = None,
     value_context: Mapping[str, object] | None = None,
 ) -> list[ImageLabel]:
-    aliases = aliases_from_config(annotation_config)
+    aliases = aliases_from_config(annotation_config, context=expression_context)
     show_values_default = bool(style_config.get("show_values", False))
     labels: list[ImageLabel] = []
     for index, label_config in enumerate(labels_config):

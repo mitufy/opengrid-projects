@@ -1,7 +1,9 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
 variant_name: openconnect_general_holder_default
+default_variant: default
 job_name: general_holder_scene_default
+
 scene:
   objects:
   - id: model_b
@@ -14,7 +16,7 @@ scene:
         holder_tilt_angle: 20
         front_opening_width: 0
     transform:
-      location_mm: [-56, 0, -28]
+      location_mm: ["-(2 * og_tile_size)", 0, "-og_tile_size"]
       rotation_deg: [holder_tilt_angle, 0, 0]
       scale:
         $constant: blender_scene_scale_vector
@@ -25,64 +27,92 @@ scene:
         compartment_column_count: 2
         compartment_row_count: 1
         compartment_width: 32
-        # front_opening_height: 30
         front_opening_width: 8
     transform:
-      location_mm: [28-15, 0, -28]
+      location_mm: ["og_tile_size - 15", 0, "-og_tile_size"]
       rotation_deg: [holder_tilt_angle, 0, 0]
       scale:
         $constant: blender_scene_scale_vector
+
 render:
   fit_margin: 0.1
-  # camera_location_offset_mm: [0, 0, 100]
-  # camera_look_at: object_center
-  # camera_view_preset: top_front
+
 annotations:
   style:
     $constant: default_annotation_style
+  aliases:
+    holder_outer_wall_thickness: outer_wall_thickness
   chains:
-  - ids: [compartment_width]
+  - name: compartment_width_dimension
+    ids: [compartment_width]
     display_offset_mm: [0, 0, 0]
     line_offset_px: -20
     label_offset_px: -50
-  # - ids: [compartment_depth]
-  #   optional: true
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -100
-  #   label_offset_px: -50
-  # - ids: [holder_back_offset]
-  #   optional: true
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 0
-  #   label_offset_px: 60
-  - ids: [compartment_height]
+  - name: compartment_height_dimension
+    ids: [compartment_height]
     display_offset_mm: [0, 0, 0]
     line_offset_px: 70
     label_offset_px: 50
-  # - ids: [holder_bottom_thickness]
-  #   optional: true
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 130
-  #   label_offset_px: 56
-  #   font_size_px: 18
-  # - ids: [holder_outer_wall_thickness]
-  #   optional: true
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -82
-  #   label_offset_px: 34
-  #   font_size_px: 20
-  # - ids: [front_opening_width]
-  #   optional: true
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 28
-  #   label_offset_px: 28
-  # - ids: [front_opening_height]
-  #   optional: true
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -40
-  #   label_offset_px: -28
+  - name: holder_bottom_thickness_dimension
+    enabled: false
+    ids: [holder_bottom_thickness]
+    optional: true
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: -50
+    label_offset_px: -50
+    label_along_offset_px: 50
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
+  - name: compartment_depth_dimension
+    enabled: false
+    ids: [compartment_depth]
+    optional: true
+    color:
+      $constant: annotation_color_black
+    line_offset_px: -100
+    label_offset_px: -50
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
+  - name: holder_back_offset_dimension
+    enabled: false
+    ids: [holder_back_offset]
+    optional: true
+    line_offset_px: -120
+    label_offset_px: -50
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
+  - name: holder_outer_wall_thickness_dimension
+    enabled: false
+    ids: [holder_outer_wall_thickness]
+    optional: true
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: -180
+    label_offset_px: -50
+    label_font_size_px: 45
+    color:
+      $constant: annotation_color_blue
+  - name: compartment_bottom_width_dimension
+    enabled: false
+    ids: [compartment_bottom_width]
+    optional: true
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 100
+    label_offset_px: 40
+    label_font_size_px: 45
+    color:
+      $constant: annotation_color_blue
+  - name: compartment_bottom_depth_dimension
+    enabled: false
+    ids: [compartment_bottom_depth]
+    optional: true
+    line_offset_px: -100
+    label_offset_px: -40
+    label_font_size_px: 45
+    color:
+      $constant: annotation_color_blue
   angle_radius_callouts:
-  - id: holder_tilt_angle_callout
+  - name: holder_tilt_angle_callout
+    id: holder_tilt_angle_callout
     arc_id: holder_tilt_angle_extent
     radius_id: holder_tilt_angle_radius
     angle_id: holder_tilt_angle
@@ -90,28 +120,245 @@ annotations:
     show_radius_label: false
     angle_label_offset_px: 34
     angle_fill_alpha: 28
-  # image_labels:
-  # - $constant: bottom_image_label
-  #   id: compartment_shape
-  #   offset_px: [0, -50]
-  #   show_value: true
-  #   value_color:
-  #     $constant: annotation_color_blue
-  #   font_size_px:
-  #     $constant: annotation_title_font_size_px
-  # - $constant: bottom_image_label
-  #   id: compartment_column_count
-  #   offset_px: [0, 0]
-  #   show_value: true
-  #   value_color:
-  #     $constant: annotation_color_blue
-  #   font_size_px:
-  #     $constant: annotation_title_font_size_px
-  # - $constant: bottom_image_label
-  #   id: compartment_row_count
-  #   offset_px: [0, 70]
-  #   show_value: true
-  #   value_color:
-  #     $constant: annotation_color_blue
-  #   font_size_px:
-  #     $constant: annotation_title_font_size_px
+  - name: compartment_corner_rounding_callout
+    enabled: false
+    id: compartment_corner_rounding_callout
+    arc_id: compartment_corner_rounding_extent
+    radius_id: compartment_corner_rounding
+    optional: true
+    show_angle_label: false
+    angle_fill_alpha: 0
+    radius_label_offset_px: -180
+    radius_label_tangent_offset_px: 0
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
+  image_labels:
+  - $constant: top_image_label
+    name: holder_bottom_thickness_label
+    enabled: false
+    id: holder_bottom_thickness
+    offset_px: [0, 0]
+    show_value: true
+    value_color:
+      $constant: annotation_color_red
+    font_size_px:
+      $constant: annotation_title_font_size_px
+  - $constant: top_image_label
+    name: enable_bottom_taper_label
+    enabled: false
+    id: enable_bottom_taper
+    offset_px: [0, 90]
+    show_value: true
+    value_color:
+      $constant: annotation_color_red
+    font_size_px:
+      $constant: annotation_title_font_size_px
+
+variant_collections:
+  product_views: [default, empty, side, top, taper]
+  annotated_views: [default, side, top, taper]
+  parameter_gallery:
+  - Width45_Mode_Minimum
+  - Width45_Mode_Tile_Multiple
+  - Circular_Tapered_Bottomless
+  - Circular_Grid_3x2
+
+variants:
+- name: default
+  job_name: general_holder_scene_default
+
+- name: empty
+  job_name: general_holder_scene_empty
+  scene:
+    objects:
+    - id: model
+      model:
+        scad_file: openconnect_general_holder.scad
+      transform:
+        location_mm: ["-(2 * og_tile_size)", 0, "-og_tile_size"]
+        rotation_deg: [holder_tilt_angle, 0, 0]
+        scale:
+          $constant: blender_scene_scale_vector
+  render:
+    fit_margin: 0
+    camera_view_preset: top_front
+  annotation_overrides:
+    compartment_width_dimension:
+      enabled: false
+    compartment_height_dimension:
+      enabled: false
+    holder_tilt_angle_callout:
+      enabled: false
+
+- name: side
+  job_name: general_holder_scene_side
+  scene:
+    objects:
+    - id: model_a
+      model:
+        scad_file: openconnect_general_holder.scad
+        defines:
+          compartment_column_count: 1
+          compartment_row_count: 1
+          compartment_depth: 20
+          holder_back_offset: 2
+          compartment_corner_rounding: 5
+          holder_tilt_angle: 15
+      transform:
+        location_mm: [0, 0, "-og_tile_size"]
+        rotation_deg: [holder_tilt_angle, 0, 0]
+        scale:
+          $constant: blender_scene_scale_vector
+  render:
+    fit_margin: 0
+    camera_view: right
+  annotation_overrides:
+    compartment_width_dimension:
+      enabled: false
+    compartment_height_dimension:
+      enabled: false
+    holder_bottom_thickness_dimension:
+      enabled: true
+
+- name: top
+  job_name: general_holder_scene_top
+  scene:
+    objects:
+    - id: model_a
+      model:
+        scad_file: openconnect_general_holder.scad
+        defines:
+          compartment_column_count: 1
+          compartment_row_count: 1
+          compartment_corner_rounding: 5
+          holder_back_offset: 0
+      transform:
+        location_mm: [0, 0, "-og_tile_size"]
+        rotation_deg: [holder_tilt_angle, 0, 0]
+        scale:
+          $constant: blender_scene_scale_vector
+  render:
+    fit_margin: 0
+    camera_view: top
+  annotation_overrides:
+    compartment_width_dimension:
+      color:
+        $constant: annotation_color_black
+      line_offset_px: 100
+      label_offset_px: 50
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+    compartment_height_dimension:
+      enabled: false
+    compartment_depth_dimension:
+      enabled: true
+    holder_back_offset_dimension:
+      enabled: true
+    holder_outer_wall_thickness_dimension:
+      enabled: true
+    holder_tilt_angle_callout:
+      enabled: false
+    compartment_corner_rounding_callout:
+      enabled: true
+
+- name: taper
+  job_name: general_holder_scene_taper
+  scene:
+    objects:
+    - id: model_a
+      model:
+        scad_file: openconnect_general_holder.scad
+        defines:
+          compartment_column_count: 1
+          compartment_row_count: 1
+          compartment_corner_rounding: 5
+          enable_bottom_taper: true
+          compartment_bottom_width: 20
+          compartment_bottom_depth: 12
+          compartment_height: 28
+          front_opening_height: 0
+          holder_bottom_thickness: 0
+          compartment_max_facets: 256
+      transform:
+        location_mm: [0, 0, "-og_tile_size"]
+        rotation_deg: [holder_tilt_angle, 0, 0]
+        scale:
+          $constant: blender_scene_scale_vector
+  render:
+    fit_margin: 0
+    camera_view: top
+  annotation_overrides:
+    compartment_width_dimension:
+      color:
+        $constant: annotation_color_black
+      line_offset_px: 50
+      label_offset_px: 48
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+    compartment_height_dimension:
+      enabled: false
+    compartment_depth_dimension:
+      enabled: true
+      line_offset_px: -50
+      label_offset_px: -48
+    compartment_bottom_width_dimension:
+      enabled: true
+    compartment_bottom_depth_dimension:
+      enabled: true
+    holder_tilt_angle_callout:
+      enabled: false
+    holder_bottom_thickness_label:
+      enabled: true
+    enable_bottom_taper_label:
+      enabled: true
+
+- name: Width45_Mode_Minimum
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          compartment_shape: Rectangular
+          compartment_column_count: 1
+          compartment_row_count: 1
+          compartment_width: 45
+
+- name: Width45_Mode_Tile_Multiple
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          compartment_shape: Rectangular
+          compartment_column_count: 1
+          compartment_row_count: 1
+          compartment_width: 45
+          holder_width_mode: "Tile Multiple"
+
+- name: Circular_Tapered_Bottomless
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          compartment_shape: Circular
+          enable_bottom_taper: true
+          compartment_height: 28
+          compartment_bottom_width: 15
+          compartment_bottom_depth: 15
+          holder_bottom_thickness: 0
+          front_opening_height: 0
+          compartment_column_count: 1
+          compartment_row_count: 1
+
+- name: Circular_Grid_3x2
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          compartment_shape: Circular
+          compartment_column_count: 3
+          compartment_row_count: 2
+          compartment_width: 35
+          front_opening_width: 0

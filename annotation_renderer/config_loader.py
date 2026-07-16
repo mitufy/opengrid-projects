@@ -13,7 +13,13 @@ try:
 except ImportError:  # pragma: no cover - exercised only in incomplete local environments
     yaml = None
 
-from annotation_renderer.config_resolution import deep_merge, resolve_config_constants, resolve_constant_references
+from annotation_renderer.config_resolution import (
+    apply_annotation_overrides,
+    apply_object_overrides,
+    deep_merge,
+    resolve_config_constants,
+    resolve_constant_references,
+)
 from annotation_renderer.config_schema import ConfigError
 from annotation_renderer.config_validation import validate_config_shape
 from annotation_renderer.openscad import project_relative_or_absolute, sanitize_name
@@ -54,18 +60,38 @@ def parse_override_path(path: str) -> list[str | int]:
     return tokens
 
 
+def named_list_item_index(items: Sequence[object], selector: str, *, operation: str) -> int:
+    matches = [
+        index
+        for index, item in enumerate(items)
+        if isinstance(item, Mapping)
+        and selector in {str(item.get("id") or ""), str(item.get("name") or "")}
+    ]
+    if not matches:
+        raise ConfigError(f"{operation} cannot find named array item {selector!r}")
+    if len(matches) > 1:
+        raise ConfigError(f"{operation} array item selector {selector!r} is ambiguous")
+    return matches[0]
+
+
+def list_item_index(items: Sequence[object], token: str | int, *, operation: str) -> int:
+    if isinstance(token, int):
+        if token < 0 or token >= len(items):
+            raise ConfigError(f"{operation} array index [{token}] is out of range")
+        return token
+    return named_list_item_index(items, token, operation=operation)
+
+
 def set_dotted_value(config: dict[str, object], path: str, assigned_value: object) -> None:
     tokens = parse_override_path(path)
     current: object = config
     for index, token in enumerate(tokens[:-1]):
         next_token = tokens[index + 1]
-        if isinstance(token, int):
-            if not isinstance(current, list):
-                raise ConfigError(f"--set cannot index into non-array path at [{token}]")
-            if token < 0 or token >= len(current):
-                raise ConfigError(f"--set array index [{token}] is out of range")
-            current = current[token]
+        if isinstance(current, list):
+            current = current[list_item_index(current, token, operation="--set")]
             continue
+        if isinstance(token, int):
+            raise ConfigError(f"--set cannot index into non-array path at [{token}]")
         if not isinstance(current, dict):
             raise ConfigError(f"--set cannot descend into non-object path {token!r}")
         value = current.get(token)
@@ -74,16 +100,38 @@ def set_dotted_value(config: dict[str, object], path: str, assigned_value: objec
             current[token] = value
         current = value
     final_token = tokens[-1]
-    if isinstance(final_token, int):
-        if not isinstance(current, list):
-            raise ConfigError(f"--set cannot index into non-array path at [{final_token}]")
-        if final_token < 0 or final_token >= len(current):
-            raise ConfigError(f"--set array index [{final_token}] is out of range")
-        current[final_token] = assigned_value
+    if isinstance(current, list):
+        current[list_item_index(current, final_token, operation="--set")] = assigned_value
         return
+    if isinstance(final_token, int):
+        raise ConfigError(f"--set cannot index into non-array path at [{final_token}]")
     if not isinstance(current, dict):
         raise ConfigError(f"--set cannot assign into non-object path {final_token!r}")
     current[final_token] = assigned_value
+
+
+def unset_dotted_value(config: dict[str, object], path: str) -> None:
+    tokens = parse_override_path(path)
+    current: object = config
+    for token in tokens[:-1]:
+        if isinstance(current, list):
+            current = current[list_item_index(current, token, operation="unset")]
+            continue
+        if isinstance(token, int):
+            raise ConfigError(f"unset cannot index into non-array path at [{token}]")
+        if not isinstance(current, dict) or token not in current:
+            raise ConfigError(f"unset path {path!r} does not exist")
+        current = current[token]
+
+    final_token = tokens[-1]
+    if isinstance(current, list):
+        current.pop(list_item_index(current, final_token, operation="unset"))
+        return
+    if isinstance(final_token, int):
+        raise ConfigError(f"unset cannot index into non-array path at [{final_token}]")
+    if not isinstance(current, dict) or final_token not in current:
+        raise ConfigError(f"unset path {path!r} does not exist")
+    del current[final_token]
 
 
 def apply_override(config: dict[str, object], override: str) -> None:
@@ -244,6 +292,12 @@ def load_raw_config(path: Path, seen: tuple[Path, ...] = ()) -> dict[str, object
     base_config = load_raw_config(base_path, (*seen, path))
     merged_config = deep_merge(base_config, config)
     if "variants" in config:
+        if "default_variant" not in config:
+            merged_config.pop("default_variant", None)
+        if "variant_collections" in config:
+            merged_config["variant_collections"] = deepcopy(config["variant_collections"])
+        else:
+            merged_config.pop("variant_collections", None)
         inherited_variants = [
             *deepcopy(base_config.get(INHERITED_VARIANTS_KEY, [])),
             *deepcopy(base_config.get("variants", [])),
@@ -344,6 +398,15 @@ def variant_config(
         resolved = deepcopy(dict(config))
         resolved.pop("variants", None)
         resolved.pop(INHERITED_VARIANTS_KEY, None)
+        resolved.pop("default_variant", None)
+        resolved.pop("variant_collections", None)
+        resolved_gallery = resolved.get("gallery")
+        if isinstance(resolved_gallery, Mapping) and "variant_collection" in resolved_gallery:
+            resolved["gallery"] = {
+                str(key): deepcopy(value)
+                for key, value in resolved_gallery.items()
+                if key != "variant_collection"
+            }
     if "job_name" not in variant:
         resolved["job_name"] = f"{base_job_name(config)}__{variant_name}"
 
@@ -377,6 +440,50 @@ def variant_config(
             set_dotted_value(resolved, str(path), deepcopy(value))
 
     resolved = resolve_config_constants(resolved, include_variants=False)
+    object_overrides = variant.get("object_overrides")
+    if object_overrides is not None:
+        if not isinstance(object_overrides, Mapping):
+            raise ConfigError(f"variants[{variant_name}].object_overrides must be an object")
+        if object_overrides:
+            resolved_overrides = resolve_constant_references(
+                object_overrides,
+                constants=require_mapping(resolved.get("constants", {}), name="constants"),
+                path=f"variants[{variant_name}].object_overrides",
+            )
+            if not isinstance(resolved_overrides, Mapping):
+                raise ConfigError(f"variants[{variant_name}].object_overrides must resolve to an object")
+            scene = require_mapping(resolved.get("scene", {}), name="scene")
+            resolved["scene"] = apply_object_overrides(
+                scene,
+                resolved_overrides,
+                name=f"variants[{variant_name}].object_overrides",
+            )
+    annotation_overrides = variant.get("annotation_overrides")
+    if annotation_overrides is not None:
+        if not isinstance(annotation_overrides, Mapping):
+            raise ConfigError(f"variants[{variant_name}].annotation_overrides must be an object")
+        if annotation_overrides:
+            resolved_overrides = resolve_constant_references(
+                annotation_overrides,
+                constants=require_mapping(resolved.get("constants", {}), name="constants"),
+                path=f"variants[{variant_name}].annotation_overrides",
+            )
+            if not isinstance(resolved_overrides, Mapping):
+                raise ConfigError(f"variants[{variant_name}].annotation_overrides must resolve to an object")
+            annotations = require_mapping(resolved.get("annotations", {}), name="annotations")
+            resolved["annotations"] = apply_annotation_overrides(
+                annotations,
+                resolved_overrides,
+                name=f"variants[{variant_name}].annotation_overrides",
+            )
+    unset_paths = variant.get("unset", [])
+    if unset_paths is not None:
+        if not isinstance(unset_paths, Sequence) or isinstance(unset_paths, (str, bytes)):
+            raise ConfigError(f"variants[{variant_name}].unset must be an array")
+        for index, unset_path in enumerate(unset_paths):
+            if not isinstance(unset_path, str) or not unset_path.strip():
+                raise ConfigError(f"variants[{variant_name}].unset[{index}] must be a non-empty path")
+            unset_dotted_value(resolved, unset_path.strip())
     validate_config_shape(resolved)
     return resolved
 
@@ -390,6 +497,32 @@ def selected_variants(config: Mapping[str, object], selected_name: str | None) -
         available = ", ".join(str(variant["name"]) for variant in variants) or "none"
         raise ConfigError(f"Unknown variant {selected_name!r}. Available variants: {available}")
     return matching
+
+
+def selected_variant_collection(config: Mapping[str, object], collection_name: str) -> list[Mapping[str, object]]:
+    raw_collections = config.get("variant_collections", {})
+    if not isinstance(raw_collections, Mapping):
+        raise ConfigError("variant_collections must be an object")
+    raw_names = raw_collections.get(collection_name)
+    if raw_names is None:
+        available = ", ".join(str(name) for name in raw_collections) or "none"
+        raise ConfigError(f"Unknown variant collection {collection_name!r}. Available collections: {available}")
+    if not isinstance(raw_names, Sequence) or isinstance(raw_names, (str, bytes)):
+        raise ConfigError(f"variant_collections.{collection_name} must be an array")
+
+    variants_by_name = {str(variant["name"]): variant for variant in variant_items_from_config(config)}
+    selected: list[Mapping[str, object]] = []
+    for index, raw_name in enumerate(raw_names):
+        if not isinstance(raw_name, str) or not raw_name.strip():
+            raise ConfigError(f"variant_collections.{collection_name}[{index}] must be a non-empty variant name")
+        if raw_name not in variants_by_name:
+            available = ", ".join(variants_by_name) or "none"
+            raise ConfigError(
+                f"variant_collections.{collection_name} references unknown variant {raw_name!r}. "
+                f"Available variants: {available}"
+            )
+        selected.append(variants_by_name[raw_name])
+    return selected
 
 
 def resolve_optional_config_path(path_value: str, *, config_dir: Path) -> Path:

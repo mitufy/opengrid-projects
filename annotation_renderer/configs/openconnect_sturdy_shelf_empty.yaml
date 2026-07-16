@@ -13,7 +13,7 @@ scene:
       #   horizontal_grids: 2
       #   depth_grids: 2
     transform:
-      location_mm: [56, 0, -28]
+      location_mm: ["2 * og_tile_size", 0, "-og_tile_size"]
   transform:
     $constant: wall_placeholder_transform
 render:

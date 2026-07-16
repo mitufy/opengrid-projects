@@ -1,97 +1,10 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: base_scene.yaml
-variant_name: openconnect_general_holder_default
-job_name: general_holder_scene_default
-scene:
-  objects:
-  - id: model_a
-    model:
-      scad_file: openconnect_general_holder.scad
-      defines:
-        compartment_column_count: 1
-        compartment_row_count: 1
-        compartment_depth: 20
-        holder_back_offset: 2
-        compartment_corner_rounding: 5
-        holder_tilt_angle: 15
-    transform:
-      location_mm: [0, 0, -28]
-      rotation_deg: [holder_tilt_angle, 0, 0]
-      scale:
-        $constant: blender_scene_scale_vector
-  # - id: model_b
-  #   model:
-  #     scad_file: openconnect_general_holder.scad
-  #     defines:
-  #       compartment_shape: Circular
-  #       compartment_column_count: 1
-  #       compartment_row_count: 1
-  #       enable_bottom_taper: true
-  #       front_opening_height: 60
-  #   transform:
-  #     location_mm: [112, 0, -28]
-  #     rotation_deg: [holder_tilt_angle, 0, 0]
-  #     scale:
-  #       $constant: blender_scene_scale_vector
-render:
-  fit_margin: 0
-  camera_view: right
-  # camera_location_offset_mm: [0, 0, 100]
-  # camera_look_at: object_center
-  # camera_view_preset: top_front
-annotations:
-  style:
-    # auto_adjust_labels: true
-    $constant: default_annotation_style
-  chains:
-  # - ids: [holder_back_offset]
-  #   optional: true
-  #   line_offset_px: -80
-  #   label_offset_px: -50
-  # - ids: [compartment_depth]
-  #   optional: true
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -80
-  #   label_offset_px: -28
-  #   font_size_px: 26
-  # - ids: [holder_outer_wall_thickness]
-  #   optional: true
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -80
-  #   label_offset_px: -50
-  #   label_font_size_px:
-  #     $constant: annotation_label_font_size_px
-  # - ids: [compartment_height]
-  #   color:
-  #     $constant: annotation_color_black
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -10
-  #   label_offset_px: -50
-  #   label_along_offset_px: 50
-  #   label_font_size_px:
-  #     $constant: annotation_label_font_size_px
-  - ids: [holder_bottom_thickness]
-    optional: true
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: -50
-    label_offset_px: -50
-    label_along_offset_px: 50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-  angle_radius_callouts:
-  - id: holder_tilt_angle_callout
-    arc_id: holder_tilt_angle_extent
-    radius_id: holder_tilt_angle_radius
-    angle_id: holder_tilt_angle
-    optional: true
-    show_radius_label: false
-    angle_label_offset_px: 34
-    angle_fill_alpha: 28
-  # image_labels:
-  # - $constant: bottom_image_label
-  #   id: compartment_shape
-  #   offset_px: [0, 0]
-  #   show_value: true
-  #   value_color: '#0000FF'
-  #   font_size_px:
-  #     $constant: annotation_title_font_size_px
+extends: openconnect_general_holder_default.yaml
+variant_name: openconnect_general_holder_side
+default_variant: openconnect_general_holder_side
+
+# Compatibility entry point. Add new image variations to the canonical config instead.
+variants:
+- name: openconnect_general_holder_side
+  extends_variant: side
+  job_name: general_holder_scene_side

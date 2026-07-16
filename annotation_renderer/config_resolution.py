@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Mapping, Sequence
 
 from annotation_renderer.config_defaults import (
+    ANNOTATION_COLLECTION_KEYS,
     AXES,
     BUILTIN_CONFIG_CONSTANTS,
     CONSTANT_REF_KEY,
@@ -23,14 +24,128 @@ from annotation_renderer.config_schema import ConfigError
 def deep_merge(base: Mapping[str, object], override: Mapping[str, object]) -> dict[str, object]:
     merged: dict[str, object] = dict(base)
     for key, value in override.items():
-        if key == "preset":
-            continue
         current = merged.get(key)
         if isinstance(current, Mapping) and isinstance(value, Mapping):
             merged[key] = deep_merge(current, value)
         else:
             merged[key] = value
     return merged
+
+
+def annotation_group_identity(collection: str, group: Mapping[str, object]) -> str | None:
+    explicit_name = group.get("name")
+    if isinstance(explicit_name, str) and explicit_name.strip():
+        return explicit_name.strip()
+    if collection in {"chains", "radius_callouts", "arc_callouts"}:
+        ids = group.get("ids")
+        if isinstance(ids, Sequence) and not isinstance(ids, (str, bytes)) and ids:
+            return "+".join(str(item) for item in ids)
+    if collection == "angle_radius_callouts":
+        for key in ("id", "angle_id", "arc_id"):
+            value = group.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    if collection == "image_labels":
+        for key in ("id", "text"):
+            value = group.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    return None
+
+
+def apply_annotation_overrides(
+    annotations: Mapping[str, object],
+    overrides: Mapping[str, object],
+    *,
+    name: str = "annotation_overrides",
+) -> dict[str, object]:
+    resolved = deepcopy(dict(annotations))
+    groups_by_name: dict[str, tuple[str, int]] = {}
+    for collection in ANNOTATION_COLLECTION_KEYS:
+        raw_groups = resolved.get(collection, [])
+        if not isinstance(raw_groups, Sequence) or isinstance(raw_groups, (str, bytes)):
+            raise ConfigError(f"annotations.{collection} must be an array")
+        for index, group in enumerate(raw_groups):
+            if not isinstance(group, Mapping):
+                raise ConfigError(f"annotations.{collection}[{index}] must be an object")
+            group_name = annotation_group_identity(collection, group)
+            if group_name is None:
+                continue
+            if group_name in groups_by_name:
+                previous_collection, previous_index = groups_by_name[group_name]
+                raise ConfigError(
+                    f"Annotation group name {group_name!r} is ambiguous between "
+                    f"annotations.{previous_collection}[{previous_index}] and annotations.{collection}[{index}]"
+                )
+            groups_by_name[group_name] = (collection, index)
+
+    for raw_group_name, raw_override in overrides.items():
+        group_name = str(raw_group_name).strip()
+        if not group_name:
+            raise ConfigError(f"{name} keys must be non-empty strings")
+        if not isinstance(raw_override, Mapping):
+            raise ConfigError(f"{name}.{group_name} must be an object")
+        if "name" in raw_override:
+            raise ConfigError(f"{name}.{group_name}.name cannot change an annotation group's identity")
+        target = groups_by_name.get(group_name)
+        if target is None:
+            available = ", ".join(sorted(groups_by_name)) or "none"
+            raise ConfigError(f"{name} references unknown annotation group {group_name!r}. Available groups: {available}")
+        collection, index = target
+        raw_groups = resolved[collection]
+        if not isinstance(raw_groups, list):
+            raw_groups = list(raw_groups)
+            resolved[collection] = raw_groups
+        raw_groups[index] = deep_merge(raw_groups[index], raw_override)
+    return resolved
+
+
+def apply_object_overrides(
+    scene: Mapping[str, object],
+    overrides: Mapping[str, object],
+    *,
+    name: str = "object_overrides",
+) -> dict[str, object]:
+    resolved = deepcopy(dict(scene))
+    raw_objects = resolved.get("objects")
+    if not isinstance(raw_objects, Sequence) or isinstance(raw_objects, (str, bytes)):
+        raise ConfigError(f"{name} requires scene.objects")
+    objects = list(raw_objects)
+    objects_by_id: dict[str, int] = {}
+    for index, scene_object in enumerate(objects):
+        if not isinstance(scene_object, Mapping):
+            raise ConfigError(f"scene.objects[{index}] must be an object")
+        object_id = scene_object.get("id")
+        if not isinstance(object_id, str) or not object_id.strip():
+            raise ConfigError(f"scene.objects[{index}].id is required for {name}")
+        if object_id in objects_by_id:
+            raise ConfigError(f"scene object id {object_id!r} is duplicated")
+        objects_by_id[object_id] = index
+
+    removed_indices: set[int] = set()
+    for raw_object_id, raw_override in overrides.items():
+        object_id = str(raw_object_id).strip()
+        if not object_id:
+            raise ConfigError(f"{name} keys must be non-empty object IDs")
+        if not isinstance(raw_override, Mapping):
+            raise ConfigError(f"{name}.{object_id} must be an object")
+        if "id" in raw_override:
+            raise ConfigError(f"{name}.{object_id}.id cannot change a scene object's identity")
+        if object_id not in objects_by_id:
+            available = ", ".join(objects_by_id) or "none"
+            raise ConfigError(f"{name} references unknown scene object {object_id!r}. Available objects: {available}")
+        enabled = raw_override.get("enabled", True)
+        if not isinstance(enabled, bool):
+            raise ConfigError(f"{name}.{object_id}.enabled must be a boolean")
+        index = objects_by_id[object_id]
+        if not enabled:
+            removed_indices.add(index)
+            continue
+        patch = {str(key): deepcopy(value) for key, value in raw_override.items() if key != "enabled"}
+        objects[index] = deep_merge(objects[index], patch)
+
+    resolved["objects"] = [scene_object for index, scene_object in enumerate(objects) if index not in removed_indices]
+    return resolved
 
 
 def resolve_constant_references(
@@ -109,7 +224,9 @@ def resolve_style(style_config: object) -> dict[str, object]:
     preset_name = str(style_config.get("preset", DEFAULT_STYLE_PRESET_NAME))
     if preset_name not in STYLE_PRESETS:
         raise ConfigError(f"Unknown annotation style preset {preset_name!r}")
-    return deep_merge(STYLE_PRESETS[preset_name], normalize_style_aliases(style_config))
+    overrides = normalize_style_aliases(style_config)
+    overrides.pop("preset", None)
+    return deep_merge(STYLE_PRESETS[preset_name], overrides)
 
 
 def normalize_style_aliases(style_config: Mapping[str, object]) -> dict[str, object]:
@@ -170,7 +287,9 @@ def resolve_preset_mapping(
         return dict(overrides)
     if preset_name not in presets:
         raise ConfigError(f"Unknown {name} preset {preset_name!r}")
-    return deep_merge(presets[preset_name], overrides)
+    resolved_overrides = dict(overrides)
+    resolved_overrides.pop("preset", None)
+    return deep_merge(presets[preset_name], resolved_overrides)
 
 
 def scene_inherits_target_transform(scene_config: Mapping[str, object]) -> bool:
@@ -361,10 +480,25 @@ def annotation_label(annotation: Mapping[str, object], *, override: str | None =
     return f"{label} = {value}" if show_value and value else label
 
 
-def aliases_from_config(config: Mapping[str, object]) -> Mapping[str, object]:
+def aliases_from_config(
+    config: Mapping[str, object],
+    *,
+    context: Mapping[str, object] | None = None,
+) -> Mapping[str, object]:
     aliases = config.get("aliases", {})
     if isinstance(aliases, Mapping):
-        return aliases
+        if context is None:
+            return aliases
+        formatted: dict[str, object] = {}
+        for key, value in aliases.items():
+            if not isinstance(value, str) or "{" not in value:
+                formatted[str(key)] = value
+                continue
+            try:
+                formatted[str(key)] = value.format_map(context)
+            except (KeyError, ValueError):
+                formatted[str(key)] = value
+        return formatted
     return {}
 
 

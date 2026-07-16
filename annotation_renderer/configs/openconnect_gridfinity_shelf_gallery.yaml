@@ -29,4 +29,4 @@ variants:
     scene.objects[0].model.defines.magnet_position: None
     scene.objects[0].model.defines.gridfinity_width_grids: 4
     scene.objects[0].model.defines.gridfinity_depth_grids: 3
-    scene.objects[0].transform.location_mm: [-84, 0, -28]
+    scene.objects[0].transform.location_mm: ["-(3 * og_tile_size)", 0, "-og_tile_size"]

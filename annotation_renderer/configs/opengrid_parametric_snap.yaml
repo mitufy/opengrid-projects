@@ -11,7 +11,7 @@ scene:
         generate_screw: None
         generate_snap: openConnect
     transform:
-      location_mm: [14, 6.8, -14]
+      location_mm: ["og_tile_size / 2", og_standard_thickness, "-(og_tile_size / 2)"]
       rotation_deg: [90, 0, 0]
 render:
   fit_margin: 0.3

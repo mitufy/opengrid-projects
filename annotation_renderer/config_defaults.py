@@ -12,6 +12,13 @@ from annotation_renderer.config_schema import (
 
 
 AXES = ("x", "y", "z")
+ANNOTATION_COLLECTION_KEYS = (
+    "chains",
+    "radius_callouts",
+    "arc_callouts",
+    "angle_radius_callouts",
+    "image_labels",
+)
 DEFAULT_OUTPUT_DIR = "build/scene_annotations"
 DEFAULT_LINE_ALPHA = 255
 DEFAULT_LINE_COLORS = {

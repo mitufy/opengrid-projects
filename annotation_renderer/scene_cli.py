@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import struct
 import subprocess
@@ -30,7 +31,9 @@ from annotation_renderer.config_loader import (
     dump_config_data,
     load_config,
     load_gallery_config,
+    load_raw_config,
     require_mapping,
+    selected_variant_collection,
     selected_variants,
     variant_config,
     variant_items_from_config,
@@ -47,6 +50,7 @@ from annotation_renderer.annotation_config import (
     projection_points_for_segments,
 )
 from annotation_renderer.config_defaults import (
+    ANNOTATION_COLLECTION_KEYS,
     CAMERA_VIEW_PRESETS,
     DEFAULT_OUTPUT_DIR,
     DEFAULT_OUTPUT_MODE,
@@ -57,12 +61,14 @@ from annotation_renderer.config_defaults import (
     RENDER_PRESETS,
 )
 from annotation_renderer.config_resolution import (
+    annotation_group_identity,
     aliases_from_config,
     build_expression_context,
     build_expression_context_for_model,
     build_scad_defines,
     deep_merge,
     eval_numeric_expression,
+    resolve_config_constants,
     resolve_config_path,
     resolve_constant_references,
     resolve_scene_transform,
@@ -113,8 +119,11 @@ from annotation_renderer.scad_discovery import (
 UTILITY_ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = UTILITY_ROOT.parent
 DEFAULT_MODEL_CONFIG_PATH = UTILITY_ROOT / "configs" / "model_defaults.yaml"
+ANIMATION_PRESET_CONFIG_PATH = UTILITY_ROOT / "configs" / "animation_presets.yaml"
+MINIMUM_BLENDER_VERSION = (5, 1, 0)
+BLENDER_SCENE_PROBE_MARKER = "OPENGRID_SCENE_OPENED"
 DISCOVERY_ACTIONS = ("list_models", "describe", "list_annotations", "new_config")
-COMMANDS = ("render", "doctor", "discover", "new-config", "list-models", "describe", "list-annotations")
+COMMANDS = ("render", "validate", "doctor", "discover", "new-config", "list-models", "describe", "list-annotations")
 OUTPUT_MODES = RENDER_OUTPUT_MODES
 CONFIG_SHORTCUT_SUFFIXES = (".yaml", ".yml", ".json")
 GROUP_STYLE_KEYS = {
@@ -151,7 +160,6 @@ GROUP_STYLE_KEYS = {
 def default_windows_blender_candidates() -> list[Path]:
     candidates = [
         Path(r"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe"),
-        Path(r"C:\Program Files\Blender Foundation\Blender 4.1\blender.exe"),
         Path(r"C:\Program Files\Blender Foundation\Blender\blender.exe"),
     ]
     foundation = Path(r"C:\Program Files\Blender Foundation")
@@ -183,11 +191,69 @@ def resolve_blender_executable(executable: str = "blender") -> str | None:
     return None
 
 
+def parse_blender_version(output: str) -> tuple[int, int, int] | None:
+    match = re.search(r"\bBlender\s+(\d+)\.(\d+)(?:\.(\d+))?", output)
+    if match is None:
+        return None
+    return tuple(int(value or 0) for value in match.groups())
+
+
+def blender_version(executable: str) -> tuple[int, int, int] | None:
+    try:
+        result = subprocess.run(
+            [executable, "--version"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=False,
+            timeout=15,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return parse_blender_version(result.stdout or "")
+
+
+def blender_version_text(version: tuple[int, int, int] | None) -> str:
+    return ".".join(str(item) for item in version) if version is not None else "unknown"
+
+
+def blender_can_open_scene(executable: str, scene_path: Path) -> tuple[bool, str]:
+    try:
+        result = subprocess.run(
+            [
+                executable,
+                "--background",
+                "--factory-startup",
+                str(scene_path),
+                "--python-expr",
+                f"print('{BLENDER_SCENE_PROBE_MARKER}')",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=False,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return False, str(exc)
+    output = result.stdout or ""
+    if result.returncode == 0 and BLENDER_SCENE_PROBE_MARKER in output:
+        return True, project_relative_or_absolute(scene_path)
+    detail = next((line.strip() for line in output.splitlines() if "Error:" in line), "scene open probe failed")
+    return False, detail
+
+
 def require_blender_executable(executable: str = "blender") -> str:
     resolved = resolve_blender_executable(executable)
     if resolved is None:
         raise SystemExit(
             f"Missing required tool: {executable}. Install Blender, put it on PATH, or set BLENDER_EXECUTABLE."
+        )
+    version = blender_version(resolved)
+    if version is None or version < MINIMUM_BLENDER_VERSION:
+        raise SystemExit(
+            f"Blender {blender_version_text(MINIMUM_BLENDER_VERSION)} or newer is required by the bundled scenes; "
+            f"found {blender_version_text(version)} at {resolved}."
         )
     return resolved
 
@@ -237,8 +303,22 @@ def doctor_checks(args: argparse.Namespace) -> list[tuple[bool, str, str]]:
         )
     )
 
+    blender_runtime_version = blender_version(blender) if blender is not None else None
+    blender_version_ok = blender_runtime_version is not None and blender_runtime_version >= MINIMUM_BLENDER_VERSION
+    checks.append(
+        (
+            blender_version_ok,
+            "Blender version",
+            f"{blender_version_text(blender_runtime_version)} "
+            f"(requires {blender_version_text(MINIMUM_BLENDER_VERSION)}+)",
+        )
+    )
+
     default_scene = UTILITY_ROOT / "assets" / "scenes" / "opengrid_wall_scene.blend"
     checks.append((default_scene.exists(), "Default Blender scene", project_relative_or_absolute(default_scene)))
+    if blender is not None and blender_version_ok and default_scene.exists():
+        scene_ok, scene_detail = blender_can_open_scene(blender, default_scene)
+        checks.append((scene_ok, "Default Blender scene compatibility", scene_detail))
 
     output_root = PROJECT_ROOT / DEFAULT_OUTPUT_DIR
     try:
@@ -267,6 +347,7 @@ def run_doctor(args: argparse.Namespace) -> int:
         smoke_args.gallery = False
         smoke_args.gallery_config = None
         smoke_args.variant = None
+        smoke_args.variant_collection = None
         smoke_args.animation_preset = None
         smoke_args.validate_only = False
         smoke_args.print_resolved_config = False
@@ -293,6 +374,8 @@ def annotation_mapping_items(
     for index, item in enumerate(item_config):
         if not isinstance(item, Mapping):
             raise ConfigError(f"annotations.{key}[{index}] must be an object")
+        if item.get("enabled", True) is False:
+            continue
         items.append(item)
     return items
 
@@ -334,6 +417,14 @@ def render_shortcut_requested(args: argparse.Namespace) -> bool:
     return getattr(args, "command", None) == "render"
 
 
+def validation_command_requested(args: argparse.Namespace) -> bool:
+    return getattr(args, "command", None) == "validate"
+
+
+def model_config_command_requested(args: argparse.Namespace) -> bool:
+    return render_shortcut_requested(args) or validation_command_requested(args)
+
+
 def set_command_alias_value(args: argparse.Namespace, attr: str, value: object, *, command: str) -> None:
     current = getattr(args, attr, None)
     if current not in (None, False, "") and current != value:
@@ -346,6 +437,11 @@ def normalize_command_aliases(args: argparse.Namespace) -> argparse.Namespace:
     command = getattr(args, "command", None)
     target = getattr(args, "model_shortcut", None)
     if command is None or command == "render":
+        return args
+
+    if command == "validate":
+        if not target:
+            raise ConfigError("validate requires a model name, for example `validate openconnect_general_holder`")
         return args
 
     if command == "doctor":
@@ -438,11 +534,11 @@ def default_config_for_model(model_name: str) -> Path:
 
 
 def config_path_from_args(args: argparse.Namespace, *, allow_default: bool = False) -> Path:
-    if render_shortcut_requested(args):
+    if model_config_command_requested(args):
         if args.config:
-            raise ConfigError("Do not pass --config with `render MODEL`; the model name selects the default config")
+            raise ConfigError(f"Do not pass --config with `{args.command} MODEL`; the model name selects the default config")
         if not getattr(args, "model_shortcut", None):
-            raise ConfigError("render requires a SCAD model name, for example `render openconnect_general_holder`")
+            raise ConfigError(f"{args.command} requires a model name, for example `{args.command} openconnect_general_holder`")
         return default_config_for_model(str(args.model_shortcut))
     if args.config:
         path = Path(args.config).expanduser()
@@ -532,9 +628,13 @@ def cache_key_for(value: object) -> str:
 def animation_render_preset(config: Mapping[str, object], preset_name: str) -> Mapping[str, object]:
     if not preset_name.strip():
         raise ConfigError("--animation-preset must not be empty")
+    preset_config = resolve_config_constants(load_raw_config(ANIMATION_PRESET_CONFIG_PATH), include_variants=False)
+    registry_constants = require_mapping(preset_config.get("constants", {}), name="animation preset constants")
+    config_constants = require_mapping(config.get("constants", {}), name="constants")
+    constants = deep_merge(registry_constants, config_constants)
     preset = resolve_constant_references(
         {"$constant": preset_name},
-        constants=require_mapping(config.get("constants", {}), name="constants"),
+        constants=constants,
         path=f"animation preset {preset_name}",
     )
     if not isinstance(preset, Mapping):
@@ -862,19 +962,21 @@ def iter_annotation_groups(annotations: Mapping[str, object]) -> list[tuple[str,
         if not isinstance(raw_groups, Sequence) or isinstance(raw_groups, (str, bytes)):
             continue
         for group in raw_groups:
-            if isinstance(group, Mapping):
+            if isinstance(group, Mapping) and group.get("enabled", True) is not False:
                 groups.append((kind, group))
     return groups
 
 
 def annotation_group_name(kind: str, group: Mapping[str, object]) -> str:
-    if kind in {"dimension", "radius", "arc"}:
-        ids = group.get("ids", [])
-        if isinstance(ids, Sequence) and not isinstance(ids, (str, bytes)):
-            return ",".join(str(item) for item in ids)
-    if kind == "angle_radius":
-        return str(group.get("id") or group.get("angle_id") or group.get("arc_id") or "angle_radius")
-    return str(group.get("id") or group.get("text") or "image_label")
+    collection = {
+        "dimension": "chains",
+        "radius": "radius_callouts",
+        "arc": "arc_callouts",
+        "angle_radius": "angle_radius_callouts",
+        "image_label": "image_labels",
+    }.get(kind)
+    identity = annotation_group_identity(collection, group) if collection is not None else None
+    return identity or kind
 
 
 def annotation_offset_summary(kind: str, group: Mapping[str, object]) -> str:
@@ -1034,7 +1136,7 @@ def editable_annotations_template(config: Mapping[str, object]) -> dict[str, obj
     if not isinstance(annotations, Mapping):
         return {}
     editable: dict[str, object] = {}
-    for key in ("chains", "radius_callouts", "arc_callouts", "angle_radius_callouts", "image_labels"):
+    for key in ANNOTATION_COLLECTION_KEYS:
         raw_groups = annotations.get(key)
         if not isinstance(raw_groups, Sequence) or isinstance(raw_groups, (str, bytes)):
             continue
@@ -1042,8 +1144,12 @@ def editable_annotations_template(config: Mapping[str, object]) -> dict[str, obj
         for group in raw_groups:
             if not isinstance(group, Mapping):
                 continue
+            if group.get("enabled", True) is False:
+                continue
             copied_group: dict[str, object] = {}
             for group_key in (
+                "name",
+                "enabled",
                 "id",
                 "ids",
                 "arc_id",
@@ -1219,7 +1325,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "command",
         nargs="?",
         choices=COMMANDS,
-        help="Shortcut command, for example `render MODEL`, `doctor`, `discover FILE.scad`, or `new-config MODEL`.",
+        help="Shortcut command, for example `render MODEL`, `validate MODEL`, `doctor`, or `discover FILE.scad`.",
     )
     parser.add_argument("model_shortcut", nargs="?", help="Model name or SCAD file used by shortcut commands.")
     parser.add_argument("--config", help="Path to scene annotation render JSON or YAML config.")
@@ -1238,6 +1344,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--validate-only", action="store_true", help="Validate and resolve the config without rendering.")
     parser.add_argument("--gallery", action="store_true", help="Render every configured variant and build a contact sheet.")
     parser.add_argument("--variant", help="Render only one named variant from the config.")
+    parser.add_argument(
+        "--variant-collection",
+        help="With --gallery or validate, select one named variant collection instead of every variant.",
+    )
     parser.add_argument("--animation-preset", help="Apply a named render animation preset from config constants to the selected model.")
     parser.add_argument(
         "--output-mode",
@@ -1261,7 +1371,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         dest="overrides",
-        help="Override a config value with dotted path syntax, for example scene.objects[0].model.defines.hook_length=50.",
+        help="Override a config value with dotted path syntax, for example scene.objects.model.model.defines.hook_length=50.",
     )
     return parser
 
@@ -1498,19 +1608,94 @@ def projection_points_for_object(points: Mapping[str, list[float]], *, object_id
     return {key: {"object": object_id, "coords": coords} for key, coords in points.items()}
 
 
+SCAD_DEPENDENCY_PATTERN = re.compile(r"^\s*(?:include|use)\s*<([^>]+)>", re.MULTILINE)
+
+
+def openscad_library_roots() -> tuple[Path, ...]:
+    candidates: list[Path] = [PROJECT_ROOT, PROJECT_ROOT / "lib"]
+    configured = os.environ.get("OPENSCADPATH")
+    if configured:
+        candidates.extend(Path(item).expanduser() for item in configured.split(os.pathsep) if item.strip())
+    candidates.extend(
+        [
+            Path.home() / "Documents" / "OpenSCAD" / "libraries",
+            Path.home() / ".local" / "share" / "OpenSCAD" / "libraries",
+            Path("/usr/share/openscad/libraries"),
+            Path("/usr/local/share/openscad/libraries"),
+        ]
+    )
+    if os.name == "nt":
+        candidates.extend(
+            [
+                Path(r"C:\Program Files\OpenSCAD (Nightly)\libraries"),
+                Path(r"C:\Program Files\OpenSCAD\libraries"),
+            ]
+        )
+    roots: list[Path] = []
+    seen: set[Path] = set()
+    for candidate in candidates:
+        resolved = candidate.resolve()
+        if resolved in seen or not resolved.exists():
+            continue
+        seen.add(resolved)
+        roots.append(resolved)
+    return tuple(roots)
+
+
+def resolve_scad_dependency(reference: str, *, source: Path, library_roots: Sequence[Path]) -> Path | None:
+    reference_path = Path(reference)
+    candidates = [source.parent / reference_path, *(root / reference_path for root in library_roots)]
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate.resolve()
+    return None
+
+
+def scad_dependency_manifest(
+    scad_file: Path,
+    *,
+    library_roots: Sequence[Path] | None = None,
+) -> dict[str, object]:
+    roots = tuple(library_roots) if library_roots is not None else openscad_library_roots()
+    pending = [scad_file.resolve()]
+    visited: set[Path] = set()
+    files: list[dict[str, str]] = []
+    unresolved: list[dict[str, str]] = []
+    while pending:
+        source = pending.pop()
+        if source in visited:
+            continue
+        visited.add(source)
+        files.append({"path": project_relative_or_absolute(source), "sha256": file_sha256(source)})
+        text_value = source.read_text(encoding="utf-8", errors="replace")
+        for reference in SCAD_DEPENDENCY_PATTERN.findall(text_value):
+            dependency = resolve_scad_dependency(reference.strip(), source=source, library_roots=roots)
+            if dependency is None:
+                unresolved.append({"source": project_relative_or_absolute(source), "reference": reference.strip()})
+            elif dependency not in visited:
+                pending.append(dependency)
+    return {
+        "files": sorted(files, key=lambda item: item["path"]),
+        "unresolved": sorted(unresolved, key=lambda item: (item["source"], item["reference"])),
+    }
+
+
 def openscad_stage_cache_key(
     *,
     scad_file: Path,
     defines: Sequence[str],
     executable: str,
+    dependency_roots: Sequence[Path] | None = None,
 ) -> str:
+    executable_path = Path(executable)
     return cache_key_for(
         {
-            "stage": "openscad_export_v1",
+            "stage": "openscad_export_v2",
             "scad_file": project_relative_or_absolute(scad_file),
-            "scad_sha256": file_sha256(scad_file),
+            "dependencies": scad_dependency_manifest(scad_file, library_roots=dependency_roots),
             "defines": list(with_annotation_metadata_define(defines)),
             "executable": executable,
+            "executable_sha256": file_sha256(executable_path) if executable_path.is_file() else None,
             "backend": "Manifold",
             "enable_textmetrics": True,
             "enable_lazy_union": True,
@@ -1789,7 +1974,6 @@ def collect_annotation_render_state(
     expression_context: Mapping[str, float],
     object_records: Sequence[Mapping[str, object]],
 ) -> dict[str, object]:
-    aliases = aliases_from_config(annotation_config)
     annotation_object_id = str(annotation_config.get("object") or object_records[0]["id"])
     annotation_record = next((record for record in object_records if str(record["id"]) == annotation_object_id), None)
     if annotation_record is None:
@@ -1797,6 +1981,7 @@ def collect_annotation_render_state(
 
     scad_annotations = annotation_record["scad_annotations"]
     annotation_expression_context = annotation_record.get("expression_context", expression_context)
+    aliases = aliases_from_config(annotation_config, context=annotation_expression_context)
     chain_items = chain_items_from_config(annotation_config)
     radius_items = radius_items_from_config(annotation_config)
     arc_items = arc_items_from_config(annotation_config)
@@ -2846,15 +3031,23 @@ def compact_gallery_config(raw_gallery: object, *, name: str) -> dict[str, objec
     }
 
 
+def merged_gallery_config(
+    config: Mapping[str, object],
+    *,
+    gallery_config: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    merged = compact_gallery_config(gallery_config or {}, name="gallery config")
+    merged.update(compact_gallery_config(config.get("gallery", {}), name="gallery"))
+    return merged
+
+
 def gallery_settings(
     config: Mapping[str, object],
     *,
     gallery_config: Mapping[str, object] | None = None,
     variant_count: int | None = None,
 ) -> dict[str, int]:
-    merged_gallery = compact_gallery_config(gallery_config or {}, name="gallery config")
-    raw_gallery = config.get("gallery", {})
-    merged_gallery.update(compact_gallery_config(raw_gallery, name="gallery"))
+    merged_gallery = merged_gallery_config(config, gallery_config=gallery_config)
     settings = {
         key: int(merged_gallery.get(key, default))
         for key, default in GALLERY_SETTING_DEFAULTS.items()
@@ -2880,6 +3073,20 @@ def gallery_settings(
             raise ConfigError("gallery target sizing requires a variant count")
         apply_gallery_target_size(settings, variant_count=variant_count)
     return settings
+
+
+def configured_gallery_variant_collection(
+    config: Mapping[str, object],
+    *,
+    gallery_config: Mapping[str, object] | None = None,
+) -> str | None:
+    merged_gallery = merged_gallery_config(config, gallery_config=gallery_config)
+    collection_name = merged_gallery.get("variant_collection")
+    if collection_name is None:
+        return None
+    if not isinstance(collection_name, str) or not collection_name.strip():
+        raise ConfigError("gallery.variant_collection must be a non-empty string")
+    return collection_name.strip()
 
 
 def apply_gallery_target_size(settings: dict[str, int], *, variant_count: int) -> None:
@@ -2984,6 +3191,55 @@ def build_gallery_contact_sheet(
     sheet.save(output_path)
 
 
+def variants_for_requested_subset(
+    config: Mapping[str, object],
+    *,
+    variant_name: str | None,
+    collection_name: str | None,
+) -> list[Mapping[str, object]]:
+    if variant_name and collection_name:
+        raise ConfigError("Do not combine --variant with --variant-collection")
+    if collection_name:
+        return selected_variant_collection(config, collection_name)
+    return selected_variants(config, variant_name)
+
+
+def run_all_variant_validation(
+    *,
+    config: Mapping[str, object],
+    config_path: Path,
+    config_dir: Path,
+    args: argparse.Namespace,
+) -> int:
+    if args.gallery:
+        raise ConfigError("validate does not use --gallery; it validates every variant by default")
+    if args.animation_preset:
+        raise ConfigError("validate does not support --animation-preset")
+    if args.print_resolved_config:
+        raise ConfigError("validate does not support --print-resolved-config")
+    variants = variants_for_requested_subset(
+        config,
+        variant_name=args.variant,
+        collection_name=args.variant_collection,
+    )
+    validation_args = argparse.Namespace(**vars(args))
+    validation_args.validate_only = True
+    validation_args.gallery = False
+
+    if not variants:
+        render_config(config=config, config_path=config_path, config_dir=config_dir, args=validation_args)
+        print("Validated:  1 directly renderable config")
+        return 0
+
+    for variant in variants:
+        name = str(variant["name"]).strip()
+        print(f"Variant:   {name}")
+        resolved = variant_config(config, variant)
+        render_config(config=resolved, config_path=config_path, config_dir=config_dir, args=validation_args)
+    print(f"Validated:  {len(variants)} variant{'s' if len(variants) != 1 else ''}")
+    return 0
+
+
 def run_gallery(
     *,
     config: Mapping[str, object],
@@ -2993,7 +3249,13 @@ def run_gallery(
     gallery_config: Mapping[str, object] | None = None,
     gallery_config_path: Path | None = None,
 ) -> int:
-    variants = selected_variants(config, args.variant)
+    configured_collection = configured_gallery_variant_collection(config, gallery_config=gallery_config)
+    collection_name = args.variant_collection or (configured_collection if not args.variant else None)
+    variants = variants_for_requested_subset(
+        config,
+        variant_name=args.variant,
+        collection_name=collection_name,
+    )
     if not variants:
         raise ConfigError("No variants are configured. Add a top-level variants array or render the config normally.")
 
@@ -3009,6 +3271,7 @@ def run_gallery(
                 {
                     "gallery": settings,
                     "gallery_config": project_relative_or_absolute(gallery_config_path) if gallery_config_path else None,
+                    "variant_collection": collection_name,
                     "variants": [
                         {
                             "name": name,
@@ -3063,6 +3326,7 @@ def run_gallery(
     metadata = {
         "config": project_relative_or_absolute(config_path),
         "gallery_config": project_relative_or_absolute(gallery_config_path) if gallery_config_path else None,
+        "variant_collection": collection_name,
         "gallery": settings,
         "contact_sheet": project_relative_or_absolute(contact_sheet),
         "variants": [
@@ -3090,8 +3354,8 @@ def run(args: argparse.Namespace) -> int:
     if args.print_schema:
         print(CONFIG_SCHEMA_PATH.read_text(encoding="utf-8"), end="")
         return 0
-    if render_shortcut_requested(args) and discovery_requested(args):
-        raise ConfigError("Discovery commands do not support `render MODEL`; use the discovery command directly")
+    if model_config_command_requested(args) and discovery_requested(args):
+        raise ConfigError(f"Discovery commands do not support `{args.command} MODEL`; use the discovery command directly")
     if args.discover_annotations:
         return run_annotation_discovery(args=args)
     config_path = config_path_from_args(args, allow_default=discovery_requested(args))
@@ -3100,6 +3364,9 @@ def run(args: argparse.Namespace) -> int:
 
     if discovery_requested(args):
         return run_discovery(config=config, config_path=config_path, args=args)
+
+    if validation_command_requested(args):
+        return run_all_variant_validation(config=config, config_path=config_path, config_dir=config_dir, args=args)
 
     gallery_config, gallery_config_path = load_gallery_config(args.gallery_config, config_dir=config_dir)
 
@@ -3116,10 +3383,15 @@ def run(args: argparse.Namespace) -> int:
             gallery_config=gallery_config,
             gallery_config_path=gallery_config_path,
         )
+    if args.variant_collection:
+        raise ConfigError("--variant-collection is only supported with --gallery or the validate command")
     if args.variant:
         variants = selected_variants(config, args.variant)
         if not variants:
             raise ConfigError("No variants are configured")
+        config = variant_config(config, variants[0])
+    elif config.get("default_variant"):
+        variants = selected_variants(config, str(config["default_variant"]))
         config = variant_config(config, variants[0])
     elif not is_directly_renderable_config(config):
         variants = selected_variants(config, None)

@@ -60,7 +60,7 @@ py -3 -m venv build\.venv-tools
 .\build\.venv-tools\Scripts\python.exe -m pip install --upgrade pip
 ```
 
-The renderer also needs OpenSCAD Nightly and Blender. You can pass explicit executable paths with `--openscad` and `--blender`.
+The renderer also needs OpenSCAD Nightly and Blender 5.1 or newer. The bundled scenes use Blender 5.1's compressed file format. You can pass explicit executable paths with `--openscad` and `--blender`.
 
 For a local editable install with the console entry point:
 
@@ -102,6 +102,9 @@ Essential commands:
 # Validate the default config without rendering
 .\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder --validate-only
 
+# Validate every variant in a model config
+.\build\.venv-tools\Scripts\opengrid-annotate.exe validate openconnect_general_holder
+
 # Render a named config from annotation_renderer\configs without --config
 .\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_sturdy_hook_angle
 
@@ -126,9 +129,9 @@ Essential commands:
   --gallery
 ```
 
-Use `--set path=value` for one-off overrides, `--print-resolved-config` to inspect merged config, `--print-schema` for editor integration, and `doctor` to check local dependencies. `--set` supports array indexes such as `annotations.chains[0].label_offset_px=36`. Use `--output-file path\image.png` when a workflow needs a stable final still-image path.
+Use `--set path=value` for one-off overrides, `--print-resolved-config` to inspect merged config, `--print-schema` for editor integration, and `doctor` to check local dependencies. Array items can be selected by stable `id` or `name`, such as `scene.objects.model.model.defines.hook_length=50`, or by numeric index for compatibility, such as `annotations.chains[0].label_offset_px=36`. Use `--output-file path\image.png` when a workflow needs a stable final still-image path.
 
-OpenSCAD exports and Blender render/projection outputs are cached by default under `build/scene_annotations/.cache`, keyed by source files, resolved render inputs, and generated STL content. This makes iterative annotation offset changes reuse the expensive stages. Use `--no-cache` for a cold run, `--cache-dir path\to\cache` to override the cache directory, or set `render.cache` / `render.cache_dir` in config. Blender stage caching is disabled for animation renders.
+OpenSCAD exports and Blender render/projection outputs are cached by default under `build/scene_annotations/.cache`, keyed by the transitive OpenSCAD dependency contents, executable contents, resolved render inputs, and generated STL content. This makes iterative annotation offset changes reuse the expensive stages without serving stale geometry after shared-library edits. Use `--no-cache` for a cold run, `--cache-dir path\to\cache` to override the cache directory, or set `render.cache` / `render.cache_dir` in config. Blender stage caching is disabled for animation renders.
 
 Use `--export-blend` or `render.export_blend: true` to save the prepared Blender scene used for the still render. The `.blend` sidecar is written next to the final PNG or exact `--output-file` path. When a Blender render is served from cache, the cache must also contain the prepared `.blend`; otherwise the Blender stage runs once to create it.
 
@@ -251,7 +254,7 @@ annotations:
 
 Animations are defined by applying a render animation preset with `--animation-preset`. The renderer still exports the configured OpenSCAD objects and replaces them in the Blender scene, then applies object keyframes before rendering a PNG frame sequence and encoding a GIF. The shortcut clears annotation groups for the run, so animation outputs are unannotated.
 
-Reusable animation presets live in `configs/animation_presets.yaml`. Model configs such as `openconnect_general_holder_default.yaml`, `openconnect_sturdy_shelf_default.yaml`, and `openconnect_drawer_shell_container_default.yaml` extend it, so animations inherit the same scene transform, camera settings, model defines, and materials as the still-image default.
+Reusable animation presets live in `configs/animation_presets.yaml`. The CLI loads that file as the central animation registry, then merges any same-named constants from the selected model config. Animation settings therefore remain reusable without requiring every model config to inherit through the preset file.
 
 Use this loop when adding an animation:
 
@@ -267,10 +270,10 @@ Example render command:
   --animation-preset drawer_install_then_slide_animation_render
 ```
 
-General holder insert animation:
+Sturdy shelf insert animation:
 
 ```powershell
-.\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder `
+.\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_sturdy_shelf `
   --animation-preset openconnect_insert_animation_render
 ```
 
@@ -323,6 +326,7 @@ Gallery layout is intentionally separate from model defaults:
 
 ```yaml
 $schema: ../schemas/annotation-render-gallery.schema.json
+variant_collection: product_views
 columns: 2
 thumbnail_width: 520
 margin_px: 12
@@ -331,7 +335,7 @@ title_height_px: 22
 title_font_size_px: 22
 ```
 
-Pass it with `--gallery-config`. A model config can still include top-level `gallery` values, and those override the separate gallery config. This keeps reusable model parameter variants separate from one-off contact-sheet layout choices.
+Pass it with `--gallery-config`. `variant_collection` selects the default ordered subset for a gallery. A model config can still include top-level `gallery` values, and those override the separate gallery config. Explicit `--variant` or `--variant-collection` arguments override the configured collection. This keeps reusable model variants in the model config while allowing one-off contact-sheet selection and layout choices to stay external.
 
 For an exact contact-sheet size without post-scaling or padding, set `target_width_px` and `target_height_px` instead of hand-calculating `thumbnail_width` and per-render `render.width` / `render.height`:
 
@@ -590,7 +594,7 @@ material:
   roughness: 0.55
 ```
 
-Imported models that have no explicit material and cannot copy one from a target or `material_source_object` receive `render.default_material_color`. Its built-in value is `#8fa1b3`; set it at render level to choose another fallback color:
+Imported models that have no explicit material and cannot copy one from a target or `material_source_object` receive `render.default_material_color`. Its built-in value is `#cccccc`; set it at render level to choose another fallback color:
 
 ```yaml
 render:
@@ -807,16 +811,106 @@ Set an outline width or alpha to `0` to disable that halo. `line_outline_width_p
 
 ## Variants
 
-Use top-level `variants` when several images share most of the same scene and render settings. Each variant has a `name` and can either set complete sections or use a `set` object whose keys are dotted config paths:
+Use top-level `variants` when several images share most of the same scene and render settings. Each variant has a unique `name` and can either set complete sections or use a `set` object whose keys are dotted config paths. Prefer a stable object `id` or annotation `name` over a numeric array position:
 
 ```yaml
 variants:
   - name: deep_drawer_shell
     set:
-      scene.objects[0].model.defines.depth_grids: 6
+      scene.objects.drawer_shell.model.defines.depth_grids: 6
 ```
 
 Variant objects can also override full config sections when a dotted path is not enough. `annotations` is replaced as a complete section so model-specific labels do not leak between variants. `constants`, `scene`, and `render` are merged with the base config so shared Blender scene settings can stay in one place.
+
+For object changes, `object_overrides` provides an explicit map keyed by `scene.objects[*].id`. Nested values are merged into the matching object. Set `enabled: false` to remove an inherited object from that variant:
+
+```yaml
+variants:
+- name: shell_only
+  object_overrides:
+    drawer_shell:
+      model:
+        defines:
+          depth_grids: 6
+    drawer_container:
+      enabled: false
+```
+
+Use `unset` when a variant must remove an inherited value entirely. Its entries use the same dotted paths and stable array selectors as `set`:
+
+```yaml
+variants:
+- name: automatic_camera
+  unset:
+  - render.camera_view
+  - scene.objects.drawer_shell.model.defines.legacy_parameter
+```
+
+Variant changes resolve in this order: full section overrides, `set`, `object_overrides`, `annotation_overrides`, then `unset`. Invalid, missing, or ambiguous stable targets are rejected.
+
+For annotation layout changes, prefer stable group names and `annotation_overrides` over numeric paths such as `annotations.chains[0]`. Overrides are applied after the variant's section and `set` changes, nested objects are merged, and `enabled: false` keeps a group in the shared catalog while excluding it from rendering and annotation listings:
+
+```yaml
+annotations:
+  chains:
+  - name: compartment_width_dimension
+    ids: [compartment_width]
+    line_offset_px: 0
+    label_offset_px: 28
+  angle_radius_callouts:
+  - name: holder_tilt_angle_callout
+    id: holder_tilt_angle_callout
+    arc_id: holder_tilt_angle_extent
+    radius_id: holder_tilt_angle_radius
+    angle_id: holder_tilt_angle
+
+variants:
+- name: side
+  annotation_overrides:
+    compartment_width_dimension:
+      label_offset_px: 42
+    holder_tilt_angle_callout:
+      enabled: false
+```
+
+Names must be unique across the annotation catalog. For compatibility, an unnamed group can be targeted by its single annotation ID, callout ID, or image-label ID, but explicit names are recommended because they remain stable when IDs are reorganized. Invalid and ambiguous override targets are rejected.
+
+Set `default_variant` when omitting `--variant` should select a named variation even though the base config is directly renderable:
+
+```yaml
+default_variant: default
+variants:
+- name: default
+- name: side
+  # overrides...
+```
+
+Use `variant_collections` to define reusable ordered subsets without splitting one model back into multiple config files:
+
+```yaml
+variant_collections:
+  product_views: [default, empty, side, top, taper]
+  parameter_gallery: [width_45, circular_taper]
+
+gallery:
+  variant_collection: product_views
+```
+
+Collections are accepted by gallery rendering and all-variant validation:
+
+```powershell
+.\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder `
+  --gallery --variant-collection product_views
+
+.\build\.venv-tools\Scripts\opengrid-annotate.exe validate openconnect_general_holder `
+  --variant-collection product_views
+```
+
+`validate MODEL` resolves every variant by default and checks its final schema, object targets, source files, and Blender scene path without running the rendering applications. It catches errors in variants that a normal default render would never select.
+
+`gallery.variant_collection` makes a collection the default for plain `--gallery`. Command-line selection still wins, and omitting both the configured collection and command-line selection renders all variants.
+
+`openconnect_general_holder_default.yaml` demonstrates the one-file-per-model pattern. Its `default`, `empty`, `side`, `top`, `taper`, and four parameter-gallery variants share a single named annotation catalog. The old per-view files are small compatibility entry points, and `openconnect_general_holder_gallery.yaml` only supplies gallery layout plus its default collection. These wrappers should not receive new image definitions.
 
 Use `variant_configs` when a gallery config should import complete per-model config files as variants:
 

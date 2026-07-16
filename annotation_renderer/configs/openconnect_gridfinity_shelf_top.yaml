@@ -16,7 +16,7 @@ scene:
         # shelf_rim_lip_height: 3
         magnet_position: None
     transform:
-      location_mm: [-28, 0, -28]
+      location_mm: ["-og_tile_size", 0, "-og_tile_size"]
       rotation_deg: [-print_bottom_angle, 0, 0]
   # - id: model_b
   #   model:

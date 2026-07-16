@@ -17,7 +17,7 @@ scene:
     model:
       scad_file: openconnect_sturdy_hook.scad
     transform:
-      location_mm: [56, 0, -28]
+      location_mm: ["2 * og_tile_size", 0, "-og_tile_size"]
   transform:
     $constant: wall_placeholder_transform
 
@@ -42,8 +42,8 @@ annotations:
     # extension_width_px: 1.4
     # radial_line_width_px: 2.6
   aliases:
-    hook_vertical_grids: hook_vertical_grids x 28mm
-    truss_vertical_grids: truss_vertical_grids x 28mm
+    hook_vertical_grids: "hook_vertical_grids x {og_tile_size:g}mm"
+    truss_vertical_grids: "truss_vertical_grids x {og_tile_size:g}mm"
     hook_shape_type: hook_shape
     hook_corner_fillet: corner_fillet
     hook_corner_fillet_extent: corner_fillet

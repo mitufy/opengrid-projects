@@ -11,7 +11,7 @@ scene:
         shelf_type: Standard
         add_texture: true
     transform:  
-      location_mm: [56, 0, -28]
+      location_mm: ["2 * og_tile_size", 0, "-og_tile_size"]
   transform:
     $constant: wall_placeholder_transform
 render:

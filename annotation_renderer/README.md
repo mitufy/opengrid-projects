@@ -22,7 +22,7 @@ py -3 -m venv build\.venv-tools
 .\build\.venv-tools\Scripts\python.exe -m pip install -e .
 ```
 
-Install OpenSCAD Nightly and Blender. If they are not on `PATH`, pass their
+Install OpenSCAD Nightly and Blender 5.1 or newer. If they are not on `PATH`, pass their
 locations with `--openscad` and `--blender`.
 
 Check the local toolchain:
@@ -55,8 +55,62 @@ Render with one temporary override:
 
 ```powershell
 .\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder `
-  --set scene.objects[0].model.defines.compartment_column_count=3
+  --set scene.objects.model_a.model.defines.compartment_column_count=3
 ```
+
+Render a permanent named image variation without creating another config file:
+
+```powershell
+.\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder --variant side
+```
+
+Model configs can keep all image variations in one top-level `variants` list. Give annotation groups stable `name` values, then change their layout or visibility with `annotation_overrides`:
+
+```yaml
+annotations:
+  chains:
+  - name: compartment_width_dimension
+    ids: [compartment_width]
+    label_offset_px: 28
+
+variants:
+- name: side
+  object_overrides:
+    model_a:
+      model:
+        defines:
+          compartment_depth: 20
+  annotation_overrides:
+    compartment_width_dimension:
+      label_offset_px: 42
+- name: dimensions_hidden
+  annotation_overrides:
+    compartment_width_dimension:
+      enabled: false
+```
+
+`object_overrides` targets scene objects by stable `id`; use `enabled: false` to exclude an object. A variant can also list dotted paths under `unset` when an inherited value must be removed instead of replaced.
+
+Group useful subsets under `variant_collections`, then render or validate only that ordered subset:
+
+```yaml
+variant_collections:
+  product_views: [default, empty, side, top, taper]
+
+gallery:
+  variant_collection: product_views
+```
+
+```powershell
+# Validate every variant without invoking Blender or OpenSCAD
+.\build\.venv-tools\Scripts\opengrid-annotate.exe validate openconnect_general_holder
+
+# Render one named subset as a contact sheet
+.\build\.venv-tools\Scripts\opengrid-annotate.exe render openconnect_general_holder `
+  --gallery --variant-collection product_views
+```
+
+When `gallery.variant_collection` is configured, plain `--gallery` renders that collection; an explicit `--variant` or `--variant-collection` takes precedence. Otherwise plain `--gallery` renders every named variant. The general-holder config is the reference example: its view and parameter variants now live in one canonical file, while the former per-view and parameter-gallery paths remain compatibility entry points.
 
 List the built-in renderable models:
 
@@ -85,7 +139,7 @@ Discover annotation IDs from the SCAD source:
 Discovery only accepts `.scad` files. It does not accept config names such as
 `openconnect_general_holder_default`.
 
-Create a small editable config that extends the default:
+Create a separate editable config only when the result should not live as a named model variant:
 
 ```powershell
 .\build\.venv-tools\Scripts\opengrid-annotate.exe new-config openconnect_general_holder `

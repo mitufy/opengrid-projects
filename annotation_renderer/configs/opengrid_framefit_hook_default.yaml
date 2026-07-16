@@ -11,7 +11,7 @@ scene:
         hook_length: 28
         hook_tip_length: 10
     transform:
-      location_mm: [0, 0, -56]
+      location_mm: [0, 0, "-(2 * og_tile_size)"]
       rotation_deg: [0, 0, 180]
   - id: large_hook
     model:
@@ -23,7 +23,7 @@ scene:
         hook_length: 16
         hook_tip_length: 6
     transform:
-      location_mm: [28, 0, -56]
+      location_mm: [og_tile_size, 0, "-(2 * og_tile_size)"]
       rotation_deg: [0, 0, 180]
   - id: truss_hook
     model:
@@ -34,7 +34,7 @@ scene:
         hook_tip_length: 12
         truss_vertical_grids: 1
     transform:
-      location_mm: [-28, 0, -56]
+      location_mm: ["-og_tile_size", 0, "-(2 * og_tile_size)"]
       rotation_deg: [0, 0, 180]
 render:
   fit_margin: 0
@@ -51,8 +51,8 @@ annotations:
         line_colors:
         - $constant: annotation_color_black
   aliases:
-    hook_vertical_grids: hook_vGrids x 28mm
-    truss_vertical_grids: truss_vertical_grids x 28mm
+    hook_vertical_grids: "hook_vGrids x {og_tile_size:g}mm"
+    truss_vertical_grids: "truss_vertical_grids x {og_tile_size:g}mm"
     hook_tip_shape: hook_tip_shape
   chains:
   - ids: [hook_width]

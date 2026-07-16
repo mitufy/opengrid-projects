@@ -38,9 +38,9 @@ constants:
     font_size_px:
       $constant: annotation_title_font_size_px
   default_grid_label_aliases:
-    horizontal_grids: horizontal_grids x 28mm
-    vertical_grids: vertical_grids x 28mm
-    depth_grids: depth_grids x 28mm
+    horizontal_grids: "horizontal_grids x {og_tile_size:g}mm"
+    vertical_grids: "vertical_grids x {og_tile_size:g}mm"
+    depth_grids: "depth_grids x {og_tile_size:g}mm"
   expanding_snap_object:
     model:
       scad_file: opengrid_expanding_snap.scad

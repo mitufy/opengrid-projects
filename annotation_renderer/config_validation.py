@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import re
 from typing import Mapping, Sequence
 
 from annotation_renderer.config_defaults import (
+    ANNOTATION_COLLECTION_KEYS,
     ANIMATION_CLIP_CONFIG_KEYS,
     ANIMATION_CONFIG_KEYS,
     AXES,
@@ -39,8 +41,8 @@ from annotation_renderer.config_defaults import (
     STYLE_STRING_LIST_FIELDS,
     VISIBILITY_KEYFRAME_KEYS,
 )
-from annotation_renderer.config_resolution import deep_merge, resolve_preset_mapping
-from annotation_renderer.config_schema import ConfigError
+from annotation_renderer.config_resolution import deep_merge, resolve_config_constants, resolve_preset_mapping
+from annotation_renderer.config_schema import ConfigError, validate_against_config_schema
 
 
 def resolve_scene(scene_config: object) -> dict[str, object]:
@@ -207,6 +209,7 @@ def merge_scene_object_config(object_defaults: object, scene_object: Mapping[str
 def validate_scene_objects(objects: object, *, object_defaults: object = None) -> None:
     if not isinstance(objects, Sequence) or isinstance(objects, (str, bytes)) or not objects:
         raise ConfigError("scene.objects must be a non-empty array")
+    object_ids: set[str] = set()
     for index, obj in enumerate(objects):
         name = f"scene.objects[{index}]"
         if not isinstance(obj, Mapping):
@@ -218,6 +221,9 @@ def validate_scene_objects(objects: object, *, object_defaults: object = None) -
         object_id = merged_obj.get("id")
         if not isinstance(object_id, str) or not object_id.strip():
             raise ConfigError(f"{name}.id is required")
+        if object_id in object_ids:
+            raise ConfigError(f"scene object id {object_id!r} is duplicated")
+        object_ids.add(object_id)
         if "target_object" in merged_obj and (
             not isinstance(merged_obj["target_object"], str) or not str(merged_obj["target_object"]).strip()
         ):
@@ -253,6 +259,7 @@ def validate_material_config(material: object, *, name: str) -> None:
     if isinstance(material, str):
         if not material.strip():
             raise ConfigError(f"{name} must not be empty")
+        validate_material_color(material, name=name)
         return
     if not isinstance(material, Mapping):
         raise ConfigError(f"{name} must be a color string or object")
@@ -262,6 +269,8 @@ def validate_material_config(material: object, *, name: str) -> None:
             raise ConfigError(f"{name}.{key} is not supported")
     if "color" in material and (not isinstance(material["color"], str) or not str(material["color"]).strip()):
         raise ConfigError(f"{name}.color must be a non-empty string")
+    if "color" in material:
+        validate_material_color(material["color"], name=f"{name}.color")
     for key in ("alpha", "roughness", "metallic"):
         if key in material:
             value = material[key]
@@ -280,6 +289,11 @@ def validate_material_overrides_config(value: object, *, name: str = "render.mat
         if not isinstance(object_id, str) or not object_id.strip():
             raise ConfigError(f"{name} keys must be non-empty strings")
         validate_material_config(material, name=f"{name}.{object_id}")
+
+
+def validate_material_color(value: object, *, name: str) -> None:
+    if not isinstance(value, str) or re.fullmatch(r"#?(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})", value.strip()) is None:
+        raise ConfigError(f"{name} must use #RGB, #RRGGBB, or #RRGGBBAA hexadecimal notation")
 
 
 def validate_number_expression(value: object, *, name: str) -> None:
@@ -690,6 +704,8 @@ def validate_render_config(value: Mapping[str, object]) -> None:
         not isinstance(default_material_color, str) or not default_material_color.strip()
     ):
         raise ConfigError("render.default_material_color must be a non-empty color string")
+    if default_material_color is not None:
+        validate_material_color(default_material_color, name="render.default_material_color")
     validate_material_overrides_config(value.get("material_overrides"))
     if "fit_camera" in value and not isinstance(value["fit_camera"], bool):
         raise ConfigError("render.fit_camera must be a boolean")
@@ -831,11 +847,66 @@ def validate_config_shape(config: Mapping[str, object]) -> None:
         raise ConfigError("top-level model is not supported; put model config in scene.objects[*].model")
     resolve_scene(config.get("scene", {}))
     raw_variants = config.get("variants", [])
+    variant_names: set[str] = set()
     if isinstance(raw_variants, Sequence) and not isinstance(raw_variants, (str, bytes)):
         for index, variant in enumerate(raw_variants):
             if isinstance(variant, Mapping) and "model" in variant:
                 raise ConfigError(
                     f"variants[{index}].model is not supported; put model config in variants[{index}].scene.objects[*].model"
+                )
+            if isinstance(variant, Mapping):
+                variant_name = variant.get("name")
+                if isinstance(variant_name, str) and variant_name.strip():
+                    if variant_name in variant_names:
+                        raise ConfigError(f"variant name {variant_name!r} is duplicated")
+                    variant_names.add(variant_name)
+    default_variant = config.get("default_variant")
+    if default_variant is not None:
+        if not isinstance(default_variant, str) or not default_variant.strip():
+            raise ConfigError("default_variant must be a non-empty string")
+        if default_variant not in variant_names:
+            available = ", ".join(sorted(name for name in variant_names if name)) or "none"
+            raise ConfigError(f"default_variant references unknown variant {default_variant!r}. Available variants: {available}")
+    variant_collections = config.get("variant_collections", {})
+    if not isinstance(variant_collections, Mapping):
+        raise ConfigError("variant_collections must be an object")
+    for collection_name, collection_variants in variant_collections.items():
+        if not isinstance(collection_name, str) or not collection_name.strip():
+            raise ConfigError("variant_collections keys must be non-empty strings")
+        if not isinstance(collection_variants, Sequence) or isinstance(collection_variants, (str, bytes)):
+            raise ConfigError(f"variant_collections.{collection_name} must be an array")
+        if not collection_variants:
+            raise ConfigError(f"variant_collections.{collection_name} must not be empty")
+        seen_collection_variants: set[str] = set()
+        for index, collection_variant in enumerate(collection_variants):
+            if not isinstance(collection_variant, str) or not collection_variant.strip():
+                raise ConfigError(
+                    f"variant_collections.{collection_name}[{index}] must be a non-empty variant name"
+                )
+            if collection_variant in seen_collection_variants:
+                raise ConfigError(
+                    f"variant_collections.{collection_name} contains duplicate variant {collection_variant!r}"
+                )
+            if collection_variant not in variant_names:
+                available = ", ".join(sorted(variant_names)) or "none"
+                raise ConfigError(
+                    f"variant_collections.{collection_name} references unknown variant {collection_variant!r}. "
+                    f"Available variants: {available}"
+                )
+            seen_collection_variants.add(collection_variant)
+    gallery = config.get("gallery", {})
+    if gallery is not None:
+        if not isinstance(gallery, Mapping):
+            raise ConfigError("gallery must be an object")
+        gallery_collection = gallery.get("variant_collection")
+        if gallery_collection is not None:
+            if not isinstance(gallery_collection, str) or not gallery_collection.strip():
+                raise ConfigError("gallery.variant_collection must be a non-empty string")
+            if gallery_collection not in variant_collections:
+                available = ", ".join(sorted(str(name) for name in variant_collections)) or "none"
+                raise ConfigError(
+                    f"gallery.variant_collection references unknown collection {gallery_collection!r}. "
+                    f"Available collections: {available}"
                 )
     resolve_render(config.get("render", {}))
 
@@ -877,6 +948,7 @@ def validate_config_shape(config: Mapping[str, object]) -> None:
         raise ConfigError("annotations.image_labels must be an array")
     for index, image_label in enumerate(image_labels):
         validate_image_label(image_label, name=f"annotations.image_labels[{index}]")
+    validate_annotation_group_names(annotations)
 
     constants = config.get("constants", {})
     if constants is not None:
@@ -885,11 +957,13 @@ def validate_config_shape(config: Mapping[str, object]) -> None:
         for key in constants:
             if not isinstance(key, str) or not key.strip():
                 raise ConfigError("constants keys must be non-empty strings")
+    validate_against_config_schema(resolve_config_constants(config, include_variants=True))
 
 
 def validate_annotation_group(value: object, *, name: str) -> None:
     if not isinstance(value, Mapping):
         raise ConfigError(f"{name} must be an object")
+    validate_annotation_group_control(value, name=name)
     if "optional" in value and not isinstance(value["optional"], bool):
         raise ConfigError(f"{name}.optional must be a boolean")
     ids = value.get("ids")
@@ -918,6 +992,7 @@ def validate_annotation_group(value: object, *, name: str) -> None:
 def validate_angle_radius_group(value: object, *, name: str) -> None:
     if not isinstance(value, Mapping):
         raise ConfigError(f"{name} must be an object")
+    validate_annotation_group_control(value, name=name)
     if "optional" in value and not isinstance(value["optional"], bool):
         raise ConfigError(f"{name}.optional must be a boolean")
     for key in ("arc_id", "radius_id"):
@@ -951,6 +1026,7 @@ def validate_angle_radius_group(value: object, *, name: str) -> None:
 def validate_image_label(value: object, *, name: str) -> None:
     if not isinstance(value, Mapping):
         raise ConfigError(f"{name} must be an object")
+    validate_annotation_group_control(value, name=name)
     label_id = value.get("id")
     text = value.get("text")
     if (not isinstance(label_id, str) or not label_id.strip()) and (not isinstance(text, str) or not text.strip()):
@@ -968,6 +1044,8 @@ def validate_image_label(value: object, *, name: str) -> None:
             raise ConfigError(f"{name}.{key} must be numeric")
     if "show_value" in value and not isinstance(value["show_value"], bool):
         raise ConfigError(f"{name}.show_value must be a boolean")
+    if "optional" in value and not isinstance(value["optional"], bool):
+        raise ConfigError(f"{name}.optional must be a boolean")
     if "title_area" in value and not isinstance(value["title_area"], bool):
         raise ConfigError(f"{name}.title_area must be a boolean")
     for key in ("font_size_px", "label_font_size_px"):
@@ -989,4 +1067,28 @@ def validate_image_label(value: object, *, name: str) -> None:
     for key in ("title_fill_color", "title_outline_color"):
         if key in value and value[key] is not None and not isinstance(value[key], str):
             raise ConfigError(f"{name}.{key} must be a string")
+
+
+def validate_annotation_group_control(value: Mapping[str, object], *, name: str) -> None:
+    if "name" in value and (not isinstance(value["name"], str) or not str(value["name"]).strip()):
+        raise ConfigError(f"{name}.name must be a non-empty string")
+    if "enabled" in value and not isinstance(value["enabled"], bool):
+        raise ConfigError(f"{name}.enabled must be a boolean")
+
+
+def validate_annotation_group_names(annotations: Mapping[str, object]) -> None:
+    named_groups: dict[str, str] = {}
+    for collection in ANNOTATION_COLLECTION_KEYS:
+        raw_groups = annotations.get(collection, [])
+        if not isinstance(raw_groups, Sequence) or isinstance(raw_groups, (str, bytes)):
+            continue
+        for index, group in enumerate(raw_groups):
+            if not isinstance(group, Mapping) or "name" not in group:
+                continue
+            group_name = str(group["name"]).strip()
+            location = f"annotations.{collection}[{index}]"
+            previous = named_groups.get(group_name)
+            if previous is not None:
+                raise ConfigError(f"Annotation group name {group_name!r} is duplicated at {previous} and {location}")
+            named_groups[group_name] = location
 

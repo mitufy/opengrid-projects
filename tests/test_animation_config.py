@@ -33,25 +33,30 @@ from annotation_renderer.config_defaults import (
     RENDER_LIGHTING_PRESETS,
     RENDER_OUTPUT_MODES,
 )
-from annotation_renderer.config_resolution import build_expression_context, resolve_style
+from annotation_renderer.config_resolution import aliases_from_config, build_expression_context, deep_merge, resolve_style
 from annotation_renderer.overlay import DimensionChainOverlaySpec, draw_dimension_chains_overlay, draw_image_label_overlay
 from annotation_renderer.scad_annotations import parse_scad_annotation_line, value_context_from_scad_annotations
 from annotation_renderer.scene_cli import (
+    MINIMUM_BLENDER_VERSION,
+    angle_radius_items_from_config,
     annotation_bounds_quality_warnings,
     audit_scad_annotation_bounds,
     blender_stage_cache_key,
     cache_enabled_for,
     cache_root_for,
     command_failure_message,
+    configured_gallery_variant_collection,
     apply_gallery_target_render_size,
     build_blender_config,
     build_gallery_contact_sheet,
+    chain_items_from_config,
     discover_scad_source_annotations,
     discovery_summary_json,
     default_config_for_model,
     format_annotation_discovery,
     format_doctor_check,
     gallery_settings,
+    image_label_items_from_config,
     apply_animation_preset,
     load_config,
     load_gallery_config,
@@ -59,11 +64,14 @@ from annotation_renderer.scene_cli import (
     main,
     output_file_from_args,
     output_mode_for,
+    openscad_stage_cache_key,
     export_blend_for,
     overlay_quality_warnings,
     parse_args_from,
+    parse_blender_version,
     scad_output_folder_name,
     selected_variants,
+    selected_variant_collection,
     scene_object_specs,
     style_for_group,
     variant_config,
@@ -253,18 +261,162 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("openconnect_insert_animation_render", config["constants"])
         self.assertIn("drawer_install_then_slide_animation_render", config["constants"])
 
-    def test_animation_preset_shortcut_applies_to_model_defaults(self) -> None:
-        holder_config_file = load_config(Path("annotation_renderer/configs/openconnect_general_holder_default.yaml"), [])
-        holder_config = apply_animation_preset(holder_config_file, "openconnect_insert_animation_render")
-        self.assertEqual(self.first_model_config(holder_config)["scad_file"], "openconnect_general_holder.scad")
-        self.assertEqual(holder_config["scene"]["transform"]["rotation_deg"], ["holder_tilt_angle", 0, 0])
-        self.assertEqual(holder_config["render"]["camera_look_at"], "object_center")
-        self.assertEqual(holder_config["render"]["animation"]["object_animations"][0]["object"], "model")
-        self.assertEqual(holder_config["annotations"], {})
+    def test_deep_merge_preserves_nested_preset_overrides(self) -> None:
+        merged = deep_merge(
+            {"render": {"preset": "cycles_standard_scene", "lighting": {"preset": "technical", "strength": 1}}},
+            {"render": {"preset": "cycles_draft_scene", "lighting": {"preset": "flat"}}},
+        )
 
+        self.assertEqual(merged["render"]["preset"], "cycles_draft_scene")
+        self.assertEqual(merged["render"]["lighting"], {"preset": "flat", "strength": 1})
+
+    def test_variant_annotation_overrides_use_stable_group_names(self) -> None:
+        config = {
+            "scene": {"blend_file": "demo.blend"},
+            "render": {},
+            "annotations": {
+                "chains": [
+                    {
+                        "name": "width_dimension",
+                        "ids": ["width"],
+                        "label_offset_px": 20,
+                        "labels": {"width": "Width"},
+                    },
+                    {"name": "height_dimension", "ids": ["height"], "label_offset_px": 10},
+                ]
+            },
+            "variants": [
+                {
+                    "name": "side",
+                    "annotation_overrides": {
+                        "width_dimension": {"enabled": False},
+                        "height_dimension": {"label_offset_px": 42},
+                    },
+                }
+            ],
+        }
+
+        resolved = variant_config(config, config["variants"][0])
+
+        self.assertFalse(resolved["annotations"]["chains"][0]["enabled"])
+        self.assertEqual(resolved["annotations"]["chains"][0]["labels"], {"width": "Width"})
+        self.assertEqual(resolved["annotations"]["chains"][1]["label_offset_px"], 42)
+        self.assertEqual(
+            [group["name"] for group in chain_items_from_config(resolved["annotations"])],
+            ["height_dimension"],
+        )
+
+    def test_variant_annotation_overrides_reject_unknown_or_ambiguous_names(self) -> None:
+        base = {
+            "scene": {"blend_file": "demo.blend"},
+            "render": {},
+            "annotations": {"chains": [{"name": "width", "ids": ["width"]}]},
+        }
+        with self.assertRaisesRegex(ConfigError, "unknown annotation group 'missing'"):
+            variant_config(
+                {**base, "variants": [{"name": "bad", "annotation_overrides": {"missing": {"enabled": False}}}]},
+                {"name": "bad", "annotation_overrides": {"missing": {"enabled": False}}},
+            )
+        with self.assertRaisesRegex(ConfigError, "Annotation group name 'width' is ambiguous"):
+            variant_config(
+                {
+                    **base,
+                    "annotations": {
+                        "chains": [{"name": "width", "ids": ["width"]}],
+                        "image_labels": [{"name": "width", "id": "width"}],
+                    },
+                    "variants": [{"name": "bad", "annotation_overrides": {"width": {"enabled": False}}}],
+                },
+                {"name": "bad", "annotation_overrides": {"width": {"enabled": False}}},
+            )
+
+    def test_variant_object_overrides_named_paths_and_unset_compose(self) -> None:
+        config = {
+            "scene": {
+                "blend_file": "demo.blend",
+                "objects": [
+                    {
+                        "id": "drawer_shell",
+                        "model": {"scad_file": "drawer.scad", "defines": {"old": True, "width": 1}},
+                    },
+                    {"id": "drawer_container", "model": {"scad_file": "drawer.scad"}},
+                ],
+            },
+            "render": {"camera_view": "top"},
+            "annotations": {},
+            "variants": [
+                {
+                    "name": "shell_only",
+                    "set": {"scene.objects.drawer_shell.model.defines.width": 3},
+                    "object_overrides": {
+                        "drawer_shell": {"model": {"defines": {"height": 2}}},
+                        "drawer_container": {"enabled": False},
+                    },
+                    "unset": [
+                        "scene.objects.drawer_shell.model.defines.old",
+                        "render.camera_view",
+                    ],
+                }
+            ],
+        }
+
+        resolved = variant_config(config, config["variants"][0])
+
+        self.assertEqual([item["id"] for item in resolved["scene"]["objects"]], ["drawer_shell"])
+        self.assertEqual(resolved["scene"]["objects"][0]["model"]["defines"], {"width": 3, "height": 2})
+        self.assertNotIn("camera_view", resolved["render"])
+
+    def test_variant_object_overrides_and_unset_reject_unknown_targets(self) -> None:
+        base = {
+            "scene": {
+                "blend_file": "demo.blend",
+                "objects": [{"id": "model", "model": {"scad_file": "demo.scad"}}],
+            },
+            "render": {},
+            "annotations": {},
+        }
+        with self.assertRaisesRegex(ConfigError, "unknown scene object 'missing'"):
+            variant_config(
+                {**base, "variants": [{"name": "bad", "object_overrides": {"missing": {"enabled": False}}}]},
+                {"name": "bad", "object_overrides": {"missing": {"enabled": False}}},
+            )
+        with self.assertRaisesRegex(ConfigError, "unset path 'render.missing' does not exist"):
+            variant_config(
+                {**base, "variants": [{"name": "bad", "unset": ["render.missing"]}]},
+                {"name": "bad", "unset": ["render.missing"]},
+            )
+
+    def test_variant_collections_preserve_declared_order_and_validate_members(self) -> None:
+        config = {
+            "scene": {"blend_file": "demo.blend"},
+            "render": {},
+            "annotations": {},
+            "variant_collections": {"views": ["side", "default"]},
+            "variants": [{"name": "default"}, {"name": "side"}, {"name": "parameter_demo"}],
+        }
+
+        validate_config_shape(config)
+        validate_config_shape({**config, "gallery": {"variant_collection": "views"}})
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "views")],
+            ["side", "default"],
+        )
+        with self.assertRaisesRegex(ConfigError, "references unknown variant 'missing'"):
+            validate_config_shape({**config, "variant_collections": {"views": ["missing"]}})
+        with self.assertRaisesRegex(ConfigError, "gallery.variant_collection references unknown collection 'missing'"):
+            validate_config_shape({**config, "gallery": {"variant_collection": "missing"}})
+
+    def test_blender_version_parser_enforces_semantic_version_shape(self) -> None:
+        self.assertEqual(parse_blender_version("Blender 5.1.0\n"), (5, 1, 0))
+        self.assertEqual(parse_blender_version("Blender 6.0\n"), (6, 0, 0))
+        self.assertIsNone(parse_blender_version("not blender"))
+
+    def test_animation_preset_shortcut_applies_to_model_defaults(self) -> None:
         shelf_config_file = load_config(Path("annotation_renderer/configs/openconnect_sturdy_shelf_default.yaml"), [])
         shelf_config = apply_animation_preset(shelf_config_file, "openconnect_insert_animation_render")
         self.assertEqual(shelf_config["scene"]["transform"]["rotation_deg"], [90, 0, -90])
+        self.assertEqual(shelf_config["render"]["animation"]["object_animations"][0]["object"], "model")
+        self.assertEqual(shelf_config["annotations"], {})
 
         drawer_config_file = load_config(Path("annotation_renderer/configs/openconnect_drawer_shell_container_default.yaml"), [])
         drawer_config = apply_animation_preset(drawer_config_file, "drawer_install_then_slide_animation_render")
@@ -276,7 +428,7 @@ class AnimationConfigTests(unittest.TestCase):
         holder_config_file = load_config(Path("annotation_renderer/configs/openconnect_general_holder_default.yaml"), [])
 
         with self.assertRaisesRegex(ConfigError, "must include render.animation"):
-            apply_animation_preset(holder_config_file, "general_holder_model")
+            apply_animation_preset(holder_config_file, "default_annotation_style")
 
     def test_image_labels_use_selected_object_string_values(self) -> None:
         record = {
@@ -476,42 +628,38 @@ class AnimationConfigTests(unittest.TestCase):
         holder_variant = selected_variants(config, "openconnect_general_holder_default")[0]
         holder_config = variant_config(config, holder_variant)
         self.assertEqual(self.first_model_config(holder_config)["scad_file"], "openconnect_general_holder.scad")
-        self.assertEqual(holder_config["scene"]["transform"]["rotation_deg"], ["holder_tilt_angle", 0, 0])
-        self.assertEqual(holder_config["render"]["camera_location_offset_mm"], [0, 0, 100])
-        self.assertEqual(holder_config["render"]["camera_look_at"], "object_center")
+        self.assertEqual([obj["id"] for obj in holder_config["scene"]["objects"]], ["model_b", "model_a"])
+        self.assertEqual(holder_config["scene"]["objects"][0]["transform"]["rotation_deg"], ["holder_tilt_angle", 0, 0])
         self.assertEqual(holder_config["annotations"]["chains"][0]["ids"], ["compartment_width"])
         self.assertEqual(holder_config["annotations"]["angle_radius_callouts"][0]["angle_id"], "holder_tilt_angle")
-        self.assertEqual(
-            [label["id"] for label in holder_config["annotations"]["image_labels"]],
-            ["compartment_shape"],
-        )
+        self.assertEqual(image_label_items_from_config(holder_config["annotations"]), [])
 
         vase_variant = selected_variants(config, "openconnect_vasemode_container_default")[0]
         vase_config = variant_config(config, vase_variant)
         self.assertEqual(self.first_model_config(vase_config)["scad_file"], "openconnect_vasemode_container.scad")
-        self.assertEqual(vase_config["scene"]["transform"]["rotation_deg"], [90, 0, -90])
+        self.assertEqual(vase_config["scene"]["transform"]["rotation_deg"], ["vase_tilt_angle", 0, 0])
         self.assertEqual(self.first_model_config(vase_config)["defines"]["label_holder_type"], "Standard")
         self.assertEqual(vase_config["annotations"]["chains"][0]["ids"], ["horizontal_grids"])
-        self.assertEqual(vase_config["annotations"]["angle_radius_callouts"][0]["angle_id"], "vase_tilt_angle")
+        self.assertNotIn("angle_radius_callouts", vase_config["annotations"])
         self.assertEqual(
             [label["id"] for label in vase_config["annotations"]["image_labels"]],
-            ["vase_surface_texture", "label_holder_type"],
+            ["vase_surface_texture"],
         )
 
         hook_variant = selected_variants(config, "openconnect_sturdy_hook_default")[0]
         hook_config = variant_config(config, hook_variant)
         self.assertEqual(hook_config["scene"]["transform"]["rotation_deg"], [90, 0, -90])
-        self.assertEqual(
-            hook_config["annotations"]["angle_radius_callouts"][0]["radius_id"],
-            "hook_corner_fillet",
-        )
+        self.assertNotIn("angle_radius_callouts", hook_config["annotations"])
 
         shelf_variant = selected_variants(config, "openconnect_sturdy_shelf_default")[0]
         shelf_config = variant_config(config, shelf_variant)
         self.assertEqual(shelf_config["scene"]["transform"]["rotation_deg"], [90, 0, -90])
         self.assertEqual(shelf_config["annotations"]["chains"][0]["ids"], ["depth_grids"])
         self.assertEqual(shelf_config["annotations"]["chains"][1]["ids"], ["horizontal_grids"])
-        self.assertEqual(shelf_config["annotations"]["aliases"]["horizontal_grids"], "horizontal_grids x 28mm")
+        self.assertEqual(
+            aliases_from_config(shelf_config["annotations"], context=shelf_config["constants"])["horizontal_grids"],
+            "horizontal_grids x 28mm",
+        )
 
         gridfinity_shelf_variant = selected_variants(config, "openconnect_gridfinity_shelf_default")[0]
         gridfinity_shelf_config = variant_config(config, gridfinity_shelf_variant)
@@ -526,36 +674,16 @@ class AnimationConfigTests(unittest.TestCase):
         clamshell_holder_config = variant_config(config, clamshell_holder_variant)
         self.assertEqual(self.first_model_config(clamshell_holder_config)["scad_file"], "openconnect_clamshell_holder.scad")
         clamshell_holder_objects = clamshell_holder_config["scene"]["objects"]
+        self.assertEqual(len(clamshell_holder_objects), 1)
         self.assertEqual(clamshell_holder_objects[0]["model"]["scad_file"], "openconnect_clamshell_holder.scad")
-        self.assertEqual(clamshell_holder_objects[0]["transform"]["rotation_deg"], [-90, 0, 0])
+        self.assertEqual(clamshell_holder_objects[0]["transform"]["rotation_deg"], [0, 0, 0])
         self.assertEqual(
             clamshell_holder_objects[0]["transform"]["location_mm"],
-            [0, "-(item_height / 2 + og_standard_thickness)", 0],
-        )
-        self.assertEqual(clamshell_holder_objects[1]["id"], "openconnect_standard_snap")
-        self.assertEqual(clamshell_holder_objects[1]["stl_file"], "../assets/openconnect_standard_snap.stl")
-        self.assertEqual(clamshell_holder_objects[1]["transform"]["rotation_deg"], [90, 0, 0])
-        self.assertEqual(
-            clamshell_holder_objects[1]["transform"]["location_mm"],
-            ["-(og_tile_size / 2)", "og_standard_thickness", "-(og_tile_size / 2)"],
+            [0, "-(item_depth+holder_thickness+3.72) / 2", "-(item_height+holder_thickness*2) / 2"],
         )
         self.assertNotIn("camera_rotation_deg", clamshell_holder_config["render"])
         self.assertEqual(clamshell_holder_config["annotations"]["chains"][0]["ids"], ["item_width"])
-        side_margin_chain_ids = [
-            chain["ids"]
-            for chain in clamshell_holder_config["annotations"]["chains"]
-            if chain["ids"][0].startswith("side_opening_")
-        ]
-        self.assertEqual(
-            side_margin_chain_ids,
-            [
-                ["side_cutout_top_margin"],
-                ["side_cutout_bottom_margin"],
-                ["side_cutout_back_margin"],
-                ["side_cutout_front_margin"],
-            ],
-        )
-        self.assertEqual(clamshell_holder_config["annotations"]["image_labels"][0]["id"], "holder_slot_position")
+        self.assertNotIn("image_labels", clamshell_holder_config["annotations"])
 
     def test_per_model_default_config_is_directly_renderable(self) -> None:
         config = load_config(Path("annotation_renderer/configs/openconnect_general_holder_default.yaml"), [])
@@ -564,10 +692,114 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(config["job_name"], "general_holder_scene_default")
         self.assertEqual(config["annotations"]["chains"][0]["ids"], ["compartment_width"])
         self.assertEqual(config["annotations"]["angle_radius_callouts"][0]["angle_id"], "holder_tilt_angle")
-        self.assertEqual(
-            [label["id"] for label in config["annotations"]["image_labels"]],
-            ["compartment_shape"],
+        self.assertEqual(image_label_items_from_config(config["annotations"]), [])
+
+    def test_general_holder_variants_share_one_named_annotation_catalog(self) -> None:
+        config = load_config(Path("annotation_renderer/configs/openconnect_general_holder_default.yaml"), [])
+
+        expected = {
+            "default": (
+                {"compartment_width_dimension", "compartment_height_dimension"},
+                {"holder_tilt_angle_callout"},
+                set(),
+            ),
+            "empty": (set(), set(), set()),
+            "side": (
+                {"holder_bottom_thickness_dimension"},
+                {"holder_tilt_angle_callout"},
+                set(),
+            ),
+            "top": (
+                {
+                    "compartment_width_dimension",
+                    "compartment_depth_dimension",
+                    "holder_back_offset_dimension",
+                    "holder_outer_wall_thickness_dimension",
+                },
+                {"compartment_corner_rounding_callout"},
+                set(),
+            ),
+            "taper": (
+                {
+                    "compartment_width_dimension",
+                    "compartment_depth_dimension",
+                    "compartment_bottom_width_dimension",
+                    "compartment_bottom_depth_dimension",
+                },
+                set(),
+                {"holder_bottom_thickness_label", "enable_bottom_taper_label"},
+            ),
+        }
+
+        for variant_name, (chain_names, callout_names, label_names) in expected.items():
+            variant = selected_variants(config, variant_name)[0]
+            resolved = variant_config(config, variant)
+            annotations = resolved["annotations"]
+            self.assertEqual({item["name"] for item in chain_items_from_config(annotations)}, chain_names)
+            self.assertEqual({item["name"] for item in angle_radius_items_from_config(annotations)}, callout_names)
+            self.assertEqual({item["name"] for item in image_label_items_from_config(annotations)}, label_names)
+
+    def test_compatibility_config_uses_its_default_variant(self) -> None:
+        output = self.run_cli(
+            "--config",
+            "annotation_renderer/configs/openconnect_general_holder_side.yaml",
+            "--print-resolved-config",
         )
+        resolved = json.loads(output)
+
+        self.assertEqual([item["id"] for item in resolved["scene"]["objects"]], ["model_a"])
+        self.assertEqual(resolved["render"]["camera_view"], "right")
+
+        gallery = load_config(Path("annotation_renderer/configs/openconnect_general_holder_gallery.yaml"), [])
+        self.assertEqual(gallery["default_variant"], "default")
+        self.assertEqual(gallery["gallery"]["variant_collection"], "parameter_gallery")
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(gallery, "parameter_gallery")],
+            [
+                "Width45_Mode_Minimum",
+                "Width45_Mode_Tile_Multiple",
+                "Circular_Tapered_Bottomless",
+                "Circular_Grid_3x2",
+            ],
+        )
+        wrapper = yaml.safe_load(
+            Path("annotation_renderer/configs/openconnect_general_holder_gallery.yaml").read_text(encoding="utf-8")
+        )
+        self.assertNotIn("variants", wrapper)
+        self.assertNotIn("variant_collections", wrapper)
+
+        legacy_output = self.run_cli(
+            "render",
+            "openconnect_general_holder_gallery",
+            "--gallery",
+            "--validate-only",
+        )
+        canonical_output = self.run_cli(
+            "render",
+            "openconnect_general_holder",
+            "--gallery",
+            "--variant-collection",
+            "parameter_gallery",
+            "--validate-only",
+        )
+        legacy_variants = [line for line in legacy_output.splitlines() if line.startswith("Variant:")]
+        canonical_variants = [line for line in canonical_output.splitlines() if line.startswith("Variant:")]
+        self.assertEqual(legacy_variants, canonical_variants)
+        self.assertEqual(len(legacy_variants), 4)
+
+    def test_validate_command_checks_all_variants_or_one_collection(self) -> None:
+        all_output = self.run_cli("validate", "openconnect_general_holder")
+        collection_output = self.run_cli(
+            "validate",
+            "openconnect_general_holder",
+            "--variant-collection",
+            "annotated_views",
+        )
+
+        self.assertEqual(all_output.count("Config OK:"), 9)
+        self.assertIn("Validated:  9 variants", all_output)
+        self.assertEqual(collection_output.count("Config OK:"), 4)
+        self.assertIn("Validated:  4 variants", collection_output)
 
     def test_checked_in_defaults_are_yaml_only(self) -> None:
         config_dir = Path("annotation_renderer/configs")
@@ -581,7 +813,8 @@ class AnimationConfigTests(unittest.TestCase):
 
         self.assertIn("openconnect_general_holder_default", output)
         self.assertIn("annotation_renderer/configs/openconnect_general_holder_default.yaml", output)
-        self.assertIn("model: openconnect_general_holder.scad", output)
+        self.assertIn("model_b: openconnect_general_holder.scad", output)
+        self.assertIn("model_a: openconnect_general_holder.scad", output)
         self.assertIn("openconnect_clamshell_holder_default", output)
         self.assertIn("model: openconnect_clamshell_holder.scad", output)
         self.assertIn("openconnect_vasemode_container_default", output)
@@ -613,7 +846,8 @@ class AnimationConfigTests(unittest.TestCase):
         output = self.run_cli("render", "openconnect_general_holder", "--validate-only")
 
         self.assertIn("Config OK: annotation_renderer/configs/openconnect_general_holder_default.yaml", output)
-        self.assertIn("Object:    model -> openconnect_general_holder.scad", output)
+        self.assertIn("Object:    model_b -> openconnect_general_holder.scad", output)
+        self.assertIn("Object:    model_a -> openconnect_general_holder.scad", output)
         self.assertEqual(
             default_config_for_model("openconnect_general_holder"),
             Path("annotation_renderer/configs/openconnect_general_holder_default.yaml").resolve(),
@@ -1235,15 +1469,13 @@ class AnimationConfigTests(unittest.TestCase):
         )
         annotations = self.run_cli("--list-annotations", "openconnect_general_holder_default")
 
-        self.assertIn("compartment_shape: \"Rectangular\"", description)
+        self.assertIn("compartment_shape: \"Circular\"", description)
         self.assertIn("Source: annotation_renderer/configs/openconnect_general_holder_default.yaml", direct_description)
-        self.assertIn("camera_location_offset_mm: [0,0,100]", description)
-        self.assertIn("camera_look_at: \"object_center\"", description)
         self.assertIn("dimension: compartment_width", annotations)
         self.assertIn("angle_radius: holder_tilt_angle_callout", annotations)
         self.assertNotIn("image_label: holder_tilt_angle", annotations)
-        self.assertIn("line_offset_px=0", annotations)
-        self.assertIn("label_offset_px=28", annotations)
+        self.assertIn("line_offset_px=-20", annotations)
+        self.assertIn("label_offset_px=-50", annotations)
 
     def test_sturdy_hook_side_exposes_hook_corner_fillet_callout(self) -> None:
         annotations = self.run_cli(
@@ -1254,7 +1486,7 @@ class AnimationConfigTests(unittest.TestCase):
         )
 
         self.assertIn("angle_radius: hook_corner_fillet_detail", annotations)
-        self.assertIn("radius_label_offset_px=26", annotations)
+        self.assertIn("radius_label_offset_px=50", annotations)
 
     def test_new_config_preserves_sturdy_hook_corner_fillet_define(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1279,13 +1511,10 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("Wrote:", output)
         self.assertTrue(template["extends"].endswith("openconnect_general_holder_default.yaml"))
         self.assertIn("scene", template)
-        self.assertEqual(template["scene"]["objects"][0]["model"]["defines"]["compartment_shape"], "Rectangular")
+        self.assertEqual(template["scene"]["objects"][0]["model"]["defines"]["compartment_shape"], "Circular")
         self.assertEqual(template["annotations"]["chains"][0]["ids"], ["compartment_width"])
         self.assertEqual(template["annotations"]["angle_radius_callouts"][0]["angle_id"], "holder_tilt_angle")
-        self.assertEqual(
-            [label["id"] for label in template["annotations"]["image_labels"]],
-            ["compartment_shape"],
-        )
+        self.assertNotIn("image_labels", template["annotations"])
         self.assertEqual(self.first_model_config(config)["scad_file"], "openconnect_general_holder.scad")
 
     def test_new_config_shortcut_accepts_model_stem(self) -> None:
@@ -1383,13 +1612,10 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("Wrote:", output)
         self.assertTrue(template["extends"].endswith("openconnect_general_holder_default.yaml"))
         self.assertIn("scene", template)
-        self.assertEqual(template["scene"]["objects"][0]["model"]["defines"]["compartment_shape"], "Rectangular")
+        self.assertEqual(template["scene"]["objects"][0]["model"]["defines"]["compartment_shape"], "Circular")
         self.assertEqual(template["annotations"]["chains"][0]["ids"], ["compartment_width"])
         self.assertEqual(template["annotations"]["angle_radius_callouts"][0]["angle_id"], "holder_tilt_angle")
-        self.assertEqual(
-            [label["id"] for label in template["annotations"]["image_labels"]],
-            ["compartment_shape"],
-        )
+        self.assertNotIn("image_labels", template["annotations"])
         self.assertEqual(self.first_model_config(config)["scad_file"], "openconnect_general_holder.scad")
 
     def test_gallery_config_can_be_yaml(self) -> None:
@@ -1398,6 +1624,7 @@ class AnimationConfigTests(unittest.TestCase):
             gallery_path.write_text(
                 "columns: 3\n"
                 "thumbnail_width: 480\n"
+                "variant_collection: external_views\n"
                 "margin_px: 8\n"
                 "gutter_px: 10\n"
                 "title_height_px: 24\n"
@@ -1412,6 +1639,7 @@ class AnimationConfigTests(unittest.TestCase):
             {
                 "columns": 3,
                 "thumbnail_width": 480,
+                "variant_collection": "external_views",
                 "margin_px": 8,
                 "gutter_px": 10,
                 "title_height_px": 24,
@@ -1432,6 +1660,17 @@ class AnimationConfigTests(unittest.TestCase):
                 "title_height_px": 24,
                 "title_font_size_px": 18,
             },
+        )
+        self.assertEqual(
+            configured_gallery_variant_collection({}, gallery_config=gallery_config),
+            "external_views",
+        )
+        self.assertEqual(
+            configured_gallery_variant_collection(
+                {"gallery": {"variant_collection": "model_views"}},
+                gallery_config=gallery_config,
+            ),
+            "model_views",
         )
 
     def test_gallery_target_size_derives_thumbnail_and_render_size(self) -> None:
@@ -1673,6 +1912,8 @@ class AnimationConfigTests(unittest.TestCase):
             resolve_render({"preset": "cycles_standard_scene", "default_material_color": ""})
         with self.assertRaisesRegex(ConfigError, "render.default_material_color must be a non-empty color string"):
             resolve_render({"preset": "cycles_standard_scene", "default_material_color": {"color": "#ffffff"}})
+        with self.assertRaisesRegex(ConfigError, "must use #RGB"):
+            resolve_render({"preset": "cycles_standard_scene", "default_material_color": "white"})
 
         blender_config = build_blender_config(
             scene_config={"camera": "Camera"},
@@ -1723,6 +1964,50 @@ class AnimationConfigTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ConfigError, "render.cache must be a boolean"):
             cache_enabled_for({"cache": "yes"}, default_args)
+
+    def test_openscad_cache_key_changes_when_included_dependency_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            dependency_dir = root / "deps"
+            dependency_dir.mkdir()
+            source = root / "model.scad"
+            dependency = dependency_dir / "shared.scad"
+            source.write_text("include <deps/shared.scad>\ncube(size);\n", encoding="utf-8")
+            dependency.write_text("size = 10;\n", encoding="utf-8")
+            first = openscad_stage_cache_key(
+                scad_file=source,
+                defines=(),
+                executable="openscad",
+                dependency_roots=(root,),
+            )
+            dependency.write_text("size = 20;\n", encoding="utf-8")
+            second = openscad_stage_cache_key(
+                scad_file=source,
+                defines=(),
+                executable="openscad",
+                dependency_roots=(root,),
+            )
+
+        self.assertNotEqual(first, second)
+
+    def test_schema_validation_rejects_unknown_config_fields(self) -> None:
+        base = {
+            "scene": {"blend_file": "demo.blend"},
+            "render": {},
+            "annotations": {},
+        }
+        with self.assertRaisesRegex(ConfigError, "Config schema validation failed.*typo_top_level"):
+            validate_config_shape({**base, "typo_top_level": True})
+        with self.assertRaisesRegex(ConfigError, "Config schema validation failed.*typo_annotation"):
+            validate_config_shape({**base, "annotations": {"typo_annotation": True}})
+
+    def test_grid_aliases_format_from_the_shared_tile_size(self) -> None:
+        aliases = aliases_from_config(
+            {"aliases": {"horizontal_grids": "horizontal_grids x {og_tile_size:g}mm"}},
+            context={"og_tile_size": 42},
+        )
+
+        self.assertEqual(aliases["horizontal_grids"], "horizontal_grids x 42mm")
 
     def test_blender_cache_key_ignores_output_paths_and_tracks_stl_content(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1885,7 +2170,7 @@ class AnimationConfigTests(unittest.TestCase):
         )
         self.assertEqual(preset_config["camera_view"], "front")
         self.assertEqual(preset_config["camera_orbit"], [35.0, 24.0])
-        self.assertEqual(preset_config["camera_distance_scale"], 1.15)
+        self.assertEqual(preset_config["camera_distance_scale"], 1.0)
 
     def test_render_scene_light_power_is_validated_and_passed_to_blender(self) -> None:
         render = resolve_render(
@@ -2252,6 +2537,14 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("export_blend", render_properties)
         self.assertIn("variant_name", schema["properties"])
         self.assertIn("variant_configs", schema["properties"])
+        self.assertIn("variant_collections", schema["properties"])
+        self.assertIn("variant_collection", schema["properties"]["gallery"]["properties"])
+        self.assertIn("object_overrides", variant_properties)
+        self.assertIn("unset", variant_properties)
+        gallery_schema = json.loads(
+            Path("annotation_renderer/schemas/annotation-render-gallery.schema.json").read_text(encoding="utf-8")
+        )
+        self.assertIn("variant_collection", gallery_schema["properties"])
         self.assertNotIn("animation", scene_default_properties)
         self.assertNotIn("animation", scene_object_properties)
         self.assertNotIn("line_copies", scene_default_properties)
@@ -2263,6 +2556,12 @@ class AnimationConfigTests(unittest.TestCase):
         render_properties = schema["$defs"]["renderConfig"]["anyOf"][1]["properties"]
         self.assertEqual(tuple(render_properties["output_mode"]["enum"]), RENDER_OUTPUT_MODES)
         self.assertEqual(set(schema["$defs"]["cameraViewPreset"]["enum"]), set(CAMERA_VIEW_PRESETS))
+        reference = Path("annotation_renderer/REFERENCE.md").read_text(encoding="utf-8")
+        readme = Path("annotation_renderer/README.md").read_text(encoding="utf-8")
+        self.assertIn(f"`{DEFAULT_IMPORTED_MODEL_MATERIAL_COLOR}`", reference)
+        minimum_blender = ".".join(str(item) for item in MINIMUM_BLENDER_VERSION[:2])
+        self.assertIn(f"Blender {minimum_blender}", reference)
+        self.assertIn(f"Blender {minimum_blender}", readme)
         self.assertEqual(RENDER_CAMERA_VIEW_PRESET_VALUES, set(CAMERA_VIEW_PRESETS))
         self.assertEqual(tuple(schema["$defs"]["lightingPreset"]["enum"]), RENDER_LIGHTING_PRESETS)
         self.assertIn(DEFAULT_RENDER_MESH_SHADING, MESH_SHADING_VALUES)

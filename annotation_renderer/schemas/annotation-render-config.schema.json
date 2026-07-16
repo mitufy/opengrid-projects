@@ -23,12 +23,34 @@
       "type": "string",
       "description": "Name used when this config is imported by another config through variant_configs."
     },
+    "default_variant": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Variant rendered when --variant is omitted, even when the base config is directly renderable."
+    },
     "variant_configs": {
       "type": "array",
       "description": "Config files to expose as variants of this config. Paths are resolved relative to this config file.",
       "items": {
         "type": "string",
         "minLength": 1
+      }
+    },
+    "variant_collections": {
+      "type": "object",
+      "description": "Named ordered subsets of variants, typically used for curated galleries and validation.",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 1,
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "output_dir": {
@@ -69,6 +91,10 @@
         "title_font_size_px": {
           "type": "integer",
           "minimum": 1
+        },
+        "variant_collection": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -120,6 +146,23 @@
           "set": {
             "type": "object",
             "description": "Dotted config paths to override for this variant."
+          },
+          "annotation_overrides": {
+            "$ref": "#/$defs/annotationOverrideMap",
+            "description": "Overrides keyed by a stable annotation group name. Applied after section and dotted-path overrides."
+          },
+          "object_overrides": {
+            "$ref": "#/$defs/objectOverrideMap",
+            "description": "Scene object patches keyed by stable scene.objects IDs. Set enabled to false to remove an object from this variant."
+          },
+          "unset": {
+            "type": "array",
+            "uniqueItems": true,
+            "description": "Inherited config paths to remove after all variant overrides are applied.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           },
           "job_name": {
             "type": "string"
@@ -364,14 +407,15 @@
       "anyOf": [
         {
           "type": "string",
-          "minLength": 1
+          "pattern": "^#?(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
         },
         {
           "type": "object",
           "additionalProperties": false,
           "properties": {
             "color": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^#?(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
             },
             "alpha": {
               "type": "number",
@@ -990,7 +1034,7 @@
             },
             "default_material_color": {
               "type": "string",
-              "minLength": 1,
+              "pattern": "^#?(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
               "description": "Fallback material color assigned to imported models that have no explicit, target, or source material."
             },
             "material_overrides": {
@@ -1392,6 +1436,26 @@
         }
       ]
     },
+    "annotationOverrideMap": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "objectOverrideMap": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
     "colorMap": {
       "anyOf": [
         {
@@ -1433,6 +1497,14 @@
             "$constant": {
               "type": "string",
               "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "enabled": {
+              "type": "boolean",
+              "default": true
             },
             "ids": {
               "type": "array",
@@ -1606,6 +1678,14 @@
               "type": "string",
               "minLength": 1
             },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
             "id": {
               "type": "string"
             },
@@ -1739,6 +1819,9 @@
             },
             "show_radius_label": {
               "type": "boolean"
+            },
+            "auto_adjust_labels": {
+              "type": "boolean"
             }
           }
         },
@@ -1774,6 +1857,14 @@
               "type": "string",
               "minLength": 1
             },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
             "id": {
               "type": "string"
             },
@@ -1807,6 +1898,9 @@
               "type": "number"
             },
             "show_value": {
+              "type": "boolean"
+            },
+            "optional": {
               "type": "boolean"
             },
             "title_area": {
@@ -2070,7 +2164,14 @@
                   "line_colors": {
                     "type": "array",
                     "items": {
-                      "type": "string"
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "$ref": "#/$defs/constantRef"
+                        }
+                      ]
                     }
                   },
                   "text_color": {
@@ -2112,35 +2213,30 @@
         },
         "chains": {
           "type": "array",
-          "minItems": 1,
           "items": {
             "$ref": "#/$defs/annotationGroup"
           }
         },
         "radius_callouts": {
           "type": "array",
-          "minItems": 1,
           "items": {
             "$ref": "#/$defs/annotationGroup"
           }
         },
         "arc_callouts": {
           "type": "array",
-          "minItems": 1,
           "items": {
             "$ref": "#/$defs/annotationGroup"
           }
         },
         "angle_radius_callouts": {
           "type": "array",
-          "minItems": 1,
           "items": {
             "$ref": "#/$defs/angleRadiusCallout"
           }
         },
         "image_labels": {
           "type": "array",
-          "minItems": 1,
           "items": {
             "$ref": "#/$defs/imageLabel"
           }
