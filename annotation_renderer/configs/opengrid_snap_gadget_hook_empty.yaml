@@ -1,64 +1,10 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: base_scene.yaml
-variant_name: opengrid_snap_gadget_hook_default
-job_name: snap_gadget_hook_scene
-scene:
-  objects:
-  - id: model
-    model:
-      scad_file: opengrid_snap_gadget_hook.scad
-    transform:
-      location_mm: [-14, 0, -20.6]
-      rotation_deg: [0, 0, 0]
-  - id: snap_a
-    $constant: expanding_snap_object
-    transform:
-      location_mm: [-14, 0, -14]
-      rotation_deg: [-90, -90, 0]
-render:
-  fit_margin: 0
-  # camera_view_preset: technical_iso
-  camera_view_preset: top_front
-  # camera_view: top
-  # camera_rotation_offset_deg: [-60, 0, -30]
-  # export_blend: true
-annotations:
-  style:
-    $constant: default_annotation_style
-    auto_adjust_labels: true
-    
-    type_styles:
-      mm:
-        line_colors:
-        - $constant: annotation_color_black
-  # angle_radius_callouts:
-  # - id: hook_tip_angle_detail
-  #   arc_id: hook_tip_angle_extent
-  #   radius_id: hook_tip_angle_radius
-  #   angle_id: hook_tip_angle
-  #   optional: true
-  #   show_radius_label: false
-  #   angle_label_offset_px: 100
-  #   angle_label_tangent_offset_px: 56
-  #   angle_fill_alpha: 28
-  # chains:
-  # - ids: [hook_width]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 28
-  #   label_offset_px: 28
-  #   label_font_size_px: 24
-  # - ids: [hook_thickness]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -76
-  #   label_offset_px: -76
-  #   label_font_size_px: 24
-  # - ids: [hook_main_size]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -34
-  #   label_offset_px: -42
-  #   label_font_size_px: 24
-  # - ids: [hook_stem_length]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 28
-  #   label_offset_px: 28
-  #   label_font_size_px: 24
+extends: opengrid_snap_gadget_hook_default.yaml
+variant_name: opengrid_snap_gadget_hook_empty
+default_variant: opengrid_snap_gadget_hook_empty
+
+# Compatibility entry point. Add new image variations to the canonical config instead.
+variants:
+- name: opengrid_snap_gadget_hook_empty
+  extends_variant: empty
+  job_name: snap_gadget_hook_scene

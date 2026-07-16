@@ -110,7 +110,7 @@ gallery:
   --gallery --variant-collection product_views
 ```
 
-When `gallery.variant_collection` is configured, plain `--gallery` renders that collection; an explicit `--variant` or `--variant-collection` takes precedence. Otherwise plain `--gallery` renders every named variant. The general-holder, gridfinity-shelf, sturdy-shelf, sturdy-hook, vasemode-container, and framefit-hook configs are reference examples: their view and parameter variants live in one canonical file per model, while the former per-view and parameter-gallery paths remain compatibility entry points.
+When `gallery.variant_collection` is configured, plain `--gallery` renders that collection; an explicit `--variant` or `--variant-collection` takes precedence. Otherwise plain `--gallery` renders every named variant. The general-holder, gridfinity-shelf, sturdy-shelf, sturdy-hook, vasemode-container, framefit-hook, and snap-gadget-hook configs are reference examples: their view and parameter variants live in one canonical file per model, while the former per-view and parameter-gallery paths remain compatibility entry points.
 
 List the built-in renderable models:
 

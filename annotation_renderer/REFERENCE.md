@@ -922,6 +922,8 @@ Collections are accepted by gallery rendering and all-variant validation:
 
 `opengrid_framefit_hook_default.yaml` owns both its three-object default composition and single-object side detail. The old side config is a compatibility selector rather than a second copy of the model, camera, and annotation setup.
 
+`opengrid_snap_gadget_hook_default.yaml` owns the composed default, empty and side details, and four shape-parameter variants. Compact per-view scene lists preserve the historical `model_a` versus `model` object IDs, while gallery changes use the stable `model` ID.
+
 Use `variant_configs` when a gallery config should import complete per-model config files as variants:
 
 ```yaml

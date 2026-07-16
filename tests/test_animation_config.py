@@ -997,6 +997,57 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual([item["id"] for item in resolved["scene"]["objects"]], ["model"])
         self.assertEqual(resolved["render"]["camera_view"], "left")
 
+    def test_snap_gadget_hook_variants_share_one_canonical_config(self) -> None:
+        config = load_config(Path("annotation_renderer/configs/opengrid_snap_gadget_hook_default.yaml"), [])
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "product_views")],
+            ["default", "empty", "side"],
+        )
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "parameter_gallery")],
+            ["Centered_main20", "Straight_main40_width13.2_thick10", "Loop_main20", "Centered_Rectangular_main20"],
+        )
+
+        default = variant_config(config, selected_variants(config, "default")[0])
+        empty = variant_config(config, selected_variants(config, "empty")[0])
+        side = variant_config(config, selected_variants(config, "side")[0])
+        self.assertEqual(
+            [item["id"] for item in default["scene"]["objects"]],
+            ["model_a", "snap_a", "model_b", "snap_b"],
+        )
+        self.assertEqual([item["id"] for item in empty["scene"]["objects"]], ["model", "snap_a"])
+        self.assertEqual(chain_items_from_config(empty["annotations"]), [])
+        self.assertEqual(
+            {item["name"] for item in angle_radius_items_from_config(side["annotations"])},
+            {"hook_tip_angle_detail"},
+        )
+        self.assertEqual(side["render"]["camera_view"], "top")
+
+        straight = variant_config(config, selected_variants(config, "Straight_main40_width13.2_thick10")[0])
+        straight_defines = self.first_model_config(straight)["defines"]
+        self.assertEqual(straight_defines["hook_main_size"], 40)
+        self.assertEqual(straight_defines["hook_width"], 13.2)
+
+        for wrapper_name in ("opengrid_snap_gadget_hook_empty.yaml", "opengrid_snap_gadget_hook_side.yaml"):
+            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
+            self.assertNotIn("scene", wrapper)
+            self.assertNotIn("render", wrapper)
+            self.assertNotIn("annotations", wrapper)
+
+        gallery_wrapper = yaml.safe_load(
+            Path("annotation_renderer/configs/opengrid_snap_gadget_hook_gallery.yaml").read_text(encoding="utf-8")
+        )
+        self.assertNotIn("variants", gallery_wrapper)
+        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
+
+        legacy_variants = self.gallery_variant_lines("opengrid_snap_gadget_hook_gallery")
+        canonical_variants = self.gallery_variant_lines(
+            "opengrid_snap_gadget_hook",
+            collection="parameter_gallery",
+        )
+        self.assertEqual(legacy_variants, canonical_variants)
+        self.assertEqual(len(legacy_variants), 4)
+
     def test_compatibility_config_uses_its_default_variant(self) -> None:
         output = self.run_cli(
             "--config",
