@@ -1,95 +1,10 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: animation_presets.yaml
-variant_name: openconnect_vasemode_container_default
-job_name: vasemode_container_scene_default
-scene:
-  objects:
-  - id: model
-    model:
-      scad_file: openconnect_vasemode_container.scad
-      defines:
-        horizontal_grids: 1
-        vertical_grids: 2
-        depth_grids: 1
-        vase_tilt_angle: 15
-        label_holder_type: None
-        render_vase_print_preview: true
-  transform:
-    location_mm: [0, 0, "-(2 * og_tile_size)"]
-    rotation_deg: [vase_tilt_angle, 0, 0]
-    scale:
-      $constant: blender_scene_scale_vector
-render:
-  fit_margin: 0
-  lighting:
-    toplight_power: 9
-    frontlight_power: 0.8
-  # camera_view_preset: top_front
-annotations:
-  style:
-    $constant: default_annotation_style
-  aliases:
-    $constant: default_grid_label_aliases
-    vase_surface_texture: surface_texture
-    label_holder_type: label_holder
-    vase_tilt_angle_extent: vase_tilt_angle
-  # chains:
-  # - ids: [horizontal_grids]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -20
-  #   label_offset_px: -50
-  #   label_font_size_px:
-  #     $constant: annotation_label_font_size_px
-  #   color:
-  #     $constant: annotation_color_black
-  # - ids: [vertical_grids]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 40
-  #   label_offset_px: 55
-  #   label_font_size_px:
-  #     $constant: annotation_label_font_size_px
-  #   color:
-  #     $constant: annotation_color_black
-  # - ids: [depth_grids]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -50
-  #   label_offset_px: -34
-    # font_size_px: 26
-  # - ids: [label_width]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 100
-  #   label_offset_px: 50
-  #   font_size_px: 45
-  #   color:
-  #     $constant: annotation_color_blue
-  # - $constant: small_dimension_chain
-  #   ids: [vase_linewidth]
-  #   label_offset_px: 34
-  # - $constant: small_dimension_chain
-  #   ids: [label_width]
-  #   optional: true
-  #   label_offset_px: 30
-  # angle_radius_callouts:
-  # - id: vase_tilt_angle_callout
-  #   arc_id: vase_tilt_angle_extent
-  #   radius_id: vase_tilt_angle_radius
-  #   angle_id: vase_tilt_angle
-  #   optional: true
-  #   show_radius_label: false
-  #   angle_label_offset_px: 34
-  #   angle_fill_alpha: 28
-  # image_labels:
-  # - $constant: top_image_label
-  #   id: vase_surface_texture
-  #   show_value: true
-  #   value_color:
-  #     $constant: annotation_color_blue
-  #   font_size_px:
-  #     $constant: annotation_title_font_size_px
-  # - id: label_holder_type
-  #   position: top
-  #   offset_px: [0, 28]
-  #   show_value: true
-  #   value_color: '#0000FF'
-  #   font_size_px:
-  #     $constant: annotation_aux_label_font_size_px
+extends: openconnect_vasemode_container_default.yaml
+variant_name: openconnect_vasemode_container_empty
+default_variant: openconnect_vasemode_container_empty
+
+# Compatibility entry point. Add new image variations to the canonical config instead.
+variants:
+- name: openconnect_vasemode_container_empty
+  extends_variant: empty
+  job_name: vasemode_container_scene_default

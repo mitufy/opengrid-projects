@@ -1,7 +1,9 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: animation_presets.yaml
 variant_name: openconnect_vasemode_container_default
+default_variant: default
 job_name: vasemode_container_scene_default
+
 scene:
   objects:
   - id: model
@@ -20,9 +22,11 @@ scene:
     rotation_deg: [vase_tilt_angle, 0, 0]
     scale:
       $constant: blender_scene_scale_vector
+
 render:
   fit_margin: 0.2
   camera_location_offset_mm: [0, 0, 10]
+
 annotations:
   style:
     $constant: default_annotation_style
@@ -32,7 +36,8 @@ annotations:
     label_holder_type: label_holder
     vase_tilt_angle_extent: vase_tilt_angle
   chains:
-  - ids: [horizontal_grids]
+  - name: horizontal_grids_dimension
+    ids: [horizontal_grids]
     display_offset_mm: [0, 0, 0]
     line_offset_px: -10
     label_offset_px: -45
@@ -40,7 +45,8 @@ annotations:
       $constant: annotation_label_font_size_px
     color:
       $constant: annotation_color_black
-  - ids: [vertical_grids]
+  - name: vertical_grids_dimension
+    ids: [vertical_grids]
     display_offset_mm: [0, 0, 0]
     line_offset_px: 40
     label_offset_px: 50
@@ -48,46 +54,148 @@ annotations:
       $constant: annotation_label_font_size_px
     color:
       $constant: annotation_color_black
-  # - ids: [depth_grids]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -50
-  #   label_offset_px: -34
-    # font_size_px: 26
-  - ids: [label_width]
+  - name: label_width_dimension
+    ids: [label_width]
     display_offset_mm: [0, 0, 0]
     line_offset_px: 100
     label_offset_px: 50
     font_size_px: 45
     color:
       $constant: annotation_color_blue
-  # - $constant: small_dimension_chain
-  #   ids: [vase_linewidth]
-  #   label_offset_px: 34
-  # - $constant: small_dimension_chain
-  #   ids: [label_width]
-  #   optional: true
-  #   label_offset_px: 30
-  # angle_radius_callouts:
-  # - id: vase_tilt_angle_callout
-  #   arc_id: vase_tilt_angle_extent
-  #   radius_id: vase_tilt_angle_radius
-  #   angle_id: vase_tilt_angle
-  #   optional: true
-  #   show_radius_label: false
-  #   angle_label_offset_px: 34
-  #   angle_fill_alpha: 28
+  - name: depth_grids_dimension
+    enabled: false
+    ids: [depth_grids]
+    display_offset_mm: [0, 0, 0]
+    line_offset_px: 130
+    label_offset_px: 50
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
+    color:
+      $constant: annotation_color_black
+  angle_radius_callouts:
+  - name: vase_tilt_angle_callout
+    enabled: false
+    id: vase_tilt_angle_callout
+    arc_id: vase_tilt_angle_extent
+    radius_id: vase_tilt_angle_radius
+    angle_id: vase_tilt_angle
+    optional: true
+    show_radius_label: false
+    angle_label_offset_px: 55
+    angle_fill_alpha: 28
   image_labels:
   - $constant: top_image_label
+    name: vase_surface_texture_label
     id: vase_surface_texture
     show_value: true
     value_color:
       $constant: annotation_color_blue
     font_size_px:
       $constant: annotation_title_font_size_px
-  # - id: label_holder_type
-  #   position: top
-  #   offset_px: [0, 28]
-  #   show_value: true
-  #   value_color: '#0000FF'
-  #   font_size_px:
-  #     $constant: annotation_aux_label_font_size_px
+
+variant_collections:
+  product_views: [default, empty, side]
+  parameter_gallery:
+  - Checkers_Texture
+  - Cubes_Texture
+  - Wave_Ribs_Texture
+  - No_Texture
+
+variants:
+- name: default
+  job_name: vasemode_container_scene_default
+
+- name: empty
+  job_name: vasemode_container_scene_default
+  object_overrides:
+    model:
+      model:
+        defines:
+          horizontal_grids: 1
+          vertical_grids: 2
+          depth_grids: 1
+          vase_tilt_angle: 15
+          label_holder_type: None
+          render_vase_print_preview: true
+  render:
+    fit_margin: 0
+    lighting:
+      toplight_power: 9
+      frontlight_power: 0.8
+  annotation_overrides:
+    horizontal_grids_dimension:
+      enabled: false
+    vertical_grids_dimension:
+      enabled: false
+    label_width_dimension:
+      enabled: false
+    vase_surface_texture_label:
+      enabled: false
+  unset:
+  - scene.objects.model.model.defines.vase_surface_texture
+  - render.camera_location_offset_mm
+
+- name: side
+  job_name: vasemode_container_scene_default
+  render:
+    fit_margin: 0.15
+    camera_view: right
+  annotation_overrides:
+    horizontal_grids_dimension:
+      enabled: false
+    vertical_grids_dimension:
+      enabled: false
+    label_width_dimension:
+      enabled: false
+    depth_grids_dimension:
+      enabled: true
+    vase_tilt_angle_callout:
+      enabled: true
+    vase_surface_texture_label:
+      position: bottom
+      offset_px: [0, -24]
+  unset:
+  - render.camera_location_offset_mm
+
+- name: Checkers_Texture
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          render_vase_print_preview: true
+          vase_tilt_angle: 0
+          horizontal_grids: 1
+
+- name: Cubes_Texture
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          render_vase_print_preview: true
+          vase_surface_texture: cubes
+          vase_tilt_angle: 0
+          horizontal_grids: 1
+
+- name: Wave_Ribs_Texture
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          render_vase_print_preview: true
+          vase_surface_texture: wave_ribs
+          vase_tilt_angle: 0
+          horizontal_grids: 1
+
+- name: No_Texture
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          render_vase_print_preview: true
+          vase_surface_texture: ""
+          vase_tilt_angle: 0
+          horizontal_grids: 1

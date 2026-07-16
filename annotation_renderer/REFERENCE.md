@@ -918,6 +918,8 @@ Collections are accepted by gallery rendering and all-variant validation:
 
 `openconnect_sturdy_hook_default.yaml` owns its two-object default view, single-object empty and side views, and four parameter-gallery variants. The side-specific annotation catalog remains explicit because it intentionally uses different aliases and technical-line styling; scene and model definitions are still shared.
 
+`openconnect_vasemode_container_default.yaml` shares one named annotation catalog across its default, empty, side, and texture-gallery variants. The variants toggle grid dimensions and the tilt callout, and reposition the texture label without duplicating its base style or aliases.
+
 Use `variant_configs` when a gallery config should import complete per-model config files as variants:
 
 ```yaml

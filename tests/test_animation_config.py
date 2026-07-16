@@ -646,7 +646,7 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(vase_config["scene"]["transform"]["rotation_deg"], ["vase_tilt_angle", 0, 0])
         self.assertEqual(self.first_model_config(vase_config)["defines"]["label_holder_type"], "Standard")
         self.assertEqual(vase_config["annotations"]["chains"][0]["ids"], ["horizontal_grids"])
-        self.assertNotIn("angle_radius_callouts", vase_config["annotations"])
+        self.assertEqual(angle_radius_items_from_config(vase_config["annotations"]), [])
         self.assertEqual(
             [label["id"] for label in vase_config["annotations"]["image_labels"]],
             ["vase_surface_texture"],
@@ -900,6 +900,60 @@ class AnimationConfigTests(unittest.TestCase):
         legacy_variants = self.gallery_variant_lines("openconnect_sturdy_hook_gallery")
         canonical_variants = self.gallery_variant_lines(
             "openconnect_sturdy_hook",
+            collection="parameter_gallery",
+        )
+        self.assertEqual(legacy_variants, canonical_variants)
+        self.assertEqual(len(legacy_variants), 4)
+
+    def test_vasemode_container_variants_share_one_canonical_config(self) -> None:
+        config = load_config(Path("annotation_renderer/configs/openconnect_vasemode_container_default.yaml"), [])
+
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "product_views")],
+            ["default", "empty", "side"],
+        )
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "parameter_gallery")],
+            ["Checkers_Texture", "Cubes_Texture", "Wave_Ribs_Texture", "No_Texture"],
+        )
+
+        empty = variant_config(config, selected_variants(config, "empty")[0])
+        self.assertNotIn("vase_surface_texture", self.first_model_config(empty)["defines"])
+        self.assertNotIn("camera_location_offset_mm", empty["render"])
+        self.assertEqual(chain_items_from_config(empty["annotations"]), [])
+        self.assertEqual(image_label_items_from_config(empty["annotations"]), [])
+
+        side = variant_config(config, selected_variants(config, "side")[0])
+        self.assertEqual(
+            {item["name"] for item in chain_items_from_config(side["annotations"])},
+            {"depth_grids_dimension"},
+        )
+        self.assertEqual(
+            {item["name"] for item in angle_radius_items_from_config(side["annotations"])},
+            {"vase_tilt_angle_callout"},
+        )
+        side_label = image_label_items_from_config(side["annotations"])[0]
+        self.assertEqual(side_label["position"], "bottom")
+        self.assertEqual(side_label["offset_px"], [0, -24])
+
+        no_texture = variant_config(config, selected_variants(config, "No_Texture")[0])
+        self.assertEqual(self.first_model_config(no_texture)["defines"]["vase_surface_texture"], "")
+
+        for wrapper_name in ("openconnect_vasemode_container_empty.yaml", "openconnect_vasemode_container_side.yaml"):
+            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
+            self.assertNotIn("scene", wrapper)
+            self.assertNotIn("render", wrapper)
+            self.assertNotIn("annotations", wrapper)
+
+        gallery_wrapper = yaml.safe_load(
+            Path("annotation_renderer/configs/openconnect_vasemode_container_gallery.yaml").read_text(encoding="utf-8")
+        )
+        self.assertNotIn("variants", gallery_wrapper)
+        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
+
+        legacy_variants = self.gallery_variant_lines("openconnect_vasemode_container_gallery")
+        canonical_variants = self.gallery_variant_lines(
+            "openconnect_vasemode_container",
             collection="parameter_gallery",
         )
         self.assertEqual(legacy_variants, canonical_variants)
