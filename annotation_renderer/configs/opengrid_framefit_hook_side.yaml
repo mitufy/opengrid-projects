@@ -1,75 +1,10 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: base_scene.yaml
-variant_name: opengrid_framefit_hook_default
-job_name: framefit_hook_scene
-scene:
-  objects:
-  - id: model
-    model:
-      scad_file: opengrid_framefit_hook.scad
-      defines:
-        hook_length: 28
-        hook_tip_length: 12
-        hook_corner_fillet: 10
-    transform:
-      location_mm: [0, 0, "-(2 * og_tile_size)"]
-      rotation_deg: [0, 0, 180]
-render:
-  fit_margin: 0
-  camera_view: left
-annotations:
-  style:
-    $constant: default_annotation_style
-    auto_adjust_labels: true
-    
-    type_styles:
-      grids:
-        line_colors:
-        - $constant: annotation_color_blue
-      mm:
-        line_colors:
-        - $constant: annotation_color_black
-  aliases:
-    hook_vertical_grids: "hook_vertical_grids x {og_tile_size:g}mm"
-    truss_vertical_grids: "truss_vertical_grids x {og_tile_size:g}mm"
-    hook_tip_shape: hook_tip_shape
-  chains:
-  # - ids: [hook_width]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 28
-  #   label_offset_px: 28
-  #   label_font_size_px: 24
-  - ids: [hook_length]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: -80
-    label_offset_px: -50
-    label_along_offset_px: 50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-  - ids: [hook_back_thickness]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: -80
-    label_offset_px: -50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-  - ids: [hook_tip_length]
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: -1
-    label_offset_px: -50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-  - ids: [hook_vertical_grids, truss_vertical_grids]
-    optional: true
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 1
-    label_offset_px: 50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-  angle_radius_callouts:
-  - id: hook_corner_fillet_detail
-    arc_id: hook_corner_fillet_extent
-    radius_id: hook_corner_fillet
-    optional: true
-    show_angle_label: false
-    radius_label_offset_px: 50
-    angle_fill_alpha: 28
+extends: opengrid_framefit_hook_default.yaml
+variant_name: opengrid_framefit_hook_side
+default_variant: opengrid_framefit_hook_side
+
+# Compatibility entry point. Add new image variations to the canonical config instead.
+variants:
+- name: opengrid_framefit_hook_side
+  extends_variant: side
+  job_name: framefit_hook_scene

@@ -920,6 +920,8 @@ Collections are accepted by gallery rendering and all-variant validation:
 
 `openconnect_vasemode_container_default.yaml` shares one named annotation catalog across its default, empty, side, and texture-gallery variants. The variants toggle grid dimensions and the tilt callout, and reposition the texture label without duplicating its base style or aliases.
 
+`opengrid_framefit_hook_default.yaml` owns both its three-object default composition and single-object side detail. The old side config is a compatibility selector rather than a second copy of the model, camera, and annotation setup.
+
 Use `variant_configs` when a gallery config should import complete per-model config files as variants:
 
 ```yaml

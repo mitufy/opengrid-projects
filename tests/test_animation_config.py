@@ -959,6 +959,44 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(legacy_variants, canonical_variants)
         self.assertEqual(len(legacy_variants), 4)
 
+    def test_framefit_hook_views_share_one_canonical_config(self) -> None:
+        config = load_config(Path("annotation_renderer/configs/opengrid_framefit_hook_default.yaml"), [])
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "product_views")],
+            ["default", "side"],
+        )
+
+        default = variant_config(config, selected_variants(config, "default")[0])
+        side = variant_config(config, selected_variants(config, "side")[0])
+        self.assertEqual(
+            [item["id"] for item in default["scene"]["objects"]],
+            ["model", "large_hook", "truss_hook"],
+        )
+        self.assertEqual([item["id"] for item in side["scene"]["objects"]], ["model"])
+        self.assertEqual(self.first_model_config(side)["defines"]["hook_corner_fillet"], 10)
+        self.assertEqual(side["render"]["camera_view"], "left")
+        self.assertEqual(
+            {item["name"] for item in angle_radius_items_from_config(side["annotations"])},
+            {"hook_corner_fillet_detail"},
+        )
+
+        wrapper = yaml.safe_load(
+            Path("annotation_renderer/configs/opengrid_framefit_hook_side.yaml").read_text(encoding="utf-8")
+        )
+        self.assertNotIn("scene", wrapper)
+        self.assertNotIn("render", wrapper)
+        self.assertNotIn("annotations", wrapper)
+
+        resolved = json.loads(
+            self.run_cli(
+                "--config",
+                "annotation_renderer/configs/opengrid_framefit_hook_side.yaml",
+                "--print-resolved-config",
+            )
+        )
+        self.assertEqual([item["id"] for item in resolved["scene"]["objects"]], ["model"])
+        self.assertEqual(resolved["render"]["camera_view"], "left")
+
     def test_compatibility_config_uses_its_default_variant(self) -> None:
         output = self.run_cli(
             "--config",
