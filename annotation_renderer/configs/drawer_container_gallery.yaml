@@ -3,6 +3,7 @@ extends: drawer_container_empty.yaml
 job_name: drawer_container_parameter_gallery
 
 gallery:
+  variant_collection: parameter_gallery
   columns: 2
   target_width_px: 1920
   target_height_px: 1440
@@ -10,28 +11,3 @@ gallery:
   gutter_px: 4
   title_height_px: 60
   title_font_size_px: 60
-
-variants:
-# - name: Magnet_All
-#   set:
-#     scene.objects[0].model.defines.magnet_position: All
-# - name: Magnet_Corners
-#   set:
-#     scene.objects[0].model.defines.magnet_position: Corners Only
-- name: Divider_Width
-  set:
-    scene.objects[0].model.defines.add_container_divider: Width
-    scene.objects[0].model.defines.container_width_grid_count: 3
-    scene.objects[0].model.defines.container_width_compartment_list: "2,1"
-- name: Divider_Depth
-  set:
-    scene.objects[0].model.defines.add_container_divider: Depth
-    scene.objects[0].model.defines.container_depth_grid_count: 4
-    scene.objects[0].model.defines.container_depth_compartment_list: "1,1,1,1"
-- name: Divider_Both
-  set:
-    scene.objects[0].model.defines.add_container_divider: Both
-    scene.objects[0].model.defines.container_width_grid_count: 3
-    scene.objects[0].model.defines.container_width_compartment_list: "2,1"
-    scene.objects[0].model.defines.container_depth_grid_count: 4
-    scene.objects[0].model.defines.container_depth_compartment_list: "1,1,1,1"

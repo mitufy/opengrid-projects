@@ -1,53 +1,10 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: base_scene.yaml
-job_name: opengrid_drawer_floor
-scene:
-  blend_file: ../assets/scenes/opengrid_floor_scene.blend
-  objects:
-  - id: drawer_container
-    model:
-      scad_file: openconnect_drawer.scad
-      defines:
-        generate_drawer_shell: false
-        generate_drawer_container: true
-        add_container_divider: Width
-        container_width_grid_count: 4
-        container_width_compartment_list: "1,1,1,1"
-    transform:
-      location_mm: [0, 0, 0]
-      rotation_deg: [0, 0, 0]
-render:
-  fit_margin: 0.2
-  camera_view_preset: top_front
-annotations:
-  object: drawer_container
-  style:
-    $constant: default_annotation_style
-  # chains:
-  # - ids: [horizontal_grids]
-  #   label_offset_px: 42
-  # - ids: [vertical_grids]
-  #   line_offset_px: 30
-  #   label_offset_px: 30
-  #   label_font_size_px:
-  #     $constant: annotation_label_font_size_px
-  # - ids: [depth_grids]
-  #   line_offset_px: 30
-  #   label_offset_px: 30
-  image_labels:
-  - $constant: bottom_image_label
-    id: container_width_grid_count
-    offset_px: [0, 0]
-    show_value: true
-    value_color:
-      $constant: annotation_color_blue
-    font_size_px:
-      $constant: annotation_title_font_size_px
-  - $constant: bottom_image_label
-    id: container_width_compartment_list
-    offset_px: [0, 40]
-    show_value: true
-    value_color:
-      $constant: annotation_color_blue
-    font_size_px:
-      $constant: annotation_title_font_size_px
+extends: drawer_container_empty.yaml
+variant_name: drawer_floor
+default_variant: drawer_floor
+
+# Compatibility entry point. Add new image variations to the canonical config instead.
+variants:
+- name: drawer_floor
+  extends_variant: floor_width
+  job_name: opengrid_drawer_floor

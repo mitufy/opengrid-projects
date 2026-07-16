@@ -1317,6 +1317,69 @@ class AnimationConfigTests(unittest.TestCase):
         )
         self.assertEqual([item["id"] for item in imported_shell["scene"]["objects"]], ["drawer_shell"])
 
+    def test_drawer_floor_variants_share_one_canonical_config(self) -> None:
+        config = load_config(Path("annotation_renderer/configs/drawer_container_empty.yaml"), [])
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "product_views")],
+            ["gallery_base", "floor_width", "floor_depth", "floor_both"],
+        )
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "parameter_gallery")],
+            ["Divider_Width", "Divider_Depth", "Divider_Both"],
+        )
+
+        gallery_base = variant_config(config, selected_variants(config, "gallery_base")[0])
+        floor_width = variant_config(config, selected_variants(config, "floor_width")[0])
+        floor_depth = variant_config(config, selected_variants(config, "floor_depth")[0])
+        floor_both = variant_config(config, selected_variants(config, "floor_both")[0])
+        self.assertEqual(
+            [item["id"] for item in image_label_items_from_config(gallery_base["annotations"])],
+            [
+                "container_width_grid_count",
+                "container_width_compartment_list",
+                "container_depth_grid_count",
+                "container_depth_compartment_list",
+            ],
+        )
+        self.assertEqual(
+            [item["id"] for item in image_label_items_from_config(floor_width["annotations"])],
+            ["container_width_grid_count", "container_width_compartment_list"],
+        )
+        self.assertTrue(all(item["position"] == "bottom" for item in image_label_items_from_config(floor_width["annotations"])))
+        self.assertNotIn("container_width_grid_count", self.first_model_config(floor_depth)["defines"])
+        self.assertEqual(
+            [item["id"] for item in image_label_items_from_config(floor_depth["annotations"])],
+            ["container_depth_grid_count", "container_depth_compartment_list", "add_container_divider"],
+        )
+        self.assertEqual(self.first_model_config(floor_both)["defines"]["add_container_divider"], "Both")
+        self.assertEqual(
+            [item["offset_px"] for item in image_label_items_from_config(floor_both["annotations"])],
+            [[0, 0], [0, 50], [0, 115], [0, 165], [0, 0]],
+        )
+
+        divider_depth = variant_config(config, selected_variants(config, "Divider_Depth")[0])
+        self.assertEqual(self.first_model_config(divider_depth)["defines"]["container_depth_grid_count"], 4)
+
+        for wrapper_name in ("drawer_floor.yaml", "drawer_floor_depth.yaml", "drawer_floor_both.yaml"):
+            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
+            self.assertNotIn("scene", wrapper)
+            self.assertNotIn("render", wrapper)
+            self.assertNotIn("annotations", wrapper)
+
+        gallery_wrapper = yaml.safe_load(
+            Path("annotation_renderer/configs/drawer_container_gallery.yaml").read_text(encoding="utf-8")
+        )
+        self.assertNotIn("variants", gallery_wrapper)
+        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
+
+        legacy_variants = self.gallery_variant_lines("drawer_container_gallery")
+        canonical_variants = self.gallery_variant_lines(
+            "drawer_container_empty",
+            collection="parameter_gallery",
+        )
+        self.assertEqual(legacy_variants, canonical_variants)
+        self.assertEqual(len(legacy_variants), 3)
+
     def test_compatibility_config_uses_its_default_variant(self) -> None:
         output = self.run_cli(
             "--config",

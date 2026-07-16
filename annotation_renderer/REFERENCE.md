@@ -932,6 +932,8 @@ Collections are accepted by gallery rendering and all-variant validation:
 
 `openconnect_drawer_shell_container_default.yaml` owns the combined, empty, top, shell-only, and four parameter-gallery variants. It reuses the object and transform constants in `drawer_base.yaml`, targets scene objects by ID, and keeps both shell and container dimensions in one named annotation catalog. The shell-only config remains a compatibility selector even when imported by `model_defaults.yaml`.
 
+`drawer_container_empty.yaml` is the canonical floor-scene drawer config. It owns the width, depth, combined-divider, and three parameter-gallery variants; the former `drawer_floor*.yaml` files are compatibility selectors. Its shared label catalog keeps width and depth values distinct, including separate `container_depth_grid_count` and `container_depth_compartment_list` targets.
+
 Use `variant_configs` when a gallery config should import complete per-model config files as variants:
 
 ```yaml
