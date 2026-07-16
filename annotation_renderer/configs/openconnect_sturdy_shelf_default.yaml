@@ -1,7 +1,9 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: animation_presets.yaml
 variant_name: openconnect_sturdy_shelf_default
+default_variant: default
 job_name: sturdy_shelf_scene_default
+
 scene:
   objects:
   - id: model
@@ -10,41 +12,160 @@ scene:
       defines:
         shelf_type: Standard
         add_texture: true
-    transform:  
+    transform:
       location_mm: ["2 * og_tile_size", 0, "-og_tile_size"]
   transform:
     $constant: wall_placeholder_transform
+
 render:
   fit_margin: 0
-  # lighting:
-    # toplight_power: 1.5
-    # frontlight_power: 1.5
-  # camera_view: right
+
 annotations:
   style:
     $constant: default_annotation_style
   aliases:
     $constant: default_grid_label_aliases
   chains:
-  - ids: [depth_grids]
+  - name: depth_grids_dimension
+    ids: [depth_grids]
     line_offset_px: 0
     label_offset_px: -50
     label_font_size_px:
       $constant: annotation_label_font_size_px
     color:
       $constant: annotation_color_black
-  - ids: [horizontal_grids]
+  - name: horizontal_grids_dimension
+    ids: [horizontal_grids]
     line_offset_px: 0
     label_offset_px: 50
     label_font_size_px:
       $constant: annotation_label_font_size_px
     color:
       $constant: annotation_color_black
-  # - $constant: small_dimension_chain
-  #   ids: [shelf_back_thickness]
-  # - $constant: small_dimension_chain
-  #   ids: [shelf_bottom_thickness]
-  # image_labels:
-  # - $constant: bottom_image_label
-  #   id: shelf_type
-  #   show_value: true
+  - name: shelf_back_thickness_dimension
+    enabled: false
+    ids: [shelf_back_thickness]
+    line_offset_px: 50
+    label_offset_px: 50
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
+    color:
+      $constant: annotation_color_blue
+  - name: shelf_bottom_thickness_dimension
+    enabled: false
+    ids: [shelf_bottom_thickness]
+    line_offset_px: -50
+    label_offset_px: -50
+    label_font_size_px:
+      $constant: annotation_label_font_size_px
+    color:
+      $constant: annotation_color_blue
+  angle_radius_callouts:
+  - name: shelf_corner_fillet_callout
+    enabled: false
+    id: shelf_corner_fillet_detail
+    arc_id: shelf_corner_fillet_extent
+    radius_id: shelf_corner_fillet
+    optional: true
+    show_angle_label: false
+    radius_label_offset_px: 120
+    radius_label_tangent_offset_px: 20
+    angle_fill_alpha: 28
+
+variant_collections:
+  product_views: [default, empty, side]
+  parameter_gallery:
+  - Slim_NoTexture
+  - Slim_NoTexture_NoEdges
+  - Standard_NoTexture
+  - Split_Left_NoTexture
+
+variants:
+- name: default
+  job_name: sturdy_shelf_scene_default
+
+- name: empty
+  job_name: sturdy_shelf_scene_lite
+  render:
+    lighting:
+      toplight_power: 1.5
+      frontlight_power: 1.5
+  annotation_overrides:
+    depth_grids_dimension:
+      enabled: false
+    horizontal_grids_dimension:
+      enabled: false
+  unset:
+  - scene.objects.model.model.defines.shelf_type
+  - scene.objects.model.model.defines.add_texture
+
+- name: side
+  job_name: sturdy_shelf_scene_side
+  object_overrides:
+    model:
+      model:
+        defines:
+          add_texture: false
+          shelf_corner_fillet: 15
+          add_right_edge: false
+          add_front_edge: false
+  render:
+    camera_view: bottom
+  annotation_overrides:
+    depth_grids_dimension:
+      enabled: false
+    horizontal_grids_dimension:
+      enabled: false
+    shelf_back_thickness_dimension:
+      enabled: true
+    shelf_bottom_thickness_dimension:
+      enabled: true
+    shelf_corner_fillet_callout:
+      enabled: true
+
+- name: Slim_NoTexture
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          shelf_type: Slim
+          add_texture: false
+          horizontal_grids: 2
+          depth_grids: 2
+
+- name: Slim_NoTexture_NoEdges
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          shelf_type: Slim
+          add_texture: false
+          add_right_edge: false
+          add_left_edge: false
+          add_front_edge: false
+          horizontal_grids: 2
+          depth_grids: 2
+
+- name: Standard_NoTexture
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          add_texture: false
+          horizontal_grids: 2
+          depth_grids: 2
+
+- name: Split_Left_NoTexture
+  extends_variant: empty
+  object_overrides:
+    model:
+      model:
+        defines:
+          add_texture: false
+          add_right_connector_holes: true
+          add_right_edge: false
+          horizontal_grids: 2
+          depth_grids: 2

@@ -914,6 +914,8 @@ Collections are accepted by gallery rendering and all-variant validation:
 
 `openconnect_gridfinity_shelf_default.yaml` follows the same pattern for its `default`, `empty`, `top`, and four parameter-gallery variants. Its old view files contain only compatibility variant selection, while `openconnect_gridfinity_shelf_gallery.yaml` contains only layout and `gallery.variant_collection`.
 
+`openconnect_sturdy_shelf_default.yaml` likewise owns its `default`, `empty`, `side`, and four parameter-gallery variants. The shared named annotation catalog switches between grid dimensions and the side-view thickness/fillet callouts without duplicating complete annotation sections.
+
 Use `variant_configs` when a gallery config should import complete per-model config files as variants:
 
 ```yaml

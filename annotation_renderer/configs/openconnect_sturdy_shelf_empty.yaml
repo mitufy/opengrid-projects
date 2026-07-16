@@ -1,40 +1,10 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: animation_presets.yaml
+extends: openconnect_sturdy_shelf_default.yaml
 variant_name: openconnect_sturdy_shelf_lite
-job_name: sturdy_shelf_scene_lite
-scene:
-  objects:
-  - id: model
-    model:
-      scad_file: openconnect_sturdy_shelf.scad
-      # defines:
-      #   add_texture: true
-      #   shelf_type: Slim
-      #   horizontal_grids: 2
-      #   depth_grids: 2
-    transform:
-      location_mm: ["2 * og_tile_size", 0, "-og_tile_size"]
-  transform:
-    $constant: wall_placeholder_transform
-render:
-  fit_margin: 0
-  lighting:
-    toplight_power: 1.5
-    frontlight_power: 1.5
-  # camera_view: right
-annotations:
-  style:
-    $constant: default_annotation_style
-  aliases:
-    $constant: default_grid_label_aliases
-  # chains:
-  # - ids: [depth_grids]
-  # - ids: [horizontal_grids]
-  # - $constant: small_dimension_chain
-  #   ids: [shelf_back_thickness]
-  # - $constant: small_dimension_chain
-  #   ids: [shelf_bottom_thickness]
-  # image_labels:
-  # - $constant: bottom_image_label
-  #   id: shelf_type
-  #   show_value: true
+default_variant: openconnect_sturdy_shelf_lite
+
+# Compatibility entry point. Add new image variations to the canonical config instead.
+variants:
+- name: openconnect_sturdy_shelf_lite
+  extends_variant: empty
+  job_name: sturdy_shelf_scene_lite

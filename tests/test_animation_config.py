@@ -86,6 +86,12 @@ class AnimationConfigTests(unittest.TestCase):
             self.assertEqual(main(args), 0)
         return stream.getvalue()
 
+    def gallery_variant_lines(self, model: str, *, collection: str | None = None) -> list[str]:
+        args = ["render", model, "--gallery", "--validate-only"]
+        if collection is not None:
+            args.extend(["--variant-collection", collection])
+        return [line for line in self.run_cli(*args).splitlines() if line.startswith("Variant:")]
+
     def first_model_config(self, config: dict[str, object]) -> dict[str, object]:
         return config["scene"]["objects"][0]["model"]
 
@@ -794,22 +800,59 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertNotIn("variant_collections", gallery_wrapper)
         self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
 
-        legacy_output = self.run_cli(
-            "render",
-            "openconnect_gridfinity_shelf_gallery",
-            "--gallery",
-            "--validate-only",
-        )
-        canonical_output = self.run_cli(
-            "render",
+        legacy_variants = self.gallery_variant_lines("openconnect_gridfinity_shelf_gallery")
+        canonical_variants = self.gallery_variant_lines(
             "openconnect_gridfinity_shelf",
-            "--gallery",
-            "--variant-collection",
-            "parameter_gallery",
-            "--validate-only",
+            collection="parameter_gallery",
         )
-        legacy_variants = [line for line in legacy_output.splitlines() if line.startswith("Variant:")]
-        canonical_variants = [line for line in canonical_output.splitlines() if line.startswith("Variant:")]
+        self.assertEqual(legacy_variants, canonical_variants)
+        self.assertEqual(len(legacy_variants), 4)
+
+    def test_sturdy_shelf_variants_share_one_canonical_config(self) -> None:
+        config = load_config(Path("annotation_renderer/configs/openconnect_sturdy_shelf_default.yaml"), [])
+
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "product_views")],
+            ["default", "empty", "side"],
+        )
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "parameter_gallery")],
+            ["Slim_NoTexture", "Slim_NoTexture_NoEdges", "Standard_NoTexture", "Split_Left_NoTexture"],
+        )
+
+        empty = variant_config(config, selected_variants(config, "empty")[0])
+        self.assertEqual(self.first_model_config(empty).get("defines", {}), {})
+        self.assertEqual(empty["render"]["lighting"], {"toplight_power": 1.5, "frontlight_power": 1.5})
+        self.assertEqual(chain_items_from_config(empty["annotations"]), [])
+
+        side = variant_config(config, selected_variants(config, "side")[0])
+        self.assertEqual(
+            {item["name"] for item in chain_items_from_config(side["annotations"])},
+            {"shelf_back_thickness_dimension", "shelf_bottom_thickness_dimension"},
+        )
+        self.assertEqual(
+            {item["name"] for item in angle_radius_items_from_config(side["annotations"])},
+            {"shelf_corner_fillet_callout"},
+        )
+        self.assertEqual(side["render"]["camera_view"], "bottom")
+
+        for wrapper_name in ("openconnect_sturdy_shelf_empty.yaml", "openconnect_sturdy_shelf_side.yaml"):
+            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
+            self.assertNotIn("scene", wrapper)
+            self.assertNotIn("render", wrapper)
+            self.assertNotIn("annotations", wrapper)
+
+        gallery_wrapper = yaml.safe_load(
+            Path("annotation_renderer/configs/openconnect_sturdy_shelf_gallery.yaml").read_text(encoding="utf-8")
+        )
+        self.assertNotIn("variants", gallery_wrapper)
+        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
+
+        legacy_variants = self.gallery_variant_lines("openconnect_sturdy_shelf_gallery")
+        canonical_variants = self.gallery_variant_lines(
+            "openconnect_sturdy_shelf",
+            collection="parameter_gallery",
+        )
         self.assertEqual(legacy_variants, canonical_variants)
         self.assertEqual(len(legacy_variants), 4)
 
@@ -842,22 +885,11 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertNotIn("variants", wrapper)
         self.assertNotIn("variant_collections", wrapper)
 
-        legacy_output = self.run_cli(
-            "render",
-            "openconnect_general_holder_gallery",
-            "--gallery",
-            "--validate-only",
-        )
-        canonical_output = self.run_cli(
-            "render",
+        legacy_variants = self.gallery_variant_lines("openconnect_general_holder_gallery")
+        canonical_variants = self.gallery_variant_lines(
             "openconnect_general_holder",
-            "--gallery",
-            "--variant-collection",
-            "parameter_gallery",
-            "--validate-only",
+            collection="parameter_gallery",
         )
-        legacy_variants = [line for line in legacy_output.splitlines() if line.startswith("Variant:")]
-        canonical_variants = [line for line in canonical_output.splitlines() if line.startswith("Variant:")]
         self.assertEqual(legacy_variants, canonical_variants)
         self.assertEqual(len(legacy_variants), 4)
 
