@@ -92,6 +92,25 @@ class AnimationConfigTests(unittest.TestCase):
             args.extend(["--variant-collection", collection])
         return [line for line in self.run_cli(*args).splitlines() if line.startswith("Variant:")]
 
+    def assert_parameter_gallery(self, config: dict[str, object], model: str, expected_count: int) -> None:
+        self.assertEqual(
+            config["gallery"],
+            {
+                "variant_collection": "parameter_gallery",
+                "columns": 2,
+                "target_width_px": 1920,
+                "target_height_px": 1440,
+                "margin_px": 0,
+                "gutter_px": 4,
+                "title_height_px": 60,
+                "title_font_size_px": 60,
+            },
+        )
+        default_variants = self.gallery_variant_lines(model)
+        explicit_variants = self.gallery_variant_lines(model, collection="parameter_gallery")
+        self.assertEqual(default_variants, explicit_variants)
+        self.assertEqual(len(default_variants), expected_count)
+
     def first_model_config(self, config: dict[str, object]) -> dict[str, object]:
         return config["scene"]["objects"][0]["model"]
 
@@ -787,20 +806,7 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(self.first_model_config(wide)["defines"]["gridfinity_width_grids"], 4)
         self.assertEqual(wide["scene"]["objects"][0]["transform"]["location_mm"], ["-(3 * og_tile_size)", 0, "-og_tile_size"])
 
-        gallery_wrapper = yaml.safe_load(
-            Path("annotation_renderer/configs/openconnect_gridfinity_shelf_gallery.yaml").read_text(encoding="utf-8")
-        )
-        self.assertNotIn("variants", gallery_wrapper)
-        self.assertNotIn("variant_collections", gallery_wrapper)
-        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
-
-        legacy_variants = self.gallery_variant_lines("openconnect_gridfinity_shelf_gallery")
-        canonical_variants = self.gallery_variant_lines(
-            "openconnect_gridfinity_shelf",
-            collection="parameter_gallery",
-        )
-        self.assertEqual(legacy_variants, canonical_variants)
-        self.assertEqual(len(legacy_variants), 4)
+        self.assert_parameter_gallery(config, "openconnect_gridfinity_shelf", 4)
 
     def test_sturdy_shelf_variants_share_one_canonical_config(self) -> None:
         config = load_config(Path("annotation_renderer/configs/openconnect_sturdy_shelf_default.yaml"), [])
@@ -830,19 +836,7 @@ class AnimationConfigTests(unittest.TestCase):
         )
         self.assertEqual(side["render"]["camera_view"], "bottom")
 
-        gallery_wrapper = yaml.safe_load(
-            Path("annotation_renderer/configs/openconnect_sturdy_shelf_gallery.yaml").read_text(encoding="utf-8")
-        )
-        self.assertNotIn("variants", gallery_wrapper)
-        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
-
-        legacy_variants = self.gallery_variant_lines("openconnect_sturdy_shelf_gallery")
-        canonical_variants = self.gallery_variant_lines(
-            "openconnect_sturdy_shelf",
-            collection="parameter_gallery",
-        )
-        self.assertEqual(legacy_variants, canonical_variants)
-        self.assertEqual(len(legacy_variants), 4)
+        self.assert_parameter_gallery(config, "openconnect_sturdy_shelf", 4)
 
     def test_sturdy_hook_variants_share_one_canonical_config(self) -> None:
         config = load_config(Path("annotation_renderer/configs/openconnect_sturdy_hook_default.yaml"), [])
@@ -873,19 +867,7 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(rectangular_defines["hook_shape_type"], "Rectangular")
         self.assertEqual(rectangular_defines["hook_corner_fillet"], 0)
 
-        gallery_wrapper = yaml.safe_load(
-            Path("annotation_renderer/configs/openconnect_sturdy_hook_gallery.yaml").read_text(encoding="utf-8")
-        )
-        self.assertNotIn("variants", gallery_wrapper)
-        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
-
-        legacy_variants = self.gallery_variant_lines("openconnect_sturdy_hook_gallery")
-        canonical_variants = self.gallery_variant_lines(
-            "openconnect_sturdy_hook",
-            collection="parameter_gallery",
-        )
-        self.assertEqual(legacy_variants, canonical_variants)
-        self.assertEqual(len(legacy_variants), 4)
+        self.assert_parameter_gallery(config, "openconnect_sturdy_hook", 4)
 
     def test_vasemode_container_variants_share_one_canonical_config(self) -> None:
         config = load_config(Path("annotation_renderer/configs/openconnect_vasemode_container_default.yaml"), [])
@@ -921,19 +903,7 @@ class AnimationConfigTests(unittest.TestCase):
         no_texture = variant_config(config, selected_variants(config, "No_Texture")[0])
         self.assertEqual(self.first_model_config(no_texture)["defines"]["vase_surface_texture"], "")
 
-        gallery_wrapper = yaml.safe_load(
-            Path("annotation_renderer/configs/openconnect_vasemode_container_gallery.yaml").read_text(encoding="utf-8")
-        )
-        self.assertNotIn("variants", gallery_wrapper)
-        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
-
-        legacy_variants = self.gallery_variant_lines("openconnect_vasemode_container_gallery")
-        canonical_variants = self.gallery_variant_lines(
-            "openconnect_vasemode_container",
-            collection="parameter_gallery",
-        )
-        self.assertEqual(legacy_variants, canonical_variants)
-        self.assertEqual(len(legacy_variants), 4)
+        self.assert_parameter_gallery(config, "openconnect_vasemode_container", 4)
 
     def test_framefit_hook_views_share_one_canonical_config(self) -> None:
         config = load_config(Path("annotation_renderer/configs/opengrid_framefit_hook_default.yaml"), [])
@@ -999,19 +969,7 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(straight_defines["hook_main_size"], 40)
         self.assertEqual(straight_defines["hook_width"], 13.2)
 
-        gallery_wrapper = yaml.safe_load(
-            Path("annotation_renderer/configs/opengrid_snap_gadget_hook_gallery.yaml").read_text(encoding="utf-8")
-        )
-        self.assertNotIn("variants", gallery_wrapper)
-        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
-
-        legacy_variants = self.gallery_variant_lines("opengrid_snap_gadget_hook_gallery")
-        canonical_variants = self.gallery_variant_lines(
-            "opengrid_snap_gadget_hook",
-            collection="parameter_gallery",
-        )
-        self.assertEqual(legacy_variants, canonical_variants)
-        self.assertEqual(len(legacy_variants), 4)
+        self.assert_parameter_gallery(config, "opengrid_snap_gadget_hook", 4)
 
     def test_snap_gadget_clip_variants_share_one_canonical_config(self) -> None:
         config = load_config(Path("annotation_renderer/configs/opengrid_snap_gadget_clip_default.yaml"), [])
@@ -1038,19 +996,7 @@ class AnimationConfigTests(unittest.TestCase):
         vertical = variant_config(config, selected_variants(config, "Circular_Vertical_Tilt45")[0])
         self.assertEqual(vertical["scene"]["objects"][0]["transform"]["rotation_deg"], [0, -90, 0])
 
-        gallery_wrapper = yaml.safe_load(
-            Path("annotation_renderer/configs/opengrid_snap_gadget_clip_gallery.yaml").read_text(encoding="utf-8")
-        )
-        self.assertNotIn("variants", gallery_wrapper)
-        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
-
-        legacy_variants = self.gallery_variant_lines("opengrid_snap_gadget_clip_gallery")
-        canonical_variants = self.gallery_variant_lines(
-            "opengrid_snap_gadget_clip",
-            collection="parameter_gallery",
-        )
-        self.assertEqual(legacy_variants, canonical_variants)
-        self.assertEqual(len(legacy_variants), 4)
+        self.assert_parameter_gallery(config, "opengrid_snap_gadget_clip", 4)
 
     def test_snap_gadget_plier_holder_variants_share_one_canonical_config(self) -> None:
         config = load_config(Path("annotation_renderer/configs/opengrid_snap_gadget_plier_holder_default.yaml"), [])
@@ -1085,19 +1031,7 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(self.first_model_config(wide)["defines"]["stopper_width_scale"], 1.4)
         self.assertEqual(wide["render"]["camera_view_preset"], "top_front")
 
-        gallery_wrapper = yaml.safe_load(
-            Path("annotation_renderer/configs/opengrid_snap_gadget_plier_holder_gallery.yaml").read_text(encoding="utf-8")
-        )
-        self.assertNotIn("variants", gallery_wrapper)
-        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
-
-        legacy_variants = self.gallery_variant_lines("opengrid_snap_gadget_plier_holder_gallery")
-        canonical_variants = self.gallery_variant_lines(
-            "opengrid_snap_gadget_plier_holder",
-            collection="parameter_gallery",
-        )
-        self.assertEqual(legacy_variants, canonical_variants)
-        self.assertEqual(len(legacy_variants), 4)
+        self.assert_parameter_gallery(config, "opengrid_snap_gadget_plier_holder", 4)
 
     def test_clamshell_holder_variants_share_one_canonical_config(self) -> None:
         config = load_config(Path("annotation_renderer/configs/openconnect_clamshell_holder_default.yaml"), [])
@@ -1157,19 +1091,7 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(self.first_model_config(top_slot)["defines"]["holder_slot_position"], "Top")
         self.assertEqual(top_slot["scene"]["objects"][0]["transform"]["rotation_deg"], [-90, 0, 0])
 
-        gallery_wrapper = yaml.safe_load(
-            Path("annotation_renderer/configs/openconnect_clamshell_holder_gallery.yaml").read_text(encoding="utf-8")
-        )
-        self.assertNotIn("variants", gallery_wrapper)
-        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
-
-        legacy_variants = self.gallery_variant_lines("openconnect_clamshell_holder_gallery")
-        canonical_variants = self.gallery_variant_lines(
-            "openconnect_clamshell_holder",
-            collection="parameter_gallery",
-        )
-        self.assertEqual(legacy_variants, canonical_variants)
-        self.assertEqual(len(legacy_variants), 4)
+        self.assert_parameter_gallery(config, "openconnect_clamshell_holder", 4)
 
     def test_drawer_variants_share_one_canonical_config(self) -> None:
         config = load_config(Path("annotation_renderer/configs/openconnect_drawer_shell_container_default.yaml"), [])
@@ -1225,19 +1147,7 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual([item["id"] for item in divided["scene"]["objects"]], ["drawer_shell"])
         self.assertEqual(divided["scene"]["objects"][0]["model"]["defines"]["add_shell_divider"], "Height")
 
-        gallery_wrapper = yaml.safe_load(
-            Path("annotation_renderer/configs/openconnect_drawer_gallery.yaml").read_text(encoding="utf-8")
-        )
-        self.assertNotIn("variants", gallery_wrapper)
-        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
-
-        legacy_variants = self.gallery_variant_lines("openconnect_drawer_gallery")
-        canonical_variants = self.gallery_variant_lines(
-            "openconnect_drawer_shell_container",
-            collection="parameter_gallery",
-        )
-        self.assertEqual(legacy_variants, canonical_variants)
-        self.assertEqual(len(legacy_variants), 4)
+        self.assert_parameter_gallery(config, "openconnect_drawer_shell_container", 4)
 
         model_defaults = load_config(Path("annotation_renderer/configs/model_defaults.yaml"), [])
         imported_shell = variant_config(
@@ -1289,19 +1199,7 @@ class AnimationConfigTests(unittest.TestCase):
         divider_depth = variant_config(config, selected_variants(config, "Divider_Depth")[0])
         self.assertEqual(self.first_model_config(divider_depth)["defines"]["container_depth_grid_count"], 4)
 
-        gallery_wrapper = yaml.safe_load(
-            Path("annotation_renderer/configs/drawer_container_gallery.yaml").read_text(encoding="utf-8")
-        )
-        self.assertNotIn("variants", gallery_wrapper)
-        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
-
-        legacy_variants = self.gallery_variant_lines("drawer_container_gallery")
-        canonical_variants = self.gallery_variant_lines(
-            "drawer_container_empty",
-            collection="parameter_gallery",
-        )
-        self.assertEqual(legacy_variants, canonical_variants)
-        self.assertEqual(len(legacy_variants), 3)
+        self.assert_parameter_gallery(config, "drawer_container_empty", 3)
 
     def test_plate_and_snap_utilities_share_canonical_configs(self) -> None:
         plate = load_config(Path("annotation_renderer/configs/openconnect_plate_floor.yaml"), [])
@@ -1375,13 +1273,16 @@ class AnimationConfigTests(unittest.TestCase):
                 selector_configs.append(config_path.name)
 
         self.assertEqual(selector_configs, [])
-
-    def test_gallery_config_uses_its_default_variant_collection(self) -> None:
-        gallery = load_config(Path("annotation_renderer/configs/openconnect_general_holder_gallery.yaml"), [])
-        self.assertEqual(gallery["default_variant"], "default")
-        self.assertEqual(gallery["gallery"]["variant_collection"], "parameter_gallery")
         self.assertEqual(
-            [variant["name"] for variant in selected_variant_collection(gallery, "parameter_gallery")],
+            sorted(path.name for path in Path("annotation_renderer/configs").glob("*gallery.yaml")),
+            ["render_settings_gallery.yaml"],
+        )
+
+    def test_canonical_config_uses_its_default_gallery_collection(self) -> None:
+        config = load_config(Path("annotation_renderer/configs/openconnect_general_holder_default.yaml"), [])
+        self.assertEqual(config["default_variant"], "default")
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "parameter_gallery")],
             [
                 "Width45_Mode_Minimum",
                 "Width45_Mode_Tile_Multiple",
@@ -1389,19 +1290,13 @@ class AnimationConfigTests(unittest.TestCase):
                 "Circular_Grid_3x2",
             ],
         )
-        wrapper = yaml.safe_load(
-            Path("annotation_renderer/configs/openconnect_general_holder_gallery.yaml").read_text(encoding="utf-8")
-        )
-        self.assertNotIn("variants", wrapper)
-        self.assertNotIn("variant_collections", wrapper)
+        self.assert_parameter_gallery(config, "openconnect_general_holder", 4)
 
-        legacy_variants = self.gallery_variant_lines("openconnect_general_holder_gallery")
-        canonical_variants = self.gallery_variant_lines(
-            "openconnect_general_holder",
-            collection="parameter_gallery",
-        )
-        self.assertEqual(legacy_variants, canonical_variants)
-        self.assertEqual(len(legacy_variants), 4)
+    def test_replacing_variants_drops_an_inherited_gallery_collection(self) -> None:
+        config = load_config(Path("annotation_renderer/configs/render_settings_gallery.yaml"), [])
+
+        self.assertNotIn("variant_collection", config["gallery"])
+        self.assertEqual(len(selected_variants(config, None)), 6)
 
     def test_validate_command_checks_all_variants_or_one_collection(self) -> None:
         all_output = self.run_cli("validate", "openconnect_general_holder")

@@ -72,6 +72,9 @@ annotations:
     radius_label_tangent_offset_px: 20
     angle_fill_alpha: 28
 
+gallery:
+  $constant: parameter_gallery_settings
+
 variant_collections:
   product_views: [default, empty, side]
   parameter_gallery:

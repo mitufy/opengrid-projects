@@ -69,6 +69,9 @@ annotations:
     label_font_size_px:
       $constant: annotation_label_font_size_px
 
+gallery:
+  $constant: parameter_gallery_settings
+
 variant_collections:
   product_views: [default, empty, side]
   parameter_gallery:

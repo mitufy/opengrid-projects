@@ -910,9 +910,9 @@ Collections are accepted by gallery rendering and all-variant validation:
 
 `gallery.variant_collection` makes a collection the default for plain `--gallery`. Command-line selection still wins, and omitting both the configured collection and command-line selection renders all variants.
 
-`openconnect_general_holder_default.yaml` demonstrates the one-file-per-model pattern. Its `default`, `empty`, `side`, `top`, `taper`, and four parameter-gallery variants share a single named annotation catalog. Views are selected directly with `--variant`; `openconnect_general_holder_gallery.yaml` only supplies gallery layout plus its default collection.
+`openconnect_general_holder_default.yaml` demonstrates the one-file-per-model pattern. Its `default`, `empty`, `side`, `top`, `taper`, and four parameter-gallery variants share a single named annotation catalog. Views are selected directly with `--variant`, and plain `--gallery` selects its parameter-gallery collection.
 
-`openconnect_gridfinity_shelf_default.yaml` follows the same pattern for its `default`, `empty`, `top`, and four parameter-gallery variants. `openconnect_gridfinity_shelf_gallery.yaml` contains only layout and `gallery.variant_collection`.
+`openconnect_gridfinity_shelf_default.yaml` follows the same pattern for its `default`, `empty`, `top`, and four parameter-gallery variants.
 
 `openconnect_sturdy_shelf_default.yaml` likewise owns its `default`, `empty`, `side`, and four parameter-gallery variants. The shared named annotation catalog switches between grid dimensions and the side-view thickness/fillet callouts without duplicating complete annotation sections.
 
@@ -928,7 +928,7 @@ Collections are accepted by gallery rendering and all-variant validation:
 
 `opengrid_snap_gadget_plier_holder_default.yaml` completes the snap-gadget group with shared `model_a`/`snap_a` identities. Its empty variant uses `unset` for inherited dimensions and camera controls, and gallery variants add only their parameter and view changes.
 
-`openconnect_clamshell_holder_default.yaml` owns the default, alternate, empty, front, side, and four parameter-gallery variants. One named annotation catalog supplies every view: variants enable or reposition only the dimensions and labels they need, while the gallery file supplies layout.
+`openconnect_clamshell_holder_default.yaml` owns the default, alternate, empty, front, side, and four parameter-gallery variants. One named annotation catalog supplies every view: variants enable or reposition only the dimensions and labels they need.
 
 `openconnect_drawer_shell_container_default.yaml` owns the combined, empty, top, shell-only, and four parameter-gallery variants. It reuses the object and transform constants in `drawer_base.yaml`, targets scene objects by ID, and keeps both shell and container dimensions in one named annotation catalog. `model_defaults.yaml` imports its `shell` variant directly with a named `variant_configs` entry.
 

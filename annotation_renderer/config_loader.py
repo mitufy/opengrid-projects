@@ -345,6 +345,17 @@ def load_raw_config(path: Path, seen: tuple[Path, ...] = ()) -> dict[str, object
             merged_config["variant_collections"] = deepcopy(config["variant_collections"])
         else:
             merged_config.pop("variant_collections", None)
+        child_gallery = config.get("gallery")
+        child_selects_collection = isinstance(child_gallery, Mapping) and (
+            "variant_collection" in child_gallery or "$constant" in child_gallery
+        )
+        merged_gallery = merged_config.get("gallery")
+        if not child_selects_collection and isinstance(merged_gallery, Mapping):
+            merged_config["gallery"] = {
+                str(key): deepcopy(value)
+                for key, value in merged_gallery.items()
+                if key not in {"$constant", "variant_collection"}
+            }
         inherited_variants = [
             *deepcopy(base_config.get(INHERITED_VARIANTS_KEY, [])),
             *deepcopy(base_config.get("variants", [])),

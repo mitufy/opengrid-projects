@@ -73,6 +73,9 @@ annotations:
     color:
       $constant: annotation_color_blue
 
+gallery:
+  $constant: parameter_gallery_settings
+
 variant_collections:
   product_views: [default, empty, side]
   parameter_gallery:

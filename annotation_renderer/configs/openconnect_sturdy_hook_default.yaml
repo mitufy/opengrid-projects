@@ -70,6 +70,9 @@ annotations:
     label_offset_px: -50
     label_font_size_px: 50
 
+gallery:
+  $constant: parameter_gallery_settings
+
 variant_collections:
   product_views: [default, empty, side]
   parameter_gallery:

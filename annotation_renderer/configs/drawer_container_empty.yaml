@@ -76,6 +76,9 @@ annotations:
     font_size_px:
       $constant: annotation_title_font_size_px
 
+gallery:
+  $constant: parameter_gallery_settings
+
 variant_collections:
   product_views: [gallery_base, floor_width, floor_depth, floor_both]
   parameter_gallery: [Divider_Width, Divider_Depth, Divider_Both]

@@ -79,6 +79,9 @@ annotations:
     font_size_px:
       $constant: annotation_title_font_size_px
 
+gallery:
+  $constant: parameter_gallery_settings
+
 variant_collections:
   product_views: [default, empty, top, shell]
   parameter_gallery:
