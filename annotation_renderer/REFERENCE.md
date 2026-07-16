@@ -928,6 +928,8 @@ Collections are accepted by gallery rendering and all-variant validation:
 
 `opengrid_snap_gadget_plier_holder_default.yaml` completes the snap-gadget group with shared `model_a`/`snap_a` identities. Its empty variant uses `unset` for inherited dimensions and camera controls, and gallery variants add only their parameter and view changes.
 
+`openconnect_clamshell_holder_default.yaml` owns the default, alternate, empty, front, side, and four parameter-gallery variants. One named annotation catalog supplies every view: variants enable or reposition only the dimensions and labels they need, while the old view and gallery files remain selectors and layout wrappers.
+
 Use `variant_configs` when a gallery config should import complete per-model config files as variants:
 
 ```yaml

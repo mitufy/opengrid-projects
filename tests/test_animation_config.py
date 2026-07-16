@@ -689,7 +689,7 @@ class AnimationConfigTests(unittest.TestCase):
         )
         self.assertNotIn("camera_rotation_deg", clamshell_holder_config["render"])
         self.assertEqual(clamshell_holder_config["annotations"]["chains"][0]["ids"], ["item_width"])
-        self.assertNotIn("image_labels", clamshell_holder_config["annotations"])
+        self.assertEqual(image_label_items_from_config(clamshell_holder_config["annotations"]), [])
 
     def test_per_model_default_config_is_directly_renderable(self) -> None:
         config = load_config(Path("annotation_renderer/configs/openconnect_general_holder_default.yaml"), [])
@@ -1144,6 +1144,89 @@ class AnimationConfigTests(unittest.TestCase):
         legacy_variants = self.gallery_variant_lines("opengrid_snap_gadget_plier_holder_gallery")
         canonical_variants = self.gallery_variant_lines(
             "opengrid_snap_gadget_plier_holder",
+            collection="parameter_gallery",
+        )
+        self.assertEqual(legacy_variants, canonical_variants)
+        self.assertEqual(len(legacy_variants), 4)
+
+    def test_clamshell_holder_variants_share_one_canonical_config(self) -> None:
+        config = load_config(Path("annotation_renderer/configs/openconnect_clamshell_holder_default.yaml"), [])
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "product_views")],
+            ["default", "alt", "empty", "front", "side"],
+        )
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "parameter_gallery")],
+            [
+                "Width164_Height60_SlotColumn1",
+                "Width164_Height60_SlotColumn2",
+                "Width164_SlotPosition_Top",
+                "Width120_Height100_Rounding20",
+            ],
+        )
+
+        default = variant_config(config, selected_variants(config, "default")[0])
+        alt = variant_config(config, selected_variants(config, "alt")[0])
+        empty = variant_config(config, selected_variants(config, "empty")[0])
+        front = variant_config(config, selected_variants(config, "front")[0])
+        side = variant_config(config, selected_variants(config, "side")[0])
+        self.assertEqual(
+            {item["name"] for item in chain_items_from_config(default["annotations"])},
+            {"item_width_dimension", "item_height_dimension", "item_depth_dimension"},
+        )
+        self.assertEqual(chain_items_from_config(alt["annotations"]), [])
+        self.assertEqual(image_label_items_from_config(alt["annotations"])[0]["id"], "holder_slot_position")
+        self.assertEqual(self.first_model_config(empty).get("defines", {}), {})
+        self.assertEqual(chain_items_from_config(empty["annotations"]), [])
+        self.assertEqual(
+            {item["name"] for item in chain_items_from_config(front["annotations"])},
+            {
+                "item_width_dimension",
+                "item_height_dimension",
+                "front_opening_left_right_margin_dimension",
+                "front_opening_top_bottom_margin_dimension",
+            },
+        )
+        self.assertEqual(front["render"]["camera_view"], "front")
+        self.assertEqual(angle_radius_items_from_config(front["annotations"])[0]["name"], "item_corner_rounding_fillet")
+        self.assertEqual(side["render"]["camera_view"], "right")
+        self.assertEqual(self.first_model_config(side)["defines"]["side_cutout_bottom_margin"], 20)
+        self.assertNotIn("aliases", side["annotations"])
+        self.assertEqual(
+            {item["name"] for item in chain_items_from_config(side["annotations"])},
+            {
+                "front_opening_top_bottom_margin_dimension",
+                "side_cutout_top_margin_dimension",
+                "side_cutout_bottom_margin_dimension",
+                "side_cutout_back_margin_dimension",
+                "side_cutout_front_margin_dimension",
+            },
+        )
+
+        top_slot = variant_config(config, selected_variants(config, "Width164_SlotPosition_Top")[0])
+        self.assertEqual(self.first_model_config(top_slot)["defines"]["holder_slot_position"], "Top")
+        self.assertEqual(top_slot["scene"]["objects"][0]["transform"]["rotation_deg"], [-90, 0, 0])
+
+        for wrapper_name in (
+            "openconnect_clamshell_holder_alt.yaml",
+            "openconnect_clamshell_holder_empty.yaml",
+            "openconnect_clamshell_holder_front.yaml",
+            "openconnect_clamshell_holder_side.yaml",
+        ):
+            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
+            self.assertNotIn("scene", wrapper)
+            self.assertNotIn("render", wrapper)
+            self.assertNotIn("annotations", wrapper)
+
+        gallery_wrapper = yaml.safe_load(
+            Path("annotation_renderer/configs/openconnect_clamshell_holder_gallery.yaml").read_text(encoding="utf-8")
+        )
+        self.assertNotIn("variants", gallery_wrapper)
+        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
+
+        legacy_variants = self.gallery_variant_lines("openconnect_clamshell_holder_gallery")
+        canonical_variants = self.gallery_variant_lines(
+            "openconnect_clamshell_holder",
             collection="parameter_gallery",
         )
         self.assertEqual(legacy_variants, canonical_variants)

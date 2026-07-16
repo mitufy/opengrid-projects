@@ -1,89 +1,10 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: base_scene.yaml
-variant_name: openconnect_clamshell_holder_default
-job_name: clamshell_holder_scene_default
-scene:
-  objects:
-  - id: model
-    model:
-      scad_file: openconnect_clamshell_holder.scad
-      defines:
-        item_width: 164
-        item_height: 60
-        item_depth: 30
-        item_corner_rounding: 8
-        # side_cutout_front_margin: 5
-        side_cutout_bottom_margin: 20
-        side_cutout_top_margin: 10
-        side_cutout_back_margin: 5
-        holder_slot_column_limit: 1
-    inherit_target_transform: false
-    transform:
-      location_mm: [0, "-(item_depth+holder_thickness+3.72) / 2", -(item_height+holder_thickness*2) / 2]
-      rotation_deg: [0, 0, 0]
-      scale:
-        $constant: blender_scene_scale_vector
-render:
-  fit_margin: 0
-  camera_view: right
-annotations:
-  style:
-    $constant: default_annotation_style
-  # aliases:
-    # holder_slot_position: slot_position
-    # item_corner_rounding_extent: item_corner_rounding
-  chains:
-  - ids: [side_cutout_top_margin]
-    color:
-      $constant: annotation_color_blue
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 200
-    label_offset_px: 45
-    label_along_offset_px: 0
-    label_font_size_px: 48
-  - ids: [side_cutout_bottom_margin]
-    color:
-      $constant: annotation_color_blue
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: -300
-    label_offset_px: -45
-    label_along_offset_px: 0
-    label_font_size_px: 48
-  - ids: [side_cutout_back_margin]
-    optional: true
-    color:
-      $constant: annotation_color_red
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: -300
-    label_offset_px: -45
-    label_font_size_px: 48
-  - ids: [side_cutout_front_margin]
-    optional: true
-    color:
-      $constant: annotation_color_red
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 60
-    label_offset_px: 45
-    label_font_size_px: 48
-  - ids: [front_opening_top_bottom_margin]
-    line_offset_px: -250
-    label_offset_px: -45
-    label_font_size_px: 48
-    color:
-      $constant: annotation_color_black
-  # angle_radius_callouts:
-  # - id: item_corner_rounding_fillet
-  #   arc_id: item_corner_rounding_extent
-  #   radius_id: item_corner_rounding
-  #   angle_id: item_corner_rounding
-  #   optional: true
-  #   show_angle_label: false
-  #   radius_label_offset_px: 36
-  #   angle_fill_alpha: 28
-  # image_labels:
-  # - $constant: bottom_image_label
-  #   id: holder_slot_position
-  #   show_value: true
-  #   value_color: '#0000FF'
-  #   font_size_px:
-  #     $constant: annotation_title_font_size_px
+extends: openconnect_clamshell_holder_default.yaml
+variant_name: openconnect_clamshell_holder_side
+default_variant: openconnect_clamshell_holder_side
+
+# Compatibility entry point. Add new image variations to the canonical config instead.
+variants:
+- name: openconnect_clamshell_holder_side
+  extends_variant: side
+  job_name: clamshell_holder_scene_default
