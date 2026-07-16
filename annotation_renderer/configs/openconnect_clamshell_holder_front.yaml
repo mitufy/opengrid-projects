@@ -12,18 +12,16 @@ scene:
         item_height: 60
         item_depth: 30
         item_corner_rounding: 8
-        generate_holder_part: Both
-        holder_slot_position: Top
         holder_slot_column_limit: 1
     inherit_target_transform: false
     transform:
-      location_mm: [0, "-(item_height / 2 + og_standard_thickness)", 0]
+      location_mm: [0, "-(item_depth+holder_thickness+3.72) / 2", -(item_height+holder_thickness*2) / 2]
       rotation_deg: [0, 0, 0]
       scale:
         $constant: blender_scene_scale_vector
 render:
   fit_margin: 0
-  camera_view: bottom
+  camera_view: front
 annotations:
   style:
     $constant: default_annotation_style

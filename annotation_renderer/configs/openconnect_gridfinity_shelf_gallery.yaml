@@ -12,15 +12,18 @@ gallery:
   title_font_size_px: 60
 
 variants:
-- name: Magnet_All
-  set:
-    scene.objects[0].model.defines.magnet_position: All
-- name: Magnet_Corners
-  set:
-    scene.objects[0].model.defines.magnet_position: Corners Only
 - name: Magnet_None
   set:
     scene.objects[0].model.defines.magnet_position: None
+- name: Magnet_All
+  set:
+    scene.objects[0].model.defines.magnet_position: All
+- name: Rim2_LipHeight3
+  set:
+    scene.objects[0].model.defines.magnet_position: None
+    scene.objects[0].model.defines.shelf_side_rim: 2
+    scene.objects[0].model.defines.shelf_front_rim: 2
+    scene.objects[0].model.defines.shelf_rim_lip_height: 3
 - name: WidthGrid4_DepthGrid3
   set:
     scene.objects[0].model.defines.magnet_position: None

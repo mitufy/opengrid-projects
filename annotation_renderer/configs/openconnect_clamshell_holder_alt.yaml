@@ -12,7 +12,7 @@ scene:
         item_height: 60
         item_depth: 30
         item_corner_rounding: 8
-        generate_holder_part: Both
+        
         holder_slot_position: Front
         holder_slot_column_limit: 1
         slot_slide_direction: Down

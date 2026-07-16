@@ -685,6 +685,11 @@ def validate_render_config(value: Mapping[str, object]) -> None:
     validate_ground_plane_config(value.get("ground_plane"))
     validate_cutaway_config(value.get("cutaway"))
     validate_xray_config(value.get("xray"))
+    default_material_color = value.get("default_material_color")
+    if default_material_color is not None and (
+        not isinstance(default_material_color, str) or not default_material_color.strip()
+    ):
+        raise ConfigError("render.default_material_color must be a non-empty color string")
     validate_material_overrides_config(value.get("material_overrides"))
     if "fit_camera" in value and not isinstance(value["fit_camera"], bool):
         raise ConfigError("render.fit_camera must be a boolean")

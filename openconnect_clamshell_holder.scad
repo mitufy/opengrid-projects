@@ -301,8 +301,8 @@ module emit_clamshell_holder_annotations() {
         label="side_cutout_top_margin",
         axis="z",
         value=effective_side_cutout_top_margin,
-        start=clamshell_annotation_point([side_cutout_side_face_x, side_cutout_wall_top_y, side_cutout_mid_z]),
-        end=clamshell_annotation_point([side_cutout_side_face_x, side_cutout_top_y, side_cutout_mid_z]),
+        start=clamshell_annotation_point([item_max_x, item_min_y + final_front_opening_top_bottom_margin, side_cutout_mid_z]),
+        end=clamshell_annotation_point([item_max_x, side_cutout_top_y, side_cutout_mid_z]),
         basis="side_cutout_top_margin_to_visible_cutout_edge"
       );
     }
@@ -312,8 +312,8 @@ module emit_clamshell_holder_annotations() {
         label="side_cutout_bottom_margin",
         axis="z",
         value=effective_side_cutout_bottom_margin,
-        start=clamshell_annotation_point([side_cutout_side_face_x, side_cutout_bottom_y, side_cutout_mid_z]),
-        end=clamshell_annotation_point([side_cutout_side_face_x, side_cutout_wall_bottom_y, side_cutout_mid_z]),
+        start=clamshell_annotation_point([item_max_x, side_cutout_bottom_y, side_cutout_mid_z]),
+        end=clamshell_annotation_point([item_max_x, side_cutout_wall_bottom_y, side_cutout_mid_z]),
         basis="side_cutout_bottom_margin_to_visible_cutout_edge"
       );
     }

@@ -213,6 +213,10 @@ def replace_or_import_object(object_config):
         replacement.data.materials.clear()
         for material in materials:
             replacement.data.materials.append(material)
+    else:
+        default_material = configured_material(target_name, object_config.get("default_material_color"), [])
+        if default_material is not None:
+            replacement.data.materials.append(default_material)
     return replacement
 
 

@@ -12,8 +12,6 @@ scene:
         item_height: 60
         item_depth: 30
         item_corner_rounding: 8
-        generate_holder_part: Both
-        holder_slot_position: Top
         # side_cutout_front_margin: 5
         side_cutout_bottom_margin: 20
         side_cutout_top_margin: 10
@@ -21,7 +19,7 @@ scene:
         holder_slot_column_limit: 1
     inherit_target_transform: false
     transform:
-      location_mm: [0, "-(item_height / 2 + og_standard_thickness)", 0]
+      location_mm: [0, "-(item_depth+holder_thickness+3.72) / 2", -(item_height+holder_thickness*2) / 2]
       rotation_deg: [0, 0, 0]
       scale:
         $constant: blender_scene_scale_vector
@@ -31,56 +29,24 @@ render:
 annotations:
   style:
     $constant: default_annotation_style
-  aliases:
-    holder_slot_position: slot_position
-    item_corner_rounding_extent: item_corner_rounding
+  # aliases:
+    # holder_slot_position: slot_position
+    # item_corner_rounding_extent: item_corner_rounding
   chains:
-  # - ids: [item_width]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -28
-  #   label_offset_px: -28
-  #   font_size_px: 26
-  # - ids: [item_height]
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 28
-  #   label_offset_px: 28
-  #   font_size_px: 26
-  - ids: [item_depth]
-    color:
-      $constant: annotation_color_black
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: 100
-    label_offset_px: 50
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-  # - ids: [front_opening_left_right_margin]
-  #   optional: true
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: 28
-  #   label_offset_px: 28
-  #   font_size_px: 24
-  # - ids: [front_opening_top_bottom_margin]
-  #   optional: true
-  #   display_offset_mm: [0, 0, 0]
-  #   line_offset_px: -28
-  #   label_offset_px: -28
-  #   font_size_px: 24
   - ids: [side_cutout_top_margin]
-    optional: true
     color:
       $constant: annotation_color_blue
     display_offset_mm: [0, 0, 0]
-    line_offset_px: 300
-    label_offset_px: 50
+    line_offset_px: 200
+    label_offset_px: 45
     label_along_offset_px: 0
     label_font_size_px: 48
   - ids: [side_cutout_bottom_margin]
-    optional: true
     color:
       $constant: annotation_color_blue
     display_offset_mm: [0, 0, 0]
     line_offset_px: -300
-    label_offset_px: -50
+    label_offset_px: -45
     label_along_offset_px: 0
     label_font_size_px: 48
   - ids: [side_cutout_back_margin]
@@ -89,7 +55,7 @@ annotations:
       $constant: annotation_color_red
     display_offset_mm: [0, 0, 0]
     line_offset_px: -300
-    label_offset_px: -50
+    label_offset_px: -45
     label_font_size_px: 48
   - ids: [side_cutout_front_margin]
     optional: true
@@ -97,8 +63,14 @@ annotations:
       $constant: annotation_color_red
     display_offset_mm: [0, 0, 0]
     line_offset_px: 60
-    label_offset_px: 50
+    label_offset_px: 45
     label_font_size_px: 48
+  - ids: [front_opening_top_bottom_margin]
+    line_offset_px: -250
+    label_offset_px: -45
+    label_font_size_px: 48
+    color:
+      $constant: annotation_color_black
   # angle_radius_callouts:
   # - id: item_corner_rounding_fillet
   #   arc_id: item_corner_rounding_extent

@@ -1,0 +1,31 @@
+$schema: ../schemas/annotation-render-config.schema.json
+extends: base_scene.yaml
+variant_name: openconnect_plate
+job_name: openconnect_plate
+scene:
+  blend_file: ../assets/scenes/opengrid_floor_scene.blend
+  objects:
+  - id: screw
+    model:
+      scad_file: openconnect_plate.scad
+    material:
+      color: '#cccccc'
+      roughness: 0.8
+      # defines:
+        # slot_type: negslot
+        # plate_corner_rounding: Chamfer
+        # plate_corner_rounding_size: 4
+    # transform:
+    #   location_mm: [14, 6.8, -14]
+    #   rotation_deg: [90, 0, 0]
+render:
+  # fit_margin: 0.3
+  # camera_view_preset: technical_iso
+annotations:
+  style:
+    $constant: default_annotation_style
+    auto_adjust_labels: true
+    type_styles:
+      mm:
+        line_colors:
+        - $constant: annotation_color_black

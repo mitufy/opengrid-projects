@@ -590,6 +590,13 @@ material:
   roughness: 0.55
 ```
 
+Imported models that have no explicit material and cannot copy one from a target or `material_source_object` receive `render.default_material_color`. Its built-in value is `#8fa1b3`; set it at render level to choose another fallback color:
+
+```yaml
+render:
+  default_material_color: '#d6d3d1'
+```
+
 You can also override object materials from `render.material_overrides` when the same scene needs a different visual treatment without changing the scene object definitions:
 
 ```yaml

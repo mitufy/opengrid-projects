@@ -988,6 +988,11 @@
             "xray": {
               "$ref": "#/$defs/xrayConfig"
             },
+            "default_material_color": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Fallback material color assigned to imported models that have no explicit, target, or source material."
+            },
             "material_overrides": {
               "$ref": "#/$defs/materialOverrides"
             },

@@ -1996,6 +1996,9 @@ def build_blender_config(
                 "object_transform": record["transform"],
                 "material_source_object": record.get("material_source_object"),
                 "material": material_for_object(record, render_settings),
+                "default_material_color": render_settings.get(
+                    "default_material_color", default_render_settings.get("default_material_color")
+                ),
                 "mesh_shading": str(
                     record.get("mesh_shading") or render_settings.get("mesh_shading", default_render_settings["mesh_shading"])
                 ),

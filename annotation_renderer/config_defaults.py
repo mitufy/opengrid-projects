@@ -85,6 +85,7 @@ DEFAULT_RENDER_HEIGHT = 1440
 DEFAULT_RENDER_FIT_CAMERA = True
 DEFAULT_RENDER_FIT_MARGIN = 0
 DEFAULT_RENDER_MESH_SHADING = "flat"
+DEFAULT_IMPORTED_MODEL_MATERIAL_COLOR = "#cccccc"
 DEFAULT_OUTPUT_MODE = "standard"
 GALLERY_SETTING_DEFAULTS = {
     "columns": 2,
@@ -172,6 +173,7 @@ RENDER_PRESETS: dict[str, dict[str, object]] = {
         "fit_camera": DEFAULT_RENDER_FIT_CAMERA,
         "fit_margin": DEFAULT_RENDER_FIT_MARGIN,
         "mesh_shading": DEFAULT_RENDER_MESH_SHADING,
+        "default_material_color": DEFAULT_IMPORTED_MODEL_MATERIAL_COLOR,
     },
     DRAFT_RENDER_PRESET_NAME: {
         "engine": DEFAULT_RENDER_ENGINE,
@@ -181,6 +183,7 @@ RENDER_PRESETS: dict[str, dict[str, object]] = {
         "fit_camera": DEFAULT_RENDER_FIT_CAMERA,
         "fit_margin": DEFAULT_RENDER_FIT_MARGIN,
         "mesh_shading": DEFAULT_RENDER_MESH_SHADING,
+        "default_material_color": DEFAULT_IMPORTED_MODEL_MATERIAL_COLOR,
     },
 }
 STYLE_INTEGER_FIELDS: dict[str, tuple[int | None, int | None]] = {

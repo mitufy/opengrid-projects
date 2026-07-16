@@ -12,11 +12,11 @@ scene:
         item_height: 60
         item_depth: 30
         item_corner_rounding: 8
-        generate_holder_part: Both
-        holder_slot_position: Top
+        
+        
         holder_slot_column_limit: 1
     transform:
-      location_mm: [0, "-(item_height / 2 + og_standard_thickness)", 0]
+      location_mm: [0, "-(item_depth+holder_thickness+3.72) / 2", -(item_height+holder_thickness*2) / 2]
       rotation_deg: [0, 0, 0]
       scale:
         $constant: blender_scene_scale_vector
@@ -34,19 +34,19 @@ annotations:
     line_offset_px: -30
     label_offset_px: -50
     color:
-      $constant: annotation_color_red
+      $constant: annotation_color_black
   - ids: [item_height]
     display_offset_mm: [0, 0, 0]
     line_offset_px: 20
     label_offset_px: 50
     color:
-      $constant: annotation_color_red
+      $constant: annotation_color_black
   - ids: [item_depth]
     display_offset_mm: [0, 0, 0]
     line_offset_px: 20
     label_offset_px: 50
     color:
-      $constant: annotation_color_red
+      $constant: annotation_color_black
   # - ids: [front_opening_left_right_margin]
   #   optional: true
   #   display_offset_mm: [0, 0, 0]

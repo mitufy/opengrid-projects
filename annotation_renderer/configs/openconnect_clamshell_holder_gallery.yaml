@@ -12,36 +12,36 @@ gallery:
   title_font_size_px: 60
 
 variants:
-- name: width164_height60_column1
+- name: Width164_Height60_SlotColumn1
   set:
     scene.objects[0].model.defines.item_width: 164
     scene.objects[0].model.defines.item_height: 60
     scene.objects[0].model.defines.item_corner_rounding: 8
     scene.objects[0].model.defines.holder_slot_column_limit: 1
 
-- name: width164_height60_column2
+- name: Width164_Height60_SlotColumn2
   set:
     scene.objects[0].model.defines.item_width: 164
     scene.objects[0].model.defines.item_height: 60
     scene.objects[0].model.defines.item_corner_rounding: 8
     scene.objects[0].model.defines.holder_slot_column_limit: 2
 
-- name: width164_height60_column1_slotpos_front
+- name: Width164_SlotPosition_Top
   set:
     scene.objects[0].model.defines.item_width: 164
     scene.objects[0].model.defines.item_height: 60
     scene.objects[0].model.defines.item_corner_rounding: 8
     scene.objects[0].model.defines.holder_slot_column_limit: 1
-    scene.objects[0].model.defines.holder_slot_position: Front
+    scene.objects[0].model.defines.holder_slot_position: Top
     scene.objects[0].model.defines.slot_slide_direction: Down
-    scene.objects[0].transform.location_mm: [0, "-(item_height / 2 + og_standard_thickness / 2)", 0]
+    scene.objects[0].transform.location_mm: [0, "-(item_height+holder_thickness+3.72)", "-(item_depth+holder_thickness*2) / 2"]
     scene.objects[0].transform.rotation_deg: [-90, 0, 0]
 
-- name: width120_height100_rounding20_column1
+- name: Width120_Height100_Rounding20
   set:
     scene.objects[0].model.defines.item_width: 120
     scene.objects[0].model.defines.item_height: 100
     scene.objects[0].model.defines.item_corner_rounding: 20
     scene.objects[0].model.defines.holder_slot_column_limit: 1
-    scene.objects[0].transform.location_mm: [0, "-(item_depth + og_standard_thickness)", -14]
+    scene.objects[0].transform.location_mm: [0, "-(item_depth+holder_thickness+3.72) / 2", -(item_height+holder_thickness*2) / 2-14]
 

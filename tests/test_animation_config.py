@@ -24,6 +24,7 @@ from annotation_renderer.config_defaults import (
     ANNOTATION_LABEL_FONT_SIZE_PX,
     BUILTIN_CONFIG_CONSTANTS,
     CAMERA_VIEW_PRESETS,
+    DEFAULT_IMPORTED_MODEL_MATERIAL_COLOR,
     DEFAULT_RENDER_MESH_SHADING,
     DEFAULT_STYLE_PRESET_NAME,
     GALLERY_SETTING_DEFAULTS,
@@ -1665,6 +1666,41 @@ class AnimationConfigTests(unittest.TestCase):
         with self.assertRaisesRegex(ConfigError, "render.export_blend must be a boolean"):
             resolve_render({"preset": "cycles_standard_scene", "export_blend": "yes"})
 
+    def test_default_material_color_is_passed_to_imported_models(self) -> None:
+        render = resolve_render({"preset": "cycles_standard_scene"})
+        self.assertEqual(render["default_material_color"], DEFAULT_IMPORTED_MODEL_MATERIAL_COLOR)
+        with self.assertRaisesRegex(ConfigError, "render.default_material_color must be a non-empty color string"):
+            resolve_render({"preset": "cycles_standard_scene", "default_material_color": ""})
+        with self.assertRaisesRegex(ConfigError, "render.default_material_color must be a non-empty color string"):
+            resolve_render({"preset": "cycles_standard_scene", "default_material_color": {"color": "#ffffff"}})
+
+        blender_config = build_blender_config(
+            scene_config={"camera": "Camera"},
+            render_settings=render,
+            object_records=[
+                {
+                    "id": "model",
+                    "stl_path": "model.stl",
+                    "target_object": "model",
+                    "replace_target_object": True,
+                    "inherit_target_transform": False,
+                    "transform": {"location": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": [1, 1, 1]},
+                }
+            ],
+            projection_points={},
+            render_path=Path("render.png"),
+            projection_path=Path("projection.json"),
+            animation_config=None,
+            animation_frame_dir=None,
+            expression_context={},
+        )
+
+        self.assertIsNone(blender_config["objects"][0]["material"])
+        self.assertEqual(
+            blender_config["objects"][0]["default_material_color"],
+            DEFAULT_IMPORTED_MODEL_MATERIAL_COLOR,
+        )
+
     def test_render_cache_controls_are_resolved_from_cli_and_config(self) -> None:
         default_args = parse_args_from(["render", "openconnect_general_holder"])
 
@@ -1757,6 +1793,7 @@ class AnimationConfigTests(unittest.TestCase):
                     },
                 },
                 "xray": {"enabled": True, "objects": ["model"], "alpha": 0.3},
+                "default_material_color": "#D6D3D1",
                 "material_overrides": {"model": {"color": "#FF0000", "alpha": 0.5}},
             }
         )
@@ -1769,6 +1806,7 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(render["camera_roll_deg"], 7)
         self.assertEqual(render["camera_lens_mm"], 70)
         self.assertEqual(render["lighting"]["preset"], "technical")
+        self.assertEqual(render["default_material_color"], "#D6D3D1")
         self.assertEqual(render["material_overrides"]["model"]["alpha"], 0.5)
         with self.assertRaisesRegex(ConfigError, "render.camera_view must be one of back, bottom, front, left, none, right, top"):
             resolve_render({"preset": "cycles_standard_scene", "camera_view": "diagonal"})
@@ -2198,6 +2236,7 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertIn("position_fraction", cutaway_properties)
         self.assertIn("section_plane", cutaway_properties)
         self.assertIn("xray", render_properties)
+        self.assertIn("default_material_color", render_properties)
         self.assertIn("material_overrides", render_properties)
         self.assertEqual(render_properties["output_mode"]["enum"], ["minimal", "standard", "debug"])
         self.assertIn("auto_adjust_labels", style_properties)
