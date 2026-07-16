@@ -1,7 +1,9 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
 variant_name: openconnect_sturdy_hook_default
+default_variant: default
 job_name: sturdy_hook_scene
+
 scene:
   objects:
   - id: large_hook
@@ -12,7 +14,6 @@ scene:
         hook_vertical_grids: 2
         circular_tip_radius: 28
         hook_corner_fillet: 28
-        # truss_vertical_grids: 1
   - id: model
     model:
       scad_file: openconnect_sturdy_hook.scad
@@ -22,25 +23,11 @@ scene:
     $constant: wall_placeholder_transform
 
 render:
-  fit_margin: 0.0
-  # camera_location_offset_mm: [30, 0, 0]
-  # camera_rotation_offset_deg: [0, 0, 10]
-  # camera_look_at: object_center
+  fit_margin: 0
+
 annotations:
   style:
     $constant: default_annotation_style
-    # auto_adjust_labels: false
-    # tick_length_px: 15
-    # type_styles:
-    #   grids:
-    #     line_colors:
-    #     - $constant: annotation_color_blue
-    #   mm:
-    #     line_colors:
-    #     - $constant: annotation_color_black
-    # line_width_px: 3.0
-    # extension_width_px: 1.4
-    # radial_line_width_px: 2.6
   aliases:
     hook_vertical_grids: "hook_vertical_grids x {og_tile_size:g}mm"
     truss_vertical_grids: "truss_vertical_grids x {og_tile_size:g}mm"
@@ -50,44 +37,165 @@ annotations:
     circular_tip_radius: tip_radius
     circular_tip_radius_extent: tip_radius
     circular_tip_angle: tip_angle
-  # angle_radius_callouts:
-  # - id: hook_corner_fillet_detail
-  #   arc_id: hook_corner_fillet_extent
-  #   radius_id: hook_corner_fillet
-  #   optional: true
-  #   show_angle_label: false
-  #   radius_label_offset_px: 26
-  #   angle_fill_alpha: 28
   chains:
-  - ids: [hook_width]
+  - name: hook_width_dimension
+    ids: [hook_width]
     display_offset_mm: [0, 0, 0]
     line_offset_px: 30
     label_offset_px: 50
     label_font_size_px:
       $constant: annotation_label_font_size_px
-  - ids: [hook_thickness]
+  - name: hook_thickness_dimension
+    ids: [hook_thickness]
     display_offset_mm: [0, 0, 0]
     line_offset_px: -20
     label_offset_px: -50
     label_font_size_px: 50
-  - ids: [hook_length]
+  - name: hook_length_dimension
+    ids: [hook_length]
     display_offset_mm: [0, 0, 0]
     label_along_offset_px: 100
     line_offset_px: -20
     label_offset_px: -50
     label_font_size_px: 50
-  - ids: [hook_vertical_grids, truss_vertical_grids]
+  - name: hook_grid_dimension
+    ids: [hook_vertical_grids, truss_vertical_grids]
     optional: true
     display_offset_mm: [0, 0, 0]
-    # label_along_offset_px: -60
     line_offset_px: -1
     label_offset_px: -50
     label_font_size_px: 50
-  # image_labels:
-  # - $constant: bottom_image_label
-  #   id: hook_shape_type
-  #   offset_px: [0, -6]
-  #   show_value: true
-  #   value_color: '#0000FF'
-  #   font_size_px:
-  #     $constant: annotation_title_font_size_px
+
+variant_collections:
+  product_views: [default, empty, side]
+  parameter_gallery:
+  - SliceOff_Target14
+  - Rectangular
+  - Flat
+  - TrussGrid1
+
+variants:
+- name: default
+  job_name: sturdy_hook_scene
+
+- name: empty
+  job_name: sturdy_hook_scene
+  object_overrides:
+    model:
+      enabled: false
+  annotations: {}
+
+- name: side
+  job_name: sturdy_hook_scene_angle
+  object_overrides:
+    large_hook:
+      model:
+        defines:
+          hook_shape_type: Circular
+          hook_length: 60
+          hook_vertical_grids: 2
+          circular_tip_radius: 26
+          circular_tip_angle: 90
+          hook_corner_fillet: 26
+    model:
+      enabled: false
+  render:
+    camera_view: bottom
+  annotations:
+    style:
+      $constant: default_annotation_style
+      line_width_px: 2.3
+      extension_width_px: 1.1
+      tick_length_px: 15
+      radial_line_width_px: 2.1
+    aliases:
+      hook_vertical_grids: "hook_vgrids x {og_tile_size:g}mm"
+      truss_vertical_grids: "truss_vgrids x {og_tile_size:g}mm"
+      circular_tip_angle_radius: circular_tip_radius
+    angle_radius_callouts:
+    - name: circular_tip_angle_radius
+      id: circular_tip_angle_radius
+      arc_id: circular_tip_angle_extent
+      radius_id: circular_tip_angle_radius
+      angle_id: circular_tip_angle
+      color:
+        $constant: annotation_color_red
+      show_radius_label: true
+      radius_label_offset_px: -50
+      radius_label_tangent_offset_px: -40
+      angle_label_offset_px: 50
+      angle_label_tangent_offset_px: 10
+      angle_fill_alpha: 28
+      font_size_px: 44
+    - name: hook_corner_fillet_detail
+      id: hook_corner_fillet_detail
+      arc_id: hook_corner_fillet_extent
+      radius_id: hook_corner_fillet
+      color:
+        $constant: annotation_color_red
+      show_angle_label: false
+      radius_label_tangent_offset_px: -40
+      radius_label_offset_px: 50
+      angle_fill_alpha: 28
+      font_size_px: 44
+    - name: truss_angle_detail
+      id: truss_angle_detail
+      arc_id: truss_angle_extent
+      radius_id: truss_angle_radius
+      angle_id: truss_max_angle
+      optional: true
+      color:
+        $constant: annotation_color_red
+      show_radius_label: false
+      angle_label_offset_px: 50
+      angle_fill_alpha: 28
+      font_size_px: 44
+    chains:
+    - name: hook_thickness+hook_length
+      ids: [hook_thickness, hook_length]
+      color:
+        $constant: annotation_color_black
+      display_offset_mm: [0, 0, 0]
+      line_offset_px: -60
+      label_offset_px: -60
+      label_font_size_px:
+        $constant: annotation_label_font_size_px
+
+- name: SliceOff_Target14
+  extends_variant: empty
+  object_overrides:
+    large_hook:
+      model:
+        defines:
+          circular_tip_thickness_scale: 1
+          hook_tip_sliceoff_side: Left
+          hook_tip_sliceoff_target_width: 14
+
+- name: Rectangular
+  extends_variant: empty
+  object_overrides:
+    large_hook:
+      model:
+        defines:
+          hook_shape_type: Rectangular
+          rectangular_tip_extra_length: 10
+          hook_corner_fillet: 0
+          hook_length: 46
+
+- name: Flat
+  extends_variant: empty
+  object_overrides:
+    large_hook:
+      model:
+        defines:
+          hook_shape_type: Flat
+          hook_corner_fillet: 0
+          hook_length: 46
+
+- name: TrussGrid1
+  extends_variant: empty
+  object_overrides:
+    large_hook:
+      model:
+        defines:
+          truss_vertical_grids: 1

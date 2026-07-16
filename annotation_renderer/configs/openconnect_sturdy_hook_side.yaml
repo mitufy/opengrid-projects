@@ -1,92 +1,10 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: base_scene.yaml
-variant_name: openconnect_sturdy_hook_default
-job_name: sturdy_hook_scene_angle
-scene:
-  objects:
-  - id: large_hook
-    model:
-      scad_file: openconnect_sturdy_hook.scad
-      defines:
-        hook_shape_type: Circular
-        hook_length: 60
-        hook_vertical_grids: 2
-        circular_tip_radius: 26
-        circular_tip_angle: 90
-        hook_corner_fillet: 26
-  transform:
-    $constant: wall_placeholder_transform
-render:
-  fit_margin: 0
-  # camera_location_offset_mm: [30, 0, 0]
-  # camera_rotation_offset_deg: [0, 0, 10]
-  camera_view: bottom
-annotations:
-  style:
-    $constant: default_annotation_style
-    line_width_px: 2.3
-    extension_width_px: 1.1
-    tick_length_px: 15
-    radial_line_width_px: 2.1
-  aliases:
-    hook_vertical_grids: "hook_vgrids x {og_tile_size:g}mm"
-    truss_vertical_grids: "truss_vgrids x {og_tile_size:g}mm"
-    # hook_shape_type: hook_shape
-    # hook_corner_fillet: corner_fillet
-    # hook_corner_fillet_extent: corner_fillet
-    # circular_tip_radius: tip_radius
-    circular_tip_angle_radius: circular_tip_radius
-    # circular_tip_angle: tip_angle
-  angle_radius_callouts:
-  - id: circular_tip_angle_radius
-    arc_id: circular_tip_angle_extent
-    radius_id: circular_tip_angle_radius
-    angle_id: circular_tip_angle
-    color:
-      $constant: annotation_color_red
-    show_radius_label: true
-    radius_label_offset_px: -50
-    radius_label_tangent_offset_px: -40
-    angle_label_offset_px: 50
-    angle_label_tangent_offset_px: 10
-    angle_fill_alpha: 28
-    font_size_px: 44
-  - id: hook_corner_fillet_detail
-    arc_id: hook_corner_fillet_extent
-    radius_id: hook_corner_fillet
-    color:
-      $constant: annotation_color_red
-    show_angle_label: false
-    radius_label_tangent_offset_px: -40
-    radius_label_offset_px: 50
-    angle_fill_alpha: 28
-    font_size_px: 44
-  - id: truss_angle_detail
-    arc_id: truss_angle_extent
-    radius_id: truss_angle_radius
-    angle_id: truss_max_angle
-    optional: true
-    color:
-      $constant: annotation_color_red
-    show_radius_label: false
-    angle_label_offset_px: 50
-    angle_fill_alpha: 28
-    font_size_px: 44
-  chains:
-  - ids: [hook_thickness, hook_length]
-    color:
-      $constant: annotation_color_black
-    display_offset_mm: [0, 0, 0]
-    line_offset_px: -60
-    label_offset_px: -60
-    label_font_size_px:
-      $constant: annotation_label_font_size_px
-  # image_labels:
-  # - $constant: bottom_image_label
-  #   id: hook_shape_type
-  #   offset_px: [0, -6]
-  #   show_value: true
-  #   value_color:
-  #     $constant: annotation_color_blue
-  #   font_size_px:
-  #     $constant: annotation_title_font_size_px
+extends: openconnect_sturdy_hook_default.yaml
+variant_name: openconnect_sturdy_hook_side
+default_variant: openconnect_sturdy_hook_side
+
+# Compatibility entry point. Add new image variations to the canonical config instead.
+variants:
+- name: openconnect_sturdy_hook_side
+  extends_variant: side
+  job_name: sturdy_hook_scene_angle

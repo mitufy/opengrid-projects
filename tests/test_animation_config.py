@@ -856,6 +856,55 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(legacy_variants, canonical_variants)
         self.assertEqual(len(legacy_variants), 4)
 
+    def test_sturdy_hook_variants_share_one_canonical_config(self) -> None:
+        config = load_config(Path("annotation_renderer/configs/openconnect_sturdy_hook_default.yaml"), [])
+
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "product_views")],
+            ["default", "empty", "side"],
+        )
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(config, "parameter_gallery")],
+            ["SliceOff_Target14", "Rectangular", "Flat", "TrussGrid1"],
+        )
+
+        default = variant_config(config, selected_variants(config, "default")[0])
+        empty = variant_config(config, selected_variants(config, "empty")[0])
+        side = variant_config(config, selected_variants(config, "side")[0])
+        self.assertEqual([item["id"] for item in default["scene"]["objects"]], ["large_hook", "model"])
+        self.assertEqual([item["id"] for item in empty["scene"]["objects"]], ["large_hook"])
+        self.assertEqual(empty["annotations"], {})
+        self.assertEqual(
+            {item["name"] for item in angle_radius_items_from_config(side["annotations"])},
+            {"circular_tip_angle_radius", "hook_corner_fillet_detail", "truss_angle_detail"},
+        )
+        self.assertEqual(side["render"]["camera_view"], "bottom")
+
+        rectangular = variant_config(config, selected_variants(config, "Rectangular")[0])
+        rectangular_defines = self.first_model_config(rectangular)["defines"]
+        self.assertEqual(rectangular_defines["hook_shape_type"], "Rectangular")
+        self.assertEqual(rectangular_defines["hook_corner_fillet"], 0)
+
+        for wrapper_name in ("openconnect_sturdy_hook_empty.yaml", "openconnect_sturdy_hook_side.yaml"):
+            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
+            self.assertNotIn("scene", wrapper)
+            self.assertNotIn("render", wrapper)
+            self.assertNotIn("annotations", wrapper)
+
+        gallery_wrapper = yaml.safe_load(
+            Path("annotation_renderer/configs/openconnect_sturdy_hook_gallery.yaml").read_text(encoding="utf-8")
+        )
+        self.assertNotIn("variants", gallery_wrapper)
+        self.assertEqual(gallery_wrapper["gallery"]["variant_collection"], "parameter_gallery")
+
+        legacy_variants = self.gallery_variant_lines("openconnect_sturdy_hook_gallery")
+        canonical_variants = self.gallery_variant_lines(
+            "openconnect_sturdy_hook",
+            collection="parameter_gallery",
+        )
+        self.assertEqual(legacy_variants, canonical_variants)
+        self.assertEqual(len(legacy_variants), 4)
+
     def test_compatibility_config_uses_its_default_variant(self) -> None:
         output = self.run_cli(
             "--config",
@@ -1588,7 +1637,7 @@ class AnimationConfigTests(unittest.TestCase):
             "--config",
             "annotation_renderer/configs/openconnect_sturdy_hook_side.yaml",
             "--list-annotations",
-            "openconnect_sturdy_hook_default",
+            "openconnect_sturdy_hook_side",
         )
 
         self.assertIn("angle_radius: hook_corner_fillet_detail", annotations)
