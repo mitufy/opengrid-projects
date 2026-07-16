@@ -1,29 +1,47 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
 variant_name: opengrid_expanding_snap
+default_variant: wall
 job_name: opengrid_expanding_snap
+
 scene:
   objects:
   - id: snap
     $constant: expanding_snap_object
-  # - id: screw
-  #   model:
-  #     scad_file: opengrid_parametric_snap.scad
-  #     defines:
-  #       generate_screw: openConnect
-  #       generate_snap: None
-  #   transform:
-  #     location_mm: [14, 6.8, -14]
-  #     rotation_deg: [90, 0, 0]
+
 render:
   fit_margin: 0.3
   camera_view: bottom
+
 annotations:
   style:
     $constant: default_annotation_style
     auto_adjust_labels: true
-    
     type_styles:
       mm:
         line_colors:
         - $constant: annotation_color_black
+
+variant_collections:
+  product_views: [wall, floor]
+
+variants:
+- name: wall
+  job_name: opengrid_expanding_snap
+
+- name: floor
+  job_name: opengrid_expanding_snap
+  scene:
+    blend_file: ../assets/scenes/opengrid_floor_scene.blend
+    objects:
+    - id: screw
+      model:
+        $constant: expanding_snap_model
+        defines:
+          generate_screw: openConnect
+          snap_thickness: 4
+  render:
+    camera_view_preset: top_front
+  unset:
+  - render.fit_margin
+  - render.camera_view

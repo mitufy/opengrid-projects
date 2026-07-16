@@ -1,45 +1,10 @@
 $schema: ../schemas/annotation-render-config.schema.json
-extends: base_scene.yaml
-variant_name: opengrid_expanding_snap
-job_name: opengrid_expanding_snap
-scene:
-  blend_file: ../assets/scenes/opengrid_floor_scene.blend
-  objects:
-  - id: screw
-    model:
-      scad_file: opengrid_parametric_snap.scad
-      defines:
-        # generate_screw: openConnect
-        generate_snap: openConnect
-  - id: snap
-    model:
-      scad_file: opengrid_parametric_snap.scad
-      defines:
-        # generate_screw: openConnect
-        generate_snap: "openConnect (Folded)"
-    transform:
-      location_mm: [32, 0, 0]
-      rotation_deg: [0, 0, 180]
-  - id: snap_double
-    model:
-      scad_file: opengrid_parametric_snap.scad
-      defines:
-        generate_screw: openConnect
-        generate_snap: "Self-Expanding Threads"
-    transform:
-      location_mm: [0, -32, 0]
-      # rotation_deg: [0, 0, 180]
-render:
-  # fit_margin: 0.3
-  camera_view_preset: top_front
-  lighting:
-    toplight_power: 1.5
-    # frontlight_power: 1.5
-annotations:
-  style:
-    $constant: default_annotation_style
-    auto_adjust_labels: true
-    type_styles:
-      mm:
-        line_colors:
-        - $constant: annotation_color_black
+extends: opengrid_parametric_snap.yaml
+variant_name: opengrid_parametric_snap_floor
+default_variant: opengrid_parametric_snap_floor
+
+# Compatibility entry point. Add new image variations to the canonical config instead.
+variants:
+- name: opengrid_parametric_snap_floor
+  extends_variant: floor
+  job_name: opengrid_parametric_snap

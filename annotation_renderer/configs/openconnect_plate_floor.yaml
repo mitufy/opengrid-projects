@@ -1,22 +1,22 @@
 $schema: ../schemas/annotation-render-config.schema.json
 extends: base_scene.yaml
 variant_name: openconnect_plate
+default_variant: floor
 job_name: openconnect_plate
+
+constants:
+  openconnect_plate_model:
+    scad_file: openconnect_plate.scad
+
 scene:
   blend_file: ../assets/scenes/opengrid_floor_scene.blend
   objects:
   - id: screw
     model:
-      scad_file: openconnect_plate.scad
+      $constant: openconnect_plate_model
     material:
       roughness: 0.8
-      # defines:
-        # slot_type: negslot
-        # plate_corner_rounding: Chamfer
-        # plate_corner_rounding_size: 4
-    # transform:
-    #   location_mm: [14, 6.8, -14]
-    #   rotation_deg: [90, 0, 0]
+
 annotations:
   style:
     $constant: default_annotation_style
@@ -25,3 +25,106 @@ annotations:
       mm:
         line_colors:
         - $constant: annotation_color_black
+
+variant_collections:
+  product_views: [floor, slot_annotated]
+
+variants:
+- name: floor
+  job_name: openconnect_plate
+
+- name: slot_annotated
+  job_name: openconnect_plate_slot_annotated
+  scene:
+    blend_file: ../assets/scenes/opengrid_wall_scene.blend
+    objects:
+    - id: plate
+      model:
+        $constant: openconnect_plate_model
+        defines:
+          plate_horizontal_size: 28
+          plate_vertical_size: 28
+          slot_type: slot
+          slot_lock_distribution: All
+      transform:
+        location_mm: [-14, 3.2, -14]
+        rotation_deg: [90, 0, 0]
+        scale:
+          $constant: blender_scene_scale_vector
+  render:
+    width: 2400
+    height: 1800
+    fit_margin: 0.2
+    camera_view_preset: technical_iso
+    camera_distance_scale: 1.08
+  annotations:
+    object: plate
+    style:
+      $constant: default_annotation_style
+      auto_adjust_labels: true
+      show_values: false
+      label_font_size_px: 44
+      tick_length_px: 11
+      line_width_px: 3
+      type_styles:
+        mm:
+          line_colors:
+          - $constant: annotation_color_black
+        radius:
+          line_colors:
+          - $constant: annotation_color_red
+    chains:
+    - name: slot_total_height_dimension
+      ids: [slot_total_height]
+      labels:
+        slot_total_height: "2.7"
+      line_offset_px: -92
+      label_offset_px: -60
+    - name: slot_large_rect_width_dimension
+      ids: [slot_large_rect_width]
+      labels:
+        slot_large_rect_width: "17.2"
+      line_offset_px: -76
+      label_offset_px: -56
+    - name: slot_large_rect_height_dimension
+      ids: [slot_large_rect_height]
+      labels:
+        slot_large_rect_height: "10.8"
+      line_offset_px: 76
+      label_offset_px: 54
+    - name: slot_large_rect_chamfer_dimension
+      ids: [slot_large_rect_chamfer]
+      labels:
+        slot_large_rect_chamfer: "4.06"
+      line_offset_px: -48
+      label_offset_px: -38
+    - name: slot_nub_to_top_distance_dimension
+      ids: [slot_nub_to_top_distance]
+      labels:
+        slot_nub_to_top_distance: "7.3"
+      line_offset_px: 90
+      label_offset_px: 56
+    - name: slot_side_clearance_dimension
+      ids: [slot_side_clearance]
+      labels:
+        slot_side_clearance: "0.1"
+      line_offset_px: -72
+      label_offset_px: -48
+    - name: slot_depth_clearance_dimension
+      ids: [slot_depth_clearance]
+      labels:
+        slot_depth_clearance: "0.1"
+      line_offset_px: 58
+      label_offset_px: 42
+    - name: ocslot_move_distance_dimension
+      ids: [OCSLOT_MOVE_DISTANCE]
+      labels:
+        OCSLOT_MOVE_DISTANCE: "10.6"
+      line_offset_px: 106
+      label_offset_px: 66
+    - name: ocslot_onramp_clearance_dimension
+      ids: [OCSLOT_ONRAMP_CLEARANCE]
+      labels:
+        OCSLOT_ONRAMP_CLEARANCE: "0.8"
+      line_offset_px: -76
+      label_offset_px: -48

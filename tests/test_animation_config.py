@@ -1380,6 +1380,51 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(legacy_variants, canonical_variants)
         self.assertEqual(len(legacy_variants), 3)
 
+    def test_plate_and_snap_utilities_share_canonical_configs(self) -> None:
+        plate = load_config(Path("annotation_renderer/configs/openconnect_plate_floor.yaml"), [])
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(plate, "product_views")],
+            ["floor", "slot_annotated"],
+        )
+        annotated_plate = variant_config(plate, selected_variants(plate, "slot_annotated")[0])
+        self.assertEqual([item["id"] for item in annotated_plate["scene"]["objects"]], ["plate"])
+        self.assertTrue(annotated_plate["scene"]["blend_file"].endswith("opengrid_wall_scene.blend"))
+        self.assertEqual(len(chain_items_from_config(annotated_plate["annotations"])), 9)
+
+        parametric_snap = load_config(Path("annotation_renderer/configs/opengrid_parametric_snap.yaml"), [])
+        self.assertEqual(parametric_snap["variant_name"], "opengrid_parametric_snap")
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(parametric_snap, "product_views")],
+            ["wall", "floor", "openconnect_annotated"],
+        )
+        snap_floor = variant_config(parametric_snap, selected_variants(parametric_snap, "floor")[0])
+        self.assertEqual([item["id"] for item in snap_floor["scene"]["objects"]], ["screw", "snap", "snap_double"])
+        self.assertNotIn("camera_view", snap_floor["render"])
+        annotated_snap = variant_config(parametric_snap, selected_variants(parametric_snap, "openconnect_annotated")[0])
+        self.assertEqual(annotated_snap["annotations"]["object"], "snap")
+        self.assertEqual(len(chain_items_from_config(annotated_snap["annotations"])), 10)
+        self.assertEqual(annotated_snap["annotations"]["radius_callouts"][0]["name"], "ochead_nub_fillet_callout")
+
+        expanding_snap = load_config(Path("annotation_renderer/configs/opengrid_expanding_snap.yaml"), [])
+        self.assertEqual(
+            [variant["name"] for variant in selected_variant_collection(expanding_snap, "product_views")],
+            ["wall", "floor"],
+        )
+        expanding_floor = variant_config(expanding_snap, selected_variants(expanding_snap, "floor")[0])
+        self.assertEqual([item["id"] for item in expanding_floor["scene"]["objects"]], ["screw"])
+        self.assertEqual(self.first_model_config(expanding_floor)["scad_file"], "opengrid_expanding_snap.scad")
+
+        for wrapper_name in (
+            "openconnect_plate_slot_annotated.yaml",
+            "openconnect_snap_annotated.yaml",
+            "opengrid_parametric_snap_floor.yaml",
+            "opengrid_expanding_snap_floor.yaml",
+        ):
+            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
+            self.assertNotIn("scene", wrapper)
+            self.assertNotIn("render", wrapper)
+            self.assertNotIn("annotations", wrapper)
+
     def test_compatibility_config_uses_its_default_variant(self) -> None:
         output = self.run_cli(
             "--config",

@@ -934,6 +934,8 @@ Collections are accepted by gallery rendering and all-variant validation:
 
 `drawer_container_empty.yaml` is the canonical floor-scene drawer config. It owns the width, depth, combined-divider, and three parameter-gallery variants; the former `drawer_floor*.yaml` files are compatibility selectors. Its shared label catalog keeps width and depth values distinct, including separate `container_depth_grid_count` and `container_depth_compartment_list` targets.
 
+The smaller plate and snap utilities follow the same rule. `openconnect_plate_floor.yaml` owns its floor and slot-detail views, `opengrid_parametric_snap.yaml` owns its wall, floor, and OpenConnect-detail views, and `opengrid_expanding_snap.yaml` owns its wall and floor views. Their former alternate files are selectors, and each canonical config stores its SCAD source in one model constant.
+
 Use `variant_configs` when a gallery config should import complete per-model config files as variants:
 
 ```yaml
