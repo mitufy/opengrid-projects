@@ -30,10 +30,33 @@
     },
     "variant_configs": {
       "type": "array",
-      "description": "Config files to expose as variants of this config. Paths are resolved relative to this config file.",
+      "description": "Config files or named variants from config files to expose as variants. Paths are resolved relative to this config file.",
       "items": {
-        "type": "string",
-        "minLength": 1
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path"],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "variant": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        ]
       }
     },
     "variant_collections": {

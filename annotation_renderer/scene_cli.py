@@ -1282,7 +1282,7 @@ def run_discovery(*, config: Mapping[str, object], config_path: Path, args: argp
         name, resolved_config, source_config, _variant = resolved_named_config(
             config,
             config_path=config_path,
-            name=str(args.describe),
+            name=str(args.variant or args.describe),
         )
         print_model_description(name=name, config=resolved_config, source_config=source_config)
         return 0
@@ -1290,7 +1290,7 @@ def run_discovery(*, config: Mapping[str, object], config_path: Path, args: argp
         name, resolved_config, _source_config, _variant = resolved_named_config(
             config,
             config_path=config_path,
-            name=str(args.list_annotations),
+            name=str(args.variant or args.list_annotations),
         )
         print(f"Annotations for {name}:")
         print_annotation_groups(resolved_config)
@@ -1304,7 +1304,7 @@ def run_discovery(*, config: Mapping[str, object], config_path: Path, args: argp
         name, resolved_config, source_config, _variant = resolved_named_config(
             config,
             config_path=config_path,
-            name=str(args.new_config),
+            name=str(args.variant or args.new_config),
         )
         write_new_config_template(
             name=name,

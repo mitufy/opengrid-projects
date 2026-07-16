@@ -8,7 +8,9 @@ variant_configs:
 - openconnect_general_holder_default.yaml
 - openconnect_vasemode_container_default.yaml
 - openconnect_clamshell_holder_default.yaml
-- openconnect_drawer_shell_default.yaml
+- path: openconnect_drawer_shell_container_default.yaml
+  variant: shell
+  name: openconnect_drawer_shell_default
 - openconnect_drawer_shell_container_default.yaml
 - openconnect_standard_snap_grid_copies.yaml
 - opengrid_expanding_standard_snap_grid_copies.yaml

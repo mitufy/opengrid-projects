@@ -787,12 +787,6 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(self.first_model_config(wide)["defines"]["gridfinity_width_grids"], 4)
         self.assertEqual(wide["scene"]["objects"][0]["transform"]["location_mm"], ["-(3 * og_tile_size)", 0, "-og_tile_size"])
 
-        for wrapper_name in ("openconnect_gridfinity_shelf_empty.yaml", "openconnect_gridfinity_shelf_top.yaml"):
-            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
-            self.assertNotIn("scene", wrapper)
-            self.assertNotIn("render", wrapper)
-            self.assertNotIn("annotations", wrapper)
-
         gallery_wrapper = yaml.safe_load(
             Path("annotation_renderer/configs/openconnect_gridfinity_shelf_gallery.yaml").read_text(encoding="utf-8")
         )
@@ -836,12 +830,6 @@ class AnimationConfigTests(unittest.TestCase):
         )
         self.assertEqual(side["render"]["camera_view"], "bottom")
 
-        for wrapper_name in ("openconnect_sturdy_shelf_empty.yaml", "openconnect_sturdy_shelf_side.yaml"):
-            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
-            self.assertNotIn("scene", wrapper)
-            self.assertNotIn("render", wrapper)
-            self.assertNotIn("annotations", wrapper)
-
         gallery_wrapper = yaml.safe_load(
             Path("annotation_renderer/configs/openconnect_sturdy_shelf_gallery.yaml").read_text(encoding="utf-8")
         )
@@ -884,12 +872,6 @@ class AnimationConfigTests(unittest.TestCase):
         rectangular_defines = self.first_model_config(rectangular)["defines"]
         self.assertEqual(rectangular_defines["hook_shape_type"], "Rectangular")
         self.assertEqual(rectangular_defines["hook_corner_fillet"], 0)
-
-        for wrapper_name in ("openconnect_sturdy_hook_empty.yaml", "openconnect_sturdy_hook_side.yaml"):
-            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
-            self.assertNotIn("scene", wrapper)
-            self.assertNotIn("render", wrapper)
-            self.assertNotIn("annotations", wrapper)
 
         gallery_wrapper = yaml.safe_load(
             Path("annotation_renderer/configs/openconnect_sturdy_hook_gallery.yaml").read_text(encoding="utf-8")
@@ -939,12 +921,6 @@ class AnimationConfigTests(unittest.TestCase):
         no_texture = variant_config(config, selected_variants(config, "No_Texture")[0])
         self.assertEqual(self.first_model_config(no_texture)["defines"]["vase_surface_texture"], "")
 
-        for wrapper_name in ("openconnect_vasemode_container_empty.yaml", "openconnect_vasemode_container_side.yaml"):
-            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
-            self.assertNotIn("scene", wrapper)
-            self.assertNotIn("render", wrapper)
-            self.assertNotIn("annotations", wrapper)
-
         gallery_wrapper = yaml.safe_load(
             Path("annotation_renderer/configs/openconnect_vasemode_container_gallery.yaml").read_text(encoding="utf-8")
         )
@@ -980,17 +956,12 @@ class AnimationConfigTests(unittest.TestCase):
             {"hook_corner_fillet_detail"},
         )
 
-        wrapper = yaml.safe_load(
-            Path("annotation_renderer/configs/opengrid_framefit_hook_side.yaml").read_text(encoding="utf-8")
-        )
-        self.assertNotIn("scene", wrapper)
-        self.assertNotIn("render", wrapper)
-        self.assertNotIn("annotations", wrapper)
-
         resolved = json.loads(
             self.run_cli(
                 "--config",
-                "annotation_renderer/configs/opengrid_framefit_hook_side.yaml",
+                "annotation_renderer/configs/opengrid_framefit_hook_default.yaml",
+                "--variant",
+                "side",
                 "--print-resolved-config",
             )
         )
@@ -1027,12 +998,6 @@ class AnimationConfigTests(unittest.TestCase):
         straight_defines = self.first_model_config(straight)["defines"]
         self.assertEqual(straight_defines["hook_main_size"], 40)
         self.assertEqual(straight_defines["hook_width"], 13.2)
-
-        for wrapper_name in ("opengrid_snap_gadget_hook_empty.yaml", "opengrid_snap_gadget_hook_side.yaml"):
-            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
-            self.assertNotIn("scene", wrapper)
-            self.assertNotIn("render", wrapper)
-            self.assertNotIn("annotations", wrapper)
 
         gallery_wrapper = yaml.safe_load(
             Path("annotation_renderer/configs/opengrid_snap_gadget_hook_gallery.yaml").read_text(encoding="utf-8")
@@ -1072,12 +1037,6 @@ class AnimationConfigTests(unittest.TestCase):
 
         vertical = variant_config(config, selected_variants(config, "Circular_Vertical_Tilt45")[0])
         self.assertEqual(vertical["scene"]["objects"][0]["transform"]["rotation_deg"], [0, -90, 0])
-
-        for wrapper_name in ("opengrid_snap_gadget_clip_empty.yaml", "opengrid_snap_gadget_clip_side.yaml"):
-            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
-            self.assertNotIn("scene", wrapper)
-            self.assertNotIn("render", wrapper)
-            self.assertNotIn("annotations", wrapper)
 
         gallery_wrapper = yaml.safe_load(
             Path("annotation_renderer/configs/opengrid_snap_gadget_clip_gallery.yaml").read_text(encoding="utf-8")
@@ -1125,15 +1084,6 @@ class AnimationConfigTests(unittest.TestCase):
         wide = variant_config(config, selected_variants(config, "Width_Scale_1.4")[0])
         self.assertEqual(self.first_model_config(wide)["defines"]["stopper_width_scale"], 1.4)
         self.assertEqual(wide["render"]["camera_view_preset"], "top_front")
-
-        for wrapper_name in (
-            "opengrid_snap_gadget_plier_holder_empty.yaml",
-            "opengrid_snap_gadget_plier_holder_side.yaml",
-        ):
-            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
-            self.assertNotIn("scene", wrapper)
-            self.assertNotIn("render", wrapper)
-            self.assertNotIn("annotations", wrapper)
 
         gallery_wrapper = yaml.safe_load(
             Path("annotation_renderer/configs/opengrid_snap_gadget_plier_holder_gallery.yaml").read_text(encoding="utf-8")
@@ -1207,17 +1157,6 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual(self.first_model_config(top_slot)["defines"]["holder_slot_position"], "Top")
         self.assertEqual(top_slot["scene"]["objects"][0]["transform"]["rotation_deg"], [-90, 0, 0])
 
-        for wrapper_name in (
-            "openconnect_clamshell_holder_alt.yaml",
-            "openconnect_clamshell_holder_empty.yaml",
-            "openconnect_clamshell_holder_front.yaml",
-            "openconnect_clamshell_holder_side.yaml",
-        ):
-            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
-            self.assertNotIn("scene", wrapper)
-            self.assertNotIn("render", wrapper)
-            self.assertNotIn("annotations", wrapper)
-
         gallery_wrapper = yaml.safe_load(
             Path("annotation_renderer/configs/openconnect_clamshell_holder_gallery.yaml").read_text(encoding="utf-8")
         )
@@ -1286,16 +1225,6 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual([item["id"] for item in divided["scene"]["objects"]], ["drawer_shell"])
         self.assertEqual(divided["scene"]["objects"][0]["model"]["defines"]["add_shell_divider"], "Height")
 
-        for wrapper_name in (
-            "openconnect_drawer_shell_default.yaml",
-            "openconnect_drawer_shell_container_empty.yaml",
-            "openconnect_drawer_shell_container_top.yaml",
-        ):
-            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
-            self.assertNotIn("scene", wrapper)
-            self.assertNotIn("render", wrapper)
-            self.assertNotIn("annotations", wrapper)
-
         gallery_wrapper = yaml.safe_load(
             Path("annotation_renderer/configs/openconnect_drawer_gallery.yaml").read_text(encoding="utf-8")
         )
@@ -1360,12 +1289,6 @@ class AnimationConfigTests(unittest.TestCase):
         divider_depth = variant_config(config, selected_variants(config, "Divider_Depth")[0])
         self.assertEqual(self.first_model_config(divider_depth)["defines"]["container_depth_grid_count"], 4)
 
-        for wrapper_name in ("drawer_floor.yaml", "drawer_floor_depth.yaml", "drawer_floor_both.yaml"):
-            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
-            self.assertNotIn("scene", wrapper)
-            self.assertNotIn("render", wrapper)
-            self.assertNotIn("annotations", wrapper)
-
         gallery_wrapper = yaml.safe_load(
             Path("annotation_renderer/configs/drawer_container_gallery.yaml").read_text(encoding="utf-8")
         )
@@ -1414,17 +1337,6 @@ class AnimationConfigTests(unittest.TestCase):
         self.assertEqual([item["id"] for item in expanding_floor["scene"]["objects"]], ["screw"])
         self.assertEqual(self.first_model_config(expanding_floor)["scad_file"], "opengrid_expanding_snap.scad")
 
-        for wrapper_name in (
-            "openconnect_plate_slot_annotated.yaml",
-            "openconnect_snap_annotated.yaml",
-            "opengrid_parametric_snap_floor.yaml",
-            "opengrid_expanding_snap_floor.yaml",
-        ):
-            wrapper = yaml.safe_load(Path("annotation_renderer/configs", wrapper_name).read_text(encoding="utf-8"))
-            self.assertNotIn("scene", wrapper)
-            self.assertNotIn("render", wrapper)
-            self.assertNotIn("annotations", wrapper)
-
     def test_each_scad_source_has_one_config_definition(self) -> None:
         source_locations: dict[str, list[str]] = {}
 
@@ -1445,17 +1357,26 @@ class AnimationConfigTests(unittest.TestCase):
         duplicates = {source: locations for source, locations in source_locations.items() if len(locations) > 1}
         self.assertEqual(duplicates, {})
 
-    def test_compatibility_config_uses_its_default_variant(self) -> None:
-        output = self.run_cli(
-            "--config",
-            "annotation_renderer/configs/openconnect_general_holder_side.yaml",
-            "--print-resolved-config",
-        )
-        resolved = json.loads(output)
+    def test_config_tree_has_no_selector_only_compatibility_files(self) -> None:
+        selector_configs: list[str] = []
+        for config_path in Path("annotation_renderer/configs").glob("*.yaml"):
+            raw_config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+            if not isinstance(raw_config, dict):
+                continue
+            variants = raw_config.get("variants")
+            if (
+                isinstance(raw_config.get("extends"), str)
+                and isinstance(variants, list)
+                and len(variants) == 1
+                and isinstance(variants[0], dict)
+                and "extends_variant" in variants[0]
+                and not any(key in raw_config for key in ("scene", "render", "annotations", "gallery"))
+            ):
+                selector_configs.append(config_path.name)
 
-        self.assertEqual([item["id"] for item in resolved["scene"]["objects"]], ["model_a"])
-        self.assertEqual(resolved["render"]["camera_view"], "right")
+        self.assertEqual(selector_configs, [])
 
+    def test_gallery_config_uses_its_default_variant_collection(self) -> None:
         gallery = load_config(Path("annotation_renderer/configs/openconnect_general_holder_gallery.yaml"), [])
         self.assertEqual(gallery["default_variant"], "default")
         self.assertEqual(gallery["gallery"]["variant_collection"], "parameter_gallery")
@@ -2175,9 +2096,11 @@ class AnimationConfigTests(unittest.TestCase):
     def test_sturdy_hook_side_exposes_hook_corner_fillet_callout(self) -> None:
         annotations = self.run_cli(
             "--config",
-            "annotation_renderer/configs/openconnect_sturdy_hook_side.yaml",
+            "annotation_renderer/configs/openconnect_sturdy_hook_default.yaml",
+            "--variant",
+            "side",
             "--list-annotations",
-            "openconnect_sturdy_hook_side",
+            "openconnect_sturdy_hook_default",
         )
 
         self.assertIn("angle_radius: hook_corner_fillet_detail", annotations)

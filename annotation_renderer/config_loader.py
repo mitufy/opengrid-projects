@@ -229,20 +229,27 @@ def dump_config_data(data: Mapping[str, object], *, path: Path) -> str:
     )
 
 
-def variant_from_config_file(config: Mapping[str, object], *, path: Path) -> dict[str, object]:
-    variant_name = config.get("variant_name") or path.stem
+def variant_from_config_file(
+    config: Mapping[str, object],
+    *,
+    path: Path,
+    selected_variant: str | None = None,
+    variant_name_override: str | None = None,
+) -> dict[str, object]:
+    variant_name = variant_name_override or config.get("variant_name") or path.stem
     if not isinstance(variant_name, str) or not variant_name.strip():
         raise ConfigError(f"variant_name must be a non-empty string in {project_relative_or_absolute(path)}")
     selected_config = config
-    default_variant = config.get("default_variant")
+    default_variant = selected_variant or config.get("default_variant")
     if default_variant is not None:
         if not isinstance(default_variant, str) or not default_variant.strip():
             raise ConfigError(f"default_variant must be a non-empty string in {project_relative_or_absolute(path)}")
         resolved_config = resolve_config_constants(config, include_variants=False)
         matches = selected_variants(resolved_config, default_variant.strip())
         if not matches:
+            selector_name = "variant" if selected_variant is not None else "default_variant"
             raise ConfigError(
-                f"default_variant {default_variant!r} does not match a variant in "
+                f"{selector_name} {default_variant!r} does not match a variant in "
                 f"{project_relative_or_absolute(path)}"
             )
         selected_config = variant_config(resolved_config, matches[0])
@@ -274,9 +281,29 @@ def expand_variant_configs(config: dict[str, object], *, config_dir: Path, seen:
         raise ConfigError("variants must be an array when variant_configs is used")
     merged_variants: list[object] = [deepcopy(item) for item in variants]
 
-    for index, raw_path in enumerate(variant_paths):
+    for index, raw_entry in enumerate(variant_paths):
+        selected_variant: str | None = None
+        variant_name_override: str | None = None
+        if isinstance(raw_entry, str):
+            raw_path = raw_entry
+        elif isinstance(raw_entry, Mapping):
+            unknown_keys = set(raw_entry) - {"path", "variant", "name"}
+            if unknown_keys:
+                unknown = ", ".join(sorted(str(key) for key in unknown_keys))
+                raise ConfigError(f"variant_configs[{index}] contains unknown fields: {unknown}")
+            raw_path = raw_entry.get("path")
+            selected_variant = raw_entry.get("variant")
+            variant_name_override = raw_entry.get("name")
+            if selected_variant is not None and (not isinstance(selected_variant, str) or not selected_variant.strip()):
+                raise ConfigError(f"variant_configs[{index}].variant must be a non-empty string")
+            if variant_name_override is not None and (
+                not isinstance(variant_name_override, str) or not variant_name_override.strip()
+            ):
+                raise ConfigError(f"variant_configs[{index}].name must be a non-empty string")
+        else:
+            raise ConfigError(f"variant_configs[{index}] must be a path string or an object")
         if not isinstance(raw_path, str) or not raw_path.strip():
-            raise ConfigError(f"variant_configs[{index}] must be a non-empty string")
+            raise ConfigError(f"variant_configs[{index}].path must be a non-empty string")
         variant_path = resolve_optional_config_path(raw_path, config_dir=config_dir)
         included_config = load_raw_config(variant_path, seen)
         included_constants = included_config.get("constants", {})
@@ -284,7 +311,14 @@ def expand_variant_configs(config: dict[str, object], *, config_dir: Path, seen:
             if not isinstance(included_constants, Mapping):
                 raise ConfigError(f"constants must be an object in {project_relative_or_absolute(variant_path)}")
             merged_constants = deep_merge(merged_constants, included_constants)
-        merged_variants.append(variant_from_config_file(included_config, path=variant_path))
+        merged_variants.append(
+            variant_from_config_file(
+                included_config,
+                path=variant_path,
+                selected_variant=selected_variant.strip() if selected_variant is not None else None,
+                variant_name_override=variant_name_override.strip() if variant_name_override is not None else None,
+            )
+        )
 
     config["constants"] = deepcopy(dict(merged_constants))
     config["variants"] = merged_variants

@@ -910,9 +910,9 @@ Collections are accepted by gallery rendering and all-variant validation:
 
 `gallery.variant_collection` makes a collection the default for plain `--gallery`. Command-line selection still wins, and omitting both the configured collection and command-line selection renders all variants.
 
-`openconnect_general_holder_default.yaml` demonstrates the one-file-per-model pattern. Its `default`, `empty`, `side`, `top`, `taper`, and four parameter-gallery variants share a single named annotation catalog. The old per-view files are small compatibility entry points, and `openconnect_general_holder_gallery.yaml` only supplies gallery layout plus its default collection. These wrappers should not receive new image definitions.
+`openconnect_general_holder_default.yaml` demonstrates the one-file-per-model pattern. Its `default`, `empty`, `side`, `top`, `taper`, and four parameter-gallery variants share a single named annotation catalog. Views are selected directly with `--variant`; `openconnect_general_holder_gallery.yaml` only supplies gallery layout plus its default collection.
 
-`openconnect_gridfinity_shelf_default.yaml` follows the same pattern for its `default`, `empty`, `top`, and four parameter-gallery variants. Its old view files contain only compatibility variant selection, while `openconnect_gridfinity_shelf_gallery.yaml` contains only layout and `gallery.variant_collection`.
+`openconnect_gridfinity_shelf_default.yaml` follows the same pattern for its `default`, `empty`, `top`, and four parameter-gallery variants. `openconnect_gridfinity_shelf_gallery.yaml` contains only layout and `gallery.variant_collection`.
 
 `openconnect_sturdy_shelf_default.yaml` likewise owns its `default`, `empty`, `side`, and four parameter-gallery variants. The shared named annotation catalog switches between grid dimensions and the side-view thickness/fillet callouts without duplicating complete annotation sections.
 
@@ -920,7 +920,7 @@ Collections are accepted by gallery rendering and all-variant validation:
 
 `openconnect_vasemode_container_default.yaml` shares one named annotation catalog across its default, empty, side, and texture-gallery variants. The variants toggle grid dimensions and the tilt callout, and reposition the texture label without duplicating its base style or aliases.
 
-`opengrid_framefit_hook_default.yaml` owns both its three-object default composition and single-object side detail. The old side config is a compatibility selector rather than a second copy of the model, camera, and annotation setup.
+`opengrid_framefit_hook_default.yaml` owns both its three-object default composition and single-object side detail.
 
 `opengrid_snap_gadget_hook_default.yaml` owns the composed default, empty and side details, and four shape-parameter variants. Compact per-view scene lists preserve the historical `model_a` versus `model` object IDs, while gallery changes use the stable `model` ID.
 
@@ -928,13 +928,13 @@ Collections are accepted by gallery rendering and all-variant validation:
 
 `opengrid_snap_gadget_plier_holder_default.yaml` completes the snap-gadget group with shared `model_a`/`snap_a` identities. Its empty variant uses `unset` for inherited dimensions and camera controls, and gallery variants add only their parameter and view changes.
 
-`openconnect_clamshell_holder_default.yaml` owns the default, alternate, empty, front, side, and four parameter-gallery variants. One named annotation catalog supplies every view: variants enable or reposition only the dimensions and labels they need, while the old view and gallery files remain selectors and layout wrappers.
+`openconnect_clamshell_holder_default.yaml` owns the default, alternate, empty, front, side, and four parameter-gallery variants. One named annotation catalog supplies every view: variants enable or reposition only the dimensions and labels they need, while the gallery file supplies layout.
 
-`openconnect_drawer_shell_container_default.yaml` owns the combined, empty, top, shell-only, and four parameter-gallery variants. It reuses the object and transform constants in `drawer_base.yaml`, targets scene objects by ID, and keeps both shell and container dimensions in one named annotation catalog. The shell-only config remains a compatibility selector even when imported by `model_defaults.yaml`.
+`openconnect_drawer_shell_container_default.yaml` owns the combined, empty, top, shell-only, and four parameter-gallery variants. It reuses the object and transform constants in `drawer_base.yaml`, targets scene objects by ID, and keeps both shell and container dimensions in one named annotation catalog. `model_defaults.yaml` imports its `shell` variant directly with a named `variant_configs` entry.
 
-`drawer_container_empty.yaml` is the canonical floor-scene drawer config. It owns the width, depth, combined-divider, and three parameter-gallery variants; the former `drawer_floor*.yaml` files are compatibility selectors. Its shared label catalog keeps width and depth values distinct, including separate `container_depth_grid_count` and `container_depth_compartment_list` targets.
+`drawer_container_empty.yaml` is the canonical floor-scene drawer config. It owns the width, depth, combined-divider, and three parameter-gallery variants. Its shared label catalog keeps width and depth values distinct, including separate `container_depth_grid_count` and `container_depth_compartment_list` targets.
 
-The smaller plate and snap utilities follow the same rule. `openconnect_plate_floor.yaml` owns its floor and slot-detail views, `opengrid_parametric_snap.yaml` owns its wall, floor, and OpenConnect-detail views, and `opengrid_expanding_snap.yaml` owns its wall and floor views. Their former alternate files are selectors, and each canonical config stores its SCAD source in one model constant.
+The smaller plate and snap utilities follow the same rule. `openconnect_plate_floor.yaml` owns its floor and slot-detail views, `opengrid_parametric_snap.yaml` owns its wall, floor, and OpenConnect-detail views, and `opengrid_expanding_snap.yaml` owns its wall and floor views. Each canonical config stores its SCAD source in one model constant.
 
 Canonical configs also reuse model constants across their own scene objects and variants. Each `scad_file` path is declared once in the config tree; additional objects reference that model constant. The test suite enforces this invariant so a model source cannot silently diverge between views.
 
@@ -951,7 +951,14 @@ variant_configs:
 
 Imported config paths are resolved relative to the importing config. The imported variant name comes from top-level `variant_name`, or from the filename stem when `variant_name` is omitted.
 
-If an imported config declares `default_variant`, `variant_configs` imports that resolved variant rather than the unresolved top-level base. This lets compatibility entry points select a canonical view without copying its scene, render, or annotation sections.
+If an imported config declares `default_variant`, `variant_configs` imports that resolved variant rather than the unresolved top-level base. An object entry can select and rename a variant explicitly:
+
+```yaml
+variant_configs:
+- path: openconnect_drawer_shell_container_default.yaml
+  variant: shell
+  name: openconnect_drawer_shell_default
+```
 
 Extra parameter groups live in `configs/parameter_details.yaml`, which extends the defaults and replaces the variant list with secondary detail renders:
 
