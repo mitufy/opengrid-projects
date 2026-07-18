@@ -279,6 +279,21 @@ class DiscoveryAndGalleryTests(RendererTestCase):
         self.assertNotIn("    - OCSLOT_MOVE_DISTANCE", output)
 
         annotations = discover_scad_source_annotations(Path("opengrid_parametric_snap.scad"), defines={})
+        bottom_height = next(
+            annotation
+            for annotation in annotations
+            if annotation["id"] == "ochead_bottom_height" and annotation["kind"] == "dimension"
+        )
+        profile_width = next(
+            annotation
+            for annotation in annotations
+            if annotation["id"] == "ochead_large_rect_width" and annotation["kind"] == "dimension"
+        )
+        profile_height = next(
+            annotation
+            for annotation in annotations
+            if annotation["id"] == "ochead_large_rect_height" and annotation["kind"] == "dimension"
+        )
         slot_move = next(
             annotation
             for annotation in annotations
@@ -295,6 +310,9 @@ class DiscoveryAndGalleryTests(RendererTestCase):
             if annotation["id"] == "OCHEAD_TOTAL_HEIGHT" and annotation["kind"] == "dimension"
         )
 
+        self.assertEqual(bottom_height["basis"], "openconnect_head_front_center_bottom_layer_height")
+        self.assertEqual(profile_width["basis"], "openconnect_head_large_bottom_profile_front_edge_width")
+        self.assertEqual(profile_height["basis"], "openconnect_head_large_bottom_profile_centerline_depth")
         self.assertEqual(slot_move["kind"], "dimension")
         self.assertEqual(slot_move["basis"], "openconnect_slot_slide_distance_default_reference")
         self.assertTrue(slot_move["internal"])
@@ -303,14 +321,41 @@ class DiscoveryAndGalleryTests(RendererTestCase):
         self.assertEqual(total_height["axis"], "z")
         self.assertTrue(total_height["internal"])
 
+        source = Path("opengrid_parametric_snap.scad").read_text(encoding="utf-8")
+        self.assertIn("_snap_thickness + _ochead_total_height - point[2]", source)
+        self.assertNotIn("_snap_thickness - _ochead_total_height + point[2]", source)
+
     def test_openconnect_plate_discovery_exposes_slot_anchors(self) -> None:
         output = self.run_cli("discover", "openconnect_plate.scad")
 
+        self.assertIn("    - plate_horizontal_size (axis=x", output)
+        self.assertIn("    - plate_vertical_size (axis=y", output)
+        self.assertIn("    - plate_corner_rounding_size", output)
         self.assertIn("    - slot_side_clearance (axis=x", output)
         self.assertIn("    - slot_depth_clearance (axis=z", output)
         self.assertNotIn("    - slot_large_rect_width", output)
 
         annotations = discover_scad_source_annotations(Path("openconnect_plate.scad"), defines={})
+        plate_width = next(
+            annotation
+            for annotation in annotations
+            if annotation["id"] == "plate_horizontal_size" and annotation["kind"] == "dimension"
+        )
+        plate_height = next(
+            annotation
+            for annotation in annotations
+            if annotation["id"] == "plate_vertical_size" and annotation["kind"] == "dimension"
+        )
+        plate_corner_radius = next(
+            annotation
+            for annotation in annotations
+            if annotation["id"] == "plate_corner_rounding_size" and annotation["kind"] == "radius"
+        )
+        plate_corner_arc = next(
+            annotation
+            for annotation in annotations
+            if annotation["id"] == "plate_corner_rounding_size_extent" and annotation["kind"] == "arc"
+        )
         slot_width = next(
             annotation
             for annotation in annotations
@@ -327,6 +372,13 @@ class DiscoveryAndGalleryTests(RendererTestCase):
             if annotation["id"] == "OCSLOT_MOVE_DISTANCE" and annotation["kind"] == "dimension"
         )
 
+        self.assertEqual(plate_width["axis"], "x")
+        self.assertNotIn("internal", plate_width)
+        self.assertEqual(plate_height["axis"], "y")
+        self.assertNotIn("internal", plate_height)
+        self.assertEqual(plate_corner_radius["basis"], "plate_back_right_corner_fillet_center_to_arc_midpoint")
+        self.assertNotIn("internal", plate_corner_radius)
+        self.assertTrue(plate_corner_arc["internal"])
         self.assertEqual(slot_width["axis"], "x")
         self.assertTrue(slot_width["internal"])
         self.assertEqual(slot_depth["basis"], "openconnect_plate_slot_total_cut_depth")

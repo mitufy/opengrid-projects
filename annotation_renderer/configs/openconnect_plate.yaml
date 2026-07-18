@@ -21,12 +21,57 @@ annotations:
         line_colors:
         - $constant: annotation_color_black
 variant_collections:
-  product_views: [floor, slot_annotated]
+  product_views: [floor, plate_annotated, slot_annotated]
 variants:
 - name: floor
+- name: plate_annotated
+  scene:
+    objects:
+    - id: plate
+      model:
+        $constant: openconnect_plate_model
+        defines:
+          slot_type: vase
+          # plate_corner_rounding: Fillet
+          # plate_corner_rounding_size: 3
+      material:
+        roughness: 0.1
+        # color: "#bbbbbb"
+  render:
+    width: 1920
+    height: 1440
+    fit_margin: 0
+    camera_view: top
+    # camera_view_preset: top_front
+  annotations:
+    object: plate
+    style:
+      # label_font_size_px: 44
+      # tick_length_px: 11
+      # line_width_px: 3
+      type_styles:
+        radius:
+          line_colors:
+          - $constant: annotation_color_red
+    chains:
+      plate_horizontal_size_dimension:
+        id: plate_horizontal_size
+        line_offset_px: 30
+        label_offset_px: 48
+      plate_vertical_size_dimension:
+        id: plate_vertical_size
+        line_offset_px: -30
+        label_offset_px: -48
+    # angle_radius_callouts:
+    #   plate_corner_rounding_size_callout:
+    #     arc_id: plate_corner_rounding_size_extent
+    #     radius_id: plate_corner_rounding_size
+    #     angle_id: plate_corner_rounding_size
+    #     show_angle_label: false
+    #     radius_label_offset_px: 80
 - name: slot_annotated
   scene:
-    blend_file: ../assets/scenes/opengrid_wall_scene.blend
+    blend_file: ../assets/scenes/opengrid_floor_scene.blend
     objects:
     - id: plate
       model:
@@ -35,18 +80,23 @@ variants:
           plate_horizontal_size: 28
           plate_vertical_size: 28
           slot_type: slot
-          slot_lock_distribution: All
       transform:
-        location_mm: [-14, 3.2, -14]
-        rotation_deg: [90, 0, 0]
+        location_mm: [0, 0, 0]
+        rotation_deg: [0, 0, 0]
         scale:
           $constant: blender_scene_scale_vector
   render:
-    width: 2400
-    height: 1800
-    fit_margin: 0.2
-    camera_view_preset: technical_iso
-    camera_distance_scale: 1.08
+    width: 1920
+    height: 1440
+    fit_margin: 0
+    camera_view: left
+    cutaway:
+      objects: [plate]
+      axis: x
+      keep: positive
+      position_fraction: 0.5
+    # camera_view_preset: technical_iso
+    # camera_distance_scale: 1
   annotations:
     object: plate
     style:

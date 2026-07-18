@@ -361,14 +361,14 @@ _ochead_front_y = _ochead_back_y - ochead_large_rect_height;
 _ochead_nub_y = _ochead_back_y - ochead_nub_to_top_distance;
 _ochead_middle_z = ochead_bottom_height;
 _ochead_top_z = ochead_bottom_height + ochead_middle_height;
-_ochead_annotation_side_x = _ochead_half_width;
-_ochead_annotation_side_y = _ochead_front_y + max(EPS, ochead_large_rect_height / 3);
+_ochead_annotation_layer_x = 0;
+_ochead_annotation_layer_y = _ochead_front_y;
 
 function _parametric_snap_openconnect_head_point(point) =
   annot_zrot([
     point[0] + snap_center_position_offset[0],
     point[1] + snap_center_position_offset[1],
-    _snap_thickness - _ochead_total_height + point[2],
+    _snap_thickness + _ochead_total_height - point[2],
   ], view_snap_rotated);
 
 function _parametric_snap_openconnect_screw_point(point) =
@@ -484,36 +484,36 @@ module emit_parametric_snap_openconnect_annotations() {
       label="ochead_bottom_height",
       axis="z",
       value=ochead_bottom_height,
-      start=[_ochead_annotation_side_x, _ochead_annotation_side_y, 0],
-      end=[_ochead_annotation_side_x, _ochead_annotation_side_y, ochead_bottom_height],
-      basis="openconnect_head_bottom_layer_height"
+      start=[_ochead_annotation_layer_x, _ochead_annotation_layer_y, 0],
+      end=[_ochead_annotation_layer_x, _ochead_annotation_layer_y, ochead_bottom_height],
+      basis="openconnect_head_front_center_bottom_layer_height"
     );
     emit_transformed_dimension_annotation(
       id="ochead_middle_height",
       label="ochead_middle_height",
       axis="z",
       value=ochead_middle_height,
-      start=[_ochead_annotation_side_x, _ochead_annotation_side_y, _ochead_middle_z],
-      end=[_ochead_annotation_side_x, _ochead_annotation_side_y, _ochead_top_z],
-      basis="openconnect_head_tapered_middle_height"
+      start=[_ochead_annotation_layer_x, _ochead_annotation_layer_y, _ochead_middle_z],
+      end=[_ochead_annotation_layer_x, _ochead_annotation_layer_y, _ochead_top_z],
+      basis="openconnect_head_front_center_tapered_middle_height"
     );
     emit_transformed_dimension_annotation(
       id="ochead_top_height",
       label="ochead_top_height",
       axis="z",
       value=ochead_top_height,
-      start=[_ochead_annotation_side_x, _ochead_annotation_side_y, _ochead_top_z],
-      end=[_ochead_annotation_side_x, _ochead_annotation_side_y, _ochead_total_height],
-      basis="openconnect_head_top_layer_height"
+      start=[_ochead_annotation_layer_x, _ochead_annotation_layer_y, _ochead_top_z],
+      end=[_ochead_annotation_layer_x, _ochead_annotation_layer_y, _ochead_total_height],
+      basis="openconnect_head_front_center_top_layer_height"
     );
     emit_transformed_dimension_annotation(
       id="ochead_large_rect_width",
       label="ochead_large_rect_width",
       axis="x",
       value=ochead_large_rect_width,
-      start=[-_ochead_half_width, _ochead_back_y, 0],
-      end=[_ochead_half_width, _ochead_back_y, 0],
-      basis="openconnect_head_large_bottom_profile_width"
+      start=[-_ochead_half_width, _ochead_front_y, 0],
+      end=[_ochead_half_width, _ochead_front_y, 0],
+      basis="openconnect_head_large_bottom_profile_front_edge_width"
     );
     emit_transformed_dimension_annotation(
       id="ochead_large_rect_height",
@@ -522,7 +522,7 @@ module emit_parametric_snap_openconnect_annotations() {
       value=ochead_large_rect_height,
       start=[_ochead_half_width, _ochead_front_y, 0],
       end=[_ochead_half_width, _ochead_back_y, 0],
-      basis="openconnect_head_large_bottom_profile_depth"
+      basis="openconnect_head_large_bottom_profile_centerline_depth"
     );
     emit_transformed_dimension_annotation(
       id="ochead_large_rect_chamfer",
@@ -538,8 +538,8 @@ module emit_parametric_snap_openconnect_annotations() {
       label="ochead_nub_to_top_distance",
       axis="y",
       value=ochead_nub_to_top_distance,
-      start=[_ochead_half_width, _ochead_nub_y, _ochead_middle_z],
-      end=[_ochead_half_width, _ochead_back_y, _ochead_middle_z],
+      start=[-_ochead_half_width, _ochead_nub_y, _ochead_middle_z],
+      end=[-_ochead_half_width, _ochead_back_y, _ochead_middle_z],
       basis="openconnect_head_back_edge_to_lock_nub_centerline"
     );
     emit_transformed_dimension_annotation(

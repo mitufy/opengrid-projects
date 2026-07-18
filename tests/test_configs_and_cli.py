@@ -612,11 +612,21 @@ class ConfigAndCliTests(RendererTestCase):
         plate = load_config(Path("annotation_renderer/configs/openconnect_plate.yaml"), [])
         self.assertEqual(
             [variant["name"] for variant in selected_variant_collection(plate, "product_views")],
-            ["floor", "slot_annotated"],
+            ["floor", "plate_annotated", "slot_annotated"],
+        )
+        annotated_plate_size = variant_config(plate, selected_variants(plate, "plate_annotated")[0])
+        self.assertEqual([item["id"] for item in annotated_plate_size["scene"]["objects"]], ["plate"])
+        self.assertEqual(
+            [item["ids"] for item in chain_items_from_config(annotated_plate_size["annotations"])],
+            [["plate_horizontal_size"], ["plate_vertical_size"]],
         )
         annotated_plate = variant_config(plate, selected_variants(plate, "slot_annotated")[0])
         self.assertEqual([item["id"] for item in annotated_plate["scene"]["objects"]], ["plate"])
-        self.assertTrue(annotated_plate["scene"]["blend_file"].endswith("opengrid_wall_scene.blend"))
+        self.assertTrue(annotated_plate["scene"]["blend_file"].endswith("opengrid_floor_scene.blend"))
+        self.assertEqual(self.first_model_config(annotated_plate)["defines"]["plate_horizontal_size"], 28)
+        self.assertEqual(self.first_model_config(annotated_plate)["defines"]["plate_vertical_size"], 28)
+        self.assertEqual(annotated_plate["render"]["cutaway"]["axis"], "x")
+        self.assertEqual(annotated_plate["render"]["cutaway"]["position_fraction"], 0.5)
         self.assertEqual(len(chain_items_from_config(annotated_plate["annotations"])), 9)
 
         parametric_snap = load_config(Path("annotation_renderer/configs/opengrid_parametric_snap.yaml"), [])
@@ -630,7 +640,7 @@ class ConfigAndCliTests(RendererTestCase):
         self.assertNotIn("camera_view", snap_floor["render"])
         annotated_snap = variant_config(parametric_snap, selected_variants(parametric_snap, "openconnect_annotated")[0])
         self.assertEqual(annotated_snap["annotations"]["object"], "snap")
-        self.assertEqual(len(chain_items_from_config(annotated_snap["annotations"])), 10)
+        self.assertEqual(len(chain_items_from_config(annotated_snap["annotations"])), 7)
         self.assertEqual(annotated_snap["annotations"]["radius_callouts"][0]["name"], "ochead_nub_fillet_callout")
 
         expanding_snap = load_config(Path("annotation_renderer/configs/opengrid_expanding_snap.yaml"), [])

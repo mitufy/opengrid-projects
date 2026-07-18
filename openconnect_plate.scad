@@ -119,6 +119,63 @@ slot_annotation_front_y = slot_annotation_back_y - slot_large_rect_height;
 slot_annotation_nub_y = slot_annotation_back_y - slot_nub_to_top_distance;
 slot_annotation_side_x = slot_annotation_half_width;
 slot_annotation_side_y = slot_annotation_front_y + max(EPS, slot_large_rect_height / 3);
+plate_annotation_edge_offset =
+  plate_corner_rounding != "None" && plate_corner_rounding_size > 0
+  ? plate_corner_rounding_size : 0;
+plate_corner_rounding_center = [
+  final_plate_width - plate_corner_rounding_size,
+  final_plate_height - plate_corner_rounding_size,
+  slot_annotation_top_z
+];
+plate_corner_rounding_arc_segments = 12;
+function plate_corner_rounding_arc_point(angle) = [
+  plate_corner_rounding_center[0] + cos(angle) * plate_corner_rounding_size,
+  plate_corner_rounding_center[1] + sin(angle) * plate_corner_rounding_size,
+  slot_annotation_top_z
+];
+plate_corner_rounding_arc_points = [
+  for (i = [0:plate_corner_rounding_arc_segments])
+    plate_corner_rounding_arc_point(90 * i / plate_corner_rounding_arc_segments)
+];
+plate_corner_rounding_radius_edge = plate_corner_rounding_arc_point(45);
+
+module emit_plate_annotations() {
+  emit_dimension_annotation(
+    id="plate_horizontal_size",
+    label="plate_horizontal_size",
+    axis="x",
+    value=final_plate_width,
+    start=[0, plate_annotation_edge_offset, slot_annotation_top_z],
+    end=[final_plate_width, plate_annotation_edge_offset, slot_annotation_top_z],
+    basis="plate_front_edge_full_horizontal_span"
+  );
+  emit_dimension_annotation(
+    id="plate_vertical_size",
+    label="plate_vertical_size",
+    axis="y",
+    value=final_plate_height,
+    start=[plate_annotation_edge_offset, 0, slot_annotation_top_z],
+    end=[plate_annotation_edge_offset, final_plate_height, slot_annotation_top_z],
+    basis="plate_left_edge_full_vertical_span"
+  );
+  if (plate_corner_rounding == "Fillet" && plate_corner_rounding_size > 0) {
+    emit_radius_annotation(
+      id="plate_corner_rounding_size",
+      label="plate_corner_rounding_size",
+      value=plate_corner_rounding_size,
+      center=plate_corner_rounding_center,
+      edge=plate_corner_rounding_radius_edge,
+      basis="plate_back_right_corner_fillet_center_to_arc_midpoint"
+    );
+    emit_arc_annotation(
+      id="plate_corner_rounding_size_extent",
+      label="plate_corner_rounding_size_extent",
+      value=plate_corner_rounding_size,
+      points=plate_corner_rounding_arc_points,
+      basis="plate_back_right_corner_fillet_arc"
+    );
+  }
+}
 
 function plate_slot_point(point) = [
   annotation_slot_center[0] + point[0],
@@ -319,6 +376,7 @@ module emit_plate_slot_annotations() {
   );
 }
 
+emit_plate_annotations();
 emit_plate_slot_annotations();
 
 //BEGIN generation

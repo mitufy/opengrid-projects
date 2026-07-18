@@ -65,6 +65,7 @@ variants:
   unset: [render.fit_margin, render.camera_view, render.lighting.frontlight_power]
 - name: openconnect_annotated
   scene:
+    blend_file: ../assets/scenes/opengrid_floor_scene.blend
     objects:
     - id: snap
       model:
@@ -78,11 +79,12 @@ variants:
         scale:
           $constant: blender_scene_scale_vector
   render:
-    width: 2400
-    height: 1800
-    fit_margin: 0.22
-    camera_view_preset: technical_iso
-    camera_distance_scale: 1.08
+    width: 1920
+    height: 1440
+    fit_margin: 0
+    camera_view: top
+    lighting:
+      toplight_power: 3
   annotations:
     object: snap
     style:
@@ -100,74 +102,73 @@ variants:
           line_colors:
           - $constant: annotation_color_red
     chains:
-      ochead_height_dimension:
-        ids: [ochead_bottom_height, ochead_middle_height, ochead_top_height]
-        labels:
-          ochead_bottom_height: '0.6'
-          ochead_middle_height: '1.4'
-          ochead_top_height: '0.6'
-        line_offset_px: 72
-        label_offset_px: 58
-        label_along_offset_px: 0
+      # ochead_height_dimension:
+      #   ids: [ochead_bottom_height, ochead_middle_height, ochead_top_height]
+      #   labels:
+      #     ochead_bottom_height: '0.6'
+      #     ochead_middle_height: '1.4'
+      #     ochead_top_height: '0.6'
+      #   line_offset_px: 72
+      #   label_offset_px: 58
+      #   label_along_offset_px: 0
       ochead_large_rect_width_dimension:
         id: ochead_large_rect_width
         labels:
           ochead_large_rect_width: '17'
-        line_offset_px: -80
-        label_offset_px: -60
+        line_offset_px: 40
+        label_offset_px: 40
       ochead_large_rect_height_dimension:
         id: ochead_large_rect_height
         labels:
           ochead_large_rect_height: '10.6'
-        line_offset_px: 72
-        label_offset_px: 54
+        line_offset_px: 40
+        label_offset_px: 40
       ochead_large_rect_chamfer_dimension:
         id: ochead_large_rect_chamfer
         labels:
-          ochead_large_rect_chamfer: '4'
-        line_offset_px: -42
-        label_offset_px: -36
+          ochead_large_rect_chamfer: 'large_rect_chamfer: 4'
+        line_offset_px: -40
+        label_offset_px: -40
       ochead_nub_to_top_distance_dimension:
         id: ochead_nub_to_top_distance
         labels:
-          ochead_nub_to_top_distance: '7.2'
-        line_offset_px: 86
-        label_offset_px: 54
+          ochead_nub_to_top_distance: 'nub_to_top_distance: 7.2'
+        line_offset_px: -40
+        label_offset_px: -40
       ochead_nub_depth_dimension:
         id: ochead_nub_depth
         labels:
           ochead_nub_depth: '0.6'
-        line_offset_px: -66
-        label_offset_px: -42
-        label_along_offset_px: 90
+        line_offset_px: -40
+        label_offset_px: -40
       ochead_nub_tip_height_dimension:
         id: ochead_nub_tip_height
         labels:
           ochead_nub_tip_height: '1.2'
-        line_offset_px: 50
-        label_offset_px: 36
-      ochead_back_pos_offset_dimension:
-        id: ochead_back_pos_offset
-        labels:
-          ochead_back_pos_offset: '0.4'
-        line_offset_px: -34
-        label_offset_px: -28
-      ocslot_move_distance_dimension:
-        id: OCSLOT_MOVE_DISTANCE
-        labels:
-          OCSLOT_MOVE_DISTANCE: '10.6'
-        line_offset_px: 104
-        label_offset_px: 64
-      ocslot_onramp_clearance_dimension:
-        id: OCSLOT_ONRAMP_CLEARANCE
-        labels:
-          OCSLOT_ONRAMP_CLEARANCE: '0.8'
-        line_offset_px: -70
-        label_offset_px: -44
-    radius_callouts:
-      ochead_nub_fillet_callout:
-        id: ochead_nub_fillet
-        labels:
-          ochead_nub_fillet: '0.8'
-        label_offset_px: -92
-  unset: [render.camera_view, render.lighting]
+        line_offset_px: 40
+        label_offset_px: 40
+      # ochead_back_pos_offset_dimension:
+      #   id: ochead_back_pos_offset
+      #   labels:
+      #     ochead_back_pos_offset: '0.4'
+      #   line_offset_px: -34
+      #   label_offset_px: -28
+      # ocslot_move_distance_dimension:
+      #   id: OCSLOT_MOVE_DISTANCE
+      #   labels:
+      #     OCSLOT_MOVE_DISTANCE: '10.6'
+      #   line_offset_px: 104
+      #   label_offset_px: 64
+      # ocslot_onramp_clearance_dimension:
+      #   id: OCSLOT_ONRAMP_CLEARANCE
+      #   labels:
+      #     OCSLOT_ONRAMP_CLEARANCE: '0.8'
+      #   line_offset_px: -70
+      #   label_offset_px: -44
+    # radius_callouts:
+    #   ochead_nub_fillet_callout:
+    #     id: ochead_nub_fillet
+    #     labels:
+    #       ochead_nub_fillet: '0.8'
+    #     label_offset_px: -92
+  # unset: [render.camera_view, render.lighting]
