@@ -41,6 +41,18 @@ side_cutout_back_margin = 0; //0.1
 side_cutout_front_margin = 0; //0.1
 side_cutout_rounding = 2; //0.1
 
+/* [Slot Manual Adjustment] */
+//By default, the slots have their positions checked and ones without sufficient space around them are disabled. The check can be too strict, especially when slot counts are manually adjusted.
+skip_slot_fit_check = false;
+//Manually offset the horizontal position of the slots.
+slot_horizontal_offset = 0; //0.1
+//Manually offset the vertical position of the slots.
+slot_vertical_offset = 0; //0.1
+//Manually increase or decrease the number of horizontal slots. 0 makes no change.
+slot_horizontal_count_adjust = 0;
+//Manually increase or decrease the number of vertical slots. 0 makes no change.
+slot_vertical_count_adjust = 0;
+
 /* [openConnect Settings] */
 //Usually, "Left" and "Right" are used when mounting underdesk, "Up" and "Down" are used when mounting on a wall.
 slot_slide_direction = "Left"; //[Left,Right,Up,Down]
@@ -48,10 +60,6 @@ slot_slide_direction = "Left"; //[Left,Right,Up,Down]
 slot_lock_distribution = "Corners"; //["All", "Staggered", "Corners", "Top Corners", "None"]
 //Entry ramp direction can matter when installing in tight spaces.
 slot_entryramp_flip = false;
-//Manually offset the horizontal position of the slots.
-slot_horizontal_offset = 0; //0.1
-//Manually offset the vertical position of the slots.
-slot_vertical_offset = 0; //0.1
 
 /* [Advanced Settings] */
 //Increase clearances if the slots feel too tight.
@@ -91,15 +99,16 @@ holder_front_thickness = holder_slot_position == "Top" ? slot_wall_thickness : h
 holder_width = item_width + holder_thickness * 2;
 holder_height = item_height + holder_thickness + holder_front_thickness;
 holder_depth = item_depth + holder_thickness + holder_top_thickness;
+slot_default_space_buffer = 6;
+slot_rounding_space_buffer = 12;
 
 final_corner_rounding = max(0, min(item_width / 2, item_height / 2, item_corner_rounding));
-//The calculation of horizontal slots for Front version is just an approximation.
 final_slot_h_grids =
-  holder_slot_position == "Back" ? max(1, floor(holder_width / OG_TILE_SIZE))
-  : max(1, floor(max(holder_width, holder_width - final_corner_rounding * 2 + 10) / OG_TILE_SIZE));
+  holder_slot_position == "Back" ? max(1, floor((holder_width + slot_default_space_buffer) / OG_TILE_SIZE))
+  : max(1, floor(max(holder_width + slot_default_space_buffer, holder_width + slot_rounding_space_buffer - final_corner_rounding * 2) / OG_TILE_SIZE));
 final_slot_v_grids =
-  holder_slot_position == "Back" ? max(1, floor(holder_height / OG_TILE_SIZE))
-  : max(1, floor(holder_depth / OG_TILE_SIZE));
+  holder_slot_position == "Back" ? max(1, floor((holder_height + slot_default_space_buffer) / OG_TILE_SIZE))
+  : max(1, floor((holder_depth + slot_default_space_buffer) / OG_TILE_SIZE));
 //cut off the bridge part of the upper most slot
 middle_cutoff_size_base = max(0.8, slot_edge_wall_min_width) * 2 + EPS;
 holder_middle_cutoff_tiles = max(0, final_slot_h_grids - max(1, holder_slot_column_limit) * 2);
@@ -157,7 +166,7 @@ up(generate_holder_part == "Both" ? holder_height / 2 : holder_width / 2)
             flat_region = holder_slot_position == "Back" ? left(slot_horizontal_offset, fwd(slot_vertical_offset, rect([holder_width, holder_height], rounding=final_corner_rounding))) : left(slot_horizontal_offset, fwd(slot_vertical_offset, rect([holder_width - final_corner_rounding * 2, holder_depth])));
             attach(attach_anchor, TOP, inside=true) {
               right(slot_horizontal_offset) back(slot_vertical_offset)
-                  openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[flat_region]);
+                  #openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids + slot_horizontal_count_adjust, vertical_grids=final_slot_v_grids + slot_vertical_count_adjust, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=skip_slot_fit_check ? [] : [flat_region]);
               // openconnect_slot_grid_limit_debug(slot_cfg=_slot_cfg, horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[flat_region]);
             }
             if (final_corner_rounding > 0)
