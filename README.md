@@ -81,7 +81,7 @@ Customizable: item size, slot placement, front opening, side openings, and gener
 
 A wall-mounted openConnect shelf with an integrated lightweight Gridfinity-compatible baseplate.
 
-Customizable: Gridfinity unit count, baseplate style, side/front rim and lip, magnet layout.
+Customizable: Gridfinity unit count, baseplate style, side/front rim and lip, magnet layout, and side screw connections.
 
 ## openGrid Snaps and Framefit
 

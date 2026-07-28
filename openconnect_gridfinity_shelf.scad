@@ -6,6 +6,7 @@ Created by mitufy. https://github.com/mitufy
 openConnect is a connector system designed for openGrid. https://www.printables.com/model/1559478-openconnect-opengrids-own-connector-system
 openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 Gridfinity is created by Zack Freedman. https://gridfinity.xyz/
+Part of code based on Gridfinity Rebuilt: https://github.com/kennetek/gridfinity-rebuilt-openscad
 */
 
 /* [Gridfinity Settings] */
@@ -15,6 +16,12 @@ gridfinity_depth_grids = 2;
 magnet_position = "None"; //["None", "Corners Only", "All"]
 magnet_diameter = 6.4; //0.1
 magnet_thickness = 2.4; //0.1
+
+/* [Screw-together Connections] */
+// Front-most screwholes are omitted when they would have too little space below them.
+enable_screw_connections = true;
+// Defaults work for M3 and 4-40 screws.
+connection_screw_diameter = 3.3; //0.1
 
 /* [Shelf Rim] */
 // Adds space between the back wall and the Gridfinity bin area.
@@ -79,6 +86,7 @@ GF_SKELETON_RAIL_WIDTH = GF_BOTTOM_INSET;
 GF_SKELETON_WINDOW_SIZE = GF_PITCH - GF_SKELETON_RAIL_WIDTH * 2;
 GF_ATTACHMENT_BOSS_RAIL_OVERLAP = 2.4;
 GF_ATTACHMENT_WINDOW_SIZE = max(1, min(GF_SKELETON_WINDOW_SIZE, (GF_MAGNET_POSITION + GF_ATTACHMENT_BOSS_DIAMETER / 2 - GF_ATTACHMENT_BOSS_RAIL_OVERLAP) * 2));
+SCREW_CONNECTION_MIN_WALL = 0.8;
 //END gridfinity constants
 
 //BEGIN openConnect parameters
@@ -105,7 +113,11 @@ final_magnet_position =
 final_magnet_diameter = max(0, magnet_diameter);
 final_magnet_thickness = max(0, magnet_thickness);
 magnet_holes_enabled = final_magnet_position != "None" && final_magnet_diameter > 0 && final_magnet_thickness > 0;
-final_shelf_base_extra_thickness = magnet_holes_enabled && final_magnet_thickness > 2.4 ? final_magnet_thickness : 2.4;
+final_connection_screw_diameter = max(0, connection_screw_diameter);
+screw_connections_enabled = enable_screw_connections && final_connection_screw_diameter > 0;
+final_shelf_base_extra_thickness =
+  magnet_holes_enabled ? max(2.4, final_magnet_thickness)
+  : 2.4;
 final_socket_clearance = max(0, gridfinity_socket_clearance);
 //Ensure the slot wall is at least 0.85 thick.
 slot_backwall_filler = 0.7;
@@ -186,6 +198,8 @@ module gridfinity_baseplate_cutouts() {
   if (magnet_holes_enabled)
     magnet_position_copies()
       cyl(d=final_magnet_diameter, h=final_magnet_thickness, $fn=128, anchor=TOP);
+  if (screw_connections_enabled)
+    screw_connection_cutouts();
 }
 
 module baseplate_window_cutouts() {
@@ -214,6 +228,32 @@ module magnet_position_copies() {
   else if (final_magnet_position == "Corners Only")
     grid_copies(spacing=corner_spacing, n=[2, 2])
       children();
+}
+
+
+module screw_connection_cutouts() {
+  hole_radius = final_connection_screw_diameter / 2;
+  // Keeps a printable wall above the hole while the shelf wedge supplies material below.
+  hole_z = -(hole_radius + SCREW_CONNECTION_MIN_WALL);
+  hole_depth = GF_PITCH / 2;
+  grid_front_y = final_gridfinity_depth_grids * GF_PITCH / 2 + final_shelf_front_rim;
+
+  for (x = [-shelf_width / 2, shelf_width / 2])
+    for (grid_y = [0:final_gridfinity_depth_grids - 1])
+      let(
+        hole_y = (grid_y - (final_gridfinity_depth_grids - 1) / 2) * GF_PITCH,
+        hole_tilt_height = final_shelf_bottom_tilt_height * (grid_front_y - hole_y) / shelf_depth,
+        hole_center_to_bottom = (final_shelf_base_extra_thickness + hole_tilt_height + hole_z) * cos(print_bottom_angle),
+        hole_bottom_wall = hole_center_to_bottom - hole_radius
+      )
+      if (hole_bottom_wall >= SCREW_CONNECTION_MIN_WALL)
+        translate([
+          x,
+          hole_y,
+          hole_z,
+        ])
+          rotate([0, 90, 0])
+            cylinder(h=hole_depth, d=final_connection_screw_diameter, center=true, $fn=64);
 }
 
 module gridfinity_socket_cutout() {
