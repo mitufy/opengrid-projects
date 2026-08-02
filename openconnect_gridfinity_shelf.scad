@@ -9,19 +9,19 @@ Gridfinity is created by Zack Freedman. https://gridfinity.xyz/
 Part of code based on Gridfinity Rebuilt: https://github.com/kennetek/gridfinity-rebuilt-openscad
 */
 
-/* [Gridfinity Settings] */
+/* [Main Settings] */
+baseplate_style = "Default"; //["Default", "Magnet - All", "Magnet - Corners Only"]
 //An even number of width grids is recommended, as 2 Gridfinity cells (42mm x 2) line up with 3 openGrid cells (28mm x 3).
 gridfinity_width_grids = 2;
 gridfinity_depth_grids = 2;
-magnet_position = "None"; //["None", "Corners Only", "All"]
-magnet_diameter = 6.4; //0.1
-magnet_thickness = 2.4; //0.1
 
-/* [Screw-together Connections] */
+/* [Shelf Body] */
 // Front-most screwholes are omitted when they would have too little space below them.
 enable_screw_connections = true;
 // Defaults work for M3 and 4-40 screws.
 connection_screw_diameter = 3.3; //0.1
+magnet_diameter = 6.4; //0.1
+magnet_thickness = 2.4; //0.1
 
 /* [Shelf Rim] */
 // Adds space between the back wall and the Gridfinity bin area.
@@ -71,7 +71,6 @@ GF_BASEPLATE_RISER_HEIGHT = 1.8;
 GF_BASEPLATE_UPPER_TAPER_HEIGHT = 2.15;
 GF_BASEPLATE_PROFILE_HEIGHT = GF_BASEPLATE_LOWER_TAPER_HEIGHT + GF_BASEPLATE_RISER_HEIGHT + GF_BASEPLATE_UPPER_TAPER_HEIGHT;
 GF_BASEPLATE_CLEARANCE_HEIGHT = 0.35;
-GF_BASEPLATE_HEIGHT = GF_BASEPLATE_CLEARANCE_HEIGHT + GF_BASEPLATE_PROFILE_HEIGHT;
 GF_TOP_CORNER_RADIUS = 4;
 GF_MID_INSET = GF_BASEPLATE_UPPER_TAPER_HEIGHT;
 GF_BOTTOM_INSET = GF_BASEPLATE_LOWER_TAPER_HEIGHT + GF_BASEPLATE_UPPER_TAPER_HEIGHT;
@@ -107,12 +106,14 @@ _slot_cfg = ocslot_cfg(
 final_gridfinity_width_grids = max(1, floor(gridfinity_width_grids));
 final_gridfinity_depth_grids = max(1, floor(gridfinity_depth_grids));
 final_magnet_position =
-  magnet_position == "All" ? "All"
-  : magnet_position == "Corners Only" ? "Corners Only"
+  baseplate_style == "Magnet - All" ? "All"
+  : baseplate_style == "Magnet - Corners Only" ? "Corners Only"
   : "None";
 final_magnet_diameter = max(0, magnet_diameter);
 final_magnet_thickness = max(0, magnet_thickness);
 magnet_holes_enabled = final_magnet_position != "None" && final_magnet_diameter > 0 && final_magnet_thickness > 0;
+final_baseplate_clearance_height = magnet_holes_enabled ? GF_BASEPLATE_CLEARANCE_HEIGHT : 0;
+final_baseplate_height = final_baseplate_clearance_height + GF_BASEPLATE_PROFILE_HEIGHT;
 final_connection_screw_diameter = max(0, connection_screw_diameter);
 screw_connections_enabled = enable_screw_connections && final_connection_screw_diameter > 0;
 final_shelf_base_extra_thickness =
@@ -127,7 +128,7 @@ final_shelf_front_rim = max(0, shelf_front_rim);
 
 shelf_width = final_gridfinity_width_grids * GF_PITCH + final_shelf_side_rim * 2;
 shelf_depth = final_shelf_back_offset + final_gridfinity_depth_grids * GF_PITCH + final_shelf_front_rim;
-shelf_deck_height = final_shelf_base_extra_thickness + GF_BASEPLATE_HEIGHT;
+shelf_deck_height = final_shelf_base_extra_thickness + final_baseplate_height;
 final_shelf_bottom_tilt_height = max(0, OG_TILE_SIZE - shelf_deck_height);
 
 slot_h_grids = max(1, floor(shelf_width / OG_TILE_SIZE));
@@ -264,24 +265,24 @@ module gridfinity_socket_cutout() {
   mid_radius = max(0.1, GF_MID_CORNER_RADIUS);
   bottom_radius = max(0.1, GF_BOTTOM_CORNER_RADIUS);
 
-  linear_extrude(height=GF_BASEPLATE_CLEARANCE_HEIGHT + EPS)
+  linear_extrude(height=final_baseplate_clearance_height + EPS)
     rect([bottom_size, bottom_size], rounding=bottom_radius, $fn=128);
   hull() {
-    up(GF_BASEPLATE_CLEARANCE_HEIGHT)
+    up(final_baseplate_clearance_height)
       linear_extrude(height=EPS)
         rect([bottom_size, bottom_size], rounding=bottom_radius, $fn=128);
-    up(GF_BASEPLATE_CLEARANCE_HEIGHT + GF_BASEPLATE_LOWER_TAPER_HEIGHT)
+    up(final_baseplate_clearance_height + GF_BASEPLATE_LOWER_TAPER_HEIGHT)
       linear_extrude(height=EPS)
         rect([mid_size, mid_size], rounding=mid_radius, $fn=128);
   }
-  up(GF_BASEPLATE_CLEARANCE_HEIGHT + GF_BASEPLATE_LOWER_TAPER_HEIGHT - EPS)
+  up(final_baseplate_clearance_height + GF_BASEPLATE_LOWER_TAPER_HEIGHT - EPS)
     linear_extrude(height=GF_BASEPLATE_RISER_HEIGHT + EPS * 2)
       rect([mid_size, mid_size], rounding=mid_radius, $fn=128);
   hull() {
-    up(GF_BASEPLATE_CLEARANCE_HEIGHT + GF_BASEPLATE_LOWER_TAPER_HEIGHT + GF_BASEPLATE_RISER_HEIGHT)
+    up(final_baseplate_clearance_height + GF_BASEPLATE_LOWER_TAPER_HEIGHT + GF_BASEPLATE_RISER_HEIGHT)
       linear_extrude(height=EPS)
         rect([mid_size, mid_size], rounding=mid_radius, $fn=128);
-    up(GF_BASEPLATE_HEIGHT + EPS)
+    up(final_baseplate_height + EPS)
       linear_extrude(height=EPS)
         rect([top_size, top_size], rounding=top_radius, $fn=128);
   }
