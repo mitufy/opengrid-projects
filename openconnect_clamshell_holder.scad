@@ -29,17 +29,29 @@ front_opening_left_right_margin = 8; //0.1
 //Alternatively, you can set margins to very large values, thus disable the front opening completely.
 front_opening_top_bottom_margin = 6; //0.1
 
-/* [Side Opening] */
-//Cutting a hole in the side, useful for items such as power strips.
+/* [Side Cutout] */
+//Cutting a hole in the sides, useful for items such as power strips.
 holder_side_cutout = "Right"; //[None, Left, Right, Both]
-//Using the four margin values below, the size and the position of the side opening can be freely adjusted.
+//Using the margin values below, the size and the position of the side cutouts can be freely adjusted.
 side_cutout_top_margin = 20; //0.1
 //Cutout's top/bottom margins starts at the end of front_opening_top_bottom_margin, so it's necessary to substract its value when the calculation is based on item_height.
 side_cutout_bottom_margin = 10; //0.1
-//By default, the cutout would not remove the edges of the front opening. You can set cutout margins to negative values to change this.
+//Cutout aligns with the edges of the front opening when margin is 0. Set margins to negative values to remove a part of front opening.
 side_cutout_back_margin = 0; //0.1
 side_cutout_front_margin = 0; //0.1
-side_cutout_rounding = 2; //0.1
+
+/* [Top/Bottom Cutout] */
+//Cutting a hole in the top and bottom, useful for items that has ports/cables on many sides.
+holder_top_bottom_cutout = "None"; //[None, Top, Bottom, Both]
+//Using the margin values below, the size and position of each cutout can be freely adjusted.
+top_cutout_left_margin = 2; //0.1
+top_cutout_right_margin = 2; //0.1
+top_cutout_back_margin = 5; //0.1
+top_cutout_front_margin = 5; //0.1
+bottom_cutout_left_margin = 2; //0.1
+bottom_cutout_right_margin = 2; //0.1
+bottom_cutout_back_margin = 5; //0.1
+bottom_cutout_front_margin = 5; //0.1
 
 /* [Slot Manual Adjustment] */
 //By default, the slots have their positions checked and ones without sufficient space around them are disabled. The check can be too strict, especially when slot counts are manually adjusted.
@@ -62,6 +74,8 @@ slot_lock_distribution = "Corners"; //["All", "Staggered", "Corners", "Top Corne
 slot_entryramp_flip = false;
 
 /* [Advanced Settings] */
+side_cutout_rounding = 2; //0.1
+top_bottom_cutout_rounding = 2; //0.1
 //Increase clearances if the slots feel too tight.
 slot_side_clearance = 0.1; //0.01
 slot_depth_clearance = 0.1; //0.01
@@ -139,18 +153,20 @@ up(generate_holder_part == "Both" ? holder_height / 2 : holder_width / 2)
                           rounding_edge_mask(r=min(max(0, item_width - front_opening_left_right_margin * 2 - final_corner_rounding * 2), front_opening_top_bottom_margin, 2), spin=180);
                 }
               }
+            //side cutouts
             if (holder_side_cutout != "None") {
               side_cutout_height = item_height - front_opening_top_bottom_margin * 2 - side_cutout_top_margin - side_cutout_bottom_margin;
               side_cutout_depth = item_depth + holder_thickness - side_cutout_back_margin - side_cutout_front_margin;
               side_cutout_width =
                 side_cutout_bottom_margin < 0 || side_cutout_top_margin < 0 ? holder_width / 2
                 : (holder_width - (item_width - front_opening_left_right_margin * 2)) / 2 + max(0, final_corner_rounding - side_cutout_bottom_margin, final_corner_rounding - side_cutout_top_margin);
-              rounding_edges = side_cutout_front_margin > 0 ? "X" : [FRONT + TOP, BACK + TOP];
+              side_cutout_final_rounding = max(0, min(side_cutout_height / 2, side_cutout_depth / 2, side_cutout_rounding));
+              side_cutout_rounding_edges = side_cutout_front_margin > 0 ? "X" : [FRONT + TOP, BACK + TOP];
               if (side_cutout_height > 0 && side_cutout_depth > 0)
                 back(holder_front_thickness + side_cutout_top_margin + front_opening_top_bottom_margin) down(holder_top_thickness + side_cutout_back_margin) {
                     conditional_flip(axis="X", copy=holder_side_cutout == "Both", condition=(holder_side_cutout == "Both" || holder_side_cutout == "Left"))
                       attach(FRONT + TOP, FRONT + TOP, align=RIGHT, inside=true)
-                        cuboid([side_cutout_width + EPS, side_cutout_height + EPS * 2, side_cutout_depth + EPS * 2], edges=rounding_edges, rounding=max(0, min(side_cutout_height / 2, side_cutout_depth / 2, side_cutout_rounding))) {
+                        cuboid([side_cutout_width + EPS, side_cutout_height + EPS * 2, side_cutout_depth + EPS * 2], edges=side_cutout_rounding_edges, rounding=side_cutout_final_rounding) {
                           if (side_cutout_top_margin - final_corner_rounding > EPS && side_cutout_bottom_margin - final_corner_rounding > EPS && front_opening_left_right_margin > EPS) {
                             if (side_cutout_top_margin - final_corner_rounding > EPS)
                               edge_mask([LEFT + FRONT])
@@ -162,13 +178,41 @@ up(generate_holder_part == "Both" ? holder_height / 2 : holder_width / 2)
                         }
                   }
             }
+            //top cutout
+            top_cutout_width = item_width - top_cutout_left_margin - top_cutout_right_margin;
+            top_cutout_depth = item_depth - top_cutout_back_margin - top_cutout_front_margin;
+            top_cutout_x = (top_cutout_left_margin - top_cutout_right_margin) / 2;
+            top_cutout_front = -holder_depth / 2 + top_cutout_front_margin + holder_thickness;
+            top_cutout_back = holder_depth / 2 - holder_top_thickness - top_cutout_back_margin;
+            top_cutout_z = (top_cutout_front + top_cutout_back) / 2;
+            top_cutout_final_rounding = max(0, min(top_cutout_width / 2, top_cutout_depth / 2, top_bottom_cutout_rounding));
+            top_cutout_rounding_edges = top_cutout_front_margin > 0 ? "Z" : [LEFT + BACK, RIGHT + BACK];
+            if ( (holder_top_bottom_cutout == "Top" || holder_top_bottom_cutout == "Both") && top_cutout_width > 0 && top_cutout_depth > 0)
+              right(top_cutout_x) up(top_cutout_z)
+                  attach(FRONT, BOTTOM, inside=true)
+                    cuboid([top_cutout_width, top_cutout_depth + EPS * 2, holder_front_thickness + final_corner_rounding + EPS * 2], edges=top_cutout_rounding_edges, rounding=top_cutout_final_rounding);
+            //bottom cutout
+            bottom_cutout_width = item_width - bottom_cutout_left_margin - bottom_cutout_right_margin;
+            bottom_cutout_depth = item_depth - bottom_cutout_back_margin - bottom_cutout_front_margin;
+            bottom_cutout_x = (bottom_cutout_left_margin - bottom_cutout_right_margin) / 2;
+            bottom_cutout_front = -holder_depth / 2 + bottom_cutout_front_margin + holder_thickness;
+            bottom_cutout_back = holder_depth / 2 - holder_top_thickness - bottom_cutout_back_margin;
+            bottom_cutout_z = (bottom_cutout_front + bottom_cutout_back) / 2;
+            bottom_cutout_final_rounding = max(0, min(bottom_cutout_width / 2, bottom_cutout_depth / 2, top_bottom_cutout_rounding));
+            bottom_cutout_rounding_edges = bottom_cutout_front_margin > 0 ? "Z" : [LEFT + BACK, RIGHT + BACK];
+            if ( (holder_top_bottom_cutout == "Bottom" || holder_top_bottom_cutout == "Both") && bottom_cutout_width > 0 && bottom_cutout_depth > 0)
+              right(bottom_cutout_x) up(bottom_cutout_z)
+                  attach(BACK, BOTTOM, inside=true)
+                    cuboid([bottom_cutout_width, bottom_cutout_depth + EPS * 2, holder_thickness + final_corner_rounding + EPS * 2], edges=bottom_cutout_rounding_edges, rounding=bottom_cutout_final_rounding);
+            //openconnect slots
             attach_anchor = holder_slot_position == "Back" ? TOP : FRONT;
             flat_region = holder_slot_position == "Back" ? left(slot_horizontal_offset, fwd(slot_vertical_offset, rect([holder_width, holder_height], rounding=final_corner_rounding))) : left(slot_horizontal_offset, fwd(slot_vertical_offset, rect([holder_width - final_corner_rounding * 2, holder_depth])));
             attach(attach_anchor, TOP, inside=true) {
               right(slot_horizontal_offset) back(slot_vertical_offset)
-                  #openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids + slot_horizontal_count_adjust, vertical_grids=final_slot_v_grids + slot_vertical_count_adjust, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=skip_slot_fit_check ? [] : [flat_region]);
+                  openconnect_slot_grid(slot_cfg=_slot_cfg, slot_type="slot", horizontal_grids=final_slot_h_grids + slot_horizontal_count_adjust, vertical_grids=final_slot_v_grids + slot_vertical_count_adjust, slot_position=slot_position, slot_lock_distribution=slot_lock_distribution, slot_lock_side=slot_lock_side, slot_entryramp_flip=slot_entryramp_flip, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=skip_slot_fit_check ? [] : [flat_region]);
               // openconnect_slot_grid_limit_debug(slot_cfg=_slot_cfg, horizontal_grids=final_slot_h_grids, vertical_grids=final_slot_v_grids, slot_slide_direction=slot_slide_direction, excess_thickness=EPS, limit_region=[flat_region]);
             }
+            //outer teardrop rounding
             if (final_corner_rounding > 0)
               edge_mask([LEFT + FRONT, LEFT + BACK, RIGHT + FRONT, RIGHT + BACK])
                 yflip() teardrop_edge_mask(l=$edge_length, r=final_corner_rounding, spin=-90);
