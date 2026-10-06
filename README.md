@@ -37,7 +37,7 @@ A wall-mounted shelf generator. It is "sturdy" because it is designed to be prin
 
 Customizable: type (standard/slim), size, thickness, truss length, edge styles, surface textures.
 
-### openconnect_general_holder.scad [(online)](https://makerworld.com/en/models/2257483-openconnect-general-holder-generator)
+### openconnect_general_holder.scad [(online)](https://makerworld.com/en/models/2985890-openconnect-general-holder-generator)
 
 <p><img src="images/openconnect_general_holder_default.jpg" width="360" alt="openConnect general holder default render"> <img src="images/openconnect_general_holder_gallery.jpg" width="360" alt="openConnect general holder gallery render"></p>
 
