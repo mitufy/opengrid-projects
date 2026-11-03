@@ -6,8 +6,8 @@ Created by mitufy. https://github.com/mitufy
 openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 */
 
-include <BOSL2/threading.scad>
 include <opengrid_base.scad>
+include <BOSL2/threading.scad>
 
 function threads_cfg(
   threads_type = "Blunt",
