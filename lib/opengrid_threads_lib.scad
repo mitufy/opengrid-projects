@@ -6,8 +6,8 @@ Created by mitufy. https://github.com/mitufy
 openGrid is created by David D: https://www.printables.com/model/1214361-opengrid-walldesk-mounting-framework-and-ecosystem.
 */
 
-include <BOSL2/threading.scad>
 include <opengrid_base.scad>
+include <BOSL2/threading.scad>
 
 function threads_cfg(
   threads_type = "Blunt",
@@ -210,7 +210,7 @@ module expanding_threads(threads_height = OG_STANDARD_THICKNESS, threads_cfg = [
               aseg_position = _entry_height + expand_height_step * a;
               aseg_expansion_distance = min(_expand_distance, expand_distance_step * (a + 1));
               zrot(-_expand_split_angle)
-                partition(spread=-aseg_expansion_distance - EPS, cutpath="flat", $slop=aseg_expansion_distance / 2)
+                back_half(pattern="flat", flip="both", spread=-aseg_expansion_distance - EPS, offset=-aseg_expansion_distance / 2)
                   zrot(_expand_split_angle) up(aseg_position) zrot(aseg_position * thread_degrees_per_mm)
                         negative_snap_threads(threads_height=expand_height_step + EPS, text_cfg=_no_text_cfg, threads_cfg=struct_merge(_threads_cfg, concat(_no_cutoff_cfg, _no_top_bevel_cfg, _no_bottom_bevel_cfg)));
             }
@@ -221,7 +221,7 @@ module expanding_threads(threads_height = OG_STANDARD_THICKNESS, threads_cfg = [
           if (_end_height > 0) {
             if (_expand_distance > 0)
               zrot(-_expand_split_angle)
-                partition(spread=-_expand_distance - EPS, cutpath="flat", $slop=_expand_distance / 2)
+                back_half(pattern="flat", flip="both", spread=-_expand_distance - EPS, offset=-_expand_distance / 2)
                   zrot(_expand_split_angle) up(_entry_height + transition_height) zrot((_entry_height + transition_height) * thread_degrees_per_mm)
                         negative_snap_threads(threads_height=max(_end_height, 0) + EPS, text_cfg=_no_text_cfg, threads_cfg=struct_merge(_threads_cfg, concat(_no_cutoff_cfg, _no_top_bevel_cfg)));
             else
